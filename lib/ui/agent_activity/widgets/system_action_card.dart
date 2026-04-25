@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:memex/db/app_database.dart';
 import 'package:memex/data/services/system_action_service.dart';
@@ -63,8 +64,13 @@ class _SystemActionCardState extends State<SystemActionCard> {
         notes: data['notes'],
       );
     } else {
+      // On Android, reminders are implemented via calendar events,
+      // so we need calendar permission instead of iOS-only reminders permission.
+      final reminderPermission = Platform.isAndroid
+          ? Permission.calendarFullAccess
+          : Permission.reminders;
       if (!await _checkAndRequestPermission(
-          Permission.reminders, UserStorage.l10n.reminders)) {
+          reminderPermission, UserStorage.l10n.reminders)) {
         setState(() => _isProcessing = false);
         return;
       }
