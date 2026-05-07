@@ -2143,4 +2143,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get untitledCard => 'Untitled card';
+
+  @override
+  String get settingsSearchPlaceholder => 'Search settings...';
+
+  @override
+  String get settingsSearchEmpty => 'No matching settings found';
 }

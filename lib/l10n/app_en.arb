@@ -964,5 +964,8 @@
   "cdnSignalsComments": "New reply received",
   "cdnSignalsInsight": "New insight generated",
   "cdnSignalsBoth": "New reply and insight",
-  "untitledCard": "Untitled card"
+  "untitledCard": "Untitled card",
+
+  "settingsSearchPlaceholder": "Search settings...",
+  "settingsSearchEmpty": "No matching settings found"
 }

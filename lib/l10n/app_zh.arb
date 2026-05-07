@@ -942,5 +942,8 @@
   "cdnSignalsComments": "收到新回复",
   "cdnSignalsInsight": "生成了新洞察",
   "cdnSignalsBoth": "有新回复和洞察",
-  "untitledCard": "未命名卡片"
+  "untitledCard": "未命名卡片",
+
+  "settingsSearchPlaceholder": "搜索设置项...",
+  "settingsSearchEmpty": "未找到匹配的设置项"
 }
