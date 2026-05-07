@@ -3913,6 +3913,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Untitled card'**
   String get untitledCard;
+
+  /// No description provided for @settingsSearchPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Search settings...'**
+  String get settingsSearchPlaceholder;
+
+  /// No description provided for @settingsSearchEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching settings found'**
+  String get settingsSearchEmpty;
 }
 
 class _AppLocalizationsDelegate

@@ -2063,4 +2063,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get untitledCard => '未命名卡片';
+
+  @override
+  String get settingsSearchPlaceholder => '搜索设置项...';
+
+  @override
+  String get settingsSearchEmpty => '未找到匹配的设置项';
 }
