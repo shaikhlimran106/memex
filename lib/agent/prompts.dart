@@ -393,7 +393,7 @@ $relatedKnowledge
 
   static String knowledgeInsightAgentKnowledgeInsightSkillPrompt(
           String instruction) =>
-      r'''## Skill Name
+      '''## Skill Name
 `update_knowledge_insight`
 
 ## Persona
