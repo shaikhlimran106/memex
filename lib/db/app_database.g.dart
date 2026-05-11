@@ -2184,6 +2184,1040 @@ class SystemActionsCompanion extends UpdateCompanion<SystemAction> {
   }
 }
 
+class $ClarificationRequestsTable extends ClarificationRequests
+    with TableInfo<$ClarificationRequestsTable, ClarificationRequest> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ClarificationRequestsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _questionMeta =
+      const VerificationMeta('question');
+  @override
+  late final GeneratedColumn<String> question = GeneratedColumn<String>(
+      'question', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _responseTypeMeta =
+      const VerificationMeta('responseType');
+  @override
+  late final GeneratedColumn<String> responseType = GeneratedColumn<String>(
+      'response_type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _optionsMeta =
+      const VerificationMeta('options');
+  @override
+  late final GeneratedColumn<String> options = GeneratedColumn<String>(
+      'options', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _answerDataMeta =
+      const VerificationMeta('answerData');
+  @override
+  late final GeneratedColumn<String> answerData = GeneratedColumn<String>(
+      'answer_data', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _entityTypeMeta =
+      const VerificationMeta('entityType');
+  @override
+  late final GeneratedColumn<String> entityType = GeneratedColumn<String>(
+      'entity_type', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _entityLabelMeta =
+      const VerificationMeta('entityLabel');
+  @override
+  late final GeneratedColumn<String> entityLabel = GeneratedColumn<String>(
+      'entity_label', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _evidenceFactIdsMeta =
+      const VerificationMeta('evidenceFactIds');
+  @override
+  late final GeneratedColumn<String> evidenceFactIds = GeneratedColumn<String>(
+      'evidence_fact_ids', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+      'reason', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _impactMeta = const VerificationMeta('impact');
+  @override
+  late final GeneratedColumn<String> impact = GeneratedColumn<String>(
+      'impact', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _confidenceMeta =
+      const VerificationMeta('confidence');
+  @override
+  late final GeneratedColumn<double> confidence = GeneratedColumn<double>(
+      'confidence', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _proposedMemoryMeta =
+      const VerificationMeta('proposedMemory');
+  @override
+  late final GeneratedColumn<String> proposedMemory = GeneratedColumn<String>(
+      'proposed_memory', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _resolutionTargetMeta =
+      const VerificationMeta('resolutionTarget');
+  @override
+  late final GeneratedColumn<String> resolutionTarget = GeneratedColumn<String>(
+      'resolution_target', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _sourceAgentMeta =
+      const VerificationMeta('sourceAgent');
+  @override
+  late final GeneratedColumn<String> sourceAgent = GeneratedColumn<String>(
+      'source_agent', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _dedupeKeyMeta =
+      const VerificationMeta('dedupeKey');
+  @override
+  late final GeneratedColumn<String> dedupeKey = GeneratedColumn<String>(
+      'dedupe_key', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _factIdMeta = const VerificationMeta('factId');
+  @override
+  late final GeneratedColumn<String> factId = GeneratedColumn<String>(
+      'fact_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _errorMeta = const VerificationMeta('error');
+  @override
+  late final GeneratedColumn<String> error = GeneratedColumn<String>(
+      'error', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+      'created_at', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+      'updated_at', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _answeredAtMeta =
+      const VerificationMeta('answeredAt');
+  @override
+  late final GeneratedColumn<int> answeredAt = GeneratedColumn<int>(
+      'answered_at', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _expiresAtMeta =
+      const VerificationMeta('expiresAt');
+  @override
+  late final GeneratedColumn<int> expiresAt = GeneratedColumn<int>(
+      'expires_at', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        question,
+        responseType,
+        options,
+        status,
+        answerData,
+        entityType,
+        entityLabel,
+        evidenceFactIds,
+        reason,
+        impact,
+        confidence,
+        proposedMemory,
+        resolutionTarget,
+        sourceAgent,
+        dedupeKey,
+        factId,
+        error,
+        createdAt,
+        updatedAt,
+        answeredAt,
+        expiresAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'clarification_requests';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<ClarificationRequest> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('question')) {
+      context.handle(_questionMeta,
+          question.isAcceptableOrUnknown(data['question']!, _questionMeta));
+    } else if (isInserting) {
+      context.missing(_questionMeta);
+    }
+    if (data.containsKey('response_type')) {
+      context.handle(
+          _responseTypeMeta,
+          responseType.isAcceptableOrUnknown(
+              data['response_type']!, _responseTypeMeta));
+    } else if (isInserting) {
+      context.missing(_responseTypeMeta);
+    }
+    if (data.containsKey('options')) {
+      context.handle(_optionsMeta,
+          options.isAcceptableOrUnknown(data['options']!, _optionsMeta));
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('answer_data')) {
+      context.handle(
+          _answerDataMeta,
+          answerData.isAcceptableOrUnknown(
+              data['answer_data']!, _answerDataMeta));
+    }
+    if (data.containsKey('entity_type')) {
+      context.handle(
+          _entityTypeMeta,
+          entityType.isAcceptableOrUnknown(
+              data['entity_type']!, _entityTypeMeta));
+    }
+    if (data.containsKey('entity_label')) {
+      context.handle(
+          _entityLabelMeta,
+          entityLabel.isAcceptableOrUnknown(
+              data['entity_label']!, _entityLabelMeta));
+    }
+    if (data.containsKey('evidence_fact_ids')) {
+      context.handle(
+          _evidenceFactIdsMeta,
+          evidenceFactIds.isAcceptableOrUnknown(
+              data['evidence_fact_ids']!, _evidenceFactIdsMeta));
+    }
+    if (data.containsKey('reason')) {
+      context.handle(_reasonMeta,
+          reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta));
+    }
+    if (data.containsKey('impact')) {
+      context.handle(_impactMeta,
+          impact.isAcceptableOrUnknown(data['impact']!, _impactMeta));
+    }
+    if (data.containsKey('confidence')) {
+      context.handle(
+          _confidenceMeta,
+          confidence.isAcceptableOrUnknown(
+              data['confidence']!, _confidenceMeta));
+    }
+    if (data.containsKey('proposed_memory')) {
+      context.handle(
+          _proposedMemoryMeta,
+          proposedMemory.isAcceptableOrUnknown(
+              data['proposed_memory']!, _proposedMemoryMeta));
+    }
+    if (data.containsKey('resolution_target')) {
+      context.handle(
+          _resolutionTargetMeta,
+          resolutionTarget.isAcceptableOrUnknown(
+              data['resolution_target']!, _resolutionTargetMeta));
+    }
+    if (data.containsKey('source_agent')) {
+      context.handle(
+          _sourceAgentMeta,
+          sourceAgent.isAcceptableOrUnknown(
+              data['source_agent']!, _sourceAgentMeta));
+    }
+    if (data.containsKey('dedupe_key')) {
+      context.handle(_dedupeKeyMeta,
+          dedupeKey.isAcceptableOrUnknown(data['dedupe_key']!, _dedupeKeyMeta));
+    }
+    if (data.containsKey('fact_id')) {
+      context.handle(_factIdMeta,
+          factId.isAcceptableOrUnknown(data['fact_id']!, _factIdMeta));
+    }
+    if (data.containsKey('error')) {
+      context.handle(
+          _errorMeta, error.isAcceptableOrUnknown(data['error']!, _errorMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('answered_at')) {
+      context.handle(
+          _answeredAtMeta,
+          answeredAt.isAcceptableOrUnknown(
+              data['answered_at']!, _answeredAtMeta));
+    }
+    if (data.containsKey('expires_at')) {
+      context.handle(_expiresAtMeta,
+          expiresAt.isAcceptableOrUnknown(data['expires_at']!, _expiresAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ClarificationRequest map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ClarificationRequest(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      question: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}question'])!,
+      responseType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}response_type'])!,
+      options: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}options']),
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      answerData: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}answer_data']),
+      entityType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}entity_type']),
+      entityLabel: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}entity_label']),
+      evidenceFactIds: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}evidence_fact_ids']),
+      reason: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}reason']),
+      impact: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}impact']),
+      confidence: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}confidence']),
+      proposedMemory: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}proposed_memory']),
+      resolutionTarget: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}resolution_target']),
+      sourceAgent: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}source_agent']),
+      dedupeKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}dedupe_key']),
+      factId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}fact_id']),
+      error: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}error']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}created_at']),
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}updated_at']),
+      answeredAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}answered_at']),
+      expiresAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}expires_at']),
+    );
+  }
+
+  @override
+  $ClarificationRequestsTable createAlias(String alias) {
+    return $ClarificationRequestsTable(attachedDatabase, alias);
+  }
+}
+
+class ClarificationRequest extends DataClass
+    implements Insertable<ClarificationRequest> {
+  final String id;
+  final String question;
+  final String responseType;
+  final String? options;
+  final String status;
+  final String? answerData;
+  final String? entityType;
+  final String? entityLabel;
+  final String? evidenceFactIds;
+  final String? reason;
+  final String? impact;
+  final double? confidence;
+  final String? proposedMemory;
+  final String? resolutionTarget;
+  final String? sourceAgent;
+  final String? dedupeKey;
+  final String? factId;
+  final String? error;
+  final int? createdAt;
+  final int? updatedAt;
+  final int? answeredAt;
+  final int? expiresAt;
+  const ClarificationRequest(
+      {required this.id,
+      required this.question,
+      required this.responseType,
+      this.options,
+      required this.status,
+      this.answerData,
+      this.entityType,
+      this.entityLabel,
+      this.evidenceFactIds,
+      this.reason,
+      this.impact,
+      this.confidence,
+      this.proposedMemory,
+      this.resolutionTarget,
+      this.sourceAgent,
+      this.dedupeKey,
+      this.factId,
+      this.error,
+      this.createdAt,
+      this.updatedAt,
+      this.answeredAt,
+      this.expiresAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['question'] = Variable<String>(question);
+    map['response_type'] = Variable<String>(responseType);
+    if (!nullToAbsent || options != null) {
+      map['options'] = Variable<String>(options);
+    }
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || answerData != null) {
+      map['answer_data'] = Variable<String>(answerData);
+    }
+    if (!nullToAbsent || entityType != null) {
+      map['entity_type'] = Variable<String>(entityType);
+    }
+    if (!nullToAbsent || entityLabel != null) {
+      map['entity_label'] = Variable<String>(entityLabel);
+    }
+    if (!nullToAbsent || evidenceFactIds != null) {
+      map['evidence_fact_ids'] = Variable<String>(evidenceFactIds);
+    }
+    if (!nullToAbsent || reason != null) {
+      map['reason'] = Variable<String>(reason);
+    }
+    if (!nullToAbsent || impact != null) {
+      map['impact'] = Variable<String>(impact);
+    }
+    if (!nullToAbsent || confidence != null) {
+      map['confidence'] = Variable<double>(confidence);
+    }
+    if (!nullToAbsent || proposedMemory != null) {
+      map['proposed_memory'] = Variable<String>(proposedMemory);
+    }
+    if (!nullToAbsent || resolutionTarget != null) {
+      map['resolution_target'] = Variable<String>(resolutionTarget);
+    }
+    if (!nullToAbsent || sourceAgent != null) {
+      map['source_agent'] = Variable<String>(sourceAgent);
+    }
+    if (!nullToAbsent || dedupeKey != null) {
+      map['dedupe_key'] = Variable<String>(dedupeKey);
+    }
+    if (!nullToAbsent || factId != null) {
+      map['fact_id'] = Variable<String>(factId);
+    }
+    if (!nullToAbsent || error != null) {
+      map['error'] = Variable<String>(error);
+    }
+    if (!nullToAbsent || createdAt != null) {
+      map['created_at'] = Variable<int>(createdAt);
+    }
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<int>(updatedAt);
+    }
+    if (!nullToAbsent || answeredAt != null) {
+      map['answered_at'] = Variable<int>(answeredAt);
+    }
+    if (!nullToAbsent || expiresAt != null) {
+      map['expires_at'] = Variable<int>(expiresAt);
+    }
+    return map;
+  }
+
+  ClarificationRequestsCompanion toCompanion(bool nullToAbsent) {
+    return ClarificationRequestsCompanion(
+      id: Value(id),
+      question: Value(question),
+      responseType: Value(responseType),
+      options: options == null && nullToAbsent
+          ? const Value.absent()
+          : Value(options),
+      status: Value(status),
+      answerData: answerData == null && nullToAbsent
+          ? const Value.absent()
+          : Value(answerData),
+      entityType: entityType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(entityType),
+      entityLabel: entityLabel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(entityLabel),
+      evidenceFactIds: evidenceFactIds == null && nullToAbsent
+          ? const Value.absent()
+          : Value(evidenceFactIds),
+      reason:
+          reason == null && nullToAbsent ? const Value.absent() : Value(reason),
+      impact:
+          impact == null && nullToAbsent ? const Value.absent() : Value(impact),
+      confidence: confidence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(confidence),
+      proposedMemory: proposedMemory == null && nullToAbsent
+          ? const Value.absent()
+          : Value(proposedMemory),
+      resolutionTarget: resolutionTarget == null && nullToAbsent
+          ? const Value.absent()
+          : Value(resolutionTarget),
+      sourceAgent: sourceAgent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceAgent),
+      dedupeKey: dedupeKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dedupeKey),
+      factId:
+          factId == null && nullToAbsent ? const Value.absent() : Value(factId),
+      error:
+          error == null && nullToAbsent ? const Value.absent() : Value(error),
+      createdAt: createdAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdAt),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      answeredAt: answeredAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(answeredAt),
+      expiresAt: expiresAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expiresAt),
+    );
+  }
+
+  factory ClarificationRequest.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ClarificationRequest(
+      id: serializer.fromJson<String>(json['id']),
+      question: serializer.fromJson<String>(json['question']),
+      responseType: serializer.fromJson<String>(json['responseType']),
+      options: serializer.fromJson<String?>(json['options']),
+      status: serializer.fromJson<String>(json['status']),
+      answerData: serializer.fromJson<String?>(json['answerData']),
+      entityType: serializer.fromJson<String?>(json['entityType']),
+      entityLabel: serializer.fromJson<String?>(json['entityLabel']),
+      evidenceFactIds: serializer.fromJson<String?>(json['evidenceFactIds']),
+      reason: serializer.fromJson<String?>(json['reason']),
+      impact: serializer.fromJson<String?>(json['impact']),
+      confidence: serializer.fromJson<double?>(json['confidence']),
+      proposedMemory: serializer.fromJson<String?>(json['proposedMemory']),
+      resolutionTarget: serializer.fromJson<String?>(json['resolutionTarget']),
+      sourceAgent: serializer.fromJson<String?>(json['sourceAgent']),
+      dedupeKey: serializer.fromJson<String?>(json['dedupeKey']),
+      factId: serializer.fromJson<String?>(json['factId']),
+      error: serializer.fromJson<String?>(json['error']),
+      createdAt: serializer.fromJson<int?>(json['createdAt']),
+      updatedAt: serializer.fromJson<int?>(json['updatedAt']),
+      answeredAt: serializer.fromJson<int?>(json['answeredAt']),
+      expiresAt: serializer.fromJson<int?>(json['expiresAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'question': serializer.toJson<String>(question),
+      'responseType': serializer.toJson<String>(responseType),
+      'options': serializer.toJson<String?>(options),
+      'status': serializer.toJson<String>(status),
+      'answerData': serializer.toJson<String?>(answerData),
+      'entityType': serializer.toJson<String?>(entityType),
+      'entityLabel': serializer.toJson<String?>(entityLabel),
+      'evidenceFactIds': serializer.toJson<String?>(evidenceFactIds),
+      'reason': serializer.toJson<String?>(reason),
+      'impact': serializer.toJson<String?>(impact),
+      'confidence': serializer.toJson<double?>(confidence),
+      'proposedMemory': serializer.toJson<String?>(proposedMemory),
+      'resolutionTarget': serializer.toJson<String?>(resolutionTarget),
+      'sourceAgent': serializer.toJson<String?>(sourceAgent),
+      'dedupeKey': serializer.toJson<String?>(dedupeKey),
+      'factId': serializer.toJson<String?>(factId),
+      'error': serializer.toJson<String?>(error),
+      'createdAt': serializer.toJson<int?>(createdAt),
+      'updatedAt': serializer.toJson<int?>(updatedAt),
+      'answeredAt': serializer.toJson<int?>(answeredAt),
+      'expiresAt': serializer.toJson<int?>(expiresAt),
+    };
+  }
+
+  ClarificationRequest copyWith(
+          {String? id,
+          String? question,
+          String? responseType,
+          Value<String?> options = const Value.absent(),
+          String? status,
+          Value<String?> answerData = const Value.absent(),
+          Value<String?> entityType = const Value.absent(),
+          Value<String?> entityLabel = const Value.absent(),
+          Value<String?> evidenceFactIds = const Value.absent(),
+          Value<String?> reason = const Value.absent(),
+          Value<String?> impact = const Value.absent(),
+          Value<double?> confidence = const Value.absent(),
+          Value<String?> proposedMemory = const Value.absent(),
+          Value<String?> resolutionTarget = const Value.absent(),
+          Value<String?> sourceAgent = const Value.absent(),
+          Value<String?> dedupeKey = const Value.absent(),
+          Value<String?> factId = const Value.absent(),
+          Value<String?> error = const Value.absent(),
+          Value<int?> createdAt = const Value.absent(),
+          Value<int?> updatedAt = const Value.absent(),
+          Value<int?> answeredAt = const Value.absent(),
+          Value<int?> expiresAt = const Value.absent()}) =>
+      ClarificationRequest(
+        id: id ?? this.id,
+        question: question ?? this.question,
+        responseType: responseType ?? this.responseType,
+        options: options.present ? options.value : this.options,
+        status: status ?? this.status,
+        answerData: answerData.present ? answerData.value : this.answerData,
+        entityType: entityType.present ? entityType.value : this.entityType,
+        entityLabel: entityLabel.present ? entityLabel.value : this.entityLabel,
+        evidenceFactIds: evidenceFactIds.present
+            ? evidenceFactIds.value
+            : this.evidenceFactIds,
+        reason: reason.present ? reason.value : this.reason,
+        impact: impact.present ? impact.value : this.impact,
+        confidence: confidence.present ? confidence.value : this.confidence,
+        proposedMemory:
+            proposedMemory.present ? proposedMemory.value : this.proposedMemory,
+        resolutionTarget: resolutionTarget.present
+            ? resolutionTarget.value
+            : this.resolutionTarget,
+        sourceAgent: sourceAgent.present ? sourceAgent.value : this.sourceAgent,
+        dedupeKey: dedupeKey.present ? dedupeKey.value : this.dedupeKey,
+        factId: factId.present ? factId.value : this.factId,
+        error: error.present ? error.value : this.error,
+        createdAt: createdAt.present ? createdAt.value : this.createdAt,
+        updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+        answeredAt: answeredAt.present ? answeredAt.value : this.answeredAt,
+        expiresAt: expiresAt.present ? expiresAt.value : this.expiresAt,
+      );
+  ClarificationRequest copyWithCompanion(ClarificationRequestsCompanion data) {
+    return ClarificationRequest(
+      id: data.id.present ? data.id.value : this.id,
+      question: data.question.present ? data.question.value : this.question,
+      responseType: data.responseType.present
+          ? data.responseType.value
+          : this.responseType,
+      options: data.options.present ? data.options.value : this.options,
+      status: data.status.present ? data.status.value : this.status,
+      answerData:
+          data.answerData.present ? data.answerData.value : this.answerData,
+      entityType:
+          data.entityType.present ? data.entityType.value : this.entityType,
+      entityLabel:
+          data.entityLabel.present ? data.entityLabel.value : this.entityLabel,
+      evidenceFactIds: data.evidenceFactIds.present
+          ? data.evidenceFactIds.value
+          : this.evidenceFactIds,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      impact: data.impact.present ? data.impact.value : this.impact,
+      confidence:
+          data.confidence.present ? data.confidence.value : this.confidence,
+      proposedMemory: data.proposedMemory.present
+          ? data.proposedMemory.value
+          : this.proposedMemory,
+      resolutionTarget: data.resolutionTarget.present
+          ? data.resolutionTarget.value
+          : this.resolutionTarget,
+      sourceAgent:
+          data.sourceAgent.present ? data.sourceAgent.value : this.sourceAgent,
+      dedupeKey: data.dedupeKey.present ? data.dedupeKey.value : this.dedupeKey,
+      factId: data.factId.present ? data.factId.value : this.factId,
+      error: data.error.present ? data.error.value : this.error,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      answeredAt:
+          data.answeredAt.present ? data.answeredAt.value : this.answeredAt,
+      expiresAt: data.expiresAt.present ? data.expiresAt.value : this.expiresAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ClarificationRequest(')
+          ..write('id: $id, ')
+          ..write('question: $question, ')
+          ..write('responseType: $responseType, ')
+          ..write('options: $options, ')
+          ..write('status: $status, ')
+          ..write('answerData: $answerData, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityLabel: $entityLabel, ')
+          ..write('evidenceFactIds: $evidenceFactIds, ')
+          ..write('reason: $reason, ')
+          ..write('impact: $impact, ')
+          ..write('confidence: $confidence, ')
+          ..write('proposedMemory: $proposedMemory, ')
+          ..write('resolutionTarget: $resolutionTarget, ')
+          ..write('sourceAgent: $sourceAgent, ')
+          ..write('dedupeKey: $dedupeKey, ')
+          ..write('factId: $factId, ')
+          ..write('error: $error, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('answeredAt: $answeredAt, ')
+          ..write('expiresAt: $expiresAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+        id,
+        question,
+        responseType,
+        options,
+        status,
+        answerData,
+        entityType,
+        entityLabel,
+        evidenceFactIds,
+        reason,
+        impact,
+        confidence,
+        proposedMemory,
+        resolutionTarget,
+        sourceAgent,
+        dedupeKey,
+        factId,
+        error,
+        createdAt,
+        updatedAt,
+        answeredAt,
+        expiresAt
+      ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ClarificationRequest &&
+          other.id == this.id &&
+          other.question == this.question &&
+          other.responseType == this.responseType &&
+          other.options == this.options &&
+          other.status == this.status &&
+          other.answerData == this.answerData &&
+          other.entityType == this.entityType &&
+          other.entityLabel == this.entityLabel &&
+          other.evidenceFactIds == this.evidenceFactIds &&
+          other.reason == this.reason &&
+          other.impact == this.impact &&
+          other.confidence == this.confidence &&
+          other.proposedMemory == this.proposedMemory &&
+          other.resolutionTarget == this.resolutionTarget &&
+          other.sourceAgent == this.sourceAgent &&
+          other.dedupeKey == this.dedupeKey &&
+          other.factId == this.factId &&
+          other.error == this.error &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.answeredAt == this.answeredAt &&
+          other.expiresAt == this.expiresAt);
+}
+
+class ClarificationRequestsCompanion
+    extends UpdateCompanion<ClarificationRequest> {
+  final Value<String> id;
+  final Value<String> question;
+  final Value<String> responseType;
+  final Value<String?> options;
+  final Value<String> status;
+  final Value<String?> answerData;
+  final Value<String?> entityType;
+  final Value<String?> entityLabel;
+  final Value<String?> evidenceFactIds;
+  final Value<String?> reason;
+  final Value<String?> impact;
+  final Value<double?> confidence;
+  final Value<String?> proposedMemory;
+  final Value<String?> resolutionTarget;
+  final Value<String?> sourceAgent;
+  final Value<String?> dedupeKey;
+  final Value<String?> factId;
+  final Value<String?> error;
+  final Value<int?> createdAt;
+  final Value<int?> updatedAt;
+  final Value<int?> answeredAt;
+  final Value<int?> expiresAt;
+  final Value<int> rowid;
+  const ClarificationRequestsCompanion({
+    this.id = const Value.absent(),
+    this.question = const Value.absent(),
+    this.responseType = const Value.absent(),
+    this.options = const Value.absent(),
+    this.status = const Value.absent(),
+    this.answerData = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.entityLabel = const Value.absent(),
+    this.evidenceFactIds = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.impact = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.proposedMemory = const Value.absent(),
+    this.resolutionTarget = const Value.absent(),
+    this.sourceAgent = const Value.absent(),
+    this.dedupeKey = const Value.absent(),
+    this.factId = const Value.absent(),
+    this.error = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.answeredAt = const Value.absent(),
+    this.expiresAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ClarificationRequestsCompanion.insert({
+    required String id,
+    required String question,
+    required String responseType,
+    this.options = const Value.absent(),
+    required String status,
+    this.answerData = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.entityLabel = const Value.absent(),
+    this.evidenceFactIds = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.impact = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.proposedMemory = const Value.absent(),
+    this.resolutionTarget = const Value.absent(),
+    this.sourceAgent = const Value.absent(),
+    this.dedupeKey = const Value.absent(),
+    this.factId = const Value.absent(),
+    this.error = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.answeredAt = const Value.absent(),
+    this.expiresAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        question = Value(question),
+        responseType = Value(responseType),
+        status = Value(status);
+  static Insertable<ClarificationRequest> custom({
+    Expression<String>? id,
+    Expression<String>? question,
+    Expression<String>? responseType,
+    Expression<String>? options,
+    Expression<String>? status,
+    Expression<String>? answerData,
+    Expression<String>? entityType,
+    Expression<String>? entityLabel,
+    Expression<String>? evidenceFactIds,
+    Expression<String>? reason,
+    Expression<String>? impact,
+    Expression<double>? confidence,
+    Expression<String>? proposedMemory,
+    Expression<String>? resolutionTarget,
+    Expression<String>? sourceAgent,
+    Expression<String>? dedupeKey,
+    Expression<String>? factId,
+    Expression<String>? error,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<int>? answeredAt,
+    Expression<int>? expiresAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (question != null) 'question': question,
+      if (responseType != null) 'response_type': responseType,
+      if (options != null) 'options': options,
+      if (status != null) 'status': status,
+      if (answerData != null) 'answer_data': answerData,
+      if (entityType != null) 'entity_type': entityType,
+      if (entityLabel != null) 'entity_label': entityLabel,
+      if (evidenceFactIds != null) 'evidence_fact_ids': evidenceFactIds,
+      if (reason != null) 'reason': reason,
+      if (impact != null) 'impact': impact,
+      if (confidence != null) 'confidence': confidence,
+      if (proposedMemory != null) 'proposed_memory': proposedMemory,
+      if (resolutionTarget != null) 'resolution_target': resolutionTarget,
+      if (sourceAgent != null) 'source_agent': sourceAgent,
+      if (dedupeKey != null) 'dedupe_key': dedupeKey,
+      if (factId != null) 'fact_id': factId,
+      if (error != null) 'error': error,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (answeredAt != null) 'answered_at': answeredAt,
+      if (expiresAt != null) 'expires_at': expiresAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ClarificationRequestsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? question,
+      Value<String>? responseType,
+      Value<String?>? options,
+      Value<String>? status,
+      Value<String?>? answerData,
+      Value<String?>? entityType,
+      Value<String?>? entityLabel,
+      Value<String?>? evidenceFactIds,
+      Value<String?>? reason,
+      Value<String?>? impact,
+      Value<double?>? confidence,
+      Value<String?>? proposedMemory,
+      Value<String?>? resolutionTarget,
+      Value<String?>? sourceAgent,
+      Value<String?>? dedupeKey,
+      Value<String?>? factId,
+      Value<String?>? error,
+      Value<int?>? createdAt,
+      Value<int?>? updatedAt,
+      Value<int?>? answeredAt,
+      Value<int?>? expiresAt,
+      Value<int>? rowid}) {
+    return ClarificationRequestsCompanion(
+      id: id ?? this.id,
+      question: question ?? this.question,
+      responseType: responseType ?? this.responseType,
+      options: options ?? this.options,
+      status: status ?? this.status,
+      answerData: answerData ?? this.answerData,
+      entityType: entityType ?? this.entityType,
+      entityLabel: entityLabel ?? this.entityLabel,
+      evidenceFactIds: evidenceFactIds ?? this.evidenceFactIds,
+      reason: reason ?? this.reason,
+      impact: impact ?? this.impact,
+      confidence: confidence ?? this.confidence,
+      proposedMemory: proposedMemory ?? this.proposedMemory,
+      resolutionTarget: resolutionTarget ?? this.resolutionTarget,
+      sourceAgent: sourceAgent ?? this.sourceAgent,
+      dedupeKey: dedupeKey ?? this.dedupeKey,
+      factId: factId ?? this.factId,
+      error: error ?? this.error,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      answeredAt: answeredAt ?? this.answeredAt,
+      expiresAt: expiresAt ?? this.expiresAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (question.present) {
+      map['question'] = Variable<String>(question.value);
+    }
+    if (responseType.present) {
+      map['response_type'] = Variable<String>(responseType.value);
+    }
+    if (options.present) {
+      map['options'] = Variable<String>(options.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (answerData.present) {
+      map['answer_data'] = Variable<String>(answerData.value);
+    }
+    if (entityType.present) {
+      map['entity_type'] = Variable<String>(entityType.value);
+    }
+    if (entityLabel.present) {
+      map['entity_label'] = Variable<String>(entityLabel.value);
+    }
+    if (evidenceFactIds.present) {
+      map['evidence_fact_ids'] = Variable<String>(evidenceFactIds.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (impact.present) {
+      map['impact'] = Variable<String>(impact.value);
+    }
+    if (confidence.present) {
+      map['confidence'] = Variable<double>(confidence.value);
+    }
+    if (proposedMemory.present) {
+      map['proposed_memory'] = Variable<String>(proposedMemory.value);
+    }
+    if (resolutionTarget.present) {
+      map['resolution_target'] = Variable<String>(resolutionTarget.value);
+    }
+    if (sourceAgent.present) {
+      map['source_agent'] = Variable<String>(sourceAgent.value);
+    }
+    if (dedupeKey.present) {
+      map['dedupe_key'] = Variable<String>(dedupeKey.value);
+    }
+    if (factId.present) {
+      map['fact_id'] = Variable<String>(factId.value);
+    }
+    if (error.present) {
+      map['error'] = Variable<String>(error.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (answeredAt.present) {
+      map['answered_at'] = Variable<int>(answeredAt.value);
+    }
+    if (expiresAt.present) {
+      map['expires_at'] = Variable<int>(expiresAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ClarificationRequestsCompanion(')
+          ..write('id: $id, ')
+          ..write('question: $question, ')
+          ..write('responseType: $responseType, ')
+          ..write('options: $options, ')
+          ..write('status: $status, ')
+          ..write('answerData: $answerData, ')
+          ..write('entityType: $entityType, ')
+          ..write('entityLabel: $entityLabel, ')
+          ..write('evidenceFactIds: $evidenceFactIds, ')
+          ..write('reason: $reason, ')
+          ..write('impact: $impact, ')
+          ..write('confidence: $confidence, ')
+          ..write('proposedMemory: $proposedMemory, ')
+          ..write('resolutionTarget: $resolutionTarget, ')
+          ..write('sourceAgent: $sourceAgent, ')
+          ..write('dedupeKey: $dedupeKey, ')
+          ..write('factId: $factId, ')
+          ..write('error: $error, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('answeredAt: $answeredAt, ')
+          ..write('expiresAt: $expiresAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $PersonaChatMessagesTable extends PersonaChatMessages
     with TableInfo<$PersonaChatMessagesTable, PersonaChatMessage> {
   @override
@@ -2568,6 +3602,409 @@ class PersonaChatMessagesCompanion extends UpdateCompanion<PersonaChatMessage> {
   }
 }
 
+class $UserNotificationsTable extends UserNotifications
+    with TableInfo<$UserNotificationsTable, UserNotification> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UserNotificationsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+      'user_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _notificationTypeMeta =
+      const VerificationMeta('notificationType');
+  @override
+  late final GeneratedColumn<String> notificationType = GeneratedColumn<String>(
+      'notification_type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _subjectKeyMeta =
+      const VerificationMeta('subjectKey');
+  @override
+  late final GeneratedColumn<String> subjectKey = GeneratedColumn<String>(
+      'subject_key', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _payloadMeta =
+      const VerificationMeta('payload');
+  @override
+  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
+      'payload', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, userId, notificationType, subjectKey, payload, createdAt, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'user_notifications';
+  @override
+  VerificationContext validateIntegrity(Insertable<UserNotification> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(_userIdMeta,
+          userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta));
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('notification_type')) {
+      context.handle(
+          _notificationTypeMeta,
+          notificationType.isAcceptableOrUnknown(
+              data['notification_type']!, _notificationTypeMeta));
+    } else if (isInserting) {
+      context.missing(_notificationTypeMeta);
+    }
+    if (data.containsKey('subject_key')) {
+      context.handle(
+          _subjectKeyMeta,
+          subjectKey.isAcceptableOrUnknown(
+              data['subject_key']!, _subjectKeyMeta));
+    } else if (isInserting) {
+      context.missing(_subjectKeyMeta);
+    }
+    if (data.containsKey('payload')) {
+      context.handle(_payloadMeta,
+          payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  UserNotification map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UserNotification(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      userId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}user_id'])!,
+      notificationType: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}notification_type'])!,
+      subjectKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}subject_key'])!,
+      payload: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}payload']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $UserNotificationsTable createAlias(String alias) {
+    return $UserNotificationsTable(attachedDatabase, alias);
+  }
+}
+
+class UserNotification extends DataClass
+    implements Insertable<UserNotification> {
+  /// UUID v4 string.
+  final String id;
+  final String userId;
+
+  /// Open string namespace. First value: 'card_detail_update'.
+  final String notificationType;
+
+  /// Type-specific aggregation key. For card_detail_update: factId.
+  final String subjectKey;
+
+  /// Opaque JSON blob defined by the producer. Null allowed.
+  final String? payload;
+
+  /// Seconds since epoch.
+  final int createdAt;
+
+  /// Seconds since epoch.
+  final int updatedAt;
+  const UserNotification(
+      {required this.id,
+      required this.userId,
+      required this.notificationType,
+      required this.subjectKey,
+      this.payload,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['notification_type'] = Variable<String>(notificationType);
+    map['subject_key'] = Variable<String>(subjectKey);
+    if (!nullToAbsent || payload != null) {
+      map['payload'] = Variable<String>(payload);
+    }
+    map['created_at'] = Variable<int>(createdAt);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  UserNotificationsCompanion toCompanion(bool nullToAbsent) {
+    return UserNotificationsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      notificationType: Value(notificationType),
+      subjectKey: Value(subjectKey),
+      payload: payload == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payload),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory UserNotification.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UserNotification(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      notificationType: serializer.fromJson<String>(json['notificationType']),
+      subjectKey: serializer.fromJson<String>(json['subjectKey']),
+      payload: serializer.fromJson<String?>(json['payload']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'notificationType': serializer.toJson<String>(notificationType),
+      'subjectKey': serializer.toJson<String>(subjectKey),
+      'payload': serializer.toJson<String?>(payload),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  UserNotification copyWith(
+          {String? id,
+          String? userId,
+          String? notificationType,
+          String? subjectKey,
+          Value<String?> payload = const Value.absent(),
+          int? createdAt,
+          int? updatedAt}) =>
+      UserNotification(
+        id: id ?? this.id,
+        userId: userId ?? this.userId,
+        notificationType: notificationType ?? this.notificationType,
+        subjectKey: subjectKey ?? this.subjectKey,
+        payload: payload.present ? payload.value : this.payload,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  UserNotification copyWithCompanion(UserNotificationsCompanion data) {
+    return UserNotification(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      notificationType: data.notificationType.present
+          ? data.notificationType.value
+          : this.notificationType,
+      subjectKey:
+          data.subjectKey.present ? data.subjectKey.value : this.subjectKey,
+      payload: data.payload.present ? data.payload.value : this.payload,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserNotification(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('notificationType: $notificationType, ')
+          ..write('subjectKey: $subjectKey, ')
+          ..write('payload: $payload, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id, userId, notificationType, subjectKey, payload, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UserNotification &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.notificationType == this.notificationType &&
+          other.subjectKey == this.subjectKey &&
+          other.payload == this.payload &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class UserNotificationsCompanion extends UpdateCompanion<UserNotification> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<String> notificationType;
+  final Value<String> subjectKey;
+  final Value<String?> payload;
+  final Value<int> createdAt;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const UserNotificationsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.notificationType = const Value.absent(),
+    this.subjectKey = const Value.absent(),
+    this.payload = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  UserNotificationsCompanion.insert({
+    required String id,
+    required String userId,
+    required String notificationType,
+    required String subjectKey,
+    this.payload = const Value.absent(),
+    required int createdAt,
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        userId = Value(userId),
+        notificationType = Value(notificationType),
+        subjectKey = Value(subjectKey),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<UserNotification> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<String>? notificationType,
+    Expression<String>? subjectKey,
+    Expression<String>? payload,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (notificationType != null) 'notification_type': notificationType,
+      if (subjectKey != null) 'subject_key': subjectKey,
+      if (payload != null) 'payload': payload,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  UserNotificationsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? userId,
+      Value<String>? notificationType,
+      Value<String>? subjectKey,
+      Value<String?>? payload,
+      Value<int>? createdAt,
+      Value<int>? updatedAt,
+      Value<int>? rowid}) {
+    return UserNotificationsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      notificationType: notificationType ?? this.notificationType,
+      subjectKey: subjectKey ?? this.subjectKey,
+      payload: payload ?? this.payload,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (notificationType.present) {
+      map['notification_type'] = Variable<String>(notificationType.value);
+    }
+    if (subjectKey.present) {
+      map['subject_key'] = Variable<String>(subjectKey.value);
+    }
+    if (payload.present) {
+      map['payload'] = Variable<String>(payload.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserNotificationsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('notificationType: $notificationType, ')
+          ..write('subjectKey: $subjectKey, ')
+          ..write('payload: $payload, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2577,8 +4014,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $AgentActivityMessagesTable(this);
   late final $CardCacheTable cardCache = $CardCacheTable(this);
   late final $SystemActionsTable systemActions = $SystemActionsTable(this);
+  late final $ClarificationRequestsTable clarificationRequests =
+      $ClarificationRequestsTable(this);
   late final $PersonaChatMessagesTable personaChatMessages =
       $PersonaChatMessagesTable(this);
+  late final $UserNotificationsTable userNotifications =
+      $UserNotificationsTable(this);
   late final CardDao cardDao = CardDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
@@ -2590,7 +4031,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         agentActivityMessages,
         cardCache,
         systemActions,
-        personaChatMessages
+        clarificationRequests,
+        personaChatMessages,
+        userNotifications
       ];
 }
 
@@ -3682,6 +5125,448 @@ typedef $$SystemActionsTableProcessedTableManager = ProcessedTableManager<
     ),
     SystemAction,
     PrefetchHooks Function()>;
+typedef $$ClarificationRequestsTableCreateCompanionBuilder
+    = ClarificationRequestsCompanion Function({
+  required String id,
+  required String question,
+  required String responseType,
+  Value<String?> options,
+  required String status,
+  Value<String?> answerData,
+  Value<String?> entityType,
+  Value<String?> entityLabel,
+  Value<String?> evidenceFactIds,
+  Value<String?> reason,
+  Value<String?> impact,
+  Value<double?> confidence,
+  Value<String?> proposedMemory,
+  Value<String?> resolutionTarget,
+  Value<String?> sourceAgent,
+  Value<String?> dedupeKey,
+  Value<String?> factId,
+  Value<String?> error,
+  Value<int?> createdAt,
+  Value<int?> updatedAt,
+  Value<int?> answeredAt,
+  Value<int?> expiresAt,
+  Value<int> rowid,
+});
+typedef $$ClarificationRequestsTableUpdateCompanionBuilder
+    = ClarificationRequestsCompanion Function({
+  Value<String> id,
+  Value<String> question,
+  Value<String> responseType,
+  Value<String?> options,
+  Value<String> status,
+  Value<String?> answerData,
+  Value<String?> entityType,
+  Value<String?> entityLabel,
+  Value<String?> evidenceFactIds,
+  Value<String?> reason,
+  Value<String?> impact,
+  Value<double?> confidence,
+  Value<String?> proposedMemory,
+  Value<String?> resolutionTarget,
+  Value<String?> sourceAgent,
+  Value<String?> dedupeKey,
+  Value<String?> factId,
+  Value<String?> error,
+  Value<int?> createdAt,
+  Value<int?> updatedAt,
+  Value<int?> answeredAt,
+  Value<int?> expiresAt,
+  Value<int> rowid,
+});
+
+class $$ClarificationRequestsTableFilterComposer
+    extends Composer<_$AppDatabase, $ClarificationRequestsTable> {
+  $$ClarificationRequestsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get question => $composableBuilder(
+      column: $table.question, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get responseType => $composableBuilder(
+      column: $table.responseType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get options => $composableBuilder(
+      column: $table.options, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get answerData => $composableBuilder(
+      column: $table.answerData, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get entityLabel => $composableBuilder(
+      column: $table.entityLabel, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get evidenceFactIds => $composableBuilder(
+      column: $table.evidenceFactIds,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get reason => $composableBuilder(
+      column: $table.reason, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get impact => $composableBuilder(
+      column: $table.impact, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get confidence => $composableBuilder(
+      column: $table.confidence, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get proposedMemory => $composableBuilder(
+      column: $table.proposedMemory,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get resolutionTarget => $composableBuilder(
+      column: $table.resolutionTarget,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sourceAgent => $composableBuilder(
+      column: $table.sourceAgent, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get dedupeKey => $composableBuilder(
+      column: $table.dedupeKey, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get factId => $composableBuilder(
+      column: $table.factId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get error => $composableBuilder(
+      column: $table.error, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get answeredAt => $composableBuilder(
+      column: $table.answeredAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get expiresAt => $composableBuilder(
+      column: $table.expiresAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$ClarificationRequestsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ClarificationRequestsTable> {
+  $$ClarificationRequestsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get question => $composableBuilder(
+      column: $table.question, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get responseType => $composableBuilder(
+      column: $table.responseType,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get options => $composableBuilder(
+      column: $table.options, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get answerData => $composableBuilder(
+      column: $table.answerData, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get entityLabel => $composableBuilder(
+      column: $table.entityLabel, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get evidenceFactIds => $composableBuilder(
+      column: $table.evidenceFactIds,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+      column: $table.reason, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get impact => $composableBuilder(
+      column: $table.impact, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get confidence => $composableBuilder(
+      column: $table.confidence, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get proposedMemory => $composableBuilder(
+      column: $table.proposedMemory,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get resolutionTarget => $composableBuilder(
+      column: $table.resolutionTarget,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sourceAgent => $composableBuilder(
+      column: $table.sourceAgent, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get dedupeKey => $composableBuilder(
+      column: $table.dedupeKey, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get factId => $composableBuilder(
+      column: $table.factId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get error => $composableBuilder(
+      column: $table.error, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get answeredAt => $composableBuilder(
+      column: $table.answeredAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get expiresAt => $composableBuilder(
+      column: $table.expiresAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$ClarificationRequestsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ClarificationRequestsTable> {
+  $$ClarificationRequestsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get question =>
+      $composableBuilder(column: $table.question, builder: (column) => column);
+
+  GeneratedColumn<String> get responseType => $composableBuilder(
+      column: $table.responseType, builder: (column) => column);
+
+  GeneratedColumn<String> get options =>
+      $composableBuilder(column: $table.options, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get answerData => $composableBuilder(
+      column: $table.answerData, builder: (column) => column);
+
+  GeneratedColumn<String> get entityType => $composableBuilder(
+      column: $table.entityType, builder: (column) => column);
+
+  GeneratedColumn<String> get entityLabel => $composableBuilder(
+      column: $table.entityLabel, builder: (column) => column);
+
+  GeneratedColumn<String> get evidenceFactIds => $composableBuilder(
+      column: $table.evidenceFactIds, builder: (column) => column);
+
+  GeneratedColumn<String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  GeneratedColumn<String> get impact =>
+      $composableBuilder(column: $table.impact, builder: (column) => column);
+
+  GeneratedColumn<double> get confidence => $composableBuilder(
+      column: $table.confidence, builder: (column) => column);
+
+  GeneratedColumn<String> get proposedMemory => $composableBuilder(
+      column: $table.proposedMemory, builder: (column) => column);
+
+  GeneratedColumn<String> get resolutionTarget => $composableBuilder(
+      column: $table.resolutionTarget, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceAgent => $composableBuilder(
+      column: $table.sourceAgent, builder: (column) => column);
+
+  GeneratedColumn<String> get dedupeKey =>
+      $composableBuilder(column: $table.dedupeKey, builder: (column) => column);
+
+  GeneratedColumn<String> get factId =>
+      $composableBuilder(column: $table.factId, builder: (column) => column);
+
+  GeneratedColumn<String> get error =>
+      $composableBuilder(column: $table.error, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get answeredAt => $composableBuilder(
+      column: $table.answeredAt, builder: (column) => column);
+
+  GeneratedColumn<int> get expiresAt =>
+      $composableBuilder(column: $table.expiresAt, builder: (column) => column);
+}
+
+class $$ClarificationRequestsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ClarificationRequestsTable,
+    ClarificationRequest,
+    $$ClarificationRequestsTableFilterComposer,
+    $$ClarificationRequestsTableOrderingComposer,
+    $$ClarificationRequestsTableAnnotationComposer,
+    $$ClarificationRequestsTableCreateCompanionBuilder,
+    $$ClarificationRequestsTableUpdateCompanionBuilder,
+    (
+      ClarificationRequest,
+      BaseReferences<_$AppDatabase, $ClarificationRequestsTable,
+          ClarificationRequest>
+    ),
+    ClarificationRequest,
+    PrefetchHooks Function()> {
+  $$ClarificationRequestsTableTableManager(
+      _$AppDatabase db, $ClarificationRequestsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ClarificationRequestsTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ClarificationRequestsTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ClarificationRequestsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> question = const Value.absent(),
+            Value<String> responseType = const Value.absent(),
+            Value<String?> options = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String?> answerData = const Value.absent(),
+            Value<String?> entityType = const Value.absent(),
+            Value<String?> entityLabel = const Value.absent(),
+            Value<String?> evidenceFactIds = const Value.absent(),
+            Value<String?> reason = const Value.absent(),
+            Value<String?> impact = const Value.absent(),
+            Value<double?> confidence = const Value.absent(),
+            Value<String?> proposedMemory = const Value.absent(),
+            Value<String?> resolutionTarget = const Value.absent(),
+            Value<String?> sourceAgent = const Value.absent(),
+            Value<String?> dedupeKey = const Value.absent(),
+            Value<String?> factId = const Value.absent(),
+            Value<String?> error = const Value.absent(),
+            Value<int?> createdAt = const Value.absent(),
+            Value<int?> updatedAt = const Value.absent(),
+            Value<int?> answeredAt = const Value.absent(),
+            Value<int?> expiresAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ClarificationRequestsCompanion(
+            id: id,
+            question: question,
+            responseType: responseType,
+            options: options,
+            status: status,
+            answerData: answerData,
+            entityType: entityType,
+            entityLabel: entityLabel,
+            evidenceFactIds: evidenceFactIds,
+            reason: reason,
+            impact: impact,
+            confidence: confidence,
+            proposedMemory: proposedMemory,
+            resolutionTarget: resolutionTarget,
+            sourceAgent: sourceAgent,
+            dedupeKey: dedupeKey,
+            factId: factId,
+            error: error,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            answeredAt: answeredAt,
+            expiresAt: expiresAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String question,
+            required String responseType,
+            Value<String?> options = const Value.absent(),
+            required String status,
+            Value<String?> answerData = const Value.absent(),
+            Value<String?> entityType = const Value.absent(),
+            Value<String?> entityLabel = const Value.absent(),
+            Value<String?> evidenceFactIds = const Value.absent(),
+            Value<String?> reason = const Value.absent(),
+            Value<String?> impact = const Value.absent(),
+            Value<double?> confidence = const Value.absent(),
+            Value<String?> proposedMemory = const Value.absent(),
+            Value<String?> resolutionTarget = const Value.absent(),
+            Value<String?> sourceAgent = const Value.absent(),
+            Value<String?> dedupeKey = const Value.absent(),
+            Value<String?> factId = const Value.absent(),
+            Value<String?> error = const Value.absent(),
+            Value<int?> createdAt = const Value.absent(),
+            Value<int?> updatedAt = const Value.absent(),
+            Value<int?> answeredAt = const Value.absent(),
+            Value<int?> expiresAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ClarificationRequestsCompanion.insert(
+            id: id,
+            question: question,
+            responseType: responseType,
+            options: options,
+            status: status,
+            answerData: answerData,
+            entityType: entityType,
+            entityLabel: entityLabel,
+            evidenceFactIds: evidenceFactIds,
+            reason: reason,
+            impact: impact,
+            confidence: confidence,
+            proposedMemory: proposedMemory,
+            resolutionTarget: resolutionTarget,
+            sourceAgent: sourceAgent,
+            dedupeKey: dedupeKey,
+            factId: factId,
+            error: error,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            answeredAt: answeredAt,
+            expiresAt: expiresAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$ClarificationRequestsTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $ClarificationRequestsTable,
+        ClarificationRequest,
+        $$ClarificationRequestsTableFilterComposer,
+        $$ClarificationRequestsTableOrderingComposer,
+        $$ClarificationRequestsTableAnnotationComposer,
+        $$ClarificationRequestsTableCreateCompanionBuilder,
+        $$ClarificationRequestsTableUpdateCompanionBuilder,
+        (
+          ClarificationRequest,
+          BaseReferences<_$AppDatabase, $ClarificationRequestsTable,
+              ClarificationRequest>
+        ),
+        ClarificationRequest,
+        PrefetchHooks Function()>;
 typedef $$PersonaChatMessagesTableCreateCompanionBuilder
     = PersonaChatMessagesCompanion Function({
   Value<int> id,
@@ -3886,6 +5771,213 @@ typedef $$PersonaChatMessagesTableProcessedTableManager = ProcessedTableManager<
     ),
     PersonaChatMessage,
     PrefetchHooks Function()>;
+typedef $$UserNotificationsTableCreateCompanionBuilder
+    = UserNotificationsCompanion Function({
+  required String id,
+  required String userId,
+  required String notificationType,
+  required String subjectKey,
+  Value<String?> payload,
+  required int createdAt,
+  required int updatedAt,
+  Value<int> rowid,
+});
+typedef $$UserNotificationsTableUpdateCompanionBuilder
+    = UserNotificationsCompanion Function({
+  Value<String> id,
+  Value<String> userId,
+  Value<String> notificationType,
+  Value<String> subjectKey,
+  Value<String?> payload,
+  Value<int> createdAt,
+  Value<int> updatedAt,
+  Value<int> rowid,
+});
+
+class $$UserNotificationsTableFilterComposer
+    extends Composer<_$AppDatabase, $UserNotificationsTable> {
+  $$UserNotificationsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get notificationType => $composableBuilder(
+      column: $table.notificationType,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get subjectKey => $composableBuilder(
+      column: $table.subjectKey, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get payload => $composableBuilder(
+      column: $table.payload, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$UserNotificationsTableOrderingComposer
+    extends Composer<_$AppDatabase, $UserNotificationsTable> {
+  $$UserNotificationsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get notificationType => $composableBuilder(
+      column: $table.notificationType,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get subjectKey => $composableBuilder(
+      column: $table.subjectKey, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get payload => $composableBuilder(
+      column: $table.payload, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$UserNotificationsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UserNotificationsTable> {
+  $$UserNotificationsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get notificationType => $composableBuilder(
+      column: $table.notificationType, builder: (column) => column);
+
+  GeneratedColumn<String> get subjectKey => $composableBuilder(
+      column: $table.subjectKey, builder: (column) => column);
+
+  GeneratedColumn<String> get payload =>
+      $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$UserNotificationsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $UserNotificationsTable,
+    UserNotification,
+    $$UserNotificationsTableFilterComposer,
+    $$UserNotificationsTableOrderingComposer,
+    $$UserNotificationsTableAnnotationComposer,
+    $$UserNotificationsTableCreateCompanionBuilder,
+    $$UserNotificationsTableUpdateCompanionBuilder,
+    (
+      UserNotification,
+      BaseReferences<_$AppDatabase, $UserNotificationsTable, UserNotification>
+    ),
+    UserNotification,
+    PrefetchHooks Function()> {
+  $$UserNotificationsTableTableManager(
+      _$AppDatabase db, $UserNotificationsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UserNotificationsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UserNotificationsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UserNotificationsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> userId = const Value.absent(),
+            Value<String> notificationType = const Value.absent(),
+            Value<String> subjectKey = const Value.absent(),
+            Value<String?> payload = const Value.absent(),
+            Value<int> createdAt = const Value.absent(),
+            Value<int> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              UserNotificationsCompanion(
+            id: id,
+            userId: userId,
+            notificationType: notificationType,
+            subjectKey: subjectKey,
+            payload: payload,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String userId,
+            required String notificationType,
+            required String subjectKey,
+            Value<String?> payload = const Value.absent(),
+            required int createdAt,
+            required int updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              UserNotificationsCompanion.insert(
+            id: id,
+            userId: userId,
+            notificationType: notificationType,
+            subjectKey: subjectKey,
+            payload: payload,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$UserNotificationsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $UserNotificationsTable,
+    UserNotification,
+    $$UserNotificationsTableFilterComposer,
+    $$UserNotificationsTableOrderingComposer,
+    $$UserNotificationsTableAnnotationComposer,
+    $$UserNotificationsTableCreateCompanionBuilder,
+    $$UserNotificationsTableUpdateCompanionBuilder,
+    (
+      UserNotification,
+      BaseReferences<_$AppDatabase, $UserNotificationsTable, UserNotification>
+    ),
+    UserNotification,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3900,6 +5992,10 @@ class $AppDatabaseManager {
       $$CardCacheTableTableManager(_db, _db.cardCache);
   $$SystemActionsTableTableManager get systemActions =>
       $$SystemActionsTableTableManager(_db, _db.systemActions);
+  $$ClarificationRequestsTableTableManager get clarificationRequests =>
+      $$ClarificationRequestsTableTableManager(_db, _db.clarificationRequests);
   $$PersonaChatMessagesTableTableManager get personaChatMessages =>
       $$PersonaChatMessagesTableTableManager(_db, _db.personaChatMessages);
+  $$UserNotificationsTableTableManager get userNotifications =>
+      $$UserNotificationsTableTableManager(_db, _db.userNotifications);
 }

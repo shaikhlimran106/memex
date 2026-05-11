@@ -2,6 +2,7 @@ import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:memex/agent/agent_system_prompt_helper.dart';
 import 'package:logging/logging.dart';
 import 'package:memex/agent/memory/memory_management.dart';
+import 'package:memex/agent/skills/ask_clarification/ask_clarification_skill.dart';
 import 'package:memex/agent/state_util.dart';
 import 'package:memex/agent/agent_controller.util.dart';
 
@@ -48,6 +49,7 @@ If a batch contains only casual chat, tasks, or temporary context, **DO NOT call
 2.  **Strong Preferences**: "I hate cilantro", "I only use Linux".
 3.  **Long-term Assets/Environment**: "I use a MacBook Pro M3", "My home has floor heating".
 4.  **Recurring Habits**: "I run 5km every morning" (Pattern), NOT "I ran today" (Event).
+5.  **AI Interaction Preferences**: "Ask me fewer clarification questions", "Confirm more proactively", "Don't interrupt me with small questions".
 
 # 🌐 LANGUAGE PROTOCOL
 **You MUST output memories in the SAME language as the user's input.**
@@ -66,6 +68,11 @@ If a batch contains only casual chat, tasks, or temporary context, **DO NOT call
 # OUTPUT INSTRUCTION
 - If **NO** valid long-term attributes are found after filtering: **Output NOTHING (Empty response) or just "No new memories."**
 - If valid attributes exist: Call `append_memories` with the extracted facts in the **User's Language**.
+
+# ❓ CLARIFICATION REQUESTS
+If a potentially important long-term fact is ambiguous and cannot be inferred with confidence, activate the `ask_clarification` skill to create a clarification request instead of guessing.
+Only ask when the answer would materially improve future memory or insight quality.
+Prefer short single-choice questions with evidence fact IDs when possible.
 ''';
 
     final tools = memoryManagement.buildMemoryManagementTools();
@@ -82,6 +89,7 @@ If a batch contains only casual chat, tasks, or temporary context, **DO NOT call
       modelConfig: modelConfig,
       state: state,
       tools: tools,
+      skills: [AskClarificationSkill()],
       systemPrompts: [systemPrompt],
       disableSubAgents: true, // Purely analytical agent
       controller: controller,

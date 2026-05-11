@@ -9,6 +9,7 @@ import 'package:memex/agent/security/file_permission_manager.dart';
 import 'package:memex/agent/skills/manage_timeline_card/timeline_card_skill.dart';
 import 'package:memex/agent/skills/manage_system_action/system_action_skill.dart';
 import 'package:memex/agent/skills/knowledge_insight/knowledge_insight_skill.dart';
+import 'package:memex/agent/skills/ask_clarification/ask_clarification_skill.dart';
 import 'package:memex/agent/common_tools.dart';
 import 'package:memex/agent/state_util.dart';
 import 'package:memex/agent/super_agent/prompts.dart';
@@ -18,13 +19,20 @@ import 'package:memex/utils/logger.dart';
 
 /// Read-only tool names available in Quick Query mode.
 const _readOnlyToolNames = {
-  'LS', 'Glob', 'Grep', 'Read', 'BatchRead',
-  'search_event_logs', 'getCurrentTime', 'get_pkm_overview',
+  'LS',
+  'Glob',
+  'Grep',
+  'Read',
+  'BatchRead',
+  'search_event_logs',
+  'getCurrentTime',
+  'get_pkm_overview',
 };
 
 /// Skills excluded in Quick Query mode (those that create/modify data).
 const _quickQueryExcludedSkills = {
   'manage_timeline_card',
+  'ask_clarification',
 };
 
 class SuperAgent {
@@ -90,7 +98,8 @@ class SuperAgent {
     final memoryManagementPrompt =
         await memoryManagement.buildMemoryManagementPrompt();
     if (!quickQuery) {
-      final memoryManagementTools = memoryManagement.buildMemoryManagementTools();
+      final memoryManagementTools =
+          memoryManagement.buildMemoryManagementTools();
       tools.addAll(memoryManagementTools);
     }
 
@@ -102,6 +111,7 @@ class SuperAgent {
       TimelineCardSkill(),
       PkmSkill(workingDirectory: '/PKM'),
       SystemActionSkill(),
+      AskClarificationSkill(),
     ];
     if (quickQuery) {
       skills = skills

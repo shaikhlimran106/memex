@@ -18,6 +18,7 @@ import 'package:memex/data/services/photo_suggestion_service.dart';
 import 'package:memex/data/services/whisper_service.dart';
 import 'package:memex/data/services/streaming_transcriber.dart';
 import 'package:memex/data/services/speech_transcription_service.dart';
+import 'package:memex/data/services/input_draft_service.dart';
 import 'package:memex/config/app_flavor.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
 import 'package:memex/data/services/demo_service.dart';
@@ -54,7 +55,7 @@ class InputData {
 class InputSheet extends StatefulWidget {
   final bool isOpen;
   final VoidCallback onClose;
-  final Function(InputData data) onSubmit;
+  final Future<bool> Function(InputData data) onSubmit;
   final InputData? initialData;
   const InputSheet({
     super.key,
@@ -68,7 +69,8 @@ class InputSheet extends StatefulWidget {
   State<InputSheet> createState() => _InputSheetState();
 }
 
-class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
+class _InputSheetState extends State<InputSheet>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _controller;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
@@ -93,9 +95,11 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   final Logger _logger = getLogger('InputSheet');
+  final InputDraftService _draftService = InputDraftService.instance;
 
   StreamingTranscriber? _streamingTranscriber;
   StreamSubscription<Uint8List>? _audioStreamSub;
+  Timer? _draftSaveDebounce;
   // Accumulated PCM data for saving as WAV after recording stops
   final List<int> _pcmBuffer = [];
   // Text in the text field before recording started (to preserve user-typed text)
@@ -112,11 +116,15 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
 
   List<List<EnhancedPhoto>>? _autoClusters;
   bool _isLoadingAuto = false;
+  bool _isApplyingDraft = false;
+  bool _isRestoredDraft = false;
+  bool _isSubmitting = false;
   final Map<String, AssetEntity> _assetsMap = {}; // path -> AssetEntity
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _controller = AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -126,18 +134,12 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 1),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _fadeAnimation = Tween<double>(
       begin: 0,
       end: 1,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     if (widget.isOpen) {
       _controller.forward();
@@ -156,6 +158,14 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
         _isPlaying = false;
       });
     });
+
+    if (widget.isOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && widget.isOpen) {
+          _prepareForOpen();
+        }
+      });
+    }
   }
 
   @override
@@ -165,9 +175,7 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
       if (widget.isOpen) {
         _logger.info('Opening InputSheet');
         _controller.forward();
-        _resetForm();
-        _applyInitialData(widget.initialData);
-        _fetchAutoClusters();
+        _prepareForOpen();
       } else {
         _controller.reverse();
       }
@@ -177,14 +185,60 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
       // Sheet already open but new share arrived: reload with shared data
       _logger.info('InputSheet already open, reloading with new shared data');
       _applyInitialData(widget.initialData);
+      _scheduleDraftSave();
     }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _flushDraft();
+    }
+  }
+
+  Future<void> _prepareForOpen() async {
+    if (widget.initialData != null && !widget.initialData!.isEmpty) {
+      _resetForm();
+      _applyInitialData(widget.initialData);
+      _scheduleDraftSave();
+    } else {
+      await _restoreDraft();
+    }
+    if (!mounted || !widget.isOpen) return;
+    _fetchAutoClusters();
+  }
+
+  Future<void> _restoreDraft() async {
+    _resetForm();
+    final draft = await _draftService.loadActiveDraft();
+    if (!mounted || !widget.isOpen) return;
+
+    if (draft == null) {
+      _setRestoredDraft(false);
+      return;
+    }
+
+    _isApplyingDraft = true;
+    _textController.text = draft.text;
+    _textController.selection = TextSelection.collapsed(
+      offset: _textController.text.length,
+    );
+    _isApplyingDraft = false;
+    _updateDetectedTags(draft.text);
+    _setRestoredDraft(true);
+    _scrollTextToBottom();
   }
 
   void _applyInitialData(InputData? data) {
     if (data == null) return;
 
     final text = data.text ?? '';
+    _isApplyingDraft = true;
     _textController.text = text;
+    _textController.selection = TextSelection.collapsed(offset: text.length);
+    _isApplyingDraft = false;
     _audioPlayer.stop();
 
     final regex = RegExp(r'#([^\s#]+)');
@@ -203,12 +257,16 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
       _autoClusters = null;
       _isLoadingAuto = false;
     });
+    _setRestoredDraft(false);
 
     _loadAudioDuration();
   }
 
   void _resetForm() {
+    _draftSaveDebounce?.cancel();
+    _isApplyingDraft = true;
     _textController.clear();
+    _isApplyingDraft = false;
     _audioPlayer.stop();
     setState(() {
       _selectedImages = [];
@@ -221,6 +279,8 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
       _detectedTags = [];
       _autoClusters = null;
       _isLoadingAuto = false;
+      _isRestoredDraft = false;
+      _isSubmitting = false;
     });
   }
 
@@ -282,6 +342,13 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
 
   void _onTextChanged() {
     final text = _textController.text;
+    _updateDetectedTags(text);
+    if (!_isApplyingDraft) {
+      _scheduleDraftSave();
+    }
+  }
+
+  void _updateDetectedTags(String text) {
     final regex = RegExp(r'#([^\s#]+)');
     final matches = regex.allMatches(text);
     final tags = matches.map((match) => match.group(1)!).toSet().toList();
@@ -292,8 +359,76 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
     }
   }
 
+  void _setRestoredDraft(bool isRestoredDraft) {
+    if (_isRestoredDraft == isRestoredDraft) return;
+    if (mounted) {
+      setState(() => _isRestoredDraft = isRestoredDraft);
+    } else {
+      _isRestoredDraft = isRestoredDraft;
+    }
+  }
+
+  void _scheduleDraftSave() {
+    _draftSaveDebounce?.cancel();
+    _draftSaveDebounce = Timer(const Duration(milliseconds: 400), () {
+      unawaited(_draftService.saveTextDraft(_textController.text));
+    });
+  }
+
+  Future<void> _flushDraft() async {
+    _draftSaveDebounce?.cancel();
+    if (!widget.isOpen && _textController.text.trim().isEmpty) return;
+    await _draftService.saveTextDraft(_textController.text);
+  }
+
+  Future<void> _handleClose() async {
+    await _flushDraft();
+    widget.onClose();
+  }
+
+  String get _draftLabel {
+    final count = _textController.text.trim().runes.length;
+    return UserStorage.l10n.inputDraftLabel(count);
+  }
+
+  Future<void> _handleDiscardDraft() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        title: Text(UserStorage.l10n.discardDraftTitle),
+        content: Text(UserStorage.l10n.discardDraftMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(UserStorage.l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              UserStorage.l10n.discardButton,
+              style: const TextStyle(color: AppColors.danger),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+    _draftSaveDebounce?.cancel();
+    await _draftService.clearActiveDraft();
+    if (!mounted) return;
+    _resetForm();
+    _setRestoredDraft(false);
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _draftSaveDebounce?.cancel();
+    if (widget.isOpen || _textController.text.trim().isNotEmpty) {
+      unawaited(_draftService.saveTextDraft(_textController.text));
+    }
     _audioStreamSub?.cancel();
     _streamingTranscriber?.dispose();
     _pcmBuffer.clear();
@@ -304,36 +439,6 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
     _audioRecorder.dispose();
     _audioPlayer.dispose();
     super.dispose();
-  }
-
-  Future<void> _showImageSourceDialog() async {
-    if (!mounted) return;
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: Text(UserStorage.l10n.selectFromAlbum),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.gallery);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: Text(UserStorage.l10n.takePhoto),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.camera);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -385,9 +490,9 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to pick image: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
       }
     }
   }
@@ -449,7 +554,8 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
         chunkCount++;
         if (chunkCount % 50 == 1) {
           _logger.info(
-              'Audio stream chunk #$chunkCount, size=${chunk.length} bytes');
+            'Audio stream chunk #$chunkCount, size=${chunk.length} bytes',
+          );
         }
         _pcmBuffer.addAll(chunk);
         _streamingTranscriber?.addAudioChunk(chunk);
@@ -476,8 +582,9 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
     Future.delayed(const Duration(seconds: 1), () {
       if (mounted && _isRecording) {
         setState(() {
-          _recordingDuration =
-              Duration(seconds: _recordingDuration.inSeconds + 1);
+          _recordingDuration = Duration(
+            seconds: _recordingDuration.inSeconds + 1,
+          );
         });
         // Auto-stop at 60 seconds
         if (_recordingDuration.inSeconds >= 60) {
@@ -512,8 +619,10 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
         final directory = await getTemporaryDirectory();
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final wavPath = '${directory.path}/audio_$timestamp.wav';
-        await SpeechTranscriptionService.instance
-            .savePcmAsWav(wavPath, Uint8List.fromList(_pcmBuffer));
+        await SpeechTranscriptionService.instance.savePcmAsWav(
+          wavPath,
+          Uint8List.fromList(_pcmBuffer),
+        );
         _pcmBuffer.clear();
 
         if (!useLocal) {
@@ -533,9 +642,9 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to stop recording: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to stop recording: $e')));
       }
       if (mounted) {
         setState(() {
@@ -562,8 +671,9 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
       for (int i = 0; i < int16Data.length; i++) {
         samples[i] = int16Data[i] / 32768.0;
       }
-      final text =
-          await SpeechTranscriptionService.instance.transcribeSamples(samples);
+      final text = await SpeechTranscriptionService.instance.transcribeSamples(
+        samples,
+      );
       if (text != null && text.isNotEmpty && mounted) {
         final separator = _preRecordingText.isNotEmpty ? ' ' : '';
         setState(() {
@@ -683,9 +793,7 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
         });
         _scrollTextToBottom();
       } else {
-        messenger.showSnackBar(
-          SnackBar(content: Text(l10n.speechNoResult)),
-        );
+        messenger.showSnackBar(SnackBar(content: Text(l10n.speechNoResult)));
       }
     } catch (e) {
       _logger.severe('Pick audio file failed: $e');
@@ -693,9 +801,9 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
         Navigator.of(context).pop();
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to process audio: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to process audio: $e')));
       }
     }
   }
@@ -704,8 +812,8 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
     final t = (animValue + offset) % 1.0;
     final size = 48.0 + 24.0 * t;
     return Positioned(
-      left: (64 - size) / 2,
-      top: (64 - size) / 2,
+      left: (48 - size) / 2,
+      top: (48 - size) / 2,
       child: Container(
         width: size,
         height: size,
@@ -1021,7 +1129,7 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
   }
 
   Future<void> _handleSubmit() async {
-    if (!mounted) return;
+    if (!mounted || _isSubmitting) return;
     final trimmedText = _textController.text.trim().isEmpty
         ? null
         : _textController.text.trim();
@@ -1056,13 +1164,19 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
 
           _logger.info('Generating hash for image: $rawHashStr');
           await Future.delayed(Duration.zero);
-          imageHashes
-              .add(crypto.md5.convert(utf8.encode(rawHashStr)).toString());
+          imageHashes.add(
+            crypto.md5.convert(utf8.encode(rawHashStr)).toString(),
+          );
         } catch (e) {
-          imageHashes.add(crypto.md5
-              .convert(utf8.encode(
-                  'photo_${xFile.path}_${DateTime.now().millisecondsSinceEpoch}'))
-              .toString());
+          imageHashes.add(
+            crypto.md5
+                .convert(
+                  utf8.encode(
+                    'photo_${xFile.path}_${DateTime.now().millisecondsSinceEpoch}',
+                  ),
+                )
+                .toString(),
+          );
         }
       }
     }
@@ -1084,8 +1198,58 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
       return;
     }
 
-    widget.onSubmit(inputData);
-    _resetForm();
+    setState(() => _isSubmitting = true);
+    await _flushDraft();
+    final submitted = await widget.onSubmit(inputData);
+    if (!mounted) return;
+
+    if (submitted) {
+      await _draftService.clearActiveDraft();
+      if (!mounted) return;
+      _resetForm();
+      _setRestoredDraft(false);
+    } else {
+      setState(() => _isSubmitting = false);
+    }
+  }
+
+  Widget _buildDraftHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 16, 4),
+      child: Row(
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.7),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _draftLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.textTertiary,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: UserStorage.l10n.discardDraftTooltip,
+            onPressed: _handleDiscardDraft,
+            icon: const Icon(Icons.delete_outline),
+            color: AppColors.textTertiary,
+            iconSize: 20,
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -1104,385 +1268,235 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
         FadeTransition(
           opacity: _fadeAnimation,
           child: GestureDetector(
-            onTap: widget.onClose,
-            child: Container(
-              color: Colors.black.withValues(alpha: 0.2),
-            ),
+            onTap: _handleClose,
+            child: Container(color: Colors.black.withValues(alpha: 0.2)),
           ),
         ),
         SlideTransition(
           position: _slideAnimation,
           child: Align(
             alignment: Alignment.bottomCenter,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: availableHeight),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // AUTO row above input area, single row
-                  _buildAutoRow(),
-                  Flexible(
-                    child: GestureDetector(
-                      onTap: () {},
-                      child: Container(
-                        margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                        constraints: BoxConstraints(
-                          maxHeight:
-                              cardMaxHeight.clamp(160.0, screenHeight * 0.7),
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(32),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 30,
-                              offset:
-                                  const Offset(0, 10), // Shadow below for float
+            child: Padding(
+              padding: EdgeInsets.only(bottom: viewInsets.bottom),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: availableHeight),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // AUTO row above input area, single row
+                    _buildAutoRow(),
+                    Flexible(
+                      child: GestureDetector(
+                        onTap: () {},
+                        child: Container(
+                          margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                          constraints: BoxConstraints(
+                            maxHeight: cardMaxHeight.clamp(
+                              160.0,
+                              screenHeight * 0.7,
                             ),
-                          ],
-                        ),
-                        child: SafeArea(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const SizedBox(height: 12), // Removed handle
-                              Flexible(
-                                child: SingleChildScrollView(
-                                  padding:
-                                      const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      TextField(
-                                        controller: _textController,
-                                        scrollController: _textScrollController,
-                                        autofocus: false,
-                                        maxLines: 5,
-                                        decoration: InputDecoration(
-                                          hintText: UserStorage
-                                              .l10n.tellAiWhatHappened,
-                                          hintStyle: const TextStyle(
-                                            color: AppColors.textTertiary,
-                                            fontSize: 18,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(32),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 30,
+                                offset: const Offset(
+                                  0,
+                                  10,
+                                ), // Shadow below for float
+                              ),
+                            ],
+                          ),
+                          child: SafeArea(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(height: 8), // Removed handle
+                                if (_isRestoredDraft &&
+                                    _textController.text.trim().isNotEmpty)
+                                  _buildDraftHeader(),
+                                Flexible(
+                                  child: SingleChildScrollView(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      24,
+                                      0,
+                                      24,
+                                      24,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        TextField(
+                                          controller: _textController,
+                                          scrollController:
+                                              _textScrollController,
+                                          autofocus: false,
+                                          maxLines: 5,
+                                          decoration: InputDecoration(
+                                            hintText: UserStorage
+                                                .l10n.tellAiWhatHappened,
+                                            hintStyle: const TextStyle(
+                                              color: AppColors.textTertiary,
+                                              fontSize: 18,
+                                            ),
+                                            border: InputBorder.none,
                                           ),
-                                          border: InputBorder.none,
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            color: AppColors.textPrimary,
+                                            fontWeight: FontWeight.w500,
+                                            height: 1.5,
+                                          ),
                                         ),
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          color: AppColors.textPrimary,
-                                          fontWeight: FontWeight.w500,
-                                          height: 1.5,
-                                        ),
-                                      ),
-                                      if (_detectedTags.isNotEmpty) ...[
-                                        const SizedBox(height: 12),
-                                        Wrap(
-                                          spacing: 8,
-                                          runSpacing: 8,
-                                          children: _detectedTags.map((tag) {
-                                            return Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 12,
-                                                vertical: 6,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.iconBgLight,
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                                border: Border.all(
-                                                  color: AppColors.primary
-                                                      .withValues(alpha: 0.3),
-                                                  width: 1,
+                                        if (_detectedTags.isNotEmpty) ...[
+                                          const SizedBox(height: 12),
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 8,
+                                            children: _detectedTags.map((tag) {
+                                              return Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 12,
+                                                  vertical: 6,
                                                 ),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  const Text(
-                                                    '#',
-                                                    style: TextStyle(
-                                                      color: AppColors.primary,
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.iconBgLight,
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                  border: Border.all(
+                                                    color: AppColors.primary
+                                                        .withValues(alpha: 0.3),
+                                                    width: 1,
                                                   ),
-                                                  const SizedBox(width: 2),
-                                                  Text(
-                                                    tag,
-                                                    style: const TextStyle(
-                                                      color: AppColors.primary,
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ],
-                                      if (_selectedImages.isNotEmpty) ...[
-                                        const SizedBox(height: 16),
-                                        SizedBox(
-                                          height: 100,
-                                          child: ListView.builder(
-                                            scrollDirection: Axis.horizontal,
-                                            itemCount: _selectedImages.length,
-                                            itemBuilder: (context, index) {
-                                              return Padding(
-                                                padding: const EdgeInsets.only(
-                                                    right: 8),
-                                                child: Stack(
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
                                                   children: [
-                                                    ClipRRect(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              12),
-                                                      child: GestureDetector(
-                                                        onTap: () =>
-                                                            _showImagePreview(
-                                                                index),
-                                                        child: _assetsMap.containsKey(
-                                                                _selectedImages[
-                                                                        index]
-                                                                    .path)
-                                                            ? AssetEntityImage(
-                                                                _assetsMap[
-                                                                    _selectedImages[
-                                                                            index]
-                                                                        .path]!,
-                                                                width: 100,
-                                                                height: 100,
-                                                                fit: BoxFit
-                                                                    .cover,
-                                                                isOriginal:
-                                                                    false,
-                                                                thumbnailSize:
-                                                                    const ThumbnailSize
-                                                                        .square(
-                                                                        200),
-                                                                thumbnailFormat:
-                                                                    ThumbnailFormat
-                                                                        .jpeg,
-                                                              )
-                                                            : Image.file(
-                                                                File(_selectedImages[
-                                                                        index]
-                                                                    .path),
-                                                                width: 100,
-                                                                height: 100,
-                                                                fit: BoxFit
-                                                                    .cover,
-                                                              ),
+                                                    const Text(
+                                                      '#',
+                                                      style: TextStyle(
+                                                        color:
+                                                            AppColors.primary,
+                                                        fontSize: 12,
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                       ),
                                                     ),
-                                                    Positioned(
-                                                      top: 4,
-                                                      right: 4,
-                                                      child: GestureDetector(
-                                                        onTap: () =>
-                                                            _removeImage(index),
-                                                        child: Container(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(4),
-                                                          decoration:
-                                                              const BoxDecoration(
-                                                            color:
-                                                                Colors.black54,
-                                                            shape:
-                                                                BoxShape.circle,
-                                                          ),
-                                                          child: const Icon(
-                                                            Icons.close,
-                                                            size: 16,
-                                                            color: Colors.white,
-                                                          ),
-                                                        ),
+                                                    const SizedBox(width: 2),
+                                                    Text(
+                                                      tag,
+                                                      style: const TextStyle(
+                                                        color:
+                                                            AppColors.primary,
+                                                        fontSize: 12,
+                                                        fontWeight:
+                                                            FontWeight.w500,
                                                       ),
                                                     ),
                                                   ],
                                                 ),
                                               );
-                                            },
+                                            }).toList(),
                                           ),
-                                        ),
-                                      ],
-                                      if (_audioPath != null &&
-                                          !_isRecording) ...[
-                                        const SizedBox(height: 16),
-                                        Container(
-                                          padding: const EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFF8FAFC),
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              GestureDetector(
-                                                onTap: _toggleAudioPlayback,
-                                                child: Container(
-                                                  width: 36,
-                                                  height: 36,
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            18),
-                                                  ),
-                                                  child: Icon(
-                                                    _isPlaying
-                                                        ? Icons.pause
-                                                        : Icons.play_arrow,
-                                                    size: 20,
-                                                    color:
-                                                        AppColors.textPrimary,
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 12),
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      UserStorage
-                                                          .l10n.recordedAudio,
-                                                      style: const TextStyle(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        color: AppColors
-                                                            .textPrimary,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(height: 2),
-                                                    Text(
-                                                      _isPlaying
-                                                          ? UserStorage
-                                                              .l10n.playing
-                                                          : _formatDuration(
-                                                              _audioDuration),
-                                                      style: const TextStyle(
-                                                        fontSize: 13,
-                                                        color: AppColors
-                                                            .textSecondary,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              GestureDetector(
-                                                onTap: _removeAudio,
-                                                child: Container(
+                                        ],
+                                        if (_selectedImages.isNotEmpty) ...[
+                                          const SizedBox(height: 16),
+                                          SizedBox(
+                                            height: 100,
+                                            child: ListView.builder(
+                                              scrollDirection: Axis.horizontal,
+                                              itemCount: _selectedImages.length,
+                                              itemBuilder: (context, index) {
+                                                return Padding(
                                                   padding:
-                                                      const EdgeInsets.all(4),
-                                                  decoration:
-                                                      const BoxDecoration(
-                                                    color: Colors.white,
-                                                    shape: BoxShape.circle,
+                                                      const EdgeInsets.only(
+                                                    right: 8,
                                                   ),
-                                                  child: const Icon(
-                                                    Icons.close,
-                                                    size: 16,
-                                                    color:
-                                                        AppColors.textSecondary,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                      const SizedBox(height: 24),
-                                      Row(
-                                        children: [
-                                          GestureDetector(
-                                            onTap: _isTranscribing
-                                                ? null
-                                                : (_isRecording
-                                                    ? _stopRecording
-                                                    : _startRecording),
-                                            onLongPress: (_isRecording ||
-                                                    _isTranscribing)
-                                                ? null
-                                                : _pickAudioFile,
-                                            child: AnimatedBuilder(
-                                              animation: _pulseController,
-                                              builder: (context, child) {
-                                                return SizedBox(
-                                                  width: 64,
-                                                  height: 64,
                                                   child: Stack(
-                                                    alignment: Alignment.center,
                                                     children: [
-                                                      if (_isRecording) ...[
-                                                        _buildRipple(
-                                                            _pulseController
-                                                                .value,
-                                                            0.0),
-                                                        _buildRipple(
-                                                            _pulseController
-                                                                .value,
-                                                            0.33),
-                                                        _buildRipple(
-                                                            _pulseController
-                                                                .value,
-                                                            0.66),
-                                                      ],
-                                                      Container(
-                                                        width: 48,
-                                                        height: 48,
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          color: _isRecording
-                                                              ? AppColors
-                                                                  .primary
-                                                              : _isTranscribing
-                                                                  ? AppColors
-                                                                      .primary
-                                                                      .withValues(
-                                                                          alpha:
-                                                                              0.08)
-                                                                  : const Color(
-                                                                      0xFFF7F8FA),
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(24),
+                                                      ClipRRect(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(
+                                                          12,
                                                         ),
-                                                        child: Stack(
-                                                          alignment:
-                                                              Alignment.center,
-                                                          children: [
-                                                            Icon(
-                                                              Icons.mic,
-                                                              size: 22,
-                                                              color: _isRecording
-                                                                  ? Colors.white
-                                                                  : _isTranscribing
-                                                                      ? AppColors.primary
-                                                                      : AppColors.textSecondary,
-                                                            ),
-                                                            if (_isTranscribing)
-                                                              const SizedBox(
-                                                                width: 36,
-                                                                height: 36,
-                                                                child:
-                                                                    CircularProgressIndicator(
-                                                                  strokeWidth:
-                                                                      2,
-                                                                  color: AppColors
-                                                                      .primary,
+                                                        child: GestureDetector(
+                                                          onTap: () =>
+                                                              _showImagePreview(
+                                                            index,
+                                                          ),
+                                                          child: _assetsMap
+                                                                  .containsKey(
+                                                            _selectedImages[
+                                                                    index]
+                                                                .path,
+                                                          )
+                                                              ? AssetEntityImage(
+                                                                  _assetsMap[
+                                                                      _selectedImages[
+                                                                              index]
+                                                                          .path]!,
+                                                                  width: 100,
+                                                                  height: 100,
+                                                                  fit: BoxFit
+                                                                      .cover,
+                                                                  isOriginal:
+                                                                      false,
+                                                                  thumbnailSize:
+                                                                      const ThumbnailSize
+                                                                          .square(
+                                                                    200,
+                                                                  ),
+                                                                  thumbnailFormat:
+                                                                      ThumbnailFormat
+                                                                          .jpeg,
+                                                                )
+                                                              : Image.file(
+                                                                  File(
+                                                                    _selectedImages[
+                                                                            index]
+                                                                        .path,
+                                                                  ),
+                                                                  width: 100,
+                                                                  height: 100,
+                                                                  fit: BoxFit
+                                                                      .cover,
                                                                 ),
-                                                              ),
-                                                          ],
+                                                        ),
+                                                      ),
+                                                      Positioned(
+                                                        top: 4,
+                                                        right: 4,
+                                                        child: GestureDetector(
+                                                          onTap: () =>
+                                                              _removeImage(
+                                                                  index),
+                                                          child: Container(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(
+                                                              4,
+                                                            ),
+                                                            decoration:
+                                                                const BoxDecoration(
+                                                              color: Colors
+                                                                  .black54,
+                                                              shape: BoxShape
+                                                                  .circle,
+                                                            ),
+                                                            child: const Icon(
+                                                              Icons.close,
+                                                              size: 16,
+                                                              color:
+                                                                  Colors.white,
+                                                            ),
+                                                          ),
                                                         ),
                                                       ),
                                                     ],
@@ -1491,77 +1505,299 @@ class _InputSheetState extends State<InputSheet> with TickerProviderStateMixin {
                                               },
                                             ),
                                           ),
-                                          const SizedBox(width: 16),
-                                          GestureDetector(
-                                            onTap: _showImageSourceDialog,
-                                            child: Container(
-                                              width: 48,
-                                              height: 48,
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFF7F8FA),
-                                                borderRadius:
-                                                    BorderRadius.circular(24),
-                                              ),
-                                              child: const Icon(
-                                                Icons.image,
-                                                size: 22,
-                                                color: AppColors.textSecondary,
+                                        ],
+                                        if (_audioPath != null &&
+                                            !_isRecording) ...[
+                                          const SizedBox(height: 16),
+                                          Container(
+                                            padding: const EdgeInsets.all(12),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFF8FAFC),
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                12,
                                               ),
                                             ),
-                                          ),
-                                          const Spacer(),
-                                          GestureDetector(
-                                            key: DemoService.instance.isActive
-                                                ? DemoService
-                                                    .instance.sendButtonKey
-                                                : null,
-                                            onTap: _handleSubmit,
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 24,
-                                                vertical: 12,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.black,
-                                                borderRadius:
-                                                    BorderRadius.circular(24),
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  Text(
-                                                    UserStorage
-                                                        .l10n.recordLabel,
-                                                    style: const TextStyle(
+                                            child: Row(
+                                              children: [
+                                                GestureDetector(
+                                                  onTap: _toggleAudioPlayback,
+                                                  child: Container(
+                                                    width: 36,
+                                                    height: 36,
+                                                    decoration: BoxDecoration(
                                                       color: Colors.white,
-                                                      fontSize: 16,
-                                                      fontWeight:
-                                                          FontWeight.bold,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                        18,
+                                                      ),
+                                                    ),
+                                                    child: Icon(
+                                                      _isPlaying
+                                                          ? Icons.pause
+                                                          : Icons.play_arrow,
+                                                      size: 20,
+                                                      color:
+                                                          AppColors.textPrimary,
                                                     ),
                                                   ),
-                                                  const SizedBox(width: 8),
-                                                  const Icon(
-                                                    Icons.arrow_upward,
-                                                    size: 18,
-                                                    color: Colors.white,
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        UserStorage
+                                                            .l10n.recordedAudio,
+                                                        style: const TextStyle(
+                                                          fontSize: 14,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color: AppColors
+                                                              .textPrimary,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                        _isPlaying
+                                                            ? UserStorage
+                                                                .l10n.playing
+                                                            : _formatDuration(
+                                                                _audioDuration,
+                                                              ),
+                                                        style: const TextStyle(
+                                                          fontSize: 13,
+                                                          color: AppColors
+                                                              .textSecondary,
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
-                                                ],
-                                              ),
+                                                ),
+                                                GestureDetector(
+                                                  onTap: _removeAudio,
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                      4,
+                                                    ),
+                                                    decoration:
+                                                        const BoxDecoration(
+                                                      color: Colors.white,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.close,
+                                                      size: 16,
+                                                      color: AppColors
+                                                          .textSecondary,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ],
-                                      ),
-                                    ],
+                                        const SizedBox(height: 24),
+                                        Row(
+                                          children: [
+                                            GestureDetector(
+                                              onTap: _isTranscribing
+                                                  ? null
+                                                  : (_isRecording
+                                                      ? _stopRecording
+                                                      : _startRecording),
+                                              onLongPress: (_isRecording ||
+                                                      _isTranscribing)
+                                                  ? null
+                                                  : _pickAudioFile,
+                                              child: AnimatedBuilder(
+                                                animation: _pulseController,
+                                                builder: (context, child) {
+                                                  return SizedBox(
+                                                    width: 48,
+                                                    height: 48,
+                                                    child: Stack(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      clipBehavior: Clip.none,
+                                                      children: [
+                                                        if (_isRecording) ...[
+                                                          _buildRipple(
+                                                            _pulseController
+                                                                .value,
+                                                            0.0,
+                                                          ),
+                                                          _buildRipple(
+                                                            _pulseController
+                                                                .value,
+                                                            0.33,
+                                                          ),
+                                                          _buildRipple(
+                                                            _pulseController
+                                                                .value,
+                                                            0.66,
+                                                          ),
+                                                        ],
+                                                        Container(
+                                                          width: 48,
+                                                          height: 48,
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: _isRecording
+                                                                ? AppColors
+                                                                    .primary
+                                                                : _isTranscribing
+                                                                    ? AppColors
+                                                                        .primary
+                                                                        .withValues(
+                                                                        alpha:
+                                                                            0.08,
+                                                                      )
+                                                                    : const Color(
+                                                                        0xFFF7F8FA,
+                                                                      ),
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                              24,
+                                                            ),
+                                                          ),
+                                                          child: Stack(
+                                                            alignment: Alignment
+                                                                .center,
+                                                            children: [
+                                                              Icon(
+                                                                Icons.mic,
+                                                                size: 22,
+                                                                color: _isRecording
+                                                                    ? Colors.white
+                                                                    : _isTranscribing
+                                                                        ? AppColors.primary
+                                                                        : AppColors.textSecondary,
+                                                              ),
+                                                              if (_isTranscribing)
+                                                                const SizedBox(
+                                                                  width: 36,
+                                                                  height: 36,
+                                                                  child:
+                                                                      CircularProgressIndicator(
+                                                                    strokeWidth:
+                                                                        2,
+                                                                    color: AppColors
+                                                                        .primary,
+                                                                  ),
+                                                                ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            GestureDetector(
+                                              onTap: () => _pickImage(
+                                                ImageSource.camera,
+                                              ),
+                                              child: Container(
+                                                width: 48,
+                                                height: 48,
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                      const Color(0xFFF7F8FA),
+                                                  borderRadius:
+                                                      BorderRadius.circular(24),
+                                                ),
+                                                child: const Icon(
+                                                  Icons.camera_alt,
+                                                  size: 22,
+                                                  color:
+                                                      AppColors.textSecondary,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            GestureDetector(
+                                              onTap: () => _pickImage(
+                                                ImageSource.gallery,
+                                              ),
+                                              child: Container(
+                                                width: 48,
+                                                height: 48,
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                      const Color(0xFFF7F8FA),
+                                                  borderRadius:
+                                                      BorderRadius.circular(24),
+                                                ),
+                                                child: const Icon(
+                                                  Icons.photo_library,
+                                                  size: 22,
+                                                  color:
+                                                      AppColors.textSecondary,
+                                                ),
+                                              ),
+                                            ),
+                                            const Spacer(),
+                                            GestureDetector(
+                                              key: DemoService.instance.isActive
+                                                  ? DemoService
+                                                      .instance.sendButtonKey
+                                                  : null,
+                                              onTap: _handleSubmit,
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 24,
+                                                  vertical: 12,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black,
+                                                  borderRadius:
+                                                      BorderRadius.circular(24),
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    Text(
+                                                      UserStorage
+                                                          .l10n.recordLabel,
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    const Icon(
+                                                      Icons.arrow_upward,
+                                                      size: 18,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

@@ -10,6 +10,7 @@ import 'package:memex/domain/models/agent_definitions.dart';
 import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/global_event_bus.dart';
 import 'package:memex/domain/models/system_event.dart';
+import 'package:memex/utils/time_context.dart';
 
 final _logger = Logger('PostCommentEndpoint');
 final _fileSystemService = FileSystemService.instance;
@@ -20,14 +21,16 @@ final _fileSystemService = FileSystemService.instance;
 ///   cardId: card ID (fact_id)
 ///   userId: user ID
 ///   content: comment content
+///   replyToId: optional, ID of the comment being replied to
 ///
 /// Returns:
 ///   Map with user comment info (AI reply is async)
 Future<Map<String, dynamic>> postCommentEndpoint(
   String cardId,
   String userId,
-  String content,
-) async {
+  String content, {
+  String? replyToId,
+}) async {
   _logger.info(
       'PostCommentEndpoint: postComment called: cardId=$cardId, userId=$userId');
 
@@ -40,12 +43,14 @@ Future<Map<String, dynamic>> postCommentEndpoint(
 
     // Save user comment to card (persist immediately)
     final commentId = const Uuid().v4();
+    final commentTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     await _fileSystemService.updateCardFile(userId, cardId, (card) {
       final newComment = CardComment(
         id: commentId,
         content: content,
         isAi: false,
-        timestamp: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        timestamp: commentTimestamp,
+        replyToId: replyToId,
       );
       return card.copyWith(comments: [...card.comments, newComment]);
     });
@@ -82,6 +87,8 @@ Future<Map<String, dynamic>> postCommentEndpoint(
           cardId: cardId,
           content: content,
           commentId: commentId,
+          createdAtTs: commentTimestamp,
+          replyToId: replyToId,
         ),
       ),
     );
@@ -133,12 +140,14 @@ Future<void> processAICommentReply({
     final initialInsight = cardData.insight?.text;
 
     // 2. Character ID Fallback
+    // When no explicit characterId: pick the most recent AI commenter
+    // (the character most recently active in the conversation).
+    // Falls back to the insight character if no AI comments exist.
     if (characterId == null) {
-      for (final c in cardData.comments) {
+      for (final c in cardData.comments.reversed) {
         if (c.isAi && c.characterId != null) {
           characterId = c.characterId;
-          _logger
-              .info('Using character_id $characterId from existing comments');
+          _logger.info('Using most recent AI commenter $characterId');
           break;
         }
       }
@@ -163,6 +172,7 @@ Future<void> processAICommentReply({
     // Build asset info string
 
     final assetAnalyses = factContent?.assetAnalyses;
+    final entryDateTime = factContent?.datetime;
     // Build asset info string
     final assetInfo = formatAssetAnalysis(assetAnalyses);
     contentToUse = contentToUse + assetInfo;
@@ -179,10 +189,33 @@ Future<void> processAICommentReply({
     final client = resources.client;
     final modelConfig = resources.modelConfig;
 
-    // 6. Initialize and Run Agent
+    // 6. Build existing comments context for multi-character interaction
+    String existingCommentsContext = '';
+    if (cardData.comments.isNotEmpty) {
+      final buf = StringBuffer();
+      buf.writeln('\n<existing_comments>');
+      for (final c in cardData.comments) {
+        final author = c.isAi ? (c.characterId ?? 'AI') : 'User';
+        final replyInfo =
+            c.replyToId != null ? ' (replying to ${c.replyToId})' : '';
+        final commentTime = formatLocalDateTimeWithZone(
+          DateTime.fromMillisecondsSinceEpoch(c.timestamp * 1000),
+        );
+        buf.writeln(
+            '- [$author] (id: ${c.id}, time: $commentTime)$replyInfo: ${c.content}');
+      }
+      buf.writeln('</existing_comments>');
+      existingCommentsContext = buf.toString();
+    }
+
+    // 7. Initialize and Run Agent
+    final fullUserContent = existingCommentsContext.isNotEmpty
+        ? '$userContent\n$existingCommentsContext'
+        : userContent;
+
     try {
       await CommentAgent.runWithContent(
-        userContent,
+        fullUserContent,
         client: client,
         modelConfig: modelConfig,
         userId: userId,
@@ -190,7 +223,8 @@ Future<void> processAICommentReply({
         rawInputContent: contentToUse,
         initialInsight: initialInsight,
         characterId: characterId,
-        currentTime: inputDateTime,
+        currentTime: inputDateTime ?? DateTime.now(),
+        entryTime: entryDateTime,
         withMemoryManagement: withMemoryManagement,
       );
     } catch (e) {

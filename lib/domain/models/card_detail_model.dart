@@ -32,7 +32,7 @@ class CardDetailModel {
 
   factory CardDetailModel.fromJson(Map<String, dynamic> json) {
     final location = json['location'] as Map<String, dynamic>?;
-    
+
     List<UiConfig> configs = [];
     if (json['ui_configs'] != null) {
       configs = (json['ui_configs'] as List)
@@ -141,6 +141,8 @@ class Comment {
   final bool isAi;
   final int timestamp;
   final CharacterInfo? character;
+  final String? replyToId;
+  final String? replyToName;
 
   Comment({
     required this.id,
@@ -148,6 +150,8 @@ class Comment {
     required this.isAi,
     required this.timestamp,
     this.character,
+    this.replyToId,
+    this.replyToName,
   });
 
   factory Comment.fromJson(Map<String, dynamic> json) {
@@ -159,6 +163,8 @@ class Comment {
       character: json['character'] != null
           ? CharacterInfo.fromJson(json['character'] as Map<String, dynamic>)
           : null,
+      replyToId: json['reply_to_id'] as String?,
+      replyToName: json['reply_to_name'] as String?,
     );
   }
 }
@@ -265,6 +271,14 @@ class LLMStats {
   final double totalCost;
   final Map<String, AgentStats> byAgent;
 
+  /// Normalized denominator for cache rate: sum of per-call effectivePromptTokens.
+  /// Each call's effective prompt is computed from its own cachedTokensIncludedInPrompt.
+  /// Calls with unknown semantics are excluded.
+  final int totalEffectivePromptTokens;
+
+  /// Numerator for cache rate: cached tokens from calls with known semantics only.
+  final int totalCachedTokensForRate;
+
   LLMStats({
     required this.totalCalls,
     required this.totalPromptTokens,
@@ -274,6 +288,8 @@ class LLMStats {
     required this.totalTokens,
     this.totalCost = 0.0,
     required this.byAgent,
+    this.totalEffectivePromptTokens = 0,
+    this.totalCachedTokensForRate = 0,
   });
 
   factory LLMStats.fromJson(Map<String, dynamic> json) {
@@ -292,6 +308,10 @@ class LLMStats {
       totalTokens: json['total_tokens'] as int? ?? 0,
       totalCost: (json['total_cost'] as num?)?.toDouble() ?? 0.0,
       byAgent: byAgent,
+      totalEffectivePromptTokens:
+          json['total_effective_prompt_tokens'] as int? ?? 0,
+      totalCachedTokensForRate:
+          json['total_cached_tokens_for_rate'] as int? ?? 0,
     );
   }
 
@@ -305,6 +325,8 @@ class LLMStats {
       'total_tokens': totalTokens,
       'total_cost': totalCost,
       'by_agent': byAgent.map((key, value) => MapEntry(key, value.toJson())),
+      'total_effective_prompt_tokens': totalEffectivePromptTokens,
+      'total_cached_tokens_for_rate': totalCachedTokensForRate,
     };
   }
 }
@@ -319,6 +341,12 @@ class AgentStats {
   final int totalTokens;
   final double totalCost;
 
+  /// Normalized denominator for cache rate.
+  final int effectivePromptTokens;
+
+  /// Numerator for cache rate (excludes unknown-semantics calls).
+  final int cachedTokensForRate;
+
   AgentStats({
     required this.calls,
     required this.promptTokens,
@@ -327,6 +355,8 @@ class AgentStats {
     required this.thoughtTokens,
     required this.totalTokens,
     this.totalCost = 0.0,
+    this.effectivePromptTokens = 0,
+    this.cachedTokensForRate = 0,
   });
 
   factory AgentStats.fromJson(Map<String, dynamic> json) {
@@ -338,6 +368,8 @@ class AgentStats {
       thoughtTokens: json['thought_tokens'] as int? ?? 0,
       totalTokens: json['total_tokens'] as int? ?? 0,
       totalCost: (json['total_cost'] as num?)?.toDouble() ?? 0.0,
+      effectivePromptTokens: json['effective_prompt_tokens'] as int? ?? 0,
+      cachedTokensForRate: json['cached_tokens_for_rate'] as int? ?? 0,
     );
   }
 
@@ -350,7 +382,8 @@ class AgentStats {
       'thought_tokens': thoughtTokens,
       'total_tokens': totalTokens,
       'total_cost': totalCost,
+      'effective_prompt_tokens': effectivePromptTokens,
+      'cached_tokens_for_rate': cachedTokensForRate,
     };
   }
 }
-

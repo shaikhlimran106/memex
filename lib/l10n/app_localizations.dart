@@ -278,6 +278,24 @@ abstract class AppLocalizations {
   /// **'Regenerate comments task created, running in background'**
   String get regenerateCommentsTaskCreated;
 
+  /// No description provided for @rebuildSearchIndex.
+  ///
+  /// In en, this message translates to:
+  /// **'Rebuild search index'**
+  String get rebuildSearchIndex;
+
+  /// No description provided for @rebuildSearchIndexSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Search index rebuilt successfully'**
+  String get rebuildSearchIndexSuccess;
+
+  /// No description provided for @rebuildSearchIndexFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to rebuild search index'**
+  String get rebuildSearchIndexFailed;
+
   /// No description provided for @clearData.
   ///
   /// In en, this message translates to:
@@ -710,11 +728,77 @@ abstract class AppLocalizations {
   /// **'Discovered todo actions'**
   String get discoveredTodoActions;
 
+  /// No description provided for @actionCenterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending actions'**
+  String get actionCenterTitle;
+
   /// No description provided for @noPendingActions.
   ///
   /// In en, this message translates to:
   /// **'No pending actions'**
   String get noPendingActions;
+
+  /// No description provided for @clarificationNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex wants to confirm'**
+  String get clarificationNeeded;
+
+  /// No description provided for @clarificationTextHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a short answer'**
+  String get clarificationTextHint;
+
+  /// No description provided for @clarificationTextRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a short answer first'**
+  String get clarificationTextRequired;
+
+  /// No description provided for @clarificationAnswered.
+  ///
+  /// In en, this message translates to:
+  /// **'Answered'**
+  String get clarificationAnswered;
+
+  /// No description provided for @clarificationAnswerPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer: {answer}'**
+  String clarificationAnswerPrefix(Object answer);
+
+  /// No description provided for @answerSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Answer saved'**
+  String get answerSaved;
+
+  /// No description provided for @clarificationOtherAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual input'**
+  String get clarificationOtherAnswer;
+
+  /// No description provided for @clarificationNotSure.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sure / prefer not to say'**
+  String get clarificationNotSure;
+
+  /// No description provided for @yes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes'**
+  String get yes;
+
+  /// No description provided for @no.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get no;
 
   /// No description provided for @askSomethingHint.
   ///
@@ -781,6 +865,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter content, select image or record audio.'**
   String get enterContentOrMediaHint;
+
+  /// No description provided for @inputDraftLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Draft · 1 char} other{Draft · {count} chars}}'**
+  String inputDraftLabel(num count);
+
+  /// No description provided for @discardDraftTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard this draft?'**
+  String get discardDraftTitle;
+
+  /// No description provided for @discardDraftMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The draft content will be cleared.'**
+  String get discardDraftMessage;
+
+  /// No description provided for @discardDraftTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard draft'**
+  String get discardDraftTooltip;
 
   /// No description provided for @tellAiWhatHappened.
   ///
@@ -3710,6 +3818,36 @@ abstract class AppLocalizations {
   /// **'Download failed: {error}'**
   String speechModelDownloadFailed(Object error);
 
+  /// No description provided for @deleteSpeechModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete speech model'**
+  String get deleteSpeechModel;
+
+  /// No description provided for @confirmDeleteSpeechModelMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete the downloaded local speech recognition model files? They will be downloaded again the next time local speech-to-text is used.'**
+  String get confirmDeleteSpeechModelMessage;
+
+  /// No description provided for @speechModelDeletedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Speech model files deleted'**
+  String get speechModelDeletedSuccess;
+
+  /// No description provided for @speechModelNotDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'No downloaded speech model files found'**
+  String get speechModelNotDownloaded;
+
+  /// No description provided for @speechModelDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete speech model files: {error}'**
+  String speechModelDeleteFailed(Object error);
+
   /// No description provided for @speechTranscribing.
   ///
   /// In en, this message translates to:
@@ -3871,6 +4009,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Agent'**
   String get chatModeLabel;
+
+  /// No description provided for @switchCompanion.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch companion'**
+  String get switchCompanion;
+
+  /// No description provided for @showInsightTextTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Memex insight comment'**
+  String get showInsightTextTitle;
+
+  /// No description provided for @showInsightTextDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Whether to show the Memex insight as a pinned comment in the card detail comment section.'**
+  String get showInsightTextDesc;
+
+  /// No description provided for @enableCharacterCommentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Character auto-comment'**
+  String get enableCharacterCommentTitle;
+
+  /// No description provided for @enableCharacterCommentDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Characters automatically comment on new records.'**
+  String get enableCharacterCommentDesc;
+
+  /// No description provided for @maxCommentCharactersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Max commenting characters'**
+  String get maxCommentCharactersTitle;
+
+  /// No description provided for @maxCommentCharactersDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'How many characters can comment on each record.'**
+  String get maxCommentCharactersDesc;
+
+  /// No description provided for @replyTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply to {name}'**
+  String replyTo(String name);
+
+  /// No description provided for @cdnSignalsComments.
+  ///
+  /// In en, this message translates to:
+  /// **'New reply received'**
+  String get cdnSignalsComments;
+
+  /// No description provided for @cdnSignalsInsight.
+  ///
+  /// In en, this message translates to:
+  /// **'New insight generated'**
+  String get cdnSignalsInsight;
+
+  /// No description provided for @cdnSignalsBoth.
+  ///
+  /// In en, this message translates to:
+  /// **'New reply and insight'**
+  String get cdnSignalsBoth;
+
+  /// No description provided for @untitledCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled card'**
+  String get untitledCard;
+
+  /// No description provided for @settingsSearchPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Search settings...'**
+  String get settingsSearchPlaceholder;
+
+  /// No description provided for @settingsSearchEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching settings found'**
+  String get settingsSearchEmpty;
 }
 
 class _AppLocalizationsDelegate

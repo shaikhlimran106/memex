@@ -4,7 +4,7 @@
     </picture>
 </p>
 <p align="center">
-  An AI-powered personal life recording app that runs entirely on your device. 
+  An open-source, local-first AI journal. Not for writing daily entries — for capturing life in fragments and letting AI organize them.
 </p>
 
 <p align="center">
@@ -17,14 +17,20 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License"></a>
 </p>
 
+<p align="center">
+  <a href="https://www.memexlab.ai/">Website</a> ·
+  <a href="https://apps.apple.com/app/memexai/id6760325170">App Store</a> ·
+  <a href="https://play.google.com/store/apps/details?id=com.memexlab.memex">Google Play</a>
+</p>
+
 
 ## What is Memex?
 
-Memex is a local-first, AI-native personal life recording app. Capture text, photos, and voice — a multi-agent system automatically organizes your records into structured timeline cards, extracts knowledge, and generates insights across your entries.
+Memex is an open-source, local-first AI journal for iOS and Android. It takes a different approach from traditional journaling apps — instead of asking you to sit down and write polished entries, Memex lets you capture life in fragments (text, photos, voice) and uses a multi-agent AI system to organize them into structured timeline cards, extract knowledge, and surface insights across your records.
 
 Under the hood, Memex's multi-agent intelligence is powered by a fully open Custom Agent System — you can use the same engine to orchestrate and run your own agents. If you're curious about building autonomous workflows on your phone, [jump straight to the details](#-custom-agent-system).
 
-All data stays on your device. You bring your own LLM provider.
+**What "local-first" means here:** Your records, cards, and knowledge all stay on your device. There is no Memex account and no Memex server storing your journal. You bring your own LLM provider (OpenAI, Claude, Gemini, etc.), and your prompts go directly from your phone to that provider — we never see your data.
 
 <div align="center">
   <img src="https://github.com/user-attachments/assets/2a1c1c29-9925-4b9d-aea4-863b5666d5c5" width="300" />
@@ -92,6 +98,7 @@ All data stays on your device. You bring your own LLM provider.
 
 ## Install
 - **iOS**: Download on the [App Store](https://apps.apple.com/app/memexai/id6760325170)
+- **iOS (China)**: Download on the [App Store](https://apps.apple.com/cn/app/memexai%E5%A6%99%E8%AE%B0/id6761462644)
 - **Android**: Download on [Google Play](https://play.google.com/store/apps/details?id=com.memexlab.memex)
 - **Early Access (Android APK)**: You can also download the latest APK directly from [GitHub Releases](https://github.com/memex-lab/memex/releases).
 - **Build from Source**: [Compile and install from source](#development).
@@ -148,6 +155,12 @@ Continues to downstream dependent agents and presents results to the user
 Every agent you create is a first-class citizen — it plugs into the same event bus, uses the same tool system, and has the same capabilities as the built-in agents. The only limit is your imagination.
 
 > 💡 **Learn more about the Skill format**: [Agent Skills](https://agentskills.io) is an open standard originally developed by Anthropic for packaging agent capabilities. Visit the site to understand how to write SKILL.md files and design agent behaviors.
+
+## Community
+
+Memex welcomes bug reports, feature ideas, docs improvements, localization, provider adapters, and focused code contributions. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a large PR.
+
+Opening an issue helps us understand demand, but it does not guarantee implementation.
 
 ## Roadmap
 

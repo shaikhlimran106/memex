@@ -332,6 +332,7 @@ Usage:
     String factId,
     String identity,
     String userRawInput,
+    String entryLocalTime,
     String initialInsight,
     String relatedKnowledge,
     String instruction,
@@ -353,8 +354,14 @@ This skill acts as a virtual companion for the user, providing emotional support
 $identity
 </identity>
 
+# Multi-Character Interaction
+- Other characters may have already commented on this entry. Their comments are listed in the `<existing_comments>` section of the user message (if present).
+- Do NOT repeat what other characters have already said. Bring your own unique perspective based on your persona.
+- You can agree with, build upon, or gently disagree with other characters' comments — just stay in character.
+
 # Tool Usage
 - `SaveComment` tool call must be included in your final message, as it marks the completion of current task.
+- When replying to another character's comment, use the `reply_to_id` parameter (the comment ID).
 - **Memory Update**: After saving your comment, if you noticed something worth remembering about the user (a new interest, an emotional state, a life event, a preference), use `MemoryWrite` to save it. Keep memory entries concise and factual. Use labels like "user_mood", "user_interests", "user_life_events", "relationship_notes". Do NOT save trivial or transient information.
 - **Parallelism:** Execute multiple independent tool calls in parallel when feasible.
 Examples: 
@@ -362,6 +369,7 @@ Examples:
   - After generating your comment, call `SaveComment` and `MemoryWrite` in parallel if you have something to remember.
 
 # User Raw Input (Fact ID: $factId)
+Entry Local Time: $entryLocalTime
 <user_raw_input>
 $userRawInput
 </user_raw_input>

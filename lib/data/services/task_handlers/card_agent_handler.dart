@@ -15,6 +15,7 @@ import 'package:memex/agent/agent_utils.dart';
 import 'package:memex/domain/models/card_detail_model.dart';
 import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/data/services/task_handlers/llm_error_utils.dart';
+import 'package:memex/utils/time_context.dart';
 
 final Logger _logger = getLogger('CardAgentHandler');
 
@@ -72,14 +73,15 @@ Future<void> processWithCardAgent({
     // 3. (Client initialized above)
     final client = resources.client;
 
-    final publishTime = inputDateTime.toString().substring(0, 19);
+    final publishTime =
+        formatLocalDateTimeWithZone(inputDateTime ?? DateTime.now());
 
     final userMessageContent =
         Prompts.cardAgentUserMessagePromptForPublishNewContent(
-          publishTime,
-          factId,
-          enhancedFactContent,
-        );
+      publishTime,
+      factId,
+      enhancedFactContent,
+    );
 
     // 4. Run Agent
     await CardAgent.runWithContent(
@@ -144,11 +146,7 @@ Future<void> handleCardAgentImpl(
     // 1. Parse Payload
     final factId = payload['fact_id'] as String;
     final combinedText = payload['combined_text'] as String;
-    final createdAtTs = (payload['created_at_ts'] as num?)?.toInt();
-
-    final inputDateTime = createdAtTs != null
-        ? DateTime.fromMillisecondsSinceEpoch(createdAtTs * 1000)
-        : DateTime.now();
+    final inputDateTime = dateTimeFromUnixSeconds(payload['created_at_ts']);
 
     // 2. Retrieve asset analyses (Stage 1 result)
     List<Map<String, dynamic>>? assetAnalyses;
@@ -159,12 +157,12 @@ Future<void> handleCardAgentImpl(
         combinedText: combinedText,
       );
       try {
-        final analysisResult = await LocalTaskExecutor.instance
-            .getTaskResultByBizId(
-              userId,
-              'handle_analyze_assets',
-              taskContext.bizId!,
-            );
+        final analysisResult =
+            await LocalTaskExecutor.instance.getTaskResultByBizId(
+          userId,
+          'handle_analyze_assets',
+          taskContext.bizId!,
+        );
 
         if (analysisResult != null &&
             analysisResult.containsKey('asset_analyses')) {
@@ -212,8 +210,7 @@ Future<void> renderAndPushCardUpdate(
   }
 
   final tags = cardData?.tags ?? <String>[];
-  final cardForRender =
-      cardData ??
+  final cardForRender = cardData ??
       CardData(
         factId: factId,
         timestamp: DateTime.now().millisecondsSinceEpoch ~/ 1000,

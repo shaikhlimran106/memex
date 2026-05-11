@@ -26,7 +26,6 @@ class _AgentActivityWidgetState extends State<AgentActivityWidget>
   bool _hasActiveTasks = false;
 
   late AnimationController _bounceController;
-  late Animation<double> _bounceAnimation;
 
   bool get _hasRunningAgent {
     if (_latestMessage == null) return false;
@@ -43,11 +42,8 @@ class _AgentActivityWidgetState extends State<AgentActivityWidget>
     super.initState();
     _bounceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 400),
     )..repeat(reverse: true);
-    _bounceAnimation = Tween<double>(begin: 0, end: -6).animate(
-      CurvedAnimation(parent: _bounceController, curve: Curves.easeInOut),
-    );
 
     try {
       _service = AgentActivityService.instance;
@@ -156,16 +152,19 @@ class _AgentActivityWidgetState extends State<AgentActivityWidget>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Bouncing thinking emoji
+                // Animated writing icon (alternates between two frames)
                 AnimatedBuilder(
-                  animation: _bounceAnimation,
+                  animation: _bounceController,
                   builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, _bounceAnimation.value),
-                      child: child,
+                    final frame = _bounceController.value < 0.5
+                        ? 'assets/icons/processing_1.png'
+                        : 'assets/icons/processing_2.png';
+                    return Image.asset(
+                      frame,
+                      width: 36,
+                      height: 36,
                     );
                   },
-                  child: const Text('🤔', style: TextStyle(fontSize: 22)),
                 ),
                 const SizedBox(width: 8),
                 // Text
@@ -234,7 +233,7 @@ class _DetailSheetState extends State<_DetailSheet>
     super.initState();
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 400),
     )..repeat(reverse: true);
     _message = widget.initialMessage;
     try {
@@ -296,7 +295,19 @@ class _DetailSheetState extends State<_DetailSheet>
               children: [
                 Row(
                   children: [
-                    const Text('🤔', style: TextStyle(fontSize: 24)),
+                    AnimatedBuilder(
+                      animation: _pulseController,
+                      builder: (context, child) {
+                        final frame = _pulseController.value < 0.5
+                            ? 'assets/icons/processing_1.png'
+                            : 'assets/icons/processing_2.png';
+                        return Image.asset(
+                          frame,
+                          width: 38,
+                          height: 38,
+                        );
+                      },
+                    ),
                     const SizedBox(width: 10),
                     Text(
                       UserStorage.l10n.activityDetail,

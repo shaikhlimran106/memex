@@ -11,6 +11,7 @@ import 'package:memex/ui/core/widgets/agent_logo_loading.dart';
 import 'package:go_router/go_router.dart';
 import 'package:memex/routing/routes.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
+import 'package:memex/utils/token_usage_utils.dart';
 
 // --- Display Models ---
 
@@ -186,10 +187,32 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       ChatTokenUsageEvent? restoredUsage;
       if (sessionData['total_usage'] != null) {
         final usage = sessionData['total_usage'] as Map<String, dynamic>;
+        final prompt = usage['prompt_tokens'] as int? ?? 0;
+        final cached = usage['cached_tokens'] as int? ?? 0;
+        // Recompute effectivePromptTokens from per-message usage.
+        int effPrompt = 0;
+        int cachedForRate = 0;
+        for (final msg in messagesData) {
+          final msgUsage = msg['usage'] as Map<String, dynamic>?;
+          if (msgUsage == null) continue;
+          final mp = msgUsage['prompt_tokens'] as int? ?? 0;
+          final mc = msgUsage['cached_tokens'] as int? ?? 0;
+          final sem = TokenUsageUtils.resolveFromUsageRecord(msgUsage);
+          final eff = TokenUsageUtils.effectivePromptTokensOrNull(
+              promptTokens: mp,
+              cachedTokens: mc,
+              cachedTokensIncludedInPrompt: sem);
+          if (eff != null) {
+            effPrompt += eff;
+            cachedForRate += mc;
+          }
+        }
         restoredUsage = ChatTokenUsageEvent(
-          promptTokens: usage['prompt_tokens'] as int? ?? 0,
+          promptTokens: prompt,
           completionTokens: usage['completion_tokens'] as int? ?? 0,
-          cachedTokens: usage['cached_tokens'] as int? ?? 0,
+          cachedTokens: cached,
+          effectivePromptTokens: effPrompt,
+          cachedTokensForRate: cachedForRate,
           totalTokens: usage['total_tokens'] as int? ?? 0,
           estimatedCost: usage['total_cost'] as double? ?? 0.0,
         );
@@ -750,10 +773,44 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                     .copyWith(topLeft: const Radius.circular(4)),
                 border: Border.all(color: const Color(0xFFF7F8FA)),
               ),
-              child: SelectableText(
-                item.text,
-                style: TextStyle(
-                    fontSize: 14, color: AppColors.textSecondary, height: 1.5),
+              child: MarkdownBody(
+                data: item.text,
+                selectable: true,
+                softLineBreak: true,
+                styleSheet: MarkdownStyleSheet(
+                  p: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                    height: 1.5,
+                  ),
+                  strong: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                  em: const TextStyle(fontStyle: FontStyle.italic),
+                  listBullet: const TextStyle(color: AppColors.primary),
+                  code: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textPrimary,
+                    backgroundColor: Color(0xFFF7F8FA),
+                    fontFamily: 'monospace',
+                  ),
+                  codeblockDecoration: BoxDecoration(
+                    color: const Color(0xFFF7F8FA),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  blockquote: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  blockquoteDecoration: BoxDecoration(
+                    color: const Color(0xFFF7F8FA),
+                    borderRadius: BorderRadius.circular(8),
+                    border: const Border(
+                      left: BorderSide(color: AppColors.primary, width: 3),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
@@ -848,11 +905,9 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     if (_lastTokenUsage == null) return const SizedBox.shrink();
     final item = _lastTokenUsage!;
 
-    String cacheRate = '0.0%';
-    if (item.promptTokens > 0) {
-      final rate = (item.cachedTokens / item.promptTokens) * 100;
-      cacheRate = '${rate.toStringAsFixed(1)}%';
-    }
+    final cacheRate = TokenUsageUtils.formatCacheRateFromAggregated(
+        effectivePromptTokens: item.effectivePromptTokens,
+        cachedTokens: item.cachedTokensForRate);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

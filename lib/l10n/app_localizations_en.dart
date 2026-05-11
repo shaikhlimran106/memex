@@ -112,6 +112,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'Regenerate comments task created, running in background';
 
   @override
+  String get rebuildSearchIndex => 'Rebuild search index';
+
+  @override
+  String get rebuildSearchIndexSuccess => 'Search index rebuilt successfully';
+
+  @override
+  String get rebuildSearchIndexFailed => 'Failed to rebuild search index';
+
+  @override
   String get clearData => 'Clear data';
 
   @override
@@ -346,7 +355,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discoveredTodoActions => 'Discovered todo actions';
 
   @override
+  String get actionCenterTitle => 'Pending actions';
+
+  @override
   String get noPendingActions => 'No pending actions';
+
+  @override
+  String get clarificationNeeded => 'Memex wants to confirm';
+
+  @override
+  String get clarificationTextHint => 'Type a short answer';
+
+  @override
+  String get clarificationTextRequired => 'Add a short answer first';
+
+  @override
+  String get clarificationAnswered => 'Answered';
+
+  @override
+  String clarificationAnswerPrefix(Object answer) {
+    return 'Answer: $answer';
+  }
+
+  @override
+  String get answerSaved => 'Answer saved';
+
+  @override
+  String get clarificationOtherAnswer => 'Manual input';
+
+  @override
+  String get clarificationNotSure => 'Not sure / prefer not to say';
+
+  @override
+  String get yes => 'Yes';
+
+  @override
+  String get no => 'No';
 
   @override
   String get askSomethingHint => 'Ask something...';
@@ -381,6 +425,26 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get enterContentOrMediaHint =>
       'Enter content, select image or record audio.';
+
+  @override
+  String inputDraftLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Draft · $count chars',
+      one: 'Draft · 1 char',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get discardDraftTitle => 'Discard this draft?';
+
+  @override
+  String get discardDraftMessage => 'The draft content will be cleared.';
+
+  @override
+  String get discardDraftTooltip => 'Discard draft';
 
   @override
   String get tellAiWhatHappened => 'Tell AI what happened...';
@@ -2025,6 +2089,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get deleteSpeechModel => 'Delete speech model';
+
+  @override
+  String get confirmDeleteSpeechModelMessage =>
+      'Delete the downloaded local speech recognition model files? They will be downloaded again the next time local speech-to-text is used.';
+
+  @override
+  String get speechModelDeletedSuccess => 'Speech model files deleted';
+
+  @override
+  String get speechModelNotDownloaded =>
+      'No downloaded speech model files found';
+
+  @override
+  String speechModelDeleteFailed(Object error) {
+    return 'Failed to delete speech model files: $error';
+  }
+
+  @override
   String get speechTranscribing => 'Recognizing...';
 
   @override
@@ -2109,4 +2192,51 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatModeLabel => 'Agent';
+
+  @override
+  String get switchCompanion => 'Switch companion';
+
+  @override
+  String get showInsightTextTitle => 'Show Memex insight comment';
+
+  @override
+  String get showInsightTextDesc =>
+      'Whether to show the Memex insight as a pinned comment in the card detail comment section.';
+
+  @override
+  String get enableCharacterCommentTitle => 'Character auto-comment';
+
+  @override
+  String get enableCharacterCommentDesc =>
+      'Characters automatically comment on new records.';
+
+  @override
+  String get maxCommentCharactersTitle => 'Max commenting characters';
+
+  @override
+  String get maxCommentCharactersDesc =>
+      'How many characters can comment on each record.';
+
+  @override
+  String replyTo(String name) {
+    return 'Reply to $name';
+  }
+
+  @override
+  String get cdnSignalsComments => 'New reply received';
+
+  @override
+  String get cdnSignalsInsight => 'New insight generated';
+
+  @override
+  String get cdnSignalsBoth => 'New reply and insight';
+
+  @override
+  String get untitledCard => 'Untitled card';
+
+  @override
+  String get settingsSearchPlaceholder => 'Search settings...';
+
+  @override
+  String get settingsSearchEmpty => 'No matching settings found';
 }

@@ -87,6 +87,67 @@ class SystemActions extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Clarification Requests Table
+/// Stores agent-created questions that need a lightweight user answer.
+class ClarificationRequests extends Table {
+  TextColumn get id => text()();
+  TextColumn get question => text()();
+  TextColumn get responseType =>
+      text()(); // confirm, single_choice, multi_choice, short_text
+  TextColumn get options => text().nullable()(); // JSON list
+  TextColumn get status =>
+      text()(); // pending, answered, completed, dismissed, failed, expired
+  TextColumn get answerData => text().nullable()(); // JSON payload
+  TextColumn get entityType => text().nullable()();
+  TextColumn get entityLabel => text().nullable()();
+  TextColumn get evidenceFactIds => text().nullable()(); // JSON list
+  TextColumn get reason => text().nullable()();
+  TextColumn get impact => text().nullable()();
+  RealColumn get confidence => real().nullable()();
+  TextColumn get proposedMemory => text().nullable()();
+  TextColumn get resolutionTarget =>
+      text().nullable()(); // auto, memory, pkm, card, insight, none
+  TextColumn get sourceAgent => text().nullable()();
+  TextColumn get dedupeKey => text().nullable()();
+  TextColumn get factId => text().nullable()();
+  TextColumn get error => text().nullable()();
+  IntColumn get createdAt => integer().nullable()();
+  IntColumn get updatedAt => integer().nullable()();
+  IntColumn get answeredAt => integer().nullable()();
+  IntColumn get expiresAt => integer().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Generic per-user notification table. Producer writes rows keyed by
+/// (userId, notificationType, subjectKey). Physical delete model:
+/// dismissing a notification removes its row. At most one row per triple,
+/// enforced by a UNIQUE index.
+class UserNotifications extends Table {
+  /// UUID v4 string.
+  TextColumn get id => text()();
+  TextColumn get userId => text()();
+
+  /// Open string namespace. First value: 'card_detail_update'.
+  TextColumn get notificationType => text()();
+
+  /// Type-specific aggregation key. For card_detail_update: factId.
+  TextColumn get subjectKey => text()();
+
+  /// Opaque JSON blob defined by the producer. Null allowed.
+  TextColumn get payload => text().nullable()();
+
+  /// Seconds since epoch.
+  IntColumn get createdAt => integer()();
+
+  /// Seconds since epoch.
+  IntColumn get updatedAt => integer()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Persona Chat Messages Table
 /// Stores chat messages between user and their AI companion character.
 class PersonaChatMessages extends Table {
@@ -95,7 +156,6 @@ class PersonaChatMessages extends Table {
   BoolColumn get isFromCharacter => boolean()();
   TextColumn get content => text()();
   TextColumn get factId => text().nullable()();
-  BoolColumn get isRead =>
-      boolean().withDefault(const Constant(false))();
+  BoolColumn get isRead => boolean().withDefault(const Constant(false))();
   DateTimeColumn get timestamp => dateTime()();
 }

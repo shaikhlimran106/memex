@@ -107,6 +107,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get regenerateCommentsTaskCreated => '重新生成评论任务已创建，正在后台处理中';
 
   @override
+  String get rebuildSearchIndex => '重建搜索索引';
+
+  @override
+  String get rebuildSearchIndexSuccess => '搜索索引重建完成';
+
+  @override
+  String get rebuildSearchIndexFailed => '搜索索引重建失败';
+
+  @override
   String get clearData => '清除数据';
 
   @override
@@ -338,7 +347,42 @@ class AppLocalizationsZh extends AppLocalizations {
   String get discoveredTodoActions => '发现的待办动作';
 
   @override
+  String get actionCenterTitle => '待处理事项';
+
+  @override
   String get noPendingActions => '目前没有待处理的动作';
+
+  @override
+  String get clarificationNeeded => 'Memex 想确认一下';
+
+  @override
+  String get clarificationTextHint => '输入一个简短回答';
+
+  @override
+  String get clarificationTextRequired => '请先补充一个简短回答';
+
+  @override
+  String get clarificationAnswered => '已回答';
+
+  @override
+  String clarificationAnswerPrefix(Object answer) {
+    return '已回答：$answer';
+  }
+
+  @override
+  String get answerSaved => '回答已保存';
+
+  @override
+  String get clarificationOtherAnswer => '手动输入';
+
+  @override
+  String get clarificationNotSure => '不知道/不方便说';
+
+  @override
+  String get yes => '是';
+
+  @override
+  String get no => '否';
 
   @override
   String get askSomethingHint => '问点什么...';
@@ -372,6 +416,20 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get enterContentOrMediaHint => '请输入内容、选择图片或录制音频';
+
+  @override
+  String inputDraftLabel(num count) {
+    return '草稿 · $count 字';
+  }
+
+  @override
+  String get discardDraftTitle => '丢弃这份草稿？';
+
+  @override
+  String get discardDraftMessage => '草稿内容会被清空。';
+
+  @override
+  String get discardDraftTooltip => '丢弃草稿';
 
   @override
   String get tellAiWhatHappened => '告诉AI发生了什么...';
@@ -1956,6 +2014,24 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get deleteSpeechModel => '删除语音识别模型';
+
+  @override
+  String get confirmDeleteSpeechModelMessage =>
+      '确定要删除已下载的本地语音识别模型文件吗？下次使用本地语音转文字时会重新下载。';
+
+  @override
+  String get speechModelDeletedSuccess => '语音识别模型文件已删除';
+
+  @override
+  String get speechModelNotDownloaded => '未找到已下载的语音识别模型文件';
+
+  @override
+  String speechModelDeleteFailed(Object error) {
+    return '删除语音识别模型文件失败: $error';
+  }
+
+  @override
   String get speechTranscribing => '正在识别...';
 
   @override
@@ -2037,4 +2113,48 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get chatModeLabel => '智能体';
+
+  @override
+  String get switchCompanion => '切换角色';
+
+  @override
+  String get showInsightTextTitle => '显示 Memex 洞察评论';
+
+  @override
+  String get showInsightTextDesc => '是否在卡片详情的评论区显示 Memex 洞察评论。';
+
+  @override
+  String get enableCharacterCommentTitle => '角色自动评论';
+
+  @override
+  String get enableCharacterCommentDesc => '角色自动对新记录发表评论。';
+
+  @override
+  String get maxCommentCharactersTitle => '最大评论角色数';
+
+  @override
+  String get maxCommentCharactersDesc => '每条记录最多几个角色参与评论。';
+
+  @override
+  String replyTo(String name) {
+    return '回复 $name';
+  }
+
+  @override
+  String get cdnSignalsComments => '收到新回复';
+
+  @override
+  String get cdnSignalsInsight => '生成了新洞察';
+
+  @override
+  String get cdnSignalsBoth => '有新回复和洞察';
+
+  @override
+  String get untitledCard => '未命名卡片';
+
+  @override
+  String get settingsSearchPlaceholder => '搜索设置项...';
+
+  @override
+  String get settingsSearchEmpty => '未找到匹配的设置项';
 }

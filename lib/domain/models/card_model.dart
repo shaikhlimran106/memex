@@ -235,6 +235,7 @@ class CardComment {
   final bool isAi;
   final int timestamp;
   final String? characterId;
+  final String? replyToId;
 
   const CardComment({
     required this.id,
@@ -242,6 +243,7 @@ class CardComment {
     required this.isAi,
     required this.timestamp,
     this.characterId,
+    this.replyToId,
   });
 
   factory CardComment.fromJson(Map<String, dynamic> json) {
@@ -252,6 +254,7 @@ class CardComment {
       isAi: json['is_ai'] as bool? ?? false,
       timestamp: json['timestamp'] as int? ?? 0,
       characterId: charId?.toString(),
+      replyToId: json['reply_to_id'] as String?,
     );
   }
 
@@ -263,6 +266,7 @@ class CardComment {
       'timestamp': timestamp,
     };
     if (characterId != null) m['character_id'] = characterId;
+    if (replyToId != null) m['reply_to_id'] = replyToId;
     return m;
   }
 }

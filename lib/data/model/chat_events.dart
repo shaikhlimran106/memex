@@ -40,12 +40,20 @@ class ChatTokenUsageEvent extends ChatEvent {
   final int totalTokens;
   final double estimatedCost;
 
+  /// Normalized denominator for cache rate, computed per-call then summed.
+  final int effectivePromptTokens;
+
+  /// Numerator for cache rate (excludes unknown-semantics calls).
+  final int cachedTokensForRate;
+
   ChatTokenUsageEvent({
     required this.promptTokens,
     required this.completionTokens,
     required this.cachedTokens,
     required this.totalTokens,
     required this.estimatedCost,
+    this.effectivePromptTokens = 0,
+    this.cachedTokensForRate = 0,
   });
 }
 

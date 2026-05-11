@@ -50,6 +50,9 @@
   "reprocessCardsTaskCreated": "Reprocess cards task created, running in background",
   "regenerateComments": "Regenerate comments",
   "regenerateCommentsTaskCreated": "Regenerate comments task created, running in background",
+  "rebuildSearchIndex": "Rebuild search index",
+  "rebuildSearchIndexSuccess": "Search index rebuilt successfully",
+  "rebuildSearchIndexFailed": "Failed to rebuild search index",
   "clearData": "Clear data",
   "confirmClearDataMessage": "Clear data?",
   "confirmClearDataKeepFactsMessage": "Only the Facts directory (raw input) will be kept. All other workspace directories (Cards, Discoveries, KnowledgeInsights, PKM, _System, etc.) will be deleted.\n\nThis action cannot be undone!",
@@ -157,7 +160,23 @@
   },
   "referenceWithTitle": "Reference: {title}",
   "discoveredTodoActions": "Discovered todo actions",
+  "actionCenterTitle": "Pending actions",
   "noPendingActions": "No pending actions",
+  "clarificationNeeded": "Memex wants to confirm",
+  "clarificationTextHint": "Type a short answer",
+  "clarificationTextRequired": "Add a short answer first",
+  "clarificationAnswered": "Answered",
+  "@clarificationAnswerPrefix": {
+    "placeholders": {
+      "answer": {}
+    }
+  },
+  "clarificationAnswerPrefix": "Answer: {answer}",
+  "answerSaved": "Answer saved",
+  "clarificationOtherAnswer": "Manual input",
+  "clarificationNotSure": "Not sure / prefer not to say",
+  "yes": "Yes",
+  "no": "No",
   "askSomethingHint": "Ask something...",
   "aiAssistant": "AI Assistant",
   "footprintMap": "Footprint map",
@@ -169,6 +188,17 @@
   "selectFromAlbum": "Select from album",
   "takePhoto": "Take photo",
   "enterContentOrMediaHint": "Enter content, select image or record audio.",
+  "@inputDraftLabel": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "inputDraftLabel": "{count, plural, =1{Draft · 1 char} other{Draft · {count} chars}}",
+  "discardDraftTitle": "Discard this draft?",
+  "discardDraftMessage": "The draft content will be cleared.",
+  "discardDraftTooltip": "Discard draft",
   "tellAiWhatHappened": "Tell AI what happened...",
   "@recordingWithDuration": {
     "placeholders": {
@@ -915,6 +945,12 @@
   "speechModelConnecting": "Connecting...",
   "speechModelDownloadFailed": "Download failed: {error}",
   "@speechModelDownloadFailed": { "placeholders": { "error": {} } },
+  "deleteSpeechModel": "Delete speech model",
+  "confirmDeleteSpeechModelMessage": "Delete the downloaded local speech recognition model files? They will be downloaded again the next time local speech-to-text is used.",
+  "speechModelDeletedSuccess": "Speech model files deleted",
+  "speechModelNotDownloaded": "No downloaded speech model files found",
+  "speechModelDeleteFailed": "Failed to delete speech model files: {error}",
+  "@speechModelDeleteFailed": { "placeholders": { "error": {} } },
   "speechTranscribing": "Recognizing...",
   "speechTranscriptionTitle": "Transcription",
   "speechNoResult": "No speech detected",
@@ -944,5 +980,30 @@
   "readOnlyMode": "Chat",
   "readOnlyBadge": "CHAT",
 
-  "chatModeLabel": "Agent"
+  "chatModeLabel": "Agent",
+
+  "switchCompanion": "Switch companion",
+
+  "showInsightTextTitle": "Show Memex insight comment",
+  "showInsightTextDesc": "Whether to show the Memex insight as a pinned comment in the card detail comment section.",
+  "enableCharacterCommentTitle": "Character auto-comment",
+  "enableCharacterCommentDesc": "Characters automatically comment on new records.",
+  "maxCommentCharactersTitle": "Max commenting characters",
+  "maxCommentCharactersDesc": "How many characters can comment on each record.",
+  "replyTo": "Reply to {name}",
+  "@replyTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+
+  "cdnSignalsComments": "New reply received",
+  "cdnSignalsInsight": "New insight generated",
+  "cdnSignalsBoth": "New reply and insight",
+  "untitledCard": "Untitled card",
+
+  "settingsSearchPlaceholder": "Search settings...",
+  "settingsSearchEmpty": "No matching settings found"
 }

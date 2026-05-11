@@ -75,6 +75,22 @@ class SystemActionService {
     }
   }
 
+  /// Gets non-rejected actions for a given factId (one-shot query).
+  Future<List<SystemAction>> getVisibleForFact(String factId) async {
+    return (_db.select(_db.systemActions)
+          ..where(
+              (t) => t.factId.equals(factId) & t.status.isNotIn(['rejected'])))
+        .get();
+  }
+
+  /// Gets all pending actions.
+  Future<List<SystemAction>> getPending() async {
+    return (_db.select(_db.systemActions)
+          ..where((t) => t.status.equals('pending'))
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+        .get();
+  }
+
   /// Gets recent actions for agent context.
   Future<List<SystemAction>> getRecentActions({int limit = 20}) async {
     try {

@@ -3,15 +3,24 @@ import 'dart:io';
 import 'package:memex/domain/models/calendar_model.dart';
 import 'package:memex/data/repositories/update_card_ui_config.dart'
     as update_config_endpoint;
+import 'package:memex/data/services/search_service.dart';
+import 'package:memex/data/repositories/hydrate_card.dart';
 import 'package:memex/data/services/task_handlers/knowledge_insight_handler.dart';
 import 'package:memex/data/services/task_handlers/schedule_aggregator_handler.dart';
 import 'package:memex/data/services/task_handlers/schedule_refresh_router_handler.dart';
+import 'package:memex/data/services/task_handlers/clarification_resolution_handler.dart';
+import 'package:memex/data/services/table_change_notifier.dart';
+import 'package:memex/data/services/card_attachment_service.dart';
+import 'package:memex/data/services/card_detail_notifier.dart';
+import 'package:memex/data/services/clarification_request_service.dart';
+import 'package:memex/data/services/user_notification_service.dart';
 import 'package:path/path.dart' as path;
 import 'package:image_picker/image_picker.dart';
 import 'package:memex/data/repositories/get_timeline_card.dart'; // Import for fetchTimelineCard
 import 'package:logging/logging.dart';
 import 'package:memex/data/services/card_renderer.dart';
 import 'package:memex/domain/models/timeline_card_model.dart';
+import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/domain/models/card_detail_model.dart';
 import 'package:memex/domain/models/tag_model.dart';
 import 'package:memex/domain/models/insight_detail_model.dart';
@@ -31,6 +40,7 @@ import 'package:memex/data/repositories/reprocess_pending_cards.dart';
 import 'package:memex/data/services/task_handlers/analyze_assets_handler.dart';
 import 'package:memex/data/services/task_handlers/card_agent_handler.dart';
 import 'package:memex/data/services/task_handlers/pkm_agent_handler.dart';
+import 'package:memex/data/services/task_handlers/fts_index_handler.dart';
 import 'package:memex/data/services/task_handlers/llm_error_utils.dart';
 import 'package:memex/data/services/task_handlers/comment_agent_handler.dart';
 import 'package:memex/data/services/task_handlers/reprocess_cards_handler.dart';
@@ -45,6 +55,7 @@ import 'package:memex/data/repositories/get_cards_by_ids.dart';
 import 'package:memex/data/repositories/get_calendar_data.dart';
 import 'package:memex/data/repositories/card.dart';
 import 'package:memex/data/repositories/post_comment.dart';
+import 'package:memex/data/services/comment_settings_service.dart';
 import 'package:memex/data/repositories/pin_insight.dart';
 import 'package:memex/data/repositories/character.dart';
 import 'package:memex/data/repositories/health.dart' as health_endpoint;
@@ -92,6 +103,17 @@ class MemexRouter {
       await AppDatabase.init(userId);
       await LocalTaskExecutor.instance.start(userId: userId);
 
+      // Start table change notifier (binlog-style listener for Drift tables)
+      TableChangeNotifier.instance.init();
+      // Register attachment table watchers
+      CardAttachmentService.instance.init();
+      // Register user notification table watch (must precede CardDetailNotifier)
+      UserNotificationService.instance.init();
+      // Register card-detail change notifier (subscribes to GlobalEventBus)
+      CardDetailNotifier.instance.init();
+      // Register clarification request table watcher (creates timeline cards for global Ask)
+      ClarificationRequestService.instance.init();
+
       // Register Task Handlers - idempotent registration or check if registered?
       // LocalTaskExecutor handles this map, re-registering overwrites which is fine.
       LocalTaskExecutor.instance
@@ -100,6 +122,8 @@ class MemexRouter {
           .registerHandler('card_agent_task', handleCardAgentImpl);
       LocalTaskExecutor.instance
           .registerHandler('pkm_agent_task', handlePkmAgentImpl);
+      LocalTaskExecutor.instance
+          .registerHandler('fts_index_update', handleFtsIndexUpdateImpl);
       LocalTaskExecutor.instance
           .registerHandler('reprocess_cards_task', handleReprocessCardsImpl);
       LocalTaskExecutor.instance
@@ -116,6 +140,8 @@ class MemexRouter {
           'schedule_aggregator_task', handleScheduleAggregation);
       LocalTaskExecutor.instance.registerHandler(
           'schedule_refresh_router_task', handleScheduleRefreshRouter);
+      LocalTaskExecutor.instance.registerHandler(
+          'clarification_resolution_task', handleClarificationResolution);
 
       // Register Failure Handlers
       LocalTaskExecutor.instance.registerFailureHandler(
@@ -127,6 +153,7 @@ class MemexRouter {
         'knowledge_insight_task',
         'schedule_aggregator_task',
         'schedule_refresh_router_task',
+        'clarification_resolution_task',
         'reprocess_cards_task',
         'reprocess_comments_task',
         'reprocess_knowledge_base_task',
@@ -144,6 +171,11 @@ class MemexRouter {
       initCustomAgentHandler();
       registerBuiltInEventSerializers();
       await CustomAgentConfigService.instance.registerAll(userId);
+
+      // Register file change callback and FTS event subscriptions.
+      // Also triggers a one-time full rebuild when FTS tables were just created
+      // via migration (existing users upgrading to schema v10).
+      SearchService.instance.init(userId);
     } catch (e) {
       _logger.severe('Failed to initialize MemexRouter: $e');
       // Reset future to allow retry if needed, or keep failed state
@@ -255,11 +287,13 @@ class MemexRouter {
         taskType: 'process_ai_reply',
         payloadBuilder: (_, event) {
           final p = event.payload as CardCommentPostedPayload;
-          return Future.value({
-            'card_id': p.cardId,
-            'content': p.content,
-            'comment_id': p.commentId,
-          });
+            return Future.value({
+              'card_id': p.cardId,
+              'content': p.content,
+              'comment_id': p.commentId,
+              if (p.createdAtTs != null) 'created_at_ts': p.createdAtTs,
+              if (p.replyToId != null) 'reply_to_id': p.replyToId,
+            });
         },
       ),
     );
@@ -279,6 +313,18 @@ class MemexRouter {
         subscriptionId: 'schedule_aggregation_refresh',
         taskType: 'schedule_aggregator_task',
         payloadBuilder: (_, event) => Future.value(const {}),
+      ),
+    );
+
+    eventBus.subscribe(
+      eventType: SystemEventTypes.clarificationAnswered,
+      subscription: EventTaskSubscription(
+        subscriptionId: 'clarification_resolution',
+        taskType: 'clarification_resolution_task',
+        payloadBuilder: (_, event) {
+          final p = event.payload as ClarificationAnsweredPayload;
+          return Future.value({'request_id': p.requestId});
+        },
       ),
     );
   }
@@ -330,6 +376,7 @@ class MemexRouter {
     _targetUserIdForInit = null;
     _initFuture = null;
     LocalTaskExecutor.instance.stop();
+    SearchService.instance.reset();
   }
 
   void dispose() {
@@ -519,7 +566,10 @@ class MemexRouter {
   }
 
   Future<Map<String, dynamic>> postComment(
-      String cardId, String content) async {
+    String cardId,
+    String content, {
+    String? replyToId,
+  }) async {
     await _ensureInitialized();
     _logger.info('LocalMode: postComment called: cardId=$cardId');
 
@@ -529,11 +579,28 @@ class MemexRouter {
         throw Exception('User not logged in, cannot submit comment');
       }
 
-      return await postCommentEndpoint(cardId, userId, content);
+      return await postCommentEndpoint(cardId, userId, content,
+          replyToId: replyToId);
     } catch (e) {
       _logger.severe('Failed to post comment for card $cardId: $e');
       rethrow;
     }
+  }
+
+  /// Load per-user comment settings.
+  Future<CommentSettings> getCommentSettings() async {
+    await _ensureInitialized();
+    final userId = await UserStorage.getUserId();
+    if (userId == null) return const CommentSettings();
+    return CommentSettingsService.load(userId);
+  }
+
+  /// Save per-user comment settings.
+  Future<void> saveCommentSettings(CommentSettings settings) async {
+    await _ensureInitialized();
+    final userId = await UserStorage.getUserId();
+    if (userId == null) return;
+    await CommentSettingsService.save(userId, settings);
   }
 
   Future<void> enqueueTask({
@@ -1068,8 +1135,51 @@ class MemexRouter {
       await _ensureInitialized();
       final userId = await UserStorage.getUserId();
       if (userId == null) return <Map<String, dynamic>>[];
-      return await fileSystemService.searchPkmFiles(userId, query);
+      return await SearchService.instance.searchPkmFiles(userId, query);
     });
+  }
+
+  /// Search timeline cards using FTS5 full-text search.
+  ///
+  /// Returns hydrated [TimelineCardModel] list, same format as [fetchTimelineCards].
+  Future<Result<List<TimelineCardModel>>> searchCards(String query,
+      {int limit = 50}) async {
+    return runResult(() async {
+      await _ensureInitialized();
+      final userId = await UserStorage.getUserId();
+      if (userId == null) return <TimelineCardModel>[];
+
+      final ftsResults =
+          await SearchService.instance.searchCards(query, limit: limit);
+
+      final cards = <TimelineCardModel>[];
+      for (final r in ftsResults) {
+        final factId = r['fact_id'] as String;
+        try {
+          final card = await hydrateCard(userId, factId);
+          if (card != null) cards.add(card);
+        } catch (e) {
+          _logger.warning('Failed to hydrate search result: $e');
+        }
+      }
+      return cards;
+    });
+  }
+
+  /// Rebuild the PKM FTS index (e.g. after import or manual trigger).
+  Future<void> rebuildPkmFtsIndex() async {
+    await _ensureInitialized();
+    final userId = await UserStorage.getUserId();
+    if (userId == null) return;
+    await SearchService.instance.rebuildPkmFtsIndex(userId);
+  }
+
+  /// Rebuild all FTS indexes (card + PKM). Intended for debugging / manual trigger.
+  Future<void> rebuildAllFtsIndexes() async {
+    await _ensureInitialized();
+    final userId = await UserStorage.getUserId();
+    if (userId == null) return;
+    await SearchService.instance.rebuildAll(userId);
   }
 
   Future<Map<String, dynamic>> readPkmFile(String filePath) async {
@@ -1226,4 +1336,41 @@ class MemexRouter {
 
   Future<List<Task>> getTasks({int limit = 10, int offset = 0}) =>
       LocalTaskExecutor.instance.getTasks(limit: limit, offset: offset);
+
+  // ---------------------------------------------------------------------------
+  // Card-detail notification helpers
+  // ---------------------------------------------------------------------------
+
+  /// Resolve the [CardData] for a notification's subject card.
+  /// Returns `null` if the card no longer exists or the user is not logged in.
+  Future<CardData?> resolveCardForNotification(String factId) async {
+    await _ensureInitialized();
+    final userId = await UserStorage.getUserId();
+    if (userId == null) return null;
+    return FileSystemService.instance.readCardFile(userId, factId);
+  }
+
+  /// Dismiss a user notification by its primary key.
+  Future<void> dismissNotification(String id) async {
+    await _ensureInitialized();
+    await UserNotificationService.instance.dismiss(id);
+  }
+
+  /// Register a card detail page as viewing [factId] (foreground suppression).
+  void registerCardDetailForeground(String factId) {
+    CardDetailNotifier.instance.registerForeground(factId);
+  }
+
+  /// Unregister a card detail page for [factId].
+  void unregisterCardDetailForeground(String factId) {
+    CardDetailNotifier.instance.unregisterForeground(factId);
+  }
+
+  /// Dismiss any pending card-detail notification after the user has viewed
+  /// the card's latest content.
+  Future<void> dismissCardDetailOnViewed(String factId) async {
+    final userId = await UserStorage.getUserId();
+    if (userId == null) return;
+    await CardDetailNotifier.instance.dismissOnViewed(userId, factId);
+  }
 }

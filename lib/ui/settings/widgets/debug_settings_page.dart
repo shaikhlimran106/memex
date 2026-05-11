@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:memex/data/services/whisper_service.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/ui/settings/widgets/model_stats_page.dart';
@@ -8,6 +9,7 @@ import 'package:memex/ui/settings/widgets/log_viewer_page.dart';
 import 'package:memex/ui/settings/widgets/async_task_list_page.dart';
 import 'package:memex/ui/settings/widgets/custom_agent_config_page.dart';
 import 'package:memex/ui/settings/widgets/skills_management_page.dart';
+import 'package:memex/utils/toast_helper.dart';
 
 class DebugSettingsPage extends StatelessWidget {
   final Future<void> Function() onClearToken;
@@ -15,23 +17,73 @@ class DebugSettingsPage extends StatelessWidget {
   final Future<void> Function() onReprocessCards;
   final Future<void> Function() onReprocessComments;
   final Future<void> Function() onReprocessKnowledgeBase;
+  final Future<void> Function() onRebuildSearchIndex;
   final bool isClearingData;
   final bool isReprocessingCards;
   final bool isReprocessingComments;
   final bool isReprocessingKnowledgeBase;
+  final bool isRebuildingSearchIndex;
 
   const DebugSettingsPage({
-    Key? key,
+    super.key,
     required this.onClearToken,
     required this.onClearData,
     required this.onReprocessCards,
     required this.onReprocessComments,
     required this.onReprocessKnowledgeBase,
+    required this.onRebuildSearchIndex,
     required this.isClearingData,
     required this.isReprocessingCards,
     required this.isReprocessingComments,
     required this.isReprocessingKnowledgeBase,
-  }) : super(key: key);
+    required this.isRebuildingSearchIndex,
+  });
+
+  Future<void> _deleteSpeechModel(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(UserStorage.l10n.deleteSpeechModel),
+        content: Text(UserStorage.l10n.confirmDeleteSpeechModelMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(UserStorage.l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(UserStorage.l10n.delete),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final deleted = await WhisperService.instance.deleteDownloadedModel();
+      if (!context.mounted) return;
+
+      if (deleted) {
+        ToastHelper.showSuccess(
+          context,
+          UserStorage.l10n.speechModelDeletedSuccess,
+        );
+      } else {
+        ToastHelper.showInfo(
+          context,
+          UserStorage.l10n.speechModelNotDownloaded,
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ToastHelper.showError(
+        context,
+        UserStorage.l10n.speechModelDeleteFailed(e),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,6 +192,13 @@ class DebugSettingsPage extends StatelessWidget {
           const SizedBox(height: 12),
           _buildFunctionTab(
             context: context,
+            icon: Icons.delete_sweep_outlined,
+            title: UserStorage.l10n.deleteSpeechModel,
+            onTap: () => _deleteSpeechModel(context),
+          ),
+          const SizedBox(height: 12),
+          _buildFunctionTab(
+            context: context,
             icon: Icons.cleaning_services_outlined,
             title: UserStorage.l10n.clearData,
             onTap: onClearData,
@@ -182,6 +241,14 @@ class DebugSettingsPage extends StatelessWidget {
                 ),
               );
             },
+          ),
+          const SizedBox(height: 12),
+          _buildFunctionTab(
+            context: context,
+            icon: Icons.search_outlined,
+            title: UserStorage.l10n.rebuildSearchIndex,
+            onTap: onRebuildSearchIndex,
+            isLoading: isRebuildingSearchIndex,
           ),
         ],
       ),

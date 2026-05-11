@@ -26,10 +26,15 @@ class CommentToolFactory {
             'type': 'string',
             'description': 'The content of your comment.'
           },
+          'reply_to_id': {
+            'type': 'string',
+            'description':
+                'Optional. The ID of the comment you are replying to. Leave empty for a top-level comment.'
+          },
         },
         'required': ['content']
       },
-      executable: (String content) async {
+      executable: (String content, String? reply_to_id) async {
         if (content.isEmpty) {
           return "Error: Comment content cannot be empty.";
         }
@@ -48,6 +53,7 @@ class CommentToolFactory {
                 isAi: true,
                 timestamp: DateTime.now().millisecondsSinceEpoch ~/ 1000,
                 characterId: characterId,
+                replyToId: reply_to_id,
               );
               return card.copyWith(comments: [...card.comments, newComment]);
             },

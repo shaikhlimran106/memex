@@ -4,6 +4,7 @@ import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/ui/core/widgets/agent_logo_loading.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
+import 'package:memex/utils/token_usage_utils.dart';
 
 class ModelStatsPage extends StatefulWidget {
   const ModelStatsPage({super.key});
@@ -95,72 +96,6 @@ class _ModelStatsPageState extends State<ModelStatsPage>
     }
   }
 
-  // Pricing configuration (per token)
-  static const _pricing = {
-    'gemini-3-flash-preview': {
-      'input': 0.0000005,
-      'cached': 0.00000005,
-      'output': 0.000003,
-    },
-    'gemini-2.5-flash': {
-      'input': 0.0000003,
-      'cached': 0.00000003,
-      'output': 0.0000025,
-    },
-    'gemini-3.1-pro-preview': {
-      'input': 0.000002,
-      'cached': 0.0000002,
-      'output': 0.000012,
-    },
-    'gemini-3-pro-preview': {
-      'input': 0.000002,
-      'cached': 0.0000002,
-      'output': 0.000012,
-    },
-    'gpt-4o': {
-      'input': 0.0000025,
-      'cached': 0.00000125,
-      'output': 0.00001,
-    },
-  };
-
-  Map<String, double> _calculateCost(
-      String model, int prompt, int completion, int cached, int thought) {
-    // Find matching model pricing
-    Map<String, double>? prices;
-    for (final key in _pricing.keys) {
-      if (model.toLowerCase().contains(key)) {
-        prices = _pricing[key];
-        break;
-      }
-    }
-
-    // Default to gpt-4o if not found
-    prices ??= _pricing['gpt-4o'];
-
-    if (prices == null) {
-      return {'input': 0.0, 'output': 0.0, 'total': 0.0};
-    }
-
-    // Input cost: (prompt - cached) * input_price + cached * cached_price
-    final effectivePrompt = (prompt - cached) > 0 ? (prompt - cached) : 0;
-    final inputCost =
-        (effectivePrompt * prices['input']!) + (cached * prices['cached']!);
-
-    // Output cost: (completion + thought) * output_price
-    // Thought tokens are usually part of the output billing
-    final outputCost = model.startsWith(
-            'ep-') // todo: responses API completion includes thought
-        ? completion * prices['output']!
-        : (completion + thought) * prices['output']!;
-
-    return {
-      'input': inputCost,
-      'output': outputCost,
-      'total': inputCost + outputCost,
-    };
-  }
-
   String _formatCost(double cost) {
     if (cost == 0) return '';
     return '(\$${cost.toStringAsFixed(5)})';
@@ -173,13 +108,14 @@ class _ModelStatsPageState extends State<ModelStatsPage>
   /// Aggregate records into the format expected by the UI
   Map<String, dynamic> _aggregateRecords(List<Map<String, dynamic>> records) {
     final dailyStats = <String, Map<String, dynamic>>{};
-    // final monthlyStats = <String, Map<String, dynamic>>{}; // Removed
     final agentStats = <String, Map<String, dynamic>>{};
 
     int totalCalls = 0;
     int totalPromptTokens = 0;
     int totalCompletionTokens = 0;
     int totalCachedTokens = 0;
+    int totalEffectivePromptTokens = 0;
+    int totalCachedForRate = 0;
     int totalThoughtTokens = 0;
     int totalTokens = 0;
     double totalEstimatedCost = 0.0;
@@ -192,18 +128,28 @@ class _ModelStatsPageState extends State<ModelStatsPage>
         final promptTokens = usage['prompt_tokens'] as int? ?? 0;
         final completionTokens = usage['completion_tokens'] as int? ?? 0;
         final cachedTokens = usage['cached_tokens'] as int? ?? 0;
+        final model = call['model'] as String? ?? '';
+        final sem = TokenUsageUtils.resolveFromUsageRecord(usage);
+        final effPrompt = TokenUsageUtils.effectivePromptTokensOrNull(
+            promptTokens: promptTokens,
+            cachedTokens: cachedTokens,
+            cachedTokensIncludedInPrompt: sem);
         final thoughtTokens = usage['thought_tokens'] as int? ?? 0;
         final tokens = usage['total_tokens'] as int? ?? 0;
         final agentName = call['agent_name'] as String;
-        final model = call['model'] as String? ?? '';
 
         final timestamp = call['timestamp'] as int?;
         final callCreatedAt = timestamp != null
             ? DateTime.fromMicrosecondsSinceEpoch(timestamp)
             : DateTime.fromMicrosecondsSinceEpoch(record['created_at'] as int);
 
-        final costs = _calculateCost(
-            model, promptTokens, completionTokens, cachedTokens, thoughtTokens);
+        final costs = TokenUsageUtils.calculateCost(
+            model: model,
+            promptTokens: promptTokens,
+            completionTokens: completionTokens,
+            cachedTokens: cachedTokens,
+            thoughtTokens: thoughtTokens,
+            cachedTokensIncludedInPrompt: sem);
         final cost = costs['total']!;
 
         // Helper to update stats map
@@ -218,6 +164,8 @@ class _ModelStatsPageState extends State<ModelStatsPage>
               'prompt_tokens': 0,
               'completion_tokens': 0,
               'cached_tokens': 0,
+              'effective_prompt_tokens': 0,
+              'cached_tokens_for_rate': 0,
               'thought_tokens': 0,
               'total_tokens': 0,
               'total_cost': 0.0,
@@ -230,6 +178,12 @@ class _ModelStatsPageState extends State<ModelStatsPage>
           stat['completion_tokens'] =
               (stat['completion_tokens'] as int) + completionTokens;
           stat['cached_tokens'] = (stat['cached_tokens'] as int) + cachedTokens;
+          if (effPrompt != null) {
+            stat['effective_prompt_tokens'] =
+                (stat['effective_prompt_tokens'] as int) + effPrompt;
+            stat['cached_tokens_for_rate'] =
+                (stat['cached_tokens_for_rate'] as int) + cachedTokens;
+          }
           stat['thought_tokens'] =
               (stat['thought_tokens'] as int) + thoughtTokens;
           stat['total_tokens'] = (stat['total_tokens'] as int) + tokens;
@@ -260,6 +214,10 @@ class _ModelStatsPageState extends State<ModelStatsPage>
         totalPromptTokens += promptTokens;
         totalCompletionTokens += completionTokens;
         totalCachedTokens += cachedTokens;
+        if (effPrompt != null) {
+          totalEffectivePromptTokens += effPrompt;
+          totalCachedForRate += cachedTokens;
+        }
         totalThoughtTokens += thoughtTokens;
         totalTokens += tokens;
         totalEstimatedCost += cost;
@@ -272,6 +230,8 @@ class _ModelStatsPageState extends State<ModelStatsPage>
         'prompt_tokens': totalPromptTokens,
         'completion_tokens': totalCompletionTokens,
         'cached_tokens': totalCachedTokens,
+        'effective_prompt_tokens': totalEffectivePromptTokens,
+        'cached_tokens_for_rate': totalCachedForRate,
         'thought_tokens': totalThoughtTokens,
         'total_tokens': totalTokens,
         'total_cost': totalEstimatedCost,
@@ -361,8 +321,8 @@ class _ModelStatsPageState extends State<ModelStatsPage>
         const SizedBox(height: 12),
         _buildStatCard(
             UserStorage.l10n.cacheRate,
-            _calculateCacheRate(total['cached_tokens'] as int? ?? 0,
-                total['prompt_tokens'] as int? ?? 0),
+            _calculateCacheRate(total['cached_tokens_for_rate'] as int? ?? 0,
+                total['effective_prompt_tokens'] as int? ?? 0),
             Colors.teal),
         const SizedBox(height: 12),
         Row(
@@ -404,10 +364,9 @@ class _ModelStatsPageState extends State<ModelStatsPage>
     );
   }
 
-  String _calculateCacheRate(int cached, int prompt) {
-    if (prompt == 0) return '0.0%';
-    final rate = (cached / prompt) * 100;
-    return '${rate.toStringAsFixed(1)}%';
+  String _calculateCacheRate(int cached, int effectivePrompt) {
+    return TokenUsageUtils.formatCacheRateFromAggregated(
+        effectivePromptTokens: effectivePrompt, cachedTokens: cached);
   }
 
   Widget _buildListTab(String key, String label) {
@@ -426,9 +385,9 @@ class _ModelStatsPageState extends State<ModelStatsPage>
         final itemKey = keys[index];
         final itemData = data[itemKey] as Map<String, dynamic>;
 
-        final cached = itemData['cached_tokens'] as int? ?? 0;
-        final prompt = itemData['prompt_tokens'] as int? ?? 0;
-        final cacheRate = _calculateCacheRate(cached, prompt);
+        final cached = itemData['cached_tokens_for_rate'] as int? ?? 0;
+        final effPrompt = itemData['effective_prompt_tokens'] as int? ?? 0;
+        final cacheRate = _calculateCacheRate(cached, effPrompt);
         final cost = itemData['total_cost'] as double? ?? 0.0;
 
         return Card(
@@ -695,6 +654,8 @@ class _ModelStatsPageState extends State<ModelStatsPage>
         int recPrompt = 0;
         int recCompletion = 0;
         int recCached = 0;
+        int recEffectivePrompt = 0;
+        int recCachedForRate = 0;
         int recThought = 0;
         int recTotal = 0;
         double recCost = 0.0;
@@ -704,22 +665,38 @@ class _ModelStatsPageState extends State<ModelStatsPage>
           final p = usage['prompt_tokens'] as int? ?? 0;
           final c = usage['completion_tokens'] as int? ?? 0;
           final ca = usage['cached_tokens'] as int? ?? 0;
+          final model = call['model'] as String? ?? '';
+          final sem = TokenUsageUtils.resolveFromUsageRecord(usage);
+          final effP = TokenUsageUtils.effectivePromptTokensOrNull(
+              promptTokens: p,
+              cachedTokens: ca,
+              cachedTokensIncludedInPrompt: sem);
           final t = usage['thought_tokens'] as int? ?? 0;
           recPrompt += p;
           recCompletion += c;
           recCached += ca;
+          if (effP != null) {
+            recEffectivePrompt += effP;
+            recCachedForRate += ca;
+          }
           recThought += t;
           recTotal += usage['total_tokens'] as int? ?? 0;
 
-          final model = call['model'] as String? ?? '';
-          final costs = _calculateCost(model, p, c, ca, t);
+          final costs = TokenUsageUtils.calculateCost(
+              model: model,
+              promptTokens: p,
+              completionTokens: c,
+              cachedTokens: ca,
+              thoughtTokens: t,
+              cachedTokensIncludedInPrompt: sem);
           recCost += costs['total']!;
         }
 
         final timestamp =
             DateTime.fromMicrosecondsSinceEpoch(record['created_at'] as int);
         final timeStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(timestamp);
-        final cacheRate = _calculateCacheRate(recCached, recPrompt);
+        final cacheRate =
+            _calculateCacheRate(recCachedForRate, recEffectivePrompt);
 
         return Card(
           elevation: 1,
@@ -870,11 +847,24 @@ class _ModelStatsPageState extends State<ModelStatsPage>
                       final cached = usage['cached_tokens'] as int? ?? 0;
                       final thought = usage['thought_tokens'] as int? ?? 0;
                       final total = usage['total_tokens'] as int? ?? 0;
-                      final cacheRate = _calculateCacheRate(cached, prompt);
 
                       final model = call['model'] as String? ?? '';
-                      final costs = _calculateCost(
-                          model, prompt, completion, cached, thought);
+                      final sem = TokenUsageUtils.resolveFromUsageRecord(usage);
+                      final effP = TokenUsageUtils.effectivePromptTokensOrNull(
+                          promptTokens: prompt,
+                          cachedTokens: cached,
+                          cachedTokensIncludedInPrompt: sem);
+                      final cacheRate = effP != null
+                          ? _calculateCacheRate(cached, effP)
+                          : '0.0%';
+
+                      final costs = TokenUsageUtils.calculateCost(
+                          model: model,
+                          promptTokens: prompt,
+                          completionTokens: completion,
+                          cachedTokens: cached,
+                          thoughtTokens: thought,
+                          cachedTokensIncludedInPrompt: sem);
                       final totalCost = costs['total']!;
                       final inputCost = costs['input']!;
                       final outputCost = costs['output']!;
@@ -1023,7 +1013,12 @@ class _ModelStatsPageState extends State<ModelStatsPage>
     final usage = call['usage'] as Map<String, dynamic>;
     final prompt = usage['prompt_tokens'] as int? ?? 0;
     final cached = usage['cached_tokens'] as int? ?? 0;
-    final cacheRate = _calculateCacheRate(cached, prompt);
+    final sem = TokenUsageUtils.resolveFromUsageRecord(usage);
+    final effP = TokenUsageUtils.effectivePromptTokensOrNull(
+        promptTokens: prompt,
+        cachedTokens: cached,
+        cachedTokensIncludedInPrompt: sem);
+    final cacheRate = effP != null ? _calculateCacheRate(cached, effP) : '0.0%';
 
     showDialog(
       context: context,

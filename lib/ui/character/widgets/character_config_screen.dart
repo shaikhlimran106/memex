@@ -119,9 +119,9 @@ class _CharacterConfigScreenState extends State<CharacterConfigScreen> {
         return Scaffold(
           backgroundColor: const Color(0xFFF7F8FA),
           appBar: AppBar(
-            title: const Text(
-              'Configure AI character',
-              style: TextStyle(
+            title: Text(
+              UserStorage.l10n.configureAiCharacter,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,

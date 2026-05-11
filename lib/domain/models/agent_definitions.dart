@@ -9,6 +9,8 @@ class AgentDefinitions {
   static const String commentAgent = 'comment_agent';
   static const String chatAgent = 'chat_agent';
   static const String analyzeAssets = 'analyze_assets';
+  static const String clarificationResolutionAgent =
+      'clarification_resolution_agent';
 
   static const Map<String, String> displayNames = {
     pkmAgent: 'PKM',
@@ -20,5 +22,6 @@ class AgentDefinitions {
     commentAgent: 'Comments',
     chatAgent: 'Chat',
     analyzeAssets: 'Media analysis',
+    clarificationResolutionAgent: 'Ask resolution',
   };
 }

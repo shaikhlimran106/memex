@@ -15,6 +15,8 @@ import 'local_asset_server.dart';
 import 'event_log_service.dart';
 import 'package:memex/db/app_database.dart';
 import 'package:memex/domain/models/card_model.dart';
+import 'package:memex/domain/models/system_event.dart';
+import 'package:memex/data/services/global_event_bus.dart';
 import 'package:drift/drift.dart' as drift;
 
 /// Result of [FileSystemService.syncSkillsIfNeeded].
@@ -298,9 +300,16 @@ class FileSystemService {
     final lock = await _getCardLock(userId, cardId);
 
     return lock.synchronized(() async {
-      var currentData = await readCardFile(userId, cardId);
-      if (currentData == null) {
+      // Capture prior data ONCE before running updateFn.
+      final priorData = await readCardFile(userId, cardId);
+
+      CardData currentData;
+      final DataChangeOp op;
+      final Map<String, dynamic>? beforeMap;
+
+      if (priorData == null) {
         if (createIfNotExists) {
+          // No prior file and caller wants creation → insert.
           currentData = CardData(
             factId: cardId,
             timestamp: DateTime.now().millisecondsSinceEpoch ~/ 1000,
@@ -308,15 +317,24 @@ class FileSystemService {
             tags: const [],
             uiConfigs: const [],
           );
+          op = DataChangeOp.insert;
+          beforeMap = null;
         } else {
+          // Corrupt YAML / unreadable prior file: keep op == update,
+          // before == null (R1.7 semantics).
           _logger.warning('Card not found for update: $cardId');
           return null;
         }
+      } else {
+        currentData = priorData;
+        op = DataChangeOp.update;
+        beforeMap = priorData.toJson();
       }
 
       final updatedData = updateFn(currentData);
-      final success =
-          await _safeWriteCardFileInternal(userId, cardId, updatedData);
+      final success = await _safeWriteCardFileInternal(
+          userId, cardId, updatedData,
+          beforeSnapshot: beforeMap, op: op);
       if (success) {
         return updatedData;
       } else {
@@ -331,13 +349,55 @@ class FileSystemService {
     final lock = await _getCardLock(userId, cardId);
 
     return lock.synchronized(() async {
-      return await _safeWriteCardFileInternal(userId, cardId, data);
+      final previous = await readCardFile(userId, cardId);
+      final beforeMap = previous?.toJson();
+      final op = previous == null ? DataChangeOp.insert : DataChangeOp.update;
+      return await _safeWriteCardFileInternal(userId, cardId, data,
+          beforeSnapshot: beforeMap, op: op);
     });
   }
 
-  /// Internal write (no lock; caller must hold lock)
+  /// Publish a card-change event via [GlobalEventBus].
+  ///
+  /// Asserts the card-path invariant: at least one of [before] / [after] must
+  /// be non-null. Catches and warn-logs any publish failure so it never
+  /// propagates to the write caller.
+  Future<void> _publishCardChange({
+    required String userId,
+    required DataChangeOp op,
+    required String factId,
+    required Map<String, dynamic>? before,
+    required Map<String, dynamic>? after,
+  }) async {
+    assert(before != null || after != null,
+        'Card publish invariant violated: both before and after are null');
+    try {
+      await GlobalEventBus.instance.publish(
+        userId: userId,
+        event: SystemEvent<DataChangeRecord>(
+          type: SystemEventTypes.dataChanged,
+          source: 'file_system_service',
+          payload: DataChangeRecord(
+            op: op,
+            ns: DataChangeNs.card,
+            documentKey: factId,
+            before: before,
+            after: after,
+          ),
+        ),
+      );
+    } catch (e) {
+      _logger.warning('Failed to publish card change event for $factId: $e');
+    }
+  }
+
+  /// Internal write (no lock; caller must hold lock).
+  ///
+  /// On success, builds the enriched `afterMap` for the change event, updates
+  /// the card cache, and publishes via [_publishCardChange].
   Future<bool> _safeWriteCardFileInternal(
-      String userId, String cardId, CardData data) async {
+      String userId, String cardId, CardData data,
+      {Map<String, dynamic>? beforeSnapshot, required DataChangeOp op}) async {
     try {
       final cardPath = getCardPath(userId, cardId);
       final parentDir = path.dirname(cardPath);
@@ -354,7 +414,37 @@ class FileSystemService {
       await tempFile.writeAsString(yamlContent, encoding: utf8);
       await tempFile.rename(cardPath);
 
-      updateCardCache(userId, cardId, data);
+      // Build enriched afterMap for the change event (same shape as the
+      // legacy publish that used to live inside updateCardCache).
+      final factInfo = await extractFactContentFromFile(userId, cardId);
+      final rawContent = factInfo?.content ?? '';
+      final assetAnalysisTexts = (factInfo?.assetAnalyses ?? [])
+          .map((a) => a['analysis'] as String? ?? '')
+          .where((s) => s.isNotEmpty)
+          .toList();
+      final assetOcrTexts = (factInfo?.assetOcrTexts ?? [])
+          .map((a) => a['ocr_text'] as String? ?? '')
+          .where((s) => s.isNotEmpty)
+          .toList();
+      final afterMap = <String, dynamic>{
+        ...data.toJson(),
+        // FTS-specific enrichment fields that don't exist in the raw card YAML.
+        'content': rawContent,
+        'asset_analyses': assetAnalysisTexts,
+        'asset_ocr': assetOcrTexts,
+      };
+
+      // Update the Drift cache row.
+      await updateCardCache(userId, cardId, data);
+
+      // Publish the change event with before/after snapshots.
+      await _publishCardChange(
+        userId: userId,
+        op: op,
+        factId: cardId,
+        before: beforeSnapshot,
+        after: afterMap,
+      );
 
       return true;
     } catch (e) {
@@ -413,6 +503,10 @@ class FileSystemService {
       );
 
       await AppDatabase.instance.cardDao.upsertCard(entry);
+
+      // NOTE: Publish responsibility now belongs to _safeWriteCardFileInternal.
+      // updateCardCache is also called from rebuildCardCache where we do NOT
+      // want to emit change events, so keeping publish here was a latent bug.
     } catch (e) {
       _logger.warning('Failed to update card cache for $factId: $e');
     }
@@ -423,6 +517,9 @@ class FileSystemService {
     final lock = await _getCardLock(userId, cardId);
     return lock.synchronized(() async {
       try {
+        // Read the previous file for the before snapshot.
+        final previous = await readCardFile(userId, cardId);
+
         final cardPath = getCardPath(userId, cardId);
         final file = File(cardPath);
 
@@ -437,6 +534,18 @@ class FileSystemService {
                 .go();
           } catch (e) {
             _logger.warning('Failed to delete card from cache $cardId: $e');
+          }
+
+          // Publish delete event only when we had a previous state.
+          // Deleting a file that never existed has no observable data change.
+          if (previous != null) {
+            await _publishCardChange(
+              userId: userId,
+              op: DataChangeOp.delete,
+              factId: cardId,
+              before: previous.toJson(),
+              after: null,
+            );
           }
 
           return true;
@@ -929,6 +1038,11 @@ class FileSystemService {
     return path.join(getUserSettingsPath(userId), 'profile.md');
   }
 
+  /// Comment settings file path
+  String getCommentSettingsPath(String userId) {
+    return path.join(getUserSettingsPath(userId), 'comment_settings.yaml');
+  }
+
   /// Add user custom location (lat, lng, name).
   Future<bool> addUserLocation(
       String userId, double lat, double lng, String name) async {
@@ -1139,6 +1253,16 @@ class FileSystemService {
   /// Get_Systemdirectory path
   String getSystemPath(String userId) {
     return path.join(getWorkspacePath(userId), '_System');
+  }
+
+  /// Drafts directory path (input draft files)
+  String getDraftsPath(String userId) {
+    return path.join(getSystemPath(userId), 'Drafts');
+  }
+
+  /// Active draft file path
+  String getActiveDraftPath(String userId) {
+    return path.join(getDraftsPath(userId), 'active.json');
   }
 
   /// Templates directory path (card templates)
@@ -2239,6 +2363,7 @@ class FileSystemService {
 
       // Extract analysis result from media asset analysis files (image/audio markdown links)
       final assetAnalyses = <Map<String, dynamic>>[];
+      final assetOcrTexts = <Map<String, dynamic>>[];
       final assetPattern =
           RegExp(r'(?:!\[(?:图片|image)\]|\[(?:音频|audio)\])\(fs://([^)]+)\)');
       final assetMatches = assetPattern.allMatches(entryContent);
@@ -2269,8 +2394,28 @@ class FileSystemService {
           } catch (e) {
             _logger
                 .warning('Failed to read asset analysis file $assetFile: $e');
-            continue;
           }
+
+          // Read OCR text if .ocr.txt file exists
+          try {
+            final ocrFilename = '$assetFile.ocr.txt';
+            final ocrFilePath = path.join(assetsPath, ocrFilename);
+
+            if (await _baseService.exists(ocrFilePath)) {
+              final ocrContent =
+                  (await _baseService.readFile(ocrFilePath)).trim();
+              if (ocrContent.isNotEmpty) {
+                assetOcrTexts.add({
+                  'index': idx,
+                  'name': assetFile,
+                  'ocr_text': ocrContent,
+                });
+              }
+            }
+          } catch (e) {
+            _logger.warning('Failed to read OCR file for $assetFile: $e');
+          }
+
           idx++;
         }
       }
@@ -2287,6 +2432,7 @@ class FileSystemService {
         datetime: entryDatetime,
         content: entryContent,
         assetAnalyses: assetAnalyses,
+        assetOcrTexts: assetOcrTexts,
       );
     } catch (e) {
       _logger.severe('Failed to extract fact content $factId: $e');
@@ -2369,10 +2515,12 @@ class FileSystemService {
     return fileList.take(limit).toList();
   }
 
-  /// Search PKM files by keyword (grep file name and content).
+  /// Grep PKM files by keyword — scans file names and content on disk.
   ///
-  /// Returns list of matching files with name, path, and optional snippet.
-  Future<List<Map<String, dynamic>>> searchPkmFiles(String userId, String query,
+  /// This is a brute-force search that reads every text file in the PKM
+  /// directory. It does not depend on any index and always reflects the
+  /// current file-system state.
+  Future<List<Map<String, dynamic>>> grepPkmFiles(String userId, String query,
       {int limit = 50}) async {
     final pkmPath = getPkmPath(userId);
     final dir = Directory(pkmPath);
@@ -2388,7 +2536,7 @@ class FileSystemService {
     try {
       entities = await dir.list(recursive: true, followLinks: false).toList();
     } catch (e) {
-      _logger.warning('Error listing PKM directory for search: $e');
+      _logger.warning('Error listing PKM directory for grep: $e');
       return [];
     }
 
@@ -2406,7 +2554,6 @@ class FileSystemService {
       String? snippet;
       bool contentMatch = false;
 
-      // Only grep content for text files (md/txt/json)
       final ext = path.extension(file.path).toLowerCase();
       if (['.md', '.txt', '.json', '.yaml', '.yml'].contains(ext)) {
         try {
@@ -2415,16 +2562,13 @@ class FileSystemService {
           final idx = lowerContent.indexOf(lowerQuery);
           if (idx >= 0) {
             contentMatch = true;
-            // Extract snippet around match
             final start = (idx - 40).clamp(0, content.length);
             final end = (idx + query.length + 60).clamp(0, content.length);
             snippet = (start > 0 ? '...' : '') +
                 content.substring(start, end).replaceAll('\n', ' ') +
                 (end < content.length ? '...' : '');
           }
-        } catch (_) {
-          // Skip unreadable files
-        }
+        } catch (_) {}
       }
 
       if (nameMatch || contentMatch) {
@@ -2573,10 +2717,16 @@ class FactContentResult {
   final String content;
   final List<Map<String, dynamic>> assetAnalyses;
 
+  /// On-device OCR text extracted from image assets.
+  /// Each entry: {'index': int, 'name': String, 'ocr_text': String}.
+  /// Populated from persisted `.ocr.txt` files.
+  final List<Map<String, dynamic>> assetOcrTexts;
+
   FactContentResult({
     required this.timestamp,
     required this.datetime,
     required this.content,
     required this.assetAnalyses,
+    this.assetOcrTexts = const [],
   });
 }

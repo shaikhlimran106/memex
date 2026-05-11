@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_agent_core/dart_agent_core.dart';
-import 'package:intl/intl.dart' show DateFormat;
 import 'package:logging/logging.dart';
 import 'package:memex/agent/memex_skill_host_agent/memex_skill_host_agent.dart';
 import 'package:memex/agent/pure_skill_host_agent/pure_skill_host_agent.dart';
@@ -13,8 +12,10 @@ import 'package:memex/domain/models/custom_agent_config.dart';
 import 'package:memex/domain/models/llm_config.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/utils/logger.dart';
+import 'package:memex/utils/time_context.dart';
 import 'package:memex/domain/models/agent_definitions.dart';
 import 'package:memex/utils/user_storage.dart';
+import 'package:memex/utils/token_usage_utils.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 import 'package:yaml/yaml.dart';
@@ -61,9 +62,13 @@ class ChatService {
     // 1. Session Management
     try {
       if (finalSessionId.isEmpty) {
-        finalSessionId = await _createSession(userId, agentName, [
-          {'type': 'text', 'text': message}
-        ], isQuickQuery: isQuickQuery);
+        finalSessionId = await _createSession(
+            userId,
+            agentName,
+            [
+              {'type': 'text', 'text': message}
+            ],
+            isQuickQuery: isQuickQuery);
       }
 
       // Notify UI of the active session ID immediately
@@ -294,8 +299,7 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     }
 
     userMessages.add(UserMessage([
-      TextPart(
-          "<system-reminder>current time is ${DateFormat("yyyy-MM-dd HH:mm:ss").format(DateTime.now())}</system-reminder>."),
+      TextPart(buildCurrentTimeReminder(DateTime.now())),
       TextPart(message),
     ]));
 
@@ -343,28 +347,50 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
       int totalPrompt = 0;
       int totalCompletion = 0;
       int totalCached = 0;
+      int totalEffectivePrompt = 0;
+      int totalCachedForRate = 0;
       int totalTokens = 0;
       double totalCost = 0.0;
+      // Within a single agent turn all calls share the same client.
+      bool? turnCacheSemantics;
 
       for (final msg in event.modelMessages) {
         final u = msg.usage;
-        if (u == null)
-          continue; // Just in case, but lint says it's not null. Actually if lint says it CANT be null, then I don't need check.
-        // Wait, if lint says "Left operand cant be null", it means msg.usage is NOT null.
-        // So I can just use it.
+        if (u == null) {
+          continue;
+        }
 
         final p = u.promptTokens;
         final c = u.completionTokens;
         final ca = u.cachedToken;
+        final sem = TokenUsageUtils.cachedTokensIncludedInPrompt(
+          client: event.agent.client,
+          originalUsage: u.originalUsage,
+        );
+        turnCacheSemantics ??= sem;
+        final effP = TokenUsageUtils.effectivePromptTokensOrNull(
+            promptTokens: p,
+            cachedTokens: ca,
+            cachedTokensIncludedInPrompt: sem);
 
         totalPrompt += p;
         totalCompletion += c;
         totalCached += ca;
+        if (effP != null) {
+          totalEffectivePrompt += effP;
+          totalCachedForRate += ca;
+        }
         totalTokens += u.totalTokens;
 
         // Calculate cost
-        final cost = _calculateCost(msg.model, p, c, ca, u.thoughtToken);
-        totalCost += cost['total']!;
+        final cost = TokenUsageUtils.calculateCost(
+            model: msg.model,
+            promptTokens: p,
+            completionTokens: c,
+            cachedTokens: ca,
+            thoughtTokens: u.thoughtToken,
+            cachedTokensIncludedInPrompt: sem)['total']!;
+        totalCost += cost;
       }
 
       if (event.error != null) {
@@ -393,6 +419,8 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
         'prompt_tokens': totalPrompt,
         'completion_tokens': totalCompletion,
         'cached_tokens': totalCached,
+        if (turnCacheSemantics != null)
+          'cache_tokens_included_in_prompt': turnCacheSemantics,
         'total_tokens': totalTokens,
         'total_cost': totalCost
       });
@@ -403,6 +431,8 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
           promptTokens: sessionTotalUsage['prompt_tokens'] as int? ?? 0,
           completionTokens: sessionTotalUsage['completion_tokens'] as int? ?? 0,
           cachedTokens: sessionTotalUsage['cached_tokens'] as int? ?? 0,
+          effectivePromptTokens: totalEffectivePrompt,
+          cachedTokensForRate: totalCachedForRate,
           totalTokens: sessionTotalUsage['total_tokens'] as int? ?? 0,
           estimatedCost: sessionTotalUsage['total_cost'] as double? ?? 0.0,
         ));
@@ -412,6 +442,8 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
           promptTokens: totalPrompt,
           completionTokens: totalCompletion,
           cachedTokens: totalCached,
+          effectivePromptTokens: totalEffectivePrompt,
+          cachedTokensForRate: totalCachedForRate,
           totalTokens: totalTokens,
           estimatedCost: totalCost,
         ));
@@ -496,56 +528,6 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
       stream.add(ChatToolResultEvent(event.result.name, resultPreview,
           isError: event.result.isError));
     });
-  }
-
-  static const _pricing = {
-    'gemini-3-flash-preview': {
-      'input': 0.0000005,
-      'cached': 0.00000005,
-      'output': 0.000003,
-    },
-    'gemini-2.5-flash': {
-      'input': 0.0000003,
-      'cached': 0.00000003,
-      'output': 0.0000025,
-    },
-    'gemini-3.1-pro-preview': {
-      'input': 0.000002,
-      'cached': 0.0000002,
-      'output': 0.000012,
-    },
-    'gemini-3-pro-preview': {
-      'input': 0.000002,
-      'cached': 0.0000002,
-      'output': 0.000012,
-    },
-    'gpt-4o': {
-      'input': 0.0000025,
-      'cached': 0.00000125,
-      'output': 0.00001,
-    },
-  };
-
-  Map<String, double> _calculateCost(
-      String model, int prompt, int completion, int cached, int thought) {
-    // Default to gemini-1.5-flash pricing if unknown
-    final prices = _pricing[model] ?? _pricing['gemini-3-flash-preview']!;
-
-    // Effective prompt tokens = total prompt - cached tokens
-    final effectivePrompt = (prompt - cached).clamp(0, prompt);
-
-    final inputCost =
-        (effectivePrompt * prices['input']!) + (cached * prices['cached']!);
-    final outputCost = model.startsWith(
-            'ep-') // todo: responses API completion includes thought
-        ? completion * prices['output']!
-        : (completion + thought) * prices['output']!;
-
-    return {
-      'input': inputCost,
-      'output': outputCost,
-      'total': inputCost + outputCost,
-    };
   }
 
   // --- Session Helpers (Recreated from chat.dart to be independent) ---

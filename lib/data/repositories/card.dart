@@ -8,6 +8,7 @@ import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/llm_call_record_service.dart';
 import 'package:memex/data/services/character_service.dart';
 import 'package:memex/data/services/card_renderer.dart';
+import 'package:memex/utils/token_usage_utils.dart';
 
 final _logger = getLogger('CardDetailEndpoint');
 final _fileSystemService = FileSystemService.instance;
@@ -176,6 +177,7 @@ Future<CardDetailModel> getCardDetail(String cardId) async {
 
     // Read comments (from card file comments field if present)
     final comments = <Comment>[];
+    // First pass: build comments with character info
     for (final commentData in cardData.comments) {
       try {
         CharacterInfo? commentCharacter;
@@ -203,10 +205,41 @@ Future<CardDetailModel> getCardDetail(String cardId) async {
           isAi: commentData.isAi,
           timestamp: commentData.timestamp,
           character: commentCharacter,
+          replyToId: commentData.replyToId,
         ));
       } catch (e) {
         _logger.warning('Failed to process comment: $e');
         continue;
+      }
+    }
+
+    // Second pass: resolve replyToName from the comment list
+    // Build a lookup: commentId -> display name
+    final commentNameMap = <String, String>{};
+    for (final c in comments) {
+      if (!c.isAi) {
+        // User comment — use the userId as display name
+        commentNameMap[c.id] = userId;
+      } else {
+        commentNameMap[c.id] = c.character?.name ?? 'AI';
+      }
+    }
+    // Resolve replyToName for each comment that has a replyToId
+    for (var i = 0; i < comments.length; i++) {
+      final c = comments[i];
+      if (c.replyToId != null && c.replyToName == null) {
+        final resolvedName = commentNameMap[c.replyToId];
+        if (resolvedName != null) {
+          comments[i] = Comment(
+            id: c.id,
+            content: c.content,
+            isAi: c.isAi,
+            timestamp: c.timestamp,
+            character: c.character,
+            replyToId: c.replyToId,
+            replyToName: resolvedName,
+          );
+        }
       }
     }
 
@@ -220,70 +253,14 @@ Future<CardDetailModel> getCardDetail(String cardId) async {
       );
 
       if (record != null) {
-        final _pricing = {
-          'gemini-3-flash-preview': {
-            'input': 0.0000005,
-            'cached': 0.00000005,
-            'output': 0.000003,
-          },
-          'gemini-2.5-flash': {
-            'input': 0.0000003,
-            'cached': 0.00000003,
-            'output': 0.0000025,
-          },
-          'gemini-3.1-pro-preview': {
-            'input': 0.000002,
-            'cached': 0.0000002,
-            'output': 0.000012,
-          },
-          'gemini-3-pro-preview': {
-            'input': 0.000002,
-            'cached': 0.0000002,
-            'output': 0.000012,
-          },
-          'gpt-4o': {
-            'input': 0.0000025,
-            'cached': 0.00000125,
-            'output': 0.00001,
-          },
-        };
-
-        double _calculateCost(
-            String model, int prompt, int completion, int cached, int thought) {
-          // Find matching model pricing
-          Map<String, double>? prices;
-          for (final key in _pricing.keys) {
-            if (model.toLowerCase().contains(key)) {
-              prices = _pricing[key];
-              break;
-            }
-          }
-
-          // Default to gpt-4o if not found
-          prices ??= _pricing['gpt-4o'];
-
-          if (prices == null) return 0.0;
-
-          // Input cost: (prompt - cached) * input_price + cached * cached_price
-          final effectivePrompt = (prompt - cached) > 0 ? (prompt - cached) : 0;
-          final inputCost = (effectivePrompt * prices['input']!) +
-              (cached * prices['cached']!);
-
-          // Output cost: (completion + thought) * output_price
-          final outputCost = model.startsWith(
-                  'ep-') // todo: responses API completion includes thought
-              ? completion * prices['output']!
-              : (completion + thought) * prices['output']!;
-
-          return inputCost + outputCost;
-        }
-
         final calls = record['calls'] as List? ?? [];
-        final agentStats = <String, AgentStats>{};
+        final agentTokens = <String, AgentStats>{};
         int totalCalls = 0;
         int totalPromptTokens = 0;
         int totalCompletionTokens = 0;
         int totalCachedTokens = 0;
+        int totalEffectivePromptTokens = 0;
+        int totalCachedForRate = 0;
         int totalThoughtTokens = 0;
         int totalTokens = 0;
         double totalCost = 0.0;
@@ -297,38 +274,46 @@ Future<CardDetailModel> getCardDetail(String cardId) async {
           final tokens = usage['total_tokens'] as int? ?? 0;
           final agentName = call['agent_name'] as String;
           final model = call['model'] as String? ?? '';
+          final sem = TokenUsageUtils.resolveFromUsageRecord(usage);
+          final effPrompt = TokenUsageUtils.effectivePromptTokensOrNull(
+              promptTokens: promptTokens,
+              cachedTokens: cachedTokens,
+              cachedTokensIncludedInPrompt: sem);
 
-          final cost = _calculateCost(model, promptTokens, completionTokens,
-              cachedTokens, thoughtTokens);
+          final cost = TokenUsageUtils.calculateCost(
+              model: model,
+              promptTokens: promptTokens,
+              completionTokens: completionTokens,
+              cachedTokens: cachedTokens,
+              thoughtTokens: thoughtTokens,
+              cachedTokensIncludedInPrompt: sem)['total']!;
 
           totalCalls++;
           totalPromptTokens += promptTokens;
           totalCompletionTokens += completionTokens;
           totalCachedTokens += cachedTokens;
+          if (effPrompt != null) {
+            totalEffectivePromptTokens += effPrompt;
+            totalCachedForRate += cachedTokens;
+          }
           totalThoughtTokens += thoughtTokens;
           totalTokens += tokens;
           totalCost += cost;
 
-          if (!agentStats.containsKey(agentName)) {
-            agentStats[agentName] = AgentStats(
-              calls: 0,
-              promptTokens: 0,
-              completionTokens: 0,
-              cachedTokens: 0,
-              thoughtTokens: 0,
-              totalTokens: 0,
-              totalCost: 0.0,
-            );
-          }
-          final agentStat = agentStats[agentName]!;
-          agentStats[agentName] = AgentStats(
-            calls: agentStat.calls + 1,
-            promptTokens: agentStat.promptTokens + promptTokens,
-            completionTokens: agentStat.completionTokens + completionTokens,
-            cachedTokens: agentStat.cachedTokens + cachedTokens,
-            thoughtTokens: agentStat.thoughtTokens + thoughtTokens,
-            totalTokens: agentStat.totalTokens + tokens,
-            totalCost: agentStat.totalCost + cost,
+          // Per-agent accumulation
+          final prev = agentTokens[agentName];
+          agentTokens[agentName] = AgentStats(
+            calls: (prev?.calls ?? 0) + 1,
+            promptTokens: (prev?.promptTokens ?? 0) + promptTokens,
+            completionTokens: (prev?.completionTokens ?? 0) + completionTokens,
+            cachedTokens: (prev?.cachedTokens ?? 0) + cachedTokens,
+            effectivePromptTokens:
+                (prev?.effectivePromptTokens ?? 0) + (effPrompt ?? 0),
+            cachedTokensForRate: (prev?.cachedTokensForRate ?? 0) +
+                (effPrompt != null ? cachedTokens : 0),
+            thoughtTokens: (prev?.thoughtTokens ?? 0) + thoughtTokens,
+            totalTokens: (prev?.totalTokens ?? 0) + tokens,
+            totalCost: (prev?.totalCost ?? 0) + cost,
           );
         }
 
@@ -337,10 +322,12 @@ Future<CardDetailModel> getCardDetail(String cardId) async {
           totalPromptTokens: totalPromptTokens,
           totalCompletionTokens: totalCompletionTokens,
           totalCachedTokens: totalCachedTokens,
+          totalEffectivePromptTokens: totalEffectivePromptTokens,
+          totalCachedTokensForRate: totalCachedForRate,
           totalThoughtTokens: totalThoughtTokens,
           totalTokens: totalTokens,
           totalCost: totalCost,
-          byAgent: agentStats,
+          byAgent: agentTokens,
         );
       }
     } catch (e) {

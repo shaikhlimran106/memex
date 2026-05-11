@@ -7,6 +7,8 @@ import 'package:memex/domain/models/tag_model.dart';
 import 'package:memex/domain/models/card_detail_model.dart';
 import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/data/services/event_bus_service.dart';
+import 'package:memex/data/services/card_attachment_service.dart';
+import 'package:memex/ui/card_attachments/card_attachment_data.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/result.dart';
 import 'package:memex/utils/user_storage.dart';
@@ -34,6 +36,13 @@ class TimelineViewModel extends ChangeNotifier {
   String? errorMessage;
   bool isSubmitting = false;
 
+  // Card attachments (system actions, clarification requests, etc.)
+  // Keyed by factId.
+  final Map<String, List<CardAttachmentData>> attachments = {};
+
+  // Pending attachment count for notification badge.
+  int pendingAttachmentCount = 0;
+
   // View mode state
   TimelineViewMode viewMode = TimelineViewMode.timeline;
   String activeFilter = 'all';
@@ -50,12 +59,15 @@ class TimelineViewModel extends ChangeNotifier {
       tags: activeFilter == 'all' ? null : [activeFilter],
     );
     return cardsResult.when(
-      onOk: (list) {
+      onOk: (list) async {
         _currentPage = 1;
         cards = list;
         hasMore = list.length >= pageLimit;
         errorMessage = null;
         _startPollingIfNeeded();
+        // Load attachments for all cards in parallel
+        await _loadAttachmentsForCards(list);
+        await _refreshPendingCount();
         notifyListeners();
         return const Ok.v();
       },
@@ -79,6 +91,8 @@ class TimelineViewModel extends ChangeNotifier {
     final eventBus = EventBusService.instance;
     eventBus.addHandler(EventBusMessageType.cardUpdated, _handleCardUpdated);
     eventBus.addHandler(EventBusMessageType.cardAdded, _handleCardAdded);
+    eventBus.addHandler(
+        EventBusMessageType.attachmentsChanged, _handleAttachmentsChanged);
     eventBus.connect();
   }
 
@@ -133,6 +147,43 @@ class TimelineViewModel extends ChangeNotifier {
       updateCard(updatedCard);
       fetchTags();
     }
+  }
+
+  void _handleAttachmentsChanged(EventBusMessage message) {
+    if (message is AttachmentsChangedMessage) {
+      final factId = message.factId;
+      if (factId != null && cards.any((c) => c.id == factId)) {
+        // Refresh attachments for the specific card
+        _refreshAttachments(factId);
+      } else {
+        // Global change (no factId) — refresh all
+        _loadAttachmentsForCards(cards);
+      }
+      _refreshPendingCount();
+    }
+  }
+
+  Future<void> _loadAttachmentsForCards(
+      List<TimelineCardModel> cardList) async {
+    if (cardList.isEmpty) return;
+    final factIds = cardList.map((c) => c.id).toList();
+    final map =
+        await CardAttachmentService.instance.getAttachmentsForFacts(factIds);
+    attachments.addAll(map);
+    // Don't call notifyListeners here — caller is responsible.
+  }
+
+  Future<void> _refreshAttachments(String factId) async {
+    final data = await CardAttachmentService.instance.getAttachments(factId);
+    attachments[factId] = data;
+    notifyListeners();
+  }
+
+  Future<void> _refreshPendingCount() async {
+    final pending =
+        await CardAttachmentService.instance.getPendingAttachments();
+    pendingAttachmentCount = pending.length;
+    notifyListeners();
   }
 
   void _startPollingIfNeeded() {
@@ -234,11 +285,12 @@ class TimelineViewModel extends ChangeNotifier {
       tags: activeFilter == 'all' ? null : [activeFilter],
     );
     result.when(
-      onOk: (newCards) {
+      onOk: (newCards) async {
         _currentPage++;
         cards.addAll(newCards);
         hasMore = newCards.length >= pageLimit;
         _startPollingIfNeeded();
+        await _loadAttachmentsForCards(newCards);
       },
       onError: (_, __) {},
     );
@@ -256,10 +308,11 @@ class TimelineViewModel extends ChangeNotifier {
       tags: activeFilter == 'all' ? null : [activeFilter],
     );
     result.when(
-      onOk: (newCards) {
+      onOk: (newCards) async {
         _currentPage++;
         cards.addAll(newCards);
         hasMore = newCards.length >= pageLimit;
+        await _loadAttachmentsForCards(newCards);
       },
       onError: (_, __) {},
     );
@@ -281,6 +334,8 @@ class TimelineViewModel extends ChangeNotifier {
       eventBus.removeHandler(
           EventBusMessageType.cardUpdated, _handleCardUpdated);
       eventBus.removeHandler(EventBusMessageType.cardAdded, _handleCardAdded);
+      eventBus.removeHandler(
+          EventBusMessageType.attachmentsChanged, _handleAttachmentsChanged);
     }
     super.dispose();
   }

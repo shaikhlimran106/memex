@@ -9,6 +9,9 @@ import 'package:memex/db/app_database.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/data/services/event_bus_service.dart';
+import 'package:memex/data/services/comment_settings_service.dart'
+    show CommentSettings;
+import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/main.dart' show rootShellKey;
 
 class SettingsPage extends StatefulWidget {
@@ -21,6 +24,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   String _currentLang = 'en';
   bool _useLocalSpeechToText = true;
+  CommentSettings _commentSettings = const CommentSettings();
 
   @override
   void initState() {
@@ -31,10 +35,12 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _loadSettings() async {
     final locale = await UserStorage.getLocale();
     final useLocalSpeechToText = await UserStorage.getUseLocalSpeechToText();
+    final commentSettings = await MemexRouter().getCommentSettings();
     if (mounted) {
       setState(() {
         _currentLang = locale.languageCode == 'zh' ? 'zh' : 'en';
         _useLocalSpeechToText = useLocalSpeechToText;
+        _commentSettings = commentSettings;
       });
     }
   }
@@ -53,6 +59,30 @@ class _SettingsPageState extends State<SettingsPage> {
     await UserStorage.setUseLocalSpeechToText(value);
     if (mounted) {
       setState(() => _useLocalSpeechToText = value);
+    }
+  }
+
+  Future<void> _updateShowInsightText(bool value) async {
+    final updated = _commentSettings.copyWith(showInsightText: value);
+    await MemexRouter().saveCommentSettings(updated);
+    if (mounted) {
+      setState(() => _commentSettings = updated);
+    }
+  }
+
+  Future<void> _updateEnableCharacterComment(bool value) async {
+    final updated = _commentSettings.copyWith(enableCharacterComment: value);
+    await MemexRouter().saveCommentSettings(updated);
+    if (mounted) {
+      setState(() => _commentSettings = updated);
+    }
+  }
+
+  Future<void> _updateMaxCommentCharacters(int value) async {
+    final updated = _commentSettings.copyWith(maxCommentCharacters: value);
+    await MemexRouter().saveCommentSettings(updated);
+    if (mounted) {
+      setState(() => _commentSettings = updated);
     }
   }
 
@@ -165,6 +195,169 @@ class _SettingsPageState extends State<SettingsPage> {
               onChanged: _updateUseLocalSpeechToText,
             ),
           ),
+          const SizedBox(height: 16),
+          // Show Insight Text toggle
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.textSecondary.withValues(alpha: 0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              secondary: Icon(Icons.lightbulb_outline,
+                  color: AppColors.primary, size: 22),
+              title: Text(
+                UserStorage.l10n.showInsightTextTitle,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  UserStorage.l10n.showInsightTextDesc,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              value: _commentSettings.showInsightText,
+              onChanged: _updateShowInsightText,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Enable Character Comment toggle
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.textSecondary.withValues(alpha: 0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              secondary: Icon(Icons.chat_bubble_outline,
+                  color: AppColors.primary, size: 22),
+              title: Text(
+                UserStorage.l10n.enableCharacterCommentTitle,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  UserStorage.l10n.enableCharacterCommentDesc,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                    height: 1.4,
+                  ),
+                ),
+              ),
+              value: _commentSettings.enableCharacterComment,
+              onChanged: _updateEnableCharacterComment,
+            ),
+          ),
+          // Max comment characters slider (only visible when comments are enabled)
+          if (_commentSettings.enableCharacterComment) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.textSecondary.withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.groups_outlined,
+                          color: AppColors.primary, size: 22),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              UserStorage.l10n.maxCommentCharactersTitle,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              UserStorage.l10n.maxCommentCharactersDesc,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${_commentSettings.maxCommentCharacters}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Slider(
+                    value: _commentSettings.maxCommentCharacters.toDouble(),
+                    min: 1,
+                    max: 5,
+                    divisions: 4,
+                    activeColor: AppColors.primary,
+                    onChanged: (v) => _updateMaxCommentCharacters(v.round()),
+                  ),
+                ],
+              ),
+            ),
+          ],
           // Data Storage (iOS only — Android has no storage options to choose)
           if (Platform.isIOS) ...[
             const SizedBox(height: 16),

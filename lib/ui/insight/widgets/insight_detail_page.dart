@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:memex/data/repositories/memex_router.dart';
@@ -83,6 +84,32 @@ class _InsightDetailPageState extends State<InsightDetailPage> {
     return _insightDetail?.content ?? '';
   }
 
+  Widget _buildInsightMarkdown(String content, TextStyle style) {
+    return MarkdownBody(
+      data: content,
+      softLineBreak: true,
+      styleSheet: MarkdownStyleSheet(
+        p: style,
+        strong: style.copyWith(
+          fontWeight: FontWeight.w700,
+          color: const Color(0xFF1E293B),
+        ),
+        em: style.copyWith(fontStyle: FontStyle.italic),
+        listBullet: style.copyWith(color: const Color(0xFF5B6CFF)),
+        code: TextStyle(
+          fontSize: (style.fontSize ?? 14) - 1,
+          color: const Color(0xFF334155),
+          backgroundColor: const Color(0xFFF7F8FA),
+          fontFamily: 'monospace',
+        ),
+        codeblockDecoration: BoxDecoration(
+          color: const Color(0xFFF7F8FA),
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+
   // Get related cards
   List<RelatedCardModel> get _relatedCards {
     return _insightDetail?.relatedCards ?? [];
@@ -119,7 +146,134 @@ class _InsightDetailPageState extends State<InsightDetailPage> {
       ),
     );
 
-    await ShareService.shareWidgetAsPoster(context, shareWidget);
+    // Build detail-style widget mirroring the insight detail page layout
+    final detailWidget = _buildShareDetailWidget();
+
+    await ShareService.shareWidgetAsPoster(
+      context,
+      shareWidget,
+      detailContent: detailWidget,
+    );
+  }
+
+  /// Builds a long-form detail widget for the "detail style" share image.
+  /// Mirrors the insight detail page layout: native widget card → insight
+  /// comment → related cards.
+  Widget _buildShareDetailWidget() {
+    return Container(
+      width: 400,
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+      color: const Color(0xFFF7F8FA),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 1. Native widget card (detail view)
+          if (_insightDetail?.widgetType == 'native' &&
+              _insightDetail?.widgetTemplate != null &&
+              _insightDetail?.widgetData != null) ...[
+            NativeWidgetFactory.buildDetail(
+                  _insightDetail!.widgetTemplate!,
+                  _insightDetail!.widgetData!,
+                ) ??
+                const SizedBox.shrink(),
+
+            // 2. Insight comment below card (same as detail page)
+            if (_content.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7F8FA),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 1),
+                      child: Icon(
+                        Icons.auto_awesome,
+                        size: 16,
+                        color: Color(0xFF5B6CFF),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _content,
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF4A5565),
+                          height: 1.6,
+                          letterSpacing: 0,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 32),
+          ] else if (_content.isNotEmpty) ...[
+            // Fallback: plain text content
+            Text(
+              _content,
+              style: const TextStyle(
+                fontSize: 17,
+                color: Color(0xFF334155),
+                height: 1.7,
+                letterSpacing: 0,
+              ),
+            ),
+            const SizedBox(height: 32),
+          ],
+
+          // 3. Related cards section (same as detail page)
+          if (_relatedCards.isNotEmpty) ...[
+            Text(
+              UserStorage.l10n.relatedRecordsCount(_relatedCards.length),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0A0A0A),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ..._relatedCards.map((card) {
+              final displayConfigs = card.uiConfigs;
+              if (displayConfigs.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: displayConfigs.map((config) {
+                    if (config.templateId == 'legacy_html') {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: NativeCardFactory.build(
+                        status: card.status,
+                        templateId: config.templateId,
+                        data: config.data,
+                        title: card.title ?? '',
+                        tags: card.tags,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              );
+            }),
+          ],
+        ],
+      ),
+    );
   }
 
   @override
@@ -217,14 +371,14 @@ class _InsightDetailPageState extends State<InsightDetailPage> {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text(
+                      child: _buildInsightMarkdown(
                         _content,
-                        style: GoogleFonts.inter(
+                        GoogleFonts.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.w400,
                           color: const Color(0xFF4A5565),
                           height: 1.6,
-                          letterSpacing: -0.15,
+                          letterSpacing: 0,
                         ),
                       ),
                     ),
@@ -235,13 +389,13 @@ class _InsightDetailPageState extends State<InsightDetailPage> {
 
             const SizedBox(height: 32),
           ] else if (_content.isNotEmpty) ...[
-            Text(
+            _buildInsightMarkdown(
               _content,
-              style: const TextStyle(
+              const TextStyle(
                 fontSize: 17,
                 color: Color(0xFF334155), // Slate-700
                 height: 1.7,
-                letterSpacing: 0.2,
+                letterSpacing: 0,
               ),
             ),
             const SizedBox(height: 32),

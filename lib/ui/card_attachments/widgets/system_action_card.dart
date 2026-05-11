@@ -12,10 +12,10 @@ class SystemActionCard extends StatefulWidget {
   final SystemActionService service;
 
   const SystemActionCard({
-    Key? key,
+    super.key,
     required this.action,
     required this.service,
-  }) : super(key: key);
+  });
 
   @override
   State<SystemActionCard> createState() => _SystemActionCardState();
@@ -52,9 +52,7 @@ class _SystemActionCardState extends State<SystemActionCard> {
       DateTime? endTime =
           endTimeStr != null ? DateTime.tryParse(endTimeStr) : null;
 
-      if (startTime == null) {
-        startTime = DateTime.now().add(const Duration(hours: 1)); // fallback
-      }
+      startTime ??= DateTime.now().add(const Duration(hours: 1));
 
       success = await NativeActionService.addCalendarEvent(
         title: title,
@@ -64,8 +62,6 @@ class _SystemActionCardState extends State<SystemActionCard> {
         notes: data['notes'],
       );
     } else {
-      // On Android, reminders are implemented via calendar events,
-      // so we need calendar permission instead of iOS-only reminders permission.
       final reminderPermission = Platform.isAndroid
           ? Permission.calendarFullAccess
           : Permission.reminders;
@@ -102,9 +98,7 @@ class _SystemActionCardState extends State<SystemActionCard> {
 
   Future<void> _handleIgnore() async {
     setState(() => _isProcessing = true);
-
     await widget.service.updateActionStatus(widget.action.id, 'rejected');
-
     if (mounted) {
       setState(() => _isProcessing = false);
     }
@@ -164,9 +158,8 @@ class _SystemActionCardState extends State<SystemActionCard> {
     final bool isCalendar = widget.action.actionType == 'calendar';
 
     final colorScheme = Theme.of(context).colorScheme;
-    final primaryColor = isCalendar
-        ? const Color(0xFF007AFF)
-        : const Color(0xFFFF9500); // iOS blue & orange style
+    final primaryColor =
+        isCalendar ? const Color(0xFF007AFF) : const Color(0xFFFF9500);
     final iconData =
         isCalendar ? Icons.calendar_month_rounded : Icons.checklist_rounded;
     final headerText = isCalendar
@@ -177,7 +170,6 @@ class _SystemActionCardState extends State<SystemActionCard> {
         : UserStorage.l10n.addToReminders;
 
     final displayTime = isCalendar ? startTime : dueDate;
-
     final isCompleted = widget.action.status == 'completed';
 
     if (isCompleted) {
@@ -185,19 +177,16 @@ class _SystemActionCardState extends State<SystemActionCard> {
         margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest.withOpacity(0.4),
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: colorScheme.outlineVariant.withOpacity(0.3),
+            color: colorScheme.outlineVariant.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
           children: [
-            Icon(
-              Icons.check_circle_rounded,
-              color: colorScheme.primary,
-              size: 18,
-            ),
+            Icon(Icons.check_circle_rounded,
+                color: colorScheme.primary, size: 18),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -222,13 +211,13 @@ class _SystemActionCardState extends State<SystemActionCard> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
         border: Border.all(
-          color: colorScheme.outlineVariant.withOpacity(0.3),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
         ),
       ),
       child: Padding(
@@ -242,14 +231,10 @@ class _SystemActionCardState extends State<SystemActionCard> {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.12),
+                    color: primaryColor.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    iconData,
-                    color: primaryColor,
-                    size: 18,
-                  ),
+                  child: Icon(iconData, color: primaryColor, size: 18),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -274,18 +259,17 @@ class _SystemActionCardState extends State<SystemActionCard> {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  Icon(
-                    Icons.access_time_rounded,
-                    size: 14,
-                    color: colorScheme.onSurfaceVariant.withOpacity(0.7),
-                  ),
+                  Icon(Icons.access_time_rounded,
+                      size: 14,
+                      color:
+                          colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       displayTime,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color:
-                                colorScheme.onSurfaceVariant.withOpacity(0.8),
+                            color: colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.8),
                           ),
                     ),
                   ),
@@ -303,8 +287,7 @@ class _SystemActionCardState extends State<SystemActionCard> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                        borderRadius: BorderRadius.circular(20)),
                   ),
                   child: Text(UserStorage.l10n.ignore),
                 ),
@@ -317,8 +300,7 @@ class _SystemActionCardState extends State<SystemActionCard> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                        borderRadius: BorderRadius.circular(20)),
                     elevation: 0,
                   ),
                   child: _isProcessing
@@ -331,10 +313,8 @@ class _SystemActionCardState extends State<SystemActionCard> {
                                 AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : Text(
-                          buttonText,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
+                      : Text(buttonText,
+                          style: const TextStyle(fontWeight: FontWeight.w600)),
                 ),
               ],
             ),

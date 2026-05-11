@@ -5,8 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:memex/domain/models/timeline_card_model.dart';
 import 'package:memex/db/app_database.dart';
-import 'package:memex/ui/agent_activity/widgets/system_action_card.dart';
-import 'package:memex/data/services/system_action_service.dart';
+import 'package:memex/ui/card_attachments/card_attachment_data.dart';
+import 'package:memex/ui/card_attachments/card_attachment_factory.dart';
 import 'package:memex/ui/core/widgets/html_webview_card.dart';
 import 'package:memex/ui/main_screen/widgets/action_center_sheet.dart';
 
@@ -293,6 +293,12 @@ class TimelineScreenState extends State<TimelineScreen> {
         config.data['sessionId'] != null;
   }
 
+  /// Check if a card is a clarification_ask card (global Ask).
+  bool _isClarificationAskCard(TimelineCardModel card) {
+    if (card.uiConfigs.isEmpty) return false;
+    return card.uiConfigs.first.templateId == 'clarification_ask';
+  }
+
   /// Open AgentChatDialog for a custom agent system_task card.
   void _openCustomAgentChat(TimelineCardModel card) {
     final config = card.uiConfigs.first;
@@ -383,13 +389,9 @@ class TimelineScreenState extends State<TimelineScreen> {
                         const SizedBox(width: 6),
                         // Notification button
                         if (AppDatabase.isInitialized)
-                          StreamBuilder<List<SystemAction>>(
-                            stream: (AppDatabase.instance
-                                    .select(AppDatabase.instance.systemActions)
-                                  ..where((t) => t.status.equals('pending')))
-                                .watch(),
-                            builder: (context, snapshot) {
-                              final pendingCount = snapshot.data?.length ?? 0;
+                          Builder(
+                            builder: (context) {
+                              final pendingCount = vm.pendingAttachmentCount;
                               return GestureDetector(
                                 onTap: () {
                                   if (pendingCount > 0) {
@@ -920,19 +922,19 @@ class TimelineScreenState extends State<TimelineScreen> {
 
   Widget _buildTimelineBody(TimelineViewModel vm) {
     if ((vm.isLoading || vm.load.running) && vm.cards.isEmpty) {
-      return Center(child: AgentLogoLoading());
+      return const Center(child: AgentLogoLoading());
     }
 
     if (vm.isSubmitting) {
       if (vm.cards.isEmpty) {
-        return Center(child: AgentLogoLoading());
+        return const Center(child: AgentLogoLoading());
       } else {
         return Stack(
           children: [
             _buildTimelineContent(vm),
             Container(
               color: Colors.white.withOpacity(0.7),
-              child: Center(
+              child: const Center(
                 child: AgentLogoLoading(),
               ),
             ),
@@ -982,7 +984,22 @@ class TimelineScreenState extends State<TimelineScreen> {
       );
     }
 
-    if (vm.cards.isEmpty) {
+    if (!AppDatabase.isInitialized) {
+      return _buildTimelineList(vm);
+    }
+
+    if (vm.cards.isEmpty && (vm.isLoading || vm.load.running)) {
+      return const Center(child: AgentLogoLoading());
+    }
+    return _buildTimelineList(vm);
+  }
+
+  Widget _buildTimelineList(
+    TimelineViewModel vm,
+  ) {
+    final entries = _buildTimelineFeedEntries(vm);
+
+    if (entries.isEmpty) {
       return RefreshIndicator(
         onRefresh: () async {
           await vm.refresh();
@@ -1038,24 +1055,30 @@ class TimelineScreenState extends State<TimelineScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
         cacheExtent: 400,
-        itemCount: vm.cards.length + (vm.hasMore ? 1 : 0),
+        itemCount: entries.length + (vm.hasMore ? 1 : 0),
         itemBuilder: (context, index) {
-          if (index >= vm.cards.length) {
+          if (index >= entries.length) {
             return const Padding(
               padding: EdgeInsets.all(16),
               child: Center(child: CircularProgressIndicator()),
             );
           }
-          final card = vm.cards[index];
+
+          final entry = entries[index];
+          final card = entry.card;
+          final cardIndex = entry.cardIndex;
           return _TimelineEntryItem(
             card: card,
-            isDemoTarget: index == 0,
+            isDemoTarget: cardIndex == 0,
+            attachments: vm.attachments[card.id] ?? const [],
             onTap: () async {
               // If this is a custom agent system_task card, open chat dialog.
               if (_isCustomAgentSystemTask(card)) {
                 _openCustomAgentChat(card);
                 return;
               }
+              // Clarification Ask cards are self-contained; no detail page.
+              if (_isClarificationAskCard(card)) return;
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -1066,7 +1089,7 @@ class TimelineScreenState extends State<TimelineScreen> {
 
               // Advance demo AFTER returning from detail screen so the
               // knowledgeTab spotlight measures the correct position.
-              if (index == 0) {
+              if (cardIndex == 0) {
                 DemoService.instance.tryAdvance(DemoStep.tapCard);
               }
 
@@ -1084,16 +1107,38 @@ class TimelineScreenState extends State<TimelineScreen> {
       ),
     );
   }
+
+  List<_TimelineFeedEntry> _buildTimelineFeedEntries(
+    TimelineViewModel vm,
+  ) {
+    final entries = <_TimelineFeedEntry>[
+      for (var i = 0; i < vm.cards.length; i++)
+        _TimelineFeedEntry(card: vm.cards[i], cardIndex: i),
+    ];
+    return entries;
+  }
+}
+
+class _TimelineFeedEntry {
+  const _TimelineFeedEntry({
+    required this.card,
+    required this.cardIndex,
+  });
+
+  final TimelineCardModel card;
+  final int cardIndex;
 }
 
 class _TimelineEntryItem extends StatefulWidget {
   final TimelineCardModel card;
   final VoidCallback onTap;
   final bool isDemoTarget;
+  final List<CardAttachmentData> attachments;
 
   const _TimelineEntryItem({
     required this.card,
     required this.onTap,
+    required this.attachments,
     this.isDemoTarget = false,
   });
 
@@ -1187,31 +1232,17 @@ class _TimelineEntryItemState extends State<_TimelineEntryItem> {
         );
       }
 
-      return StreamBuilder<List<SystemAction>>(
-        stream: (AppDatabase.instance.select(AppDatabase.instance.systemActions)
-              ..where((t) => t.factId.equals(card.id)))
-            .watch(),
-        builder: (context, snapshot) {
-          // Filter to only show actionable or completed UI (hide rejected)
-          final actions = (snapshot.data ?? [])
-              .where((a) => a.status != 'rejected')
-              .toList();
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildTimestampHeader(),
-              content,
-              if (actions.isNotEmpty)
-                ...actions.map((action) => Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: SystemActionCard(
-                        action: action,
-                        service: SystemActionService.instance,
-                      ),
-                    )),
-            ],
-          );
-        },
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildTimestampHeader(),
+          content,
+          ...widget.attachments.map((a) => Padding(
+                key: ValueKey(a.id),
+                padding: const EdgeInsets.only(bottom: 20),
+                child: CardAttachmentFactory.build(a),
+              )),
+        ],
       );
     }
 
@@ -1297,30 +1328,17 @@ class _TimelineEntryItemState extends State<_TimelineEntryItem> {
       );
     }
 
-    return StreamBuilder<List<SystemAction>>(
-      stream: (AppDatabase.instance.select(AppDatabase.instance.systemActions)
-            ..where((t) => t.factId.equals(card.id)))
-          .watch(),
-      builder: (context, snapshot) {
-        // Filter to only show actionable or completed UI (hide rejected)
-        final actions =
-            (snapshot.data ?? []).where((a) => a.status != 'rejected').toList();
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildTimestampHeader(),
-            normalContent,
-            if (actions.isNotEmpty)
-              ...actions.map((action) => Padding(
-                    padding: const EdgeInsets.only(bottom: 20),
-                    child: SystemActionCard(
-                      action: action,
-                      service: SystemActionService.instance,
-                    ),
-                  )),
-          ],
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTimestampHeader(),
+        normalContent,
+        ...widget.attachments.map((a) => Padding(
+              key: ValueKey(a.id),
+              padding: const EdgeInsets.only(bottom: 20),
+              child: CardAttachmentFactory.build(a),
+            )),
+      ],
     );
   }
 

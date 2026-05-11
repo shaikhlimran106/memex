@@ -45,6 +45,10 @@ mixin AppLocalizationsExt on AppLocalizations {
   String get shareNow;
   String get sharedFromMemex;
   String get appTagline;
+  String get shareDetailStyle;
+  String get shareCardStyle;
+  String get shareHideBranding;
+  String get shareShowBranding;
 
   /// Default built-in characters (used to seed `Characters/*.yaml`).
   List<Map<String, dynamic>> get defaultCharacters;

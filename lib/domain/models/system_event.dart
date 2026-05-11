@@ -22,12 +22,16 @@ class SystemEventTypes {
       'knowledge_insight_refresh_requested';
   static const String scheduleAggregationRequested =
       'schedule_aggregation_requested';
+  static const String clarificationAnswered = 'clarification_answered';
+  static const String dataChanged = 'data_changed';
 
   static const List<String> allTypes = [
     userInputSubmitted,
     cardCommentPosted,
     knowledgeInsightRefreshRequested,
     scheduleAggregationRequested,
+    clarificationAnswered,
+    dataChanged,
   ];
 }
 
@@ -65,15 +69,82 @@ class CardCommentPostedPayload {
     required this.cardId,
     required this.content,
     required this.commentId,
+    this.createdAtTs,
+    this.replyToId,
   });
 
   final String cardId;
   final String content;
   final String commentId;
+  final int? createdAtTs;
+  final String? replyToId;
 
   Map<String, dynamic> toJson() => {
         'card_id': cardId,
         'content': content,
         'comment_id': commentId,
+        if (createdAtTs != null) 'created_at_ts': createdAtTs,
+        if (replyToId != null) 'reply_to_id': replyToId,
       };
+}
+
+class ClarificationAnsweredPayload {
+  ClarificationAnsweredPayload({
+    required this.requestId,
+  });
+
+  final String requestId;
+
+  Map<String, dynamic> toJson() => {
+        'request_id': requestId,
+      };
+}
+
+// ---------------------------------------------------------------------------
+// Data change record (binlog / oplog style)
+// ---------------------------------------------------------------------------
+
+/// Operation type for data change events.
+enum DataChangeOp { insert, update, delete }
+
+/// Namespace constants for [DataChangeRecord].
+class DataChangeNs {
+  static const String pkmFile = 'pkm_file';
+  static const String card = 'card';
+}
+
+/// A generic data-change record modeled after database change streams
+/// (MongoDB oplog / MySQL binlog).
+///
+/// Subscribers filter by [ns] (namespace) and [op] (operation). [op] is
+/// decided by the publisher at the call site from operation intent, not
+/// by inspecting the snapshots. [documentKey] is the primary identifier
+/// of the changed entity. [before] / [after] are pre/post-change snapshots.
+class DataChangeRecord {
+  DataChangeRecord({
+    required this.op,
+    required this.ns,
+    required this.documentKey,
+    this.before,
+    this.after,
+  });
+
+  /// The operation: insert, update, or delete.
+  final DataChangeOp op;
+
+  /// Namespace / collection name (e.g. 'pkm_file', 'card').
+  final String ns;
+
+  /// Primary key of the document (e.g. relative file path, factId).
+  final String documentKey;
+
+  /// Pre-change snapshot. Null on [DataChangeOp.insert]. Null when the
+  /// prior state could not be read (e.g. file missing/corrupt at the
+  /// moment of update) — consumers treat this as "prior state unknown"
+  /// rather than "prior state empty" for non-insert ops.
+  final Map<String, dynamic>? before;
+
+  /// Post-change snapshot. Null on [DataChangeOp.delete]. Non-null
+  /// otherwise.
+  final Map<String, dynamic>? after;
 }

@@ -16,6 +16,7 @@ import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:memex/agent/agent_system_prompt_helper.dart';
 import 'package:memex/agent/skills/manage_pkm/pkm_skill.dart';
 import 'package:memex/agent/skills/manage_system_action/system_action_skill.dart';
+import 'package:memex/agent/skills/ask_clarification/ask_clarification_skill.dart';
 import 'package:memex/data/services/file_operation_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:logging/logging.dart';
@@ -35,7 +36,7 @@ class PkmAgent {
 
     // Match backend task_id format: {user_id}_{fact_id_safe}
     final factIdSafe = fileService.makeFactIdSafe(factId);
-    final sessionId = "pkm_${userId}_${factIdSafe}";
+    final sessionId = "pkm_${userId}_$factIdSafe";
 
     // Load or create agent state
     final state = await loadOrCreateAgentState(sessionId, {
@@ -57,6 +58,7 @@ class PkmAgent {
         workingDirectory: '/',
       ),
       SystemActionSkill(forceActivate: true),
+      AskClarificationSkill(),
     ];
 
     final pkmPath = '${fileService.getWorkspacePath(userId)}/PKM';
