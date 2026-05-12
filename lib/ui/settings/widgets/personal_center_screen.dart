@@ -16,7 +16,7 @@ import 'package:memex/ui/settings/view_models/settings_search_viewmodel.dart';
 import 'package:memex/utils/permission_utils.dart';
 import 'package:memex/ui/core/widgets/avatar_picker.dart';
 import 'package:memex/ui/core/widgets/character_avatar.dart';
-import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/data/services/media_service.dart';
 
 /// Personal center screen
 class PersonalCenterScreen extends StatefulWidget {
@@ -86,14 +86,11 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
     final pickedPath = await pickAvatarImageFromGallery();
     if (pickedPath == null) return null;
 
-    final destinationDirPath =
-        FileSystemService.instance.getUserSettingsPath(userId);
-
-    return saveAvatarImageAsRelativePath(
-      sourceImagePath: pickedPath,
-      destinationDirPath: destinationDirPath,
-      fileSystemService: FileSystemService.instance,
+    final imported = await MediaService.instance.importImage(
+      userId: userId,
+      sourcePath: pickedPath,
     );
+    return imported.relativePath;
   }
 
   Future<void> _clearToken() async {

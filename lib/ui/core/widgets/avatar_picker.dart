@@ -1,14 +1,11 @@
 import 'dart:math';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
 import 'package:memex/ui/core/widgets/character_avatar.dart';
 import 'package:memex/ui/core/widgets/dicebear_avatar.dart';
 import 'package:memex/utils/user_storage.dart';
-import 'package:path/path.dart' as p;
 
 /// Default seed words used to generate random DiceBear avatars.
 const _seedPool = [
@@ -82,24 +79,6 @@ Future<String?> pickAvatarImageFromGallery() async {
     imageQuality: 85,
   );
   return picked?.path;
-}
-
-Future<String> saveAvatarImageAsRelativePath({
-  required String sourceImagePath,
-  required String destinationDirPath,
-  required FileSystemService fileSystemService,
-}) async {
-  final dir = Directory(destinationDirPath);
-  if (!await dir.exists()) {
-    await dir.create(recursive: true);
-  }
-
-  final ext = p.extension(sourceImagePath).toLowerCase();
-  final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}$ext';
-  final destPath = p.join(destinationDirPath, fileName);
-  await File(sourceImagePath).copy(destPath);
-
-  return fileSystemService.toRelativePath(destPath);
 }
 
 /// Shows a bottom sheet with 5 DiceBear avatar options and a gallery option.

@@ -4,6 +4,7 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/data/services/media_service.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/utils/toast_helper.dart';
 
@@ -365,22 +366,19 @@ class _UserSetupScreenState extends State<UserSetupScreen> {
 
     final dataRoot = await UserStorage.resolveDataRoot(userId);
     await FileSystemService.init(dataRoot);
-    final destinationDirPath =
-        FileSystemService.instance.getUserSettingsPath(userId);
 
-    final relativeAvatarPath = await saveAvatarImageAsRelativePath(
-      sourceImagePath: pendingAvatarImagePath,
-      destinationDirPath: destinationDirPath,
-      fileSystemService: FileSystemService.instance,
+    final imported = await MediaService.instance.importImage(
+      userId: userId,
+      sourcePath: pendingAvatarImagePath,
     );
 
     if (mounted) {
       setState(() {
-        _selectedAvatar = relativeAvatarPath;
+        _selectedAvatar = imported.relativePath;
       });
     }
     _pendingAvatarImagePath = null;
-    return relativeAvatarPath;
+    return imported.relativePath;
   }
 
   Widget _buildLanguageSelector() {

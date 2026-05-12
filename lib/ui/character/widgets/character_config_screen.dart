@@ -4,7 +4,7 @@ import 'package:logging/logging.dart';
 import 'package:memex/agent/memory/character_memory_service.dart';
 import 'package:memex/domain/models/character_model.dart';
 import 'package:memex/data/services/character_service.dart';
-import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/data/services/media_service.dart';
 import 'package:memex/routing/routes.dart';
 import 'package:memex/ui/character/view_models/character_viewmodel.dart';
 import 'package:memex/ui/core/widgets/character_avatar.dart';
@@ -466,18 +466,15 @@ class _CharacterEditPageState extends State<CharacterEditPage> {
       final userId = await UserStorage.getUserId();
       if (userId == null) return null;
 
-      final charsPath = CharacterService.instance.getCharactersPath(userId);
-      final relativePath = await saveAvatarImageAsRelativePath(
-        sourceImagePath: pickedPath,
-        destinationDirPath: charsPath,
-        fileSystemService: FileSystemService.instance,
+      final imported = await MediaService.instance.importImage(
+        userId: userId,
+        sourcePath: pickedPath,
       );
       if (!mounted) return null;
       setState(() {
-        _avatarPreview =
-            FileSystemService.instance.toAbsolutePath(relativePath);
+        _avatarPreview = imported.absolutePath;
       });
-      return relativePath;
+      return imported.relativePath;
     } catch (e) {
       _logger.warning('Failed to pick avatar image: $e');
       if (mounted) {

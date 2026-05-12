@@ -1291,6 +1291,12 @@ class FileSystemService {
     return path.join(getWorkspacePath(userId), '_System');
   }
 
+  /// Unified media pool directory — all user-uploaded images/audio/etc.
+  /// land here with a canonical filename (see [MediaService]).
+  String getMediaPath(String userId) {
+    return path.join(getSystemPath(userId), 'media');
+  }
+
   /// Drafts directory path (input draft files)
   String getDraftsPath(String userId) {
     return path.join(getSystemPath(userId), 'Drafts');
