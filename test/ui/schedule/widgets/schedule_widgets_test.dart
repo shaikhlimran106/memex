@@ -55,32 +55,23 @@ void main() {
       expect(find.byKey(const ValueKey('schedule_lens_conflicts')),
           findsOneWidget);
       expect(find.byKey(const ValueKey('schedule_lens_done')), findsOneWidget);
-      final scheduleList = find.byWidgetPredicate(
-        (widget) =>
-            widget is Scrollable && widget.axisDirection == AxisDirection.down,
-      );
 
-      await tester.tap(find.byKey(const ValueKey('schedule_lens_done')));
-      await tester.pumpAndSettle();
+      Future<void> tapLens(Key key) async {
+        final finder = find.byKey(key);
+        await tester.ensureVisible(finder);
+        await tester.pumpAndSettle();
+        await tester.tap(finder);
+        await tester.pumpAndSettle();
+      }
+
+      await tapLens(const ValueKey('schedule_lens_done'));
       expect(find.text('Done grocery order'), findsOneWidget);
 
-      await tester.scrollUntilVisible(
-        find.text('Two fixed events overlap with the cleaning window.'),
-        300,
-        scrollable: scheduleList,
-      );
-      expect(find.text('A heavy week with travel prep and home tasks.'),
-          findsOneWidget);
+      await tapLens(const ValueKey('schedule_lens_conflicts'));
       expect(find.text('Two fixed events overlap with the cleaning window.'),
           findsOneWidget);
 
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('schedule_task_toggle_task-clean')),
-        300,
-        scrollable: scheduleList,
-      );
-      await tester.drag(scheduleList, const Offset(0, -120));
-      await tester.pumpAndSettle();
+      await tapLens(const ValueKey('schedule_lens_day_0'));
       expect(find.text('Clean the apartment'), findsOneWidget);
       expect(find.byKey(const ValueKey('schedule_task_toggle_task-clean')),
           findsOneWidget);
@@ -92,22 +83,13 @@ void main() {
 
       expect(toggledTasks, ['task-clean']);
 
-      await tester.scrollUntilVisible(
-        find.text('Dentist appointment'),
-        300,
-        scrollable: scheduleList,
-      );
       expect(find.text('Dentist appointment'), findsOneWidget);
       await tester.tap(find.text('Dentist appointment'));
       await tester.pump();
 
       expect(tappedCards, contains('event-dentist'));
 
-      await tester.scrollUntilVisible(
-        find.text('Done grocery order'),
-        300,
-        scrollable: scheduleList,
-      );
+      await tapLens(const ValueKey('schedule_lens_done'));
       expect(find.text('Done grocery order'), findsOneWidget);
     });
 

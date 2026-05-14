@@ -6,6 +6,7 @@ import 'package:memex/utils/user_storage.dart';
 import '../../../../domain/models/schedule_aggregation_model.dart';
 import '../../models/schedule_item.dart';
 import '../../../core/cards/ui/glass_card.dart';
+import '../../../core/themes/app_colors.dart';
 
 /// Magazine Narrative Tab renders the AI-curated schedule aggregation.
 class MagazineNarrativeTab extends StatefulWidget {
@@ -27,6 +28,7 @@ class MagazineNarrativeTab extends StatefulWidget {
 }
 
 class _MagazineNarrativeTabState extends State<MagazineNarrativeTab> {
+  final _scrollController = ScrollController();
   final _conflictsKey = GlobalKey();
   final _completedKey = GlobalKey();
   final Map<int, GlobalKey> _dayKeys = {};
@@ -35,12 +37,43 @@ class _MagazineNarrativeTabState extends State<MagazineNarrativeTab> {
     return _dayKeys.putIfAbsent(index, GlobalKey.new);
   }
 
-  void _scrollToKey(GlobalKey key) {
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _scrollToKey(
+    GlobalKey key, {
+    double fallbackFraction = 0,
+  }) async {
     final context = key.currentContext;
-    if (context == null) return;
-    Scrollable.ensureVisible(
-      context,
+    if (context != null) {
+      await Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+        alignment: 0.08,
+      );
+      return;
+    }
+    if (!_scrollController.hasClients) return;
+
+    final position = _scrollController.position;
+    final targetOffset = position.maxScrollExtent * fallbackFraction;
+    await _scrollController.animateTo(
+      targetOffset.clamp(position.minScrollExtent, position.maxScrollExtent),
       duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+    );
+
+    if (!mounted) return;
+    final resolvedContext = key.currentContext;
+    if (resolvedContext == null) return;
+    if (!resolvedContext.mounted) return;
+    await Scrollable.ensureVisible(
+      resolvedContext,
+      duration: const Duration(milliseconds: 160),
       curve: Curves.easeOutCubic,
       alignment: 0.08,
     );
@@ -56,83 +89,95 @@ class _MagazineNarrativeTabState extends State<MagazineNarrativeTab> {
   // ===========================================================================
 
   Widget _buildAgentMode(ScheduleAggregationModel agg) {
-    return SingleChildScrollView(
-      key: const ValueKey('schedule_magazine_list'),
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 220),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Magazine header
-          _buildMagazineHeader(),
+    final bodyItems = <Widget>[
+      // Hero card
+      if (agg.heroItem != null) ...[
+        _buildAgentHeroCard(agg.heroItem!),
+        const SizedBox(height: 28),
+      ],
 
-          _buildOverviewLens(agg),
-          const SizedBox(height: 24),
+      // Editorial intro
+      if (agg.editorialIntro.isNotEmpty) ...[
+        _buildAgentEditorialIntro(agg.editorialIntro),
+        const SizedBox(height: 28),
+      ],
 
-          // Hero card
-          if (agg.heroItem != null) ...[
-            _buildAgentHeroCard(agg.heroItem!),
-            const SizedBox(height: 28),
-          ],
+      // Quote blocks
+      if (agg.quoteBlocks.isNotEmpty) ...[
+        ...agg.quoteBlocks.map(_buildAgentQuoteBlock),
+        const SizedBox(height: 28),
+      ],
 
-          // Editorial intro
-          if (agg.editorialIntro.isNotEmpty) ...[
-            _buildAgentEditorialIntro(agg.editorialIntro),
-            const SizedBox(height: 28),
-          ],
+      // Conflicts
+      if (agg.conflicts.isNotEmpty) ...[
+        KeyedSubtree(
+          key: _conflictsKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: agg.conflicts.map(_buildAgentConflict).toList(),
+          ),
+        ),
+        const SizedBox(height: 28),
+      ],
 
-          // Quote blocks
-          if (agg.quoteBlocks.isNotEmpty) ...[
-            ...agg.quoteBlocks.map(_buildAgentQuoteBlock),
-            const SizedBox(height: 28),
-          ],
-
-          // Conflicts
-          if (agg.conflicts.isNotEmpty) ...[
-            KeyedSubtree(
-              key: _conflictsKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: agg.conflicts.map(_buildAgentConflict).toList(),
-              ),
+      // Timeline
+      if (agg.timeline.isNotEmpty)
+        for (final entry in agg.timeline.indexed) ...[
+          KeyedSubtree(
+            key: _dayKey(entry.$1),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionTitle(entry.$2.dayLabel.toUpperCase()),
+                const SizedBox(height: 16),
+                ...entry.$2.items.map(_buildAgentTimelineCard),
+                const SizedBox(height: 28),
+              ],
             ),
-            const SizedBox(height: 28),
-          ],
-
-          // Timeline
-          if (agg.timeline.isNotEmpty)
-            for (final entry in agg.timeline.indexed) ...[
-              KeyedSubtree(
-                key: _dayKey(entry.$1),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionTitle(entry.$2.dayLabel.toUpperCase()),
-                    const SizedBox(height: 16),
-                    ...entry.$2.items.map(_buildAgentTimelineCard),
-                    const SizedBox(height: 28),
-                  ],
-                ),
-              ),
-            ],
-
-          if (agg.completed.isNotEmpty) ...[
-            KeyedSubtree(
-              key: _completedKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle(
-                    UserStorage.l10n.scheduleDone.toUpperCase(),
-                  ),
-                  const SizedBox(height: 16),
-                  ...agg.completed.map(_buildAgentDoneCard),
-                ],
-              ),
-            ),
-          ],
+          ),
         ],
-      ),
+
+      if (agg.completed.isNotEmpty) ...[
+        KeyedSubtree(
+          key: _completedKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitle(
+                UserStorage.l10n.scheduleDone.toUpperCase(),
+              ),
+              const SizedBox(height: 16),
+              ...agg.completed.map(_buildAgentDoneCard),
+            ],
+          ),
+        ),
+      ],
+    ];
+
+    return CustomScrollView(
+      key: const ValueKey('schedule_magazine_list'),
+      controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+          sliver: SliverList.list(
+            children: [
+              _buildMagazineHeader(),
+            ],
+          ),
+        ),
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _ScheduleLensHeaderDelegate(
+            child: _buildOverviewLens(agg),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 220),
+          sliver: SliverList.list(children: bodyItems),
+        ),
+      ],
     );
   }
 
@@ -152,7 +197,10 @@ class _MagazineNarrativeTabState extends State<MagazineNarrativeTab> {
           key: ValueKey('schedule_lens_day_${entry.$1}'),
           icon: Icons.view_agenda_outlined,
           label: '${_dayChipLabel(entry.$2)} · ${entry.$2.items.length}',
-          onTap: () => _scrollToKey(_dayKey(entry.$1)),
+          onTap: () => _scrollToKey(
+            _dayKey(entry.$1),
+            fallbackFraction: (0.64 + entry.$1 * 0.08).clamp(0.64, 0.92),
+          ),
         ),
       if (agg.conflicts.isNotEmpty)
         _buildLensChip(
@@ -161,7 +209,7 @@ class _MagazineNarrativeTabState extends State<MagazineNarrativeTab> {
           label: UserStorage.l10n.scheduleBriefingConflictCount(
             agg.conflicts.length,
           ),
-          onTap: () => _scrollToKey(_conflictsKey),
+          onTap: () => _scrollToKey(_conflictsKey, fallbackFraction: 0.5),
           accentColor: const Color(0xFFB45309),
           backgroundColor: const Color(0xFFFFF7ED),
         ),
@@ -172,7 +220,7 @@ class _MagazineNarrativeTabState extends State<MagazineNarrativeTab> {
           label: UserStorage.l10n.scheduleBriefingDoneCount(
             agg.completed.length,
           ),
-          onTap: () => _scrollToKey(_completedKey),
+          onTap: () => _scrollToKey(_completedKey, fallbackFraction: 1),
           accentColor: const Color(0xFF047857),
           backgroundColor: const Color(0xFFECFDF5),
         ),
@@ -768,5 +816,50 @@ class _MagazineNarrativeTabState extends State<MagazineNarrativeTab> {
       'overdue' => ScheduleItemStatus.overdue,
       _ => ScheduleItemStatus.pending,
     };
+  }
+}
+
+class _ScheduleLensHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+
+  _ScheduleLensHeaderDelegate({required this.child});
+
+  static const double _height = 60;
+
+  @override
+  double get minExtent => _height;
+
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        boxShadow: overlapsContent
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        child: child,
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _ScheduleLensHeaderDelegate oldDelegate) {
+    return oldDelegate.child != child;
   }
 }
