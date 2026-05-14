@@ -10,6 +10,7 @@ import 'package:memex/ui/card_attachments/card_attachment_factory.dart';
 import 'package:memex/ui/core/widgets/html_webview_card.dart';
 import 'package:memex/ui/main_screen/widgets/action_center_sheet.dart';
 
+import 'package:memex/domain/models/system_card_constants.dart';
 import 'package:memex/ui/core/cards/native_card_factory.dart';
 import 'package:memex/data/services/demo_service.dart';
 import 'package:memex/ui/core/cards/card_action_notification.dart';
@@ -1068,9 +1069,10 @@ class TimelineScreenState extends State<TimelineScreen> {
           final entry = entries[index];
           final card = entry.card;
           final cardIndex = entry.cardIndex;
+          final isDemoTarget = _isDemoTargetCard(vm.cards, cardIndex);
           return _TimelineEntryItem(
             card: card,
-            isDemoTarget: cardIndex == 0,
+            isDemoTarget: isDemoTarget,
             attachments: vm.attachments[card.id] ?? const [],
             onTap: () async {
               // If this is a custom agent system_task card, open chat dialog.
@@ -1080,6 +1082,12 @@ class TimelineScreenState extends State<TimelineScreen> {
               }
               // Clarification Ask cards are self-contained; no detail page.
               if (_isClarificationAskCard(card)) return;
+              if (_isScheduleBriefingCard(card)) {
+                vm.setViewMode(TimelineViewMode.timeline);
+                vm.setActiveFilter('schedule');
+                _animateToPage(2);
+                return;
+              }
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -1090,7 +1098,7 @@ class TimelineScreenState extends State<TimelineScreen> {
 
               // Advance demo AFTER returning from detail screen so the
               // knowledgeTab spotlight measures the correct position.
-              if (cardIndex == 0) {
+              if (isDemoTarget) {
                 DemoService.instance.tryAdvance(DemoStep.tapCard);
               }
 
@@ -1128,6 +1136,21 @@ class _TimelineFeedEntry {
 
   final TimelineCardModel card;
   final int cardIndex;
+}
+
+bool _isScheduleBriefingCard(TimelineCardModel card) {
+  return card.id == scheduleBriefingCardId ||
+      card.uiConfigs.any(
+        (config) => config.templateId == scheduleBriefingTemplateId,
+      );
+}
+
+bool _isDemoTargetCard(List<TimelineCardModel> cards, int index) {
+  if (index < 0 || index >= cards.length) return false;
+  if (_isScheduleBriefingCard(cards[index])) return false;
+  final firstUserCardIndex =
+      cards.indexWhere((card) => !_isScheduleBriefingCard(card));
+  return index == firstUserCardIndex;
 }
 
 class _TimelineEntryItem extends StatefulWidget {
@@ -1188,9 +1211,13 @@ class _TimelineEntryItemState extends State<_TimelineEntryItem> {
 
     // System-generated cards (no user raw input) should not support long-press
     // toggle to classic mode — they have no rawText to fall back to.
-    const _systemOnlyTemplates = {'clarification_ask', 'system_task'};
+    const systemOnlyTemplates = {
+      'clarification_ask',
+      'schedule_briefing',
+      'system_task',
+    };
     final isSystemCard = card.uiConfigs.isNotEmpty &&
-        _systemOnlyTemplates.contains(card.uiConfigs.first.templateId);
+        systemOnlyTemplates.contains(card.uiConfigs.first.templateId);
     final canToggleClassic = !isAlreadyClassic && !isSystemCard;
 
     // Check for single compact card

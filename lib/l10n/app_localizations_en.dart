@@ -1031,6 +1031,61 @@ class AppLocalizationsEn extends AppLocalizations {
       'New schedule-related content is available. Tap Update to reorganize.';
 
   @override
+  String get scheduleAggregationLoadFailed => 'Failed to load schedule data';
+
+  @override
+  String get scheduleAggregationRefreshFailed =>
+      'Failed to refresh schedule data';
+
+  @override
+  String get scheduleTaskUpdateFailed => 'Failed to update task';
+
+  @override
+  String get scheduleFeatured => 'Featured';
+
+  @override
+  String get scheduleThisWeek => 'This week';
+
+  @override
+  String get scheduleDone => 'Done';
+
+  @override
+  String get scheduleTbd => 'TBD';
+
+  @override
+  String get scheduleWeekOverview => 'This week';
+
+  @override
+  String get scheduleImportant => 'Important';
+
+  @override
+  String get scheduleBriefingTitle => 'Schedule briefing';
+
+  @override
+  String get scheduleBriefingNeedsUpdate => 'Needs update';
+
+  @override
+  String get scheduleBriefingOpen => 'Open';
+
+  @override
+  String get scheduleBriefingNoData => 'No schedule briefing yet';
+
+  @override
+  String scheduleBriefingUpdated(Object time) {
+    return 'Updated $time';
+  }
+
+  @override
+  String scheduleBriefingDoneCount(Object count) {
+    return '$count done';
+  }
+
+  @override
+  String scheduleBriefingConflictCount(Object count) {
+    return '$count conflicts';
+  }
+
+  @override
   String get updating => 'Updating...';
 
   @override

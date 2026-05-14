@@ -1922,6 +1922,102 @@ abstract class AppLocalizations {
   /// **'New schedule-related content is available. Tap Update to reorganize.'**
   String get scheduleAggregationDirtyReason;
 
+  /// No description provided for @scheduleAggregationLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load schedule data'**
+  String get scheduleAggregationLoadFailed;
+
+  /// No description provided for @scheduleAggregationRefreshFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to refresh schedule data'**
+  String get scheduleAggregationRefreshFailed;
+
+  /// No description provided for @scheduleTaskUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update task'**
+  String get scheduleTaskUpdateFailed;
+
+  /// No description provided for @scheduleFeatured.
+  ///
+  /// In en, this message translates to:
+  /// **'Featured'**
+  String get scheduleFeatured;
+
+  /// No description provided for @scheduleThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get scheduleThisWeek;
+
+  /// No description provided for @scheduleDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get scheduleDone;
+
+  /// No description provided for @scheduleTbd.
+  ///
+  /// In en, this message translates to:
+  /// **'TBD'**
+  String get scheduleTbd;
+
+  /// No description provided for @scheduleWeekOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get scheduleWeekOverview;
+
+  /// No description provided for @scheduleImportant.
+  ///
+  /// In en, this message translates to:
+  /// **'Important'**
+  String get scheduleImportant;
+
+  /// No description provided for @scheduleBriefingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule briefing'**
+  String get scheduleBriefingTitle;
+
+  /// No description provided for @scheduleBriefingNeedsUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs update'**
+  String get scheduleBriefingNeedsUpdate;
+
+  /// No description provided for @scheduleBriefingOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get scheduleBriefingOpen;
+
+  /// No description provided for @scheduleBriefingNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'No schedule briefing yet'**
+  String get scheduleBriefingNoData;
+
+  /// No description provided for @scheduleBriefingUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {time}'**
+  String scheduleBriefingUpdated(Object time);
+
+  /// No description provided for @scheduleBriefingDoneCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} done'**
+  String scheduleBriefingDoneCount(Object count);
+
+  /// No description provided for @scheduleBriefingConflictCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} conflicts'**
+  String scheduleBriefingConflictCount(Object count);
+
   /// No description provided for @updating.
   ///
   /// In en, this message translates to:

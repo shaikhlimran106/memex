@@ -502,6 +502,37 @@
   "noScheduleAggregation": "暂无日程聚合",
   "scheduleAggregationEmptyHint": "点击更新，从真实时间卡片里整理日程和待办。",
   "scheduleAggregationDirtyReason": "有新的日程相关内容，点击更新后重新整理。",
+  "scheduleAggregationLoadFailed": "加载日程数据失败",
+  "scheduleAggregationRefreshFailed": "刷新日程数据失败",
+  "scheduleTaskUpdateFailed": "更新待办失败",
+  "scheduleFeatured": "重点",
+  "scheduleThisWeek": "本周",
+  "scheduleDone": "已完成",
+  "scheduleTbd": "待定",
+  "scheduleWeekOverview": "本周概览",
+  "scheduleImportant": "重要",
+  "scheduleBriefingTitle": "日程简报",
+  "scheduleBriefingNeedsUpdate": "待更新",
+  "scheduleBriefingOpen": "查看",
+  "scheduleBriefingNoData": "暂无日程简报",
+  "@scheduleBriefingUpdated": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "scheduleBriefingUpdated": "{time} 更新",
+  "@scheduleBriefingDoneCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "scheduleBriefingDoneCount": "完成 {count}",
+  "@scheduleBriefingConflictCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "scheduleBriefingConflictCount": "冲突 {count}",
   "updating": "更新中...",
   "update": "更新",
   "enabled": "已启用",

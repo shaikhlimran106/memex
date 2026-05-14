@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:memex/utils/user_storage.dart';
 
 import '../../../../domain/models/schedule_aggregation_model.dart';
 import '../../models/schedule_item.dart';
@@ -74,7 +75,7 @@ class MagazineNarrativeTab extends StatelessWidget {
 
         // Completed
         if (agg.completed.isNotEmpty) ...[
-          _buildSectionTitle('DONE'),
+          _buildSectionTitle(UserStorage.l10n.scheduleDone.toUpperCase()),
           const SizedBox(height: 16),
           ...agg.completed.map(_buildAgentDoneCard),
         ],
@@ -137,7 +138,7 @@ class MagazineNarrativeTab extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      'FEATURED',
+                      UserStorage.l10n.scheduleFeatured.toUpperCase(),
                       style: GoogleFonts.inter(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
@@ -180,9 +181,10 @@ class MagazineNarrativeTab extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         item.startTime != null
-                            ? DateFormat('EEE, MMM d · HH:mm')
+                            ? DateFormat.MMMEd(UserStorage.l10n.localeName)
+                                .add_Hm()
                                 .format(item.startTime!)
-                            : 'TBD',
+                            : UserStorage.l10n.scheduleTbd,
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.white.withValues(alpha: 0.6),
@@ -220,7 +222,7 @@ class MagazineNarrativeTab extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '本周概览',
+          UserStorage.l10n.scheduleWeekOverview,
           style: GoogleFonts.inter(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -403,9 +405,9 @@ class MagazineNarrativeTab extends StatelessWidget {
                               color: const Color(0xFFFEF3C7),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text(
-                              '重要',
-                              style: TextStyle(
+                            child: Text(
+                              UserStorage.l10n.scheduleImportant,
+                              style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFFD97706),
@@ -417,7 +419,8 @@ class MagazineNarrativeTab extends StatelessWidget {
                     if (item.startTime != null) ...[
                       const SizedBox(height: 6),
                       Text(
-                        DateFormat('EEE, MMM d · HH:mm')
+                        DateFormat.MMMEd(UserStorage.l10n.localeName)
+                            .add_Hm()
                             .format(item.startTime!),
                         style: const TextStyle(
                           fontSize: 12,
@@ -513,7 +516,7 @@ class MagazineNarrativeTab extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'THIS WEEK',
+            UserStorage.l10n.scheduleThisWeek.toUpperCase(),
             style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w500,
@@ -523,7 +526,8 @@ class MagazineNarrativeTab extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            DateFormat('MMMM d').format(DateTime.now()),
+            DateFormat.MMMMd(UserStorage.l10n.localeName)
+                .format(DateTime.now()),
             style: GoogleFonts.inter(
               fontSize: 32,
               fontWeight: FontWeight.w700,

@@ -7,11 +7,24 @@ import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/domain/models/card_detail_model.dart';
 import 'package:memex/domain/models/schedule_aggregation_model.dart';
 import 'package:memex/domain/models/schedule_refresh_state.dart';
+import 'package:memex/l10n/app_localizations_ext.dart';
 import 'package:memex/ui/schedule/models/schedule_item.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/result.dart';
+import 'package:memex/utils/user_storage.dart';
 
 final _logger = getLogger('ScheduleAggregatorViewModel');
+
+String _localizedOrFallback(
+  String Function(AppLocalizationsExt l10n) resolve,
+  String fallback,
+) {
+  try {
+    return resolve(UserStorage.l10n);
+  } catch (_) {
+    return fallback;
+  }
+}
 
 typedef ScheduleAggregationLoader = Future<ScheduleAggregationModel?>
     Function();
@@ -121,7 +134,10 @@ class ScheduleAggregatorViewModel extends ChangeNotifier {
       _error = null;
     } catch (e) {
       _logger.severe('Failed to load schedule aggregation: $e');
-      _error = 'Failed to load schedule data';
+      _error = _localizedOrFallback(
+        (l10n) => l10n.scheduleAggregationLoadFailed,
+        'Failed to load schedule data',
+      );
     } finally {
       _setLoading(false);
     }
@@ -142,7 +158,10 @@ class ScheduleAggregatorViewModel extends ChangeNotifier {
         },
         onError: (e, st) {
           _logger.warning('Failed to trigger schedule aggregation: $e');
-          _error = 'Failed to trigger agent: $e';
+          _error = _localizedOrFallback(
+            (l10n) => l10n.updateFailed(e.toString()),
+            'Failed to update: $e',
+          );
           return false;
         },
       );
@@ -160,7 +179,10 @@ class ScheduleAggregatorViewModel extends ChangeNotifier {
       await loadAggregation();
     } catch (e) {
       _logger.severe('Failed to refresh schedule aggregation: $e');
-      _error = 'Failed to refresh schedule data';
+      _error = _localizedOrFallback(
+        (l10n) => l10n.scheduleAggregationRefreshFailed,
+        'Failed to refresh schedule data',
+      );
     } finally {
       if (identical(_pendingRefreshCompletion, completion)) {
         _pendingRefreshCompletion = null;
@@ -199,7 +221,10 @@ class ScheduleAggregatorViewModel extends ChangeNotifier {
     } catch (e) {
       _logger.warning('Failed to toggle schedule item ${item.id}: $e');
       _statusOverrides[item.id] = item.status;
-      _error = 'Failed to update task';
+      _error = _localizedOrFallback(
+        (l10n) => l10n.scheduleTaskUpdateFailed,
+        'Failed to update task',
+      );
       notifyListeners();
     }
   }

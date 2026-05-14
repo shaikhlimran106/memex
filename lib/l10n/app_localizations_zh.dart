@@ -1003,6 +1003,60 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scheduleAggregationDirtyReason => '有新的日程相关内容，点击更新后重新整理。';
 
   @override
+  String get scheduleAggregationLoadFailed => '加载日程数据失败';
+
+  @override
+  String get scheduleAggregationRefreshFailed => '刷新日程数据失败';
+
+  @override
+  String get scheduleTaskUpdateFailed => '更新待办失败';
+
+  @override
+  String get scheduleFeatured => '重点';
+
+  @override
+  String get scheduleThisWeek => '本周';
+
+  @override
+  String get scheduleDone => '已完成';
+
+  @override
+  String get scheduleTbd => '待定';
+
+  @override
+  String get scheduleWeekOverview => '本周概览';
+
+  @override
+  String get scheduleImportant => '重要';
+
+  @override
+  String get scheduleBriefingTitle => '日程简报';
+
+  @override
+  String get scheduleBriefingNeedsUpdate => '待更新';
+
+  @override
+  String get scheduleBriefingOpen => '查看';
+
+  @override
+  String get scheduleBriefingNoData => '暂无日程简报';
+
+  @override
+  String scheduleBriefingUpdated(Object time) {
+    return '$time 更新';
+  }
+
+  @override
+  String scheduleBriefingDoneCount(Object count) {
+    return '完成 $count';
+  }
+
+  @override
+  String scheduleBriefingConflictCount(Object count) {
+    return '冲突 $count';
+  }
+
+  @override
   String get updating => '更新中...';
 
   @override
