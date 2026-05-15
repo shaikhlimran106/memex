@@ -2231,6 +2231,71 @@ class AppLocalizationsZh extends AppLocalizations {
   String get untitledCard => '未命名卡片';
 
   @override
+  String get locationContextTitle => '位置上下文';
+
+  @override
+  String get locationContextDescription => '为 Agent 对话提供当前城市与街区上下文';
+
+  @override
+  String get locationContextAttachTitle => '为对话附加当前位置';
+
+  @override
+  String get locationContextAttachDesc =>
+      '使用设备 GPS 和逆地理编码，为 Agent 提供城市、区县和街区上下文。';
+
+  @override
+  String get reverseGeocodingProvider => '逆地理编码服务商';
+
+  @override
+  String get amapProviderName => '高德地图';
+
+  @override
+  String get amapApiKey => '高德地图 API Key';
+
+  @override
+  String get amapGcj02Note => '高德地图使用 GCJ-02 坐标；设备 GPS 会先转换后再逆地理编码。';
+
+  @override
+  String get contextGranularity => '上下文粒度';
+
+  @override
+  String get granularityCity => '城市';
+
+  @override
+  String get granularityDistrict => '区县';
+
+  @override
+  String get granularityNeighborhood => '街区';
+
+  @override
+  String get granularityStreet => '街道';
+
+  @override
+  String get granularityFullAddress => '完整地址候选';
+
+  @override
+  String get locationFreshness => '位置新鲜度';
+
+  @override
+  String minutesShort(int minutes) {
+    return '$minutes 分钟';
+  }
+
+  @override
+  String get oneHour => '1 小时';
+
+  @override
+  String get testCurrentLocation => '测试当前位置';
+
+  @override
+  String get locationUnavailable => '位置不可用';
+
+  @override
+  String locationTestFailed(String error) {
+    return '失败：$error';
+  }
+
+  @override
   String get settingsSearchPlaceholder => '搜索设置项...';
 
   @override

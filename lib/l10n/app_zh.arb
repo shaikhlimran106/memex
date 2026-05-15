@@ -1021,6 +1021,41 @@
   "cdnSignalsBoth": "有新回复和洞察",
   "untitledCard": "未命名卡片",
 
+  "locationContextTitle": "位置上下文",
+  "locationContextDescription": "为 Agent 对话提供当前城市与街区上下文",
+  "locationContextAttachTitle": "为对话附加当前位置",
+  "locationContextAttachDesc": "使用设备 GPS 和逆地理编码，为 Agent 提供城市、区县和街区上下文。",
+  "reverseGeocodingProvider": "逆地理编码服务商",
+  "amapProviderName": "高德地图",
+  "amapApiKey": "高德地图 API Key",
+  "amapGcj02Note": "高德地图使用 GCJ-02 坐标；设备 GPS 会先转换后再逆地理编码。",
+  "contextGranularity": "上下文粒度",
+  "granularityCity": "城市",
+  "granularityDistrict": "区县",
+  "granularityNeighborhood": "街区",
+  "granularityStreet": "街道",
+  "granularityFullAddress": "完整地址候选",
+  "locationFreshness": "位置新鲜度",
+  "minutesShort": "{minutes} 分钟",
+  "@minutesShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "oneHour": "1 小时",
+  "testCurrentLocation": "测试当前位置",
+  "locationUnavailable": "位置不可用",
+  "locationTestFailed": "失败：{error}",
+  "@locationTestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
   "settingsSearchPlaceholder": "搜索设置项...",
   "settingsSearchEmpty": "未找到匹配的设置项",
 

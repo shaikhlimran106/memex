@@ -9,6 +9,7 @@ import 'package:logging/logging.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/domain/models/llm_config.dart';
 import 'package:memex/domain/models/agent_config.dart';
+import 'package:memex/domain/models/location_context_config.dart';
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:memex/domain/models/agent_definitions.dart';
 import '../l10n/app_localizations_ext.dart';
@@ -65,6 +66,8 @@ class UserStorage {
   static const String _keyUserId = 'user_id';
   static const String _keyPhotoSuggestionCache = 'photo_suggestion_cache';
   static const String _keyUserAvatar = 'user_avatar';
+  static const String _keyLocationContextConfig = 'location_context_config';
+  static const String _keyGeocodingCache = 'geocoding_cache';
 
   /// Per-user workspace storage preference keys.
   static const String _keyStorageLocationPrefix = 'memex_storage_location_';
@@ -400,6 +403,57 @@ class UserStorage {
       await prefs.remove(_keyUseLocalSpeechToText);
     } catch (e) {
       throw Exception('Failed to reset speech preference: $e');
+    }
+  }
+
+  static Future<LocationContextConfig> getLocationContextConfig() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_keyLocationContextConfig);
+      if (jsonString == null || jsonString.isEmpty) {
+        return const LocationContextConfig();
+      }
+      return LocationContextConfig.fromJson(
+        jsonDecode(jsonString) as Map<String, dynamic>,
+      );
+    } catch (e) {
+      _logger.warning('Failed to load location context config: $e');
+      return const LocationContextConfig();
+    }
+  }
+
+  static Future<void> saveLocationContextConfig(
+    LocationContextConfig config,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _keyLocationContextConfig,
+        jsonEncode(config.toJson()),
+      );
+    } catch (e) {
+      throw Exception('Failed to save location context config: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> getGeocodingCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_keyGeocodingCache);
+      if (jsonString == null || jsonString.isEmpty) return {};
+      return jsonDecode(jsonString) as Map<String, dynamic>;
+    } catch (e) {
+      _logger.warning('Failed to load geocoding cache: $e');
+      return {};
+    }
+  }
+
+  static Future<void> saveGeocodingCache(Map<String, dynamic> cache) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyGeocodingCache, jsonEncode(cache));
+    } catch (e) {
+      _logger.warning('Failed to save geocoding cache: $e');
     }
   }
 

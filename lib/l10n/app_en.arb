@@ -1043,6 +1043,41 @@
   "cdnSignalsBoth": "New reply and insight",
   "untitledCard": "Untitled card",
 
+  "locationContextTitle": "Location Context",
+  "locationContextDescription": "Current city and neighborhood context for agent chat",
+  "locationContextAttachTitle": "Attach current location to chat",
+  "locationContextAttachDesc": "Uses device GPS and reverse geocoding to provide city, district, and neighborhood context to the agent.",
+  "reverseGeocodingProvider": "Reverse geocoding provider",
+  "amapProviderName": "Amap",
+  "amapApiKey": "Amap API Key",
+  "amapGcj02Note": "Amap uses GCJ-02 coordinates. Device GPS is converted before reverse geocoding.",
+  "contextGranularity": "Context granularity",
+  "granularityCity": "City",
+  "granularityDistrict": "District",
+  "granularityNeighborhood": "Neighborhood",
+  "granularityStreet": "Street",
+  "granularityFullAddress": "Full address candidate",
+  "locationFreshness": "Location freshness",
+  "minutesShort": "{minutes} minutes",
+  "@minutesShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "oneHour": "1 hour",
+  "testCurrentLocation": "Test current location",
+  "locationUnavailable": "location unavailable",
+  "locationTestFailed": "Failed: {error}",
+  "@locationTestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
   "settingsSearchPlaceholder": "Search settings...",
   "settingsSearchEmpty": "No matching settings found",
 

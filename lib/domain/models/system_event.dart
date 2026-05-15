@@ -47,6 +47,7 @@ class UserInputSubmittedPayload {
     required this.markdownEntry,
     required this.createdAtTs,
     required this.pkmCreatedAtTs,
+    this.locationContextReminder,
   });
 
   final String factId;
@@ -55,6 +56,7 @@ class UserInputSubmittedPayload {
   final String markdownEntry;
   final int createdAtTs;
   final double pkmCreatedAtTs;
+  final String? locationContextReminder;
 
   Map<String, dynamic> toJson() => {
         'fact_id': factId,
@@ -63,6 +65,8 @@ class UserInputSubmittedPayload {
         'markdown_entry': markdownEntry,
         'created_at_ts': createdAtTs,
         'pkm_created_at_ts': pkmCreatedAtTs,
+        if (locationContextReminder != null)
+          'location_context_reminder': locationContextReminder,
       };
 }
 
@@ -73,6 +77,7 @@ class CardCommentPostedPayload {
     required this.commentId,
     this.createdAtTs,
     this.replyToId,
+    this.locationContextReminder,
   });
 
   final String cardId;
@@ -80,6 +85,7 @@ class CardCommentPostedPayload {
   final String commentId;
   final int? createdAtTs;
   final String? replyToId;
+  final String? locationContextReminder;
 
   Map<String, dynamic> toJson() => {
         'card_id': cardId,
@@ -87,6 +93,8 @@ class CardCommentPostedPayload {
         'comment_id': commentId,
         if (createdAtTs != null) 'created_at_ts': createdAtTs,
         if (replyToId != null) 'reply_to_id': replyToId,
+        if (locationContextReminder != null)
+          'location_context_reminder': locationContextReminder,
       };
 }
 

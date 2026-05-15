@@ -170,6 +170,7 @@ class CommentAgent {
     String? forcedReplyToId,
     DateTime? currentTime,
     DateTime? entryTime,
+    String? locationContextReminder,
     bool withMemoryManagement = false,
   }) async {
     final effectiveCurrentTime = currentTime ?? DateTime.now();
@@ -189,7 +190,10 @@ class CommentAgent {
       factId: factId,
       existingContext: pkmContext,
     );
-    final systemReminder = buildCurrentTimeReminder(effectiveCurrentTime);
+    final systemReminder = _buildSystemReminder(
+      effectiveCurrentTime,
+      locationContextReminder,
+    );
     final userMessage = UserMessage([
       TextPart(
         _buildCommentTaskMessage(
@@ -274,6 +278,20 @@ class CommentAgent {
       }
     }
     return "";
+  }
+
+  static String _buildSystemReminder(
+    DateTime currentTime,
+    String? locationContextReminder,
+  ) {
+    final locationReminder = locationContextReminder?.trim();
+    if (locationReminder == null || locationReminder.isEmpty) {
+      return buildCurrentTimeReminder(currentTime);
+    }
+    return '<system-reminder>\n'
+        'Current Local Time: ${formatLocalDateTimeWithZone(currentTime)}\n\n'
+        '$locationReminder\n'
+        '</system-reminder>\n\n';
   }
 
   static String _buildCommentTaskMessage({

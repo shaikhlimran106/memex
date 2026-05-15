@@ -4226,6 +4226,126 @@ abstract class AppLocalizations {
   /// **'Untitled card'**
   String get untitledCard;
 
+  /// No description provided for @locationContextTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Location Context'**
+  String get locationContextTitle;
+
+  /// No description provided for @locationContextDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Current city and neighborhood context for agent chat'**
+  String get locationContextDescription;
+
+  /// No description provided for @locationContextAttachTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach current location to chat'**
+  String get locationContextAttachTitle;
+
+  /// No description provided for @locationContextAttachDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Uses device GPS and reverse geocoding to provide city, district, and neighborhood context to the agent.'**
+  String get locationContextAttachDesc;
+
+  /// No description provided for @reverseGeocodingProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Reverse geocoding provider'**
+  String get reverseGeocodingProvider;
+
+  /// No description provided for @amapProviderName.
+  ///
+  /// In en, this message translates to:
+  /// **'Amap'**
+  String get amapProviderName;
+
+  /// No description provided for @amapApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Amap API Key'**
+  String get amapApiKey;
+
+  /// No description provided for @amapGcj02Note.
+  ///
+  /// In en, this message translates to:
+  /// **'Amap uses GCJ-02 coordinates. Device GPS is converted before reverse geocoding.'**
+  String get amapGcj02Note;
+
+  /// No description provided for @contextGranularity.
+  ///
+  /// In en, this message translates to:
+  /// **'Context granularity'**
+  String get contextGranularity;
+
+  /// No description provided for @granularityCity.
+  ///
+  /// In en, this message translates to:
+  /// **'City'**
+  String get granularityCity;
+
+  /// No description provided for @granularityDistrict.
+  ///
+  /// In en, this message translates to:
+  /// **'District'**
+  String get granularityDistrict;
+
+  /// No description provided for @granularityNeighborhood.
+  ///
+  /// In en, this message translates to:
+  /// **'Neighborhood'**
+  String get granularityNeighborhood;
+
+  /// No description provided for @granularityStreet.
+  ///
+  /// In en, this message translates to:
+  /// **'Street'**
+  String get granularityStreet;
+
+  /// No description provided for @granularityFullAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Full address candidate'**
+  String get granularityFullAddress;
+
+  /// No description provided for @locationFreshness.
+  ///
+  /// In en, this message translates to:
+  /// **'Location freshness'**
+  String get locationFreshness;
+
+  /// No description provided for @minutesShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} minutes'**
+  String minutesShort(int minutes);
+
+  /// No description provided for @oneHour.
+  ///
+  /// In en, this message translates to:
+  /// **'1 hour'**
+  String get oneHour;
+
+  /// No description provided for @testCurrentLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Test current location'**
+  String get testCurrentLocation;
+
+  /// No description provided for @locationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'location unavailable'**
+  String get locationUnavailable;
+
+  /// No description provided for @locationTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed: {error}'**
+  String locationTestFailed(String error);
+
   /// No description provided for @settingsSearchPlaceholder.
   ///
   /// In en, this message translates to:

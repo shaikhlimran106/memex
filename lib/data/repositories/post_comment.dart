@@ -10,6 +10,7 @@ import 'package:uuid/uuid.dart';
 import 'package:memex/domain/models/agent_definitions.dart';
 import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/global_event_bus.dart';
+import 'package:memex/data/services/location_context_service.dart';
 import 'package:memex/domain/models/system_event.dart';
 import 'package:memex/utils/time_context.dart';
 
@@ -117,6 +118,15 @@ Future<Map<String, dynamic>> postCommentEndpoint(
       // Event logging failure should not break comment posting
     }
 
+    String? locationContextReminder;
+    try {
+      final locationContext =
+          await LocationContextService.instance.getCurrentContext();
+      locationContextReminder = locationContext.toAgentSystemReminderContent();
+    } catch (e) {
+      _logger.warning('Failed to decorate comment with location context: $e');
+    }
+
     // Publish domain event and let event subscribers enqueue persistent tasks.
     await GlobalEventBus.instance.publish(
       userId: userId,
@@ -129,6 +139,7 @@ Future<Map<String, dynamic>> postCommentEndpoint(
           commentId: commentId,
           createdAtTs: commentTimestamp,
           replyToId: replyToId,
+          locationContextReminder: locationContextReminder,
         ),
       ),
     );
@@ -162,6 +173,7 @@ Future<void> processAICommentReply({
   String? userCommentId,
   String? characterId,
   String? rawInputContent,
+  String? locationContextReminder,
   bool sendEventBus = true,
   DateTime? inputDateTime,
   bool withMemoryManagement = false,
@@ -267,6 +279,7 @@ Future<void> processAICommentReply({
         forcedReplyToId: userCommentId,
         currentTime: inputDateTime ?? DateTime.now(),
         entryTime: entryDateTime,
+        locationContextReminder: locationContextReminder,
         withMemoryManagement: withMemoryManagement,
       );
     } catch (e) {

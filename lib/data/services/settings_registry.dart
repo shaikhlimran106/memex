@@ -12,6 +12,7 @@ import 'package:memex/ui/settings/widgets/settings_page.dart';
 import 'package:memex/ui/settings/widgets/debug_settings_page.dart';
 import 'package:memex/ui/settings/widgets/data_storage_page.dart';
 import 'package:memex/ui/settings/widgets/backup_restore_page.dart';
+import 'package:memex/ui/settings/widgets/location_context_settings_page.dart';
 import 'package:memex/ui/memory/view_models/memory_viewmodel.dart';
 import 'package:memex/ui/memory/widgets/memory_screen.dart';
 import 'package:memex/ui/character/view_models/character_viewmodel.dart';
@@ -439,6 +440,37 @@ class SettingsRegistry {
           icon: Icons.folder_outlined,
           navigationTarget: NavigationTarget(
             pageBuilder: (_) => const DataStoragePage(),
+          ),
+          parentPathGetter: () =>
+              [UserStorage.l10n.personalCenter, UserStorage.l10n.settings],
+        ),
+        SettingsItem(
+          id: 'settings.location_context',
+          titleGetter: () => UserStorage.l10n.location,
+          descriptionGetter: () => UserStorage.l10n.locationContextDescription,
+          keywords: const [
+            '定位',
+            '位置',
+            '地理位置',
+            '当前位置',
+            '逆地理编码',
+            '高德',
+            'OpenStreetMap',
+            'GPS',
+            '城市',
+            '街区',
+            'location',
+            'current location',
+            'geocoding',
+            'reverse geocoding',
+            'amap',
+            'osm',
+            'city',
+            'neighborhood',
+          ],
+          icon: Icons.my_location_outlined,
+          navigationTarget: NavigationTarget(
+            pageBuilder: (_) => const LocationContextSettingsPage(),
           ),
           parentPathGetter: () =>
               [UserStorage.l10n.personalCenter, UserStorage.l10n.settings],

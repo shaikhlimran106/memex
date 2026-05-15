@@ -98,7 +98,8 @@ class MemexRouter {
 
       if (userId == null) {
         _logger.warning(
-            'No user ID found during initialization. Local DB will NOT be initialized until login.');
+          'No user ID found during initialization. Local DB will NOT be initialized until login.',
+        );
         return; // Do not initialize DB yet.
       }
 
@@ -120,36 +121,64 @@ class MemexRouter {
 
       // Register Task Handlers - idempotent registration or check if registered?
       // LocalTaskExecutor handles this map, re-registering overwrites which is fine.
-      LocalTaskExecutor.instance
-          .registerHandler('handle_analyze_assets', handleAnalyzeAssetsImpl);
-      LocalTaskExecutor.instance
-          .registerHandler('card_agent_task', handleCardAgentImpl);
-      LocalTaskExecutor.instance
-          .registerHandler('pkm_agent_task', handlePkmAgentImpl);
-      LocalTaskExecutor.instance
-          .registerHandler('fts_index_update', handleFtsIndexUpdateImpl);
-      LocalTaskExecutor.instance
-          .registerHandler('reprocess_cards_task', handleReprocessCardsImpl);
-      LocalTaskExecutor.instance
-          .registerHandler('comment_agent_task', handleCommentAgentImpl);
       LocalTaskExecutor.instance.registerHandler(
-          'reprocess_comments_task', handleReprocessCommentsImpl);
+        'handle_analyze_assets',
+        handleAnalyzeAssetsImpl,
+      );
       LocalTaskExecutor.instance.registerHandler(
-          'reprocess_knowledge_base_task', handleReprocessKnowledgeBaseImpl);
-      LocalTaskExecutor.instance
-          .registerHandler('process_ai_reply', handleProcessAiReplyImpl);
-      LocalTaskExecutor.instance
-          .registerHandler('knowledge_insight_task', handleKnowledgeInsight);
+        'card_agent_task',
+        handleCardAgentImpl,
+      );
       LocalTaskExecutor.instance.registerHandler(
-          'schedule_aggregator_task', handleScheduleAggregation);
+        'pkm_agent_task',
+        handlePkmAgentImpl,
+      );
       LocalTaskExecutor.instance.registerHandler(
-          'schedule_refresh_router_task', handleScheduleRefreshRouter);
+        'fts_index_update',
+        handleFtsIndexUpdateImpl,
+      );
       LocalTaskExecutor.instance.registerHandler(
-          'clarification_resolution_task', handleClarificationResolution);
+        'reprocess_cards_task',
+        handleReprocessCardsImpl,
+      );
+      LocalTaskExecutor.instance.registerHandler(
+        'comment_agent_task',
+        handleCommentAgentImpl,
+      );
+      LocalTaskExecutor.instance.registerHandler(
+        'reprocess_comments_task',
+        handleReprocessCommentsImpl,
+      );
+      LocalTaskExecutor.instance.registerHandler(
+        'reprocess_knowledge_base_task',
+        handleReprocessKnowledgeBaseImpl,
+      );
+      LocalTaskExecutor.instance.registerHandler(
+        'process_ai_reply',
+        handleProcessAiReplyImpl,
+      );
+      LocalTaskExecutor.instance.registerHandler(
+        'knowledge_insight_task',
+        handleKnowledgeInsight,
+      );
+      LocalTaskExecutor.instance.registerHandler(
+        'schedule_aggregator_task',
+        handleScheduleAggregation,
+      );
+      LocalTaskExecutor.instance.registerHandler(
+        'schedule_refresh_router_task',
+        handleScheduleRefreshRouter,
+      );
+      LocalTaskExecutor.instance.registerHandler(
+        'clarification_resolution_task',
+        handleClarificationResolution,
+      );
 
       // Register Failure Handlers
       LocalTaskExecutor.instance.registerFailureHandler(
-          'card_agent_task', handleCardAgentFailureImpl);
+        'card_agent_task',
+        handleCardAgentFailureImpl,
+      );
       // Generic failure handler for all other agent tasks — emits ErrorNotificationMessage
       for (final taskType in [
         'pkm_agent_task',
@@ -164,8 +193,10 @@ class MemexRouter {
         'process_ai_reply',
         'handle_analyze_assets',
       ]) {
-        LocalTaskExecutor.instance
-            .registerFailureHandler(taskType, handleGenericAgentFailure);
+        LocalTaskExecutor.instance.registerFailureHandler(
+          taskType,
+          handleGenericAgentFailure,
+        );
       }
 
       // Register event subscriptions after task handlers are ready.
@@ -222,6 +253,7 @@ class MemexRouter {
             'combined_text': p.combinedText,
             'markdown_entry': p.markdownEntry,
             'created_at_ts': p.createdAtTs,
+            'location_context_reminder': p.locationContextReminder,
           });
         },
       ),
@@ -239,6 +271,7 @@ class MemexRouter {
             'fact_id': p.factId,
             'combined_text': p.combinedText,
             'created_at_ts': p.pkmCreatedAtTs,
+            'location_context_reminder': p.locationContextReminder,
           });
         },
         dependenciesBuilder: (_, __) async {
@@ -261,6 +294,7 @@ class MemexRouter {
             'fact_id': p.factId,
             'combined_text': p.combinedText,
             'created_at_ts': p.createdAtTs,
+            'location_context_reminder': p.locationContextReminder,
           });
         },
       ),
@@ -297,6 +331,7 @@ class MemexRouter {
             'comment_id': p.commentId,
             if (p.createdAtTs != null) 'created_at_ts': p.createdAtTs,
             if (p.replyToId != null) 'reply_to_id': p.replyToId,
+            'location_context_reminder': p.locationContextReminder,
           });
         },
       ),
@@ -352,7 +387,8 @@ class MemexRouter {
     }
 
     _logger.info(
-        'Re-initializing MemexRouter. Previous Target: $_targetUserIdForInit, New Target: $currentUser');
+      'Re-initializing MemexRouter. Previous Target: $_targetUserIdForInit, New Target: $currentUser',
+    );
 
     _targetUserIdForInit = currentUser;
     _initFuture = _init();
@@ -412,7 +448,8 @@ class MemexRouter {
   }) async {
     await _ensureInitialized();
     _logger.info(
-        'LocalMode: submitInput called. Text: $text, Images: ${images.length}, Audio: $audioPath');
+      'LocalMode: submitInput called. Text: $text, Images: ${images.length}, Audio: $audioPath',
+    );
 
     final content = <Map<String, dynamic>>[];
 
@@ -432,9 +469,7 @@ class MemexRouter {
       content.add({
         'type': 'image_url',
         'client_hash': hash,
-        'image_url': {
-          'filePath': image.path,
-        }
+        'image_url': {'filePath': image.path},
       });
     }
 
@@ -446,9 +481,7 @@ class MemexRouter {
         content.add({
           'type': 'input_audio',
           'client_hash': audioHash,
-          'input_audio': {
-            'filePath': audioPath,
-          }
+          'input_audio': {'filePath': audioPath},
         });
       }
     }
@@ -486,7 +519,8 @@ class MemexRouter {
   }) async {
     await _ensureInitialized();
     _logger.info(
-        'LocalMode: fetchTagsByPeriod called: dateFrom=$dateFrom, dateTo=$dateTo');
+      'LocalMode: fetchTagsByPeriod called: dateFrom=$dateFrom, dateTo=$dateTo',
+    );
 
     // Get all cards in the period with a large limit to capture all tags
     final cards = await getTimelineCards(
@@ -519,7 +553,8 @@ class MemexRouter {
     return runResult(() async {
       await _ensureInitialized();
       _logger.info(
-          'LocalMode: fetchTimelineCards called: page=$page, limit=$limit, tags=$tags, dateFrom=$dateFrom, dateTo=$dateTo');
+        'LocalMode: fetchTimelineCards called: page=$page, limit=$limit, tags=$tags, dateFrom=$dateFrom, dateTo=$dateTo',
+      );
       return getTimelineCards(
         page: page,
         limit: limit,
@@ -546,7 +581,8 @@ class MemexRouter {
     return runResult(() async {
       await _ensureInitialized();
       _logger.info(
-          'LocalMode: fetchAggregatedTimeline called: groupBy=$groupBy, page=$page, limit=$limit, tags=$tags');
+        'LocalMode: fetchAggregatedTimeline called: groupBy=$groupBy, page=$page, limit=$limit, tags=$tags',
+      );
       return getAggregatedTimeline(
         groupBy: groupBy,
         page: page,
@@ -563,11 +599,14 @@ class MemexRouter {
   }
 
   Future<Result<List<CalendarDay>>> fetchCalendarData(
-      int fromTimestamp, int toTimestamp) async {
+    int fromTimestamp,
+    int toTimestamp,
+  ) async {
     return runResult(() async {
       await _ensureInitialized();
       _logger.info(
-          'LocalMode: fetchCalendarData called: fromTimestamp=$fromTimestamp, toTimestamp=$toTimestamp');
+        'LocalMode: fetchCalendarData called: fromTimestamp=$fromTimestamp, toTimestamp=$toTimestamp',
+      );
       return getCalendarData(fromTimestamp, toTimestamp);
     });
   }
@@ -598,8 +637,12 @@ class MemexRouter {
         throw Exception('User not logged in, cannot submit comment');
       }
 
-      return await postCommentEndpoint(cardId, userId, content,
-          replyToId: replyToId);
+      return await postCommentEndpoint(
+        cardId,
+        userId,
+        content,
+        replyToId: replyToId,
+      );
     } catch (e) {
       _logger.severe('Failed to post comment for card $cardId: $e');
       rethrow;
@@ -727,8 +770,9 @@ class MemexRouter {
       final userId = await UserStorage.getUserId();
       if (userId == null) return [];
 
-      final cardsData =
-          await fileSystemService.listKnowledgeInsightCards(userId);
+      final cardsData = await fileSystemService.listKnowledgeInsightCards(
+        userId,
+      );
       final insights = <KnowledgeInsightCard>[];
 
       for (final card in cardsData) {
@@ -758,18 +802,20 @@ class MemexRouter {
           widgetData = await replaceFsInData(widgetData, userId);
         }
 
-        insights.add(KnowledgeInsightCard(
-          id: id,
-          title: title,
-          html: chartHtml ?? '',
-          createdAt: createdAt,
-          isPinned: card['pinned'] == true,
-          sortOrder: (card['sort_order'] as num? ?? 0).toInt(),
-          tags: (card['tags'] as List?)?.cast<String>() ?? const [],
-          widgetType: isNative ? 'native' : 'html',
-          widgetTemplate: isNative ? templateId : null,
-          widgetData: widgetData,
-        ));
+        insights.add(
+          KnowledgeInsightCard(
+            id: id,
+            title: title,
+            html: chartHtml ?? '',
+            createdAt: createdAt,
+            isPinned: card['pinned'] == true,
+            sortOrder: (card['sort_order'] as num? ?? 0).toInt(),
+            tags: (card['tags'] as List?)?.cast<String>() ?? const [],
+            widgetType: isNative ? 'native' : 'html',
+            widgetTemplate: isNative ? templateId : null,
+            widgetData: widgetData,
+          ),
+        );
       }
 
       insights.sort((a, b) {
@@ -783,7 +829,9 @@ class MemexRouter {
   }
 
   Future<String> _renderInsightCardHtml(
-      String userId, Map<String, dynamic> card) async {
+    String userId,
+    Map<String, dynamic> card,
+  ) async {
     final templateId = card['template_id'] as String? ?? '';
     final title = card['title'] as String? ?? '';
     final insight = card['insight'] as String? ?? '';
@@ -800,12 +848,15 @@ class MemexRouter {
         };
         templateData.addAll(data);
 
-        final renderedHtml =
-            fileSystemService.renderHtmlTemplate(htmlTemplate, templateData);
+        final renderedHtml = fileSystemService.renderHtmlTemplate(
+          htmlTemplate,
+          templateData,
+        );
         return await fileSystemService.replaceFsInHtml(renderedHtml, userId);
       } catch (e) {
-        _logger
-            .warning('Failed to render insight card template $templateId: $e');
+        _logger.warning(
+          'Failed to render insight card template $templateId: $e',
+        );
       }
     }
     // Fallback? Currently returns empty if failed or no template
@@ -839,7 +890,9 @@ class MemexRouter {
       }
       final cardFileName = '$id.yaml';
       final success = await fileSystemService.deleteKnowledgeInsightCard(
-          userId, cardFileName);
+        userId,
+        cardFileName,
+      );
       if (success) {
         try {
           final cardPath = 'KnowledgeInsights/Cards/$cardFileName';
@@ -859,25 +912,32 @@ class MemexRouter {
   }
 
   Future<Result<bool>> updateInsightCardSortOrder(
-      List<String> sortedIds) async {
+    List<String> sortedIds,
+  ) async {
     return runResult(() async {
       await _ensureInitialized();
       _logger.info(
-          'LocalMode: updateInsightCardSortOrder called with ${sortedIds.length} ids');
+        'LocalMode: updateInsightCardSortOrder called with ${sortedIds.length} ids',
+      );
       final userId = await UserStorage.getUserId();
       if (userId == null) return false;
       for (int i = 0; i < sortedIds.length; i++) {
         final id = sortedIds[i];
         try {
-          final cardData =
-              await fileSystemService.readKnowledgeInsightCard(userId, id);
+          final cardData = await fileSystemService.readKnowledgeInsightCard(
+            userId,
+            id,
+          );
           if (cardData != null) {
             final currentSortOrder =
                 (cardData['sort_order'] as num? ?? 0).toInt();
             if (currentSortOrder != i) {
               cardData['sort_order'] = i;
               await fileSystemService.writeKnowledgeInsightCard(
-                  userId, id, cardData);
+                userId,
+                id,
+                cardData,
+              );
             }
           }
         } catch (e) {
@@ -913,14 +973,21 @@ class MemexRouter {
   }
 
   Future<bool> updateCardUiConfig(
-      String cardId, int configIndex, Map<String, dynamic> data) async {
+    String cardId,
+    int configIndex,
+    Map<String, dynamic> data,
+  ) async {
     await _ensureInitialized();
     _logger.info(
-        'LocalMode: updateCardUiConfig called: cardId=$cardId, index=$configIndex');
+      'LocalMode: updateCardUiConfig called: cardId=$cardId, index=$configIndex',
+    );
 
     try {
       return await update_config_endpoint.updateCardUiConfigEndpoint(
-          cardId, configIndex, data);
+        cardId,
+        configIndex,
+        data,
+      );
     } catch (e) {
       _logger.severe('Failed to update card ui config for $cardId: $e');
       return false;
@@ -930,7 +997,8 @@ class MemexRouter {
   Future<bool> updateCardTime(String cardId, int timestamp) async {
     await _ensureInitialized();
     _logger.info(
-        'LocalMode: updateCardTime called: cardId=$cardId, timestamp=$timestamp');
+      'LocalMode: updateCardTime called: cardId=$cardId, timestamp=$timestamp',
+    );
 
     try {
       return await updateCardTimeEndpoint(cardId, timestamp);
@@ -941,10 +1009,15 @@ class MemexRouter {
   }
 
   Future<bool> updateCardLocation(
-      String cardId, double lat, double lng, String name) async {
+    String cardId,
+    double lat,
+    double lng,
+    String name,
+  ) async {
     await _ensureInitialized();
     _logger.info(
-        'LocalMode: updateCardLocation called: cardId=$cardId, lat=$lat, lng=$lng, name=$name');
+      'LocalMode: updateCardLocation called: cardId=$cardId, lat=$lat, lng=$lng, name=$name',
+    );
 
     try {
       return await updateCardLocationEndpoint(cardId, lat, lng, name);
@@ -974,7 +1047,8 @@ class MemexRouter {
     return runResult(() async {
       await _ensureInitialized();
       _logger.info(
-          'LocalMode: fetchChatSessions called: agentName=$agentName, limit=$limit');
+        'LocalMode: fetchChatSessions called: agentName=$agentName, limit=$limit',
+      );
       return await chat_endpoint.fetchChatSessionsEndpoint(
         agentName: agentName,
         limit: limit,
@@ -984,8 +1058,9 @@ class MemexRouter {
 
   Future<Map<String, dynamic>> fetchChatSessionDetail(String sessionId) async {
     await _ensureInitialized();
-    _logger
-        .info('LocalMode: fetchChatSessionDetail called: sessionId=$sessionId');
+    _logger.info(
+      'LocalMode: fetchChatSessionDetail called: sessionId=$sessionId',
+    );
 
     try {
       return await chat_endpoint.fetchChatSessionDetailEndpoint(sessionId);
@@ -1082,11 +1157,14 @@ class MemexRouter {
   }
 
   Future<Result<bool>> setCharacterEnabled(
-      String characterId, bool enabled) async {
+    String characterId,
+    bool enabled,
+  ) async {
     return runResult(() async {
       await _ensureInitialized();
       _logger.info(
-          'LocalMode: setCharacterEnabled called: characterId=$characterId, enabled=$enabled');
+        'LocalMode: setCharacterEnabled called: characterId=$characterId, enabled=$enabled',
+      );
       return await setCharacterEnabledEndpoint(characterId, enabled);
     });
   }
@@ -1112,15 +1190,18 @@ class MemexRouter {
   }
 
   Future<bool> reportDailyHealthSummary(
-      Map<String, Map<String, dynamic>> dailySummary) async {
+    Map<String, Map<String, dynamic>> dailySummary,
+  ) async {
     await _ensureInitialized();
     _logger.info(
-        'LocalMode: reportDailyHealthSummary called: ${dailySummary.length} days');
+      'LocalMode: reportDailyHealthSummary called: ${dailySummary.length} days',
+    );
 
     try {
       // We will create health_endpoint.dart to handle this
-      return await health_endpoint
-          .reportDailyHealthSummaryEndpoint(dailySummary);
+      return await health_endpoint.reportDailyHealthSummaryEndpoint(
+        dailySummary,
+      );
     } catch (e) {
       _logger.severe('Failed to report daily health summary: $e');
       return false;
@@ -1142,22 +1223,17 @@ class MemexRouter {
       if (await file.exists()) {
         final content = await file.readAsString();
         if (content.trim().isEmpty) {
-          return {
-            'archived_memory': '',
-            'recent_buffer': [],
-          };
+          return {'archived_memory': '', 'recent_buffer': []};
         }
         return jsonDecode(content) as Map<String, dynamic>;
       }
-      return {
-        'archived_memory': '',
-        'recent_buffer': [],
-      };
+      return {'archived_memory': '', 'recent_buffer': []};
     });
   }
 
-  Future<Result<List<Map<String, dynamic>>>> getRecentPkmFiles(
-      {int limit = 10}) async {
+  Future<Result<List<Map<String, dynamic>>>> getRecentPkmFiles({
+    int limit = 10,
+  }) async {
     return runResult(() async {
       await _ensureInitialized();
       _logger.info('LocalMode: getRecentPkmFiles called: limit=$limit');
@@ -1185,7 +1261,8 @@ class MemexRouter {
   }
 
   Future<Result<List<Map<String, dynamic>>>> searchPkmFiles(
-      String query) async {
+    String query,
+  ) async {
     return runResult(() async {
       await _ensureInitialized();
       final userId = await UserStorage.getUserId();
@@ -1197,15 +1274,19 @@ class MemexRouter {
   /// Search timeline cards using FTS5 full-text search.
   ///
   /// Returns hydrated [TimelineCardModel] list, same format as [fetchTimelineCards].
-  Future<Result<List<TimelineCardModel>>> searchCards(String query,
-      {int limit = 50}) async {
+  Future<Result<List<TimelineCardModel>>> searchCards(
+    String query, {
+    int limit = 50,
+  }) async {
     return runResult(() async {
       await _ensureInitialized();
       final userId = await UserStorage.getUserId();
       if (userId == null) return <TimelineCardModel>[];
 
-      final ftsResults =
-          await SearchService.instance.searchCards(query, limit: limit);
+      final ftsResults = await SearchService.instance.searchCards(
+        query,
+        limit: limit,
+      );
 
       final cards = <TimelineCardModel>[];
       for (final r in ftsResults) {
@@ -1261,7 +1342,8 @@ class MemexRouter {
       final userId = await UserStorage.getUserId();
       if (userId == null) {
         _logger.warning(
-            'getAggregatedStatistics called without logged in user, returning empty');
+          'getAggregatedStatistics called without logged in user, returning empty',
+        );
         return {};
       }
 
@@ -1314,8 +1396,10 @@ class MemexRouter {
     return [];
   }
 
-  Future<bool> downloadWorkspace(String workspaceName,
-      {void Function(int received, int total)? onReceiveProgress}) async {
+  Future<bool> downloadWorkspace(
+    String workspaceName, {
+    void Function(int received, int total)? onReceiveProgress,
+  }) async {
     await _ensureInitialized();
     _logger.info('LocalMode: downloadWorkspace not supported (client-only)');
     return false;

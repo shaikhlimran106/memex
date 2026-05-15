@@ -2315,6 +2315,73 @@ class AppLocalizationsEn extends AppLocalizations {
   String get untitledCard => 'Untitled card';
 
   @override
+  String get locationContextTitle => 'Location Context';
+
+  @override
+  String get locationContextDescription =>
+      'Current city and neighborhood context for agent chat';
+
+  @override
+  String get locationContextAttachTitle => 'Attach current location to chat';
+
+  @override
+  String get locationContextAttachDesc =>
+      'Uses device GPS and reverse geocoding to provide city, district, and neighborhood context to the agent.';
+
+  @override
+  String get reverseGeocodingProvider => 'Reverse geocoding provider';
+
+  @override
+  String get amapProviderName => 'Amap';
+
+  @override
+  String get amapApiKey => 'Amap API Key';
+
+  @override
+  String get amapGcj02Note =>
+      'Amap uses GCJ-02 coordinates. Device GPS is converted before reverse geocoding.';
+
+  @override
+  String get contextGranularity => 'Context granularity';
+
+  @override
+  String get granularityCity => 'City';
+
+  @override
+  String get granularityDistrict => 'District';
+
+  @override
+  String get granularityNeighborhood => 'Neighborhood';
+
+  @override
+  String get granularityStreet => 'Street';
+
+  @override
+  String get granularityFullAddress => 'Full address candidate';
+
+  @override
+  String get locationFreshness => 'Location freshness';
+
+  @override
+  String minutesShort(int minutes) {
+    return '$minutes minutes';
+  }
+
+  @override
+  String get oneHour => '1 hour';
+
+  @override
+  String get testCurrentLocation => 'Test current location';
+
+  @override
+  String get locationUnavailable => 'location unavailable';
+
+  @override
+  String locationTestFailed(String error) {
+    return 'Failed: $error';
+  }
+
+  @override
   String get settingsSearchPlaceholder => 'Search settings...';
 
   @override
