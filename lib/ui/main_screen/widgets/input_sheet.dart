@@ -501,6 +501,7 @@ class _InputSheetState extends State<InputSheet>
     try {
       final speechService = SpeechTranscriptionService.instance;
 
+      _logger.info('Starting input sheet recording');
       if (!await _ensureLocalModelReady()) return;
 
       var status = await Permission.microphone.status;
@@ -520,6 +521,7 @@ class _InputSheetState extends State<InputSheet>
       _preRecordingText = _textController.text;
 
       if (await speechService.supportsStreamingTranscription()) {
+        _logger.info('Initializing streaming transcriber for input sheet');
         _streamingTranscriber = StreamingTranscriber(
           onTextChanged: (fullText) {
             if (mounted) {
@@ -538,9 +540,11 @@ class _InputSheetState extends State<InputSheet>
           },
         );
         await _streamingTranscriber!.init();
+        _logger.info('Streaming transcriber initialized for input sheet');
       }
 
       _pcmBuffer.clear();
+      _logger.info('Starting PCM audio stream for input sheet');
       final audioStream = await _audioRecorder.startStream(
         const RecordConfig(
           encoder: AudioEncoder.pcm16bits,
@@ -568,7 +572,8 @@ class _InputSheetState extends State<InputSheet>
       _pulseController.repeat(reverse: true);
 
       _updateRecordingDuration();
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _logger.severe('Failed to start input sheet recording', e, stackTrace);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to start recording: $e')),

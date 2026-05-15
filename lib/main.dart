@@ -956,6 +956,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     try {
       final speechService = SpeechTranscriptionService.instance;
 
+      _logger.info('Starting quick recording');
       // Check if local speech model needs downloading
       if (await speechService.requiresLocalModelDownload()) {
         setState(() => _isRadialMenuOpen = false);
@@ -969,6 +970,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         _quickTranscribedText = '';
         _quickPcmBuffer.clear();
         if (await speechService.supportsStreamingTranscription()) {
+          _logger
+              .info('Initializing streaming transcriber for quick recording');
           _quickTranscriber = StreamingTranscriber(
             onTextChanged: (fullText) {
               _quickTranscribedText = fullText;
@@ -976,9 +979,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             },
           );
           await _quickTranscriber!.init();
+          _logger.info('Streaming transcriber initialized for quick recording');
         }
 
         // Start streaming PCM recording
+        _logger.info('Starting PCM audio stream for quick recording');
         final audioStream = await _audioRecorder.startStream(
           const RecordConfig(
             encoder: AudioEncoder.pcm16bits,
@@ -994,8 +999,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
         _recordingPath = 'streaming'; // marker that recording is active
       }
-    } catch (e) {
-      _logger.severe('Error starting recording: $e', e);
+    } catch (e, stackTrace) {
+      _logger.severe('Error starting quick recording', e, stackTrace);
     }
   }
 

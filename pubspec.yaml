@@ -86,7 +86,7 @@ dependencies:
   share_plus: ^10.1.4
   file_picker: ^8.1.7
   screenshot: ^3.0.0
-  sherpa_onnx: ^1.12.36
+  sherpa_onnx: 1.13.2
   geolocator: ^14.0.2
 
 dev_dependencies:
