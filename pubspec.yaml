@@ -33,6 +33,7 @@ dependencies:
   # Local Storage
   shared_preferences: ^2.2.2
   path_provider: ^2.1.1
+  package_info_plus: ^9.0.0
 
   # Quick Actions (app icon long-press shortcuts)
   quick_actions: ^1.1.0

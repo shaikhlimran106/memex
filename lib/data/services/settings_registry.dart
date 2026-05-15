@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:memex/config/app_flavor.dart';
 import 'package:memex/domain/models/settings_item.dart';
 import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/ui/settings/widgets/system_authorization_page.dart';
@@ -301,6 +304,35 @@ class SettingsRegistry {
           parentPathGetter: () =>
               [UserStorage.l10n.personalCenter, UserStorage.l10n.settings],
         ),
+        if (Platform.isAndroid && AppFlavor.isEarly)
+          SettingsItem(
+            id: 'settings.early_updates',
+            titleGetter: () => UserStorage.l10n.earlyUpdateSettingsTitle,
+            descriptionGetter: () => UserStorage.l10n.earlyUpdateSettingsDesc,
+            keywords: const [
+              '更新',
+              '自动更新',
+              'Early',
+              '预发布',
+              '内测',
+              'APK',
+              'GitHub',
+              'Wi-Fi',
+              'update',
+              'auto update',
+              'pre-release',
+              'prerelease',
+              'download',
+              'install',
+              'wifi',
+            ],
+            icon: Icons.system_update_alt,
+            navigationTarget: NavigationTarget(
+              pageBuilder: (_) => const SettingsPage(),
+            ),
+            parentPathGetter: () =>
+                [UserStorage.l10n.personalCenter, UserStorage.l10n.settings],
+          ),
         SettingsItem(
           id: 'settings.show_insight',
           titleGetter: () => UserStorage.l10n.showInsightTextTitle,

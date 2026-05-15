@@ -11,6 +11,7 @@ import 'package:memex/data/services/table_change_notifier.dart';
 import 'package:memex/data/services/card_attachment_service.dart';
 import 'package:memex/data/services/card_detail_notifier.dart';
 import 'package:memex/data/services/clarification_request_service.dart';
+import 'package:memex/data/services/app_update_service.dart';
 import 'package:memex/data/services/user_notification_service.dart';
 import 'package:path/path.dart' as path;
 import 'package:image_picker/image_picker.dart';
@@ -566,6 +567,42 @@ class MemexRouter {
     final userId = await UserStorage.getUserId();
     if (userId == null) return;
     await CommentSettingsService.save(userId, settings);
+  }
+
+  Future<AppUpdateSettings> getAppUpdateSettings() {
+    return AppUpdateService.instance.loadSettings();
+  }
+
+  Future<void> saveAppUpdateSettings(AppUpdateSettings settings) {
+    return AppUpdateService.instance.saveSettings(settings);
+  }
+
+  Future<Result<AppUpdateCheckResult>> checkEarlyUpdate({
+    bool manual = false,
+    bool respectWifi = false,
+  }) {
+    return runResult(() {
+      return AppUpdateService.instance.checkForUpdate(
+        manual: manual,
+        respectWifi: respectWifi,
+      );
+    });
+  }
+
+  Future<Result<AppUpdateDownloadResult>> downloadEarlyUpdate(
+    AppUpdateInfo update, {
+    void Function(int receivedBytes, int totalBytes)? onProgress,
+  }) {
+    return runResult(() {
+      return AppUpdateService.instance.downloadUpdate(
+        update,
+        onProgress: onProgress,
+      );
+    });
+  }
+
+  Future<Result<AppUpdateInstallResult>> installEarlyUpdate(String apkPath) {
+    return runResult(() => AppUpdateService.instance.installUpdate(apkPath));
   }
 
   Future<void> enqueueTask({

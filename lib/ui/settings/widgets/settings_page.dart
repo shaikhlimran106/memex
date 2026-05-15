@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:memex/config/app_flavor.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/ui/settings/widgets/backup_restore_page.dart';
 import 'package:memex/ui/settings/widgets/data_storage_page.dart';
+import 'package:memex/ui/settings/widgets/early_update_settings_card.dart';
 import 'package:memex/db/app_database.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
@@ -196,6 +198,10 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           const SizedBox(height: 16),
+          if (Platform.isAndroid && AppFlavor.isEarly) ...[
+            EarlyUpdateSettingsCard(),
+            const SizedBox(height: 16),
+          ],
           // Show Insight Text toggle
           Container(
             padding: const EdgeInsets.all(20),

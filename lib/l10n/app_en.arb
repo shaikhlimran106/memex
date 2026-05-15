@@ -1065,5 +1065,48 @@
   "setPrimaryCompanionSubtitle": "Automatically set as your primary companion after import",
   "confirmImport": "Confirm Import",
   "chatBackground": "Chat Background",
-  "chooseChatBackgroundImage": "Choose background image"
+  "chooseChatBackgroundImage": "Choose background image",
+  "earlyUpdateSettingsTitle": "Early access updates",
+  "earlyUpdateSettingsDesc": "Check GitHub pre-releases for the matching Early APK, download it, and hand it to Android's installer.",
+  "earlyUpdateUnsupported": "Early updates are only available in the Android Early build.",
+  "earlyUpdateAutoCheckTitle": "Auto check for updates",
+  "earlyUpdateAutoCheckDesc": "Check at startup at most once every 12 hours.",
+  "earlyUpdateWifiOnlyTitle": "Download on Wi-Fi only",
+  "earlyUpdateWifiOnlyDesc": "Skip update downloads while using mobile data.",
+  "earlyUpdateAutoInstallTitle": "Auto download and install",
+  "earlyUpdateAutoInstallDesc": "When a new build is found, download it and open the Android installer automatically.",
+  "earlyUpdateCheckNow": "Check now",
+  "earlyUpdateChecking": "Checking GitHub pre-releases...",
+  "earlyUpdateSkippedMobile": "Skipped because Wi-Fi-only downloads are enabled.",
+  "earlyUpdateNoUpdate": "You are already on the latest Early build.",
+  "@earlyUpdateFound": {
+    "placeholders": {
+      "version": {},
+      "build": {}
+    }
+  },
+  "earlyUpdateFound": "Early build {version}+{build} is available.",
+  "earlyUpdateDownloadAndInstall": "Download and install",
+  "@earlyUpdateDownloadingPercent": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "earlyUpdateDownloadingPercent": "Downloading update: {percent}%",
+  "earlyUpdateInstallStarted": "Android installer opened.",
+  "earlyUpdateInstallPermissionRequired": "Allow Memex to install unknown apps, then tap download and install again.",
+  "@earlyUpdateLastChecked": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "earlyUpdateLastChecked": "Last checked: {time}",
+  "@earlyUpdateCheckFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "earlyUpdateCheckFailed": "Update check failed: {error}",
+  "earlyUpdateDialogTitle": "Early update available",
+  "earlyUpdateReleaseNotes": "Release notes"
 }

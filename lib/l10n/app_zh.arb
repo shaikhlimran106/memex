@@ -1043,5 +1043,48 @@
   "setPrimaryCompanionSubtitle": "导入后自动设为你的主要陪伴角色",
   "confirmImport": "确认导入",
   "chatBackground": "聊天背景",
-  "chooseChatBackgroundImage": "选择聊天背景图"
+  "chooseChatBackgroundImage": "选择聊天背景图",
+  "earlyUpdateSettingsTitle": "Early 体验版更新",
+  "earlyUpdateSettingsDesc": "从 GitHub 预发布版本中检测匹配当前 Early 渠道的 APK，下载后交给 Android 系统安装器安装。",
+  "earlyUpdateUnsupported": "Early 更新仅支持 Android Early 包。",
+  "earlyUpdateAutoCheckTitle": "自动检测更新",
+  "earlyUpdateAutoCheckDesc": "启动时检测，每 12 小时最多一次。",
+  "earlyUpdateWifiOnlyTitle": "仅在 Wi-Fi 下载",
+  "earlyUpdateWifiOnlyDesc": "使用移动数据时跳过更新下载。",
+  "earlyUpdateAutoInstallTitle": "自动下载并安装",
+  "earlyUpdateAutoInstallDesc": "发现新版本后自动下载，并打开 Android 系统安装器。",
+  "earlyUpdateCheckNow": "立即检查",
+  "earlyUpdateChecking": "正在检查 GitHub 预发布版本...",
+  "earlyUpdateSkippedMobile": "已跳过：当前开启了仅 Wi-Fi 下载。",
+  "earlyUpdateNoUpdate": "当前已经是最新 Early 版本。",
+  "@earlyUpdateFound": {
+    "placeholders": {
+      "version": {},
+      "build": {}
+    }
+  },
+  "earlyUpdateFound": "发现 Early 版本 {version}+{build}。",
+  "earlyUpdateDownloadAndInstall": "下载并安装",
+  "@earlyUpdateDownloadingPercent": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "earlyUpdateDownloadingPercent": "正在下载更新：{percent}%",
+  "earlyUpdateInstallStarted": "已打开 Android 系统安装器。",
+  "earlyUpdateInstallPermissionRequired": "请允许 Memex 安装未知来源应用，然后再次点击下载并安装。",
+  "@earlyUpdateLastChecked": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "earlyUpdateLastChecked": "上次检查：{time}",
+  "@earlyUpdateCheckFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "earlyUpdateCheckFailed": "检查更新失败：{error}",
+  "earlyUpdateDialogTitle": "发现 Early 更新",
+  "earlyUpdateReleaseNotes": "更新说明"
 }

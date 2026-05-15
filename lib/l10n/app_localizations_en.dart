@@ -2346,4 +2346,86 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chooseChatBackgroundImage => 'Choose background image';
+
+  @override
+  String get earlyUpdateSettingsTitle => 'Early access updates';
+
+  @override
+  String get earlyUpdateSettingsDesc =>
+      'Check GitHub pre-releases for the matching Early APK, download it, and hand it to Android\'s installer.';
+
+  @override
+  String get earlyUpdateUnsupported =>
+      'Early updates are only available in the Android Early build.';
+
+  @override
+  String get earlyUpdateAutoCheckTitle => 'Auto check for updates';
+
+  @override
+  String get earlyUpdateAutoCheckDesc =>
+      'Check at startup at most once every 12 hours.';
+
+  @override
+  String get earlyUpdateWifiOnlyTitle => 'Download on Wi-Fi only';
+
+  @override
+  String get earlyUpdateWifiOnlyDesc =>
+      'Skip update downloads while using mobile data.';
+
+  @override
+  String get earlyUpdateAutoInstallTitle => 'Auto download and install';
+
+  @override
+  String get earlyUpdateAutoInstallDesc =>
+      'When a new build is found, download it and open the Android installer automatically.';
+
+  @override
+  String get earlyUpdateCheckNow => 'Check now';
+
+  @override
+  String get earlyUpdateChecking => 'Checking GitHub pre-releases...';
+
+  @override
+  String get earlyUpdateSkippedMobile =>
+      'Skipped because Wi-Fi-only downloads are enabled.';
+
+  @override
+  String get earlyUpdateNoUpdate =>
+      'You are already on the latest Early build.';
+
+  @override
+  String earlyUpdateFound(Object version, Object build) {
+    return 'Early build $version+$build is available.';
+  }
+
+  @override
+  String get earlyUpdateDownloadAndInstall => 'Download and install';
+
+  @override
+  String earlyUpdateDownloadingPercent(Object percent) {
+    return 'Downloading update: $percent%';
+  }
+
+  @override
+  String get earlyUpdateInstallStarted => 'Android installer opened.';
+
+  @override
+  String get earlyUpdateInstallPermissionRequired =>
+      'Allow Memex to install unknown apps, then tap download and install again.';
+
+  @override
+  String earlyUpdateLastChecked(Object time) {
+    return 'Last checked: $time';
+  }
+
+  @override
+  String earlyUpdateCheckFailed(Object error) {
+    return 'Update check failed: $error';
+  }
+
+  @override
+  String get earlyUpdateDialogTitle => 'Early update available';
+
+  @override
+  String get earlyUpdateReleaseNotes => 'Release notes';
 }

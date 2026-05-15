@@ -2257,4 +2257,80 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get chooseChatBackgroundImage => '选择聊天背景图';
+
+  @override
+  String get earlyUpdateSettingsTitle => 'Early 体验版更新';
+
+  @override
+  String get earlyUpdateSettingsDesc =>
+      '从 GitHub 预发布版本中检测匹配当前 Early 渠道的 APK，下载后交给 Android 系统安装器安装。';
+
+  @override
+  String get earlyUpdateUnsupported => 'Early 更新仅支持 Android Early 包。';
+
+  @override
+  String get earlyUpdateAutoCheckTitle => '自动检测更新';
+
+  @override
+  String get earlyUpdateAutoCheckDesc => '启动时检测，每 12 小时最多一次。';
+
+  @override
+  String get earlyUpdateWifiOnlyTitle => '仅在 Wi-Fi 下载';
+
+  @override
+  String get earlyUpdateWifiOnlyDesc => '使用移动数据时跳过更新下载。';
+
+  @override
+  String get earlyUpdateAutoInstallTitle => '自动下载并安装';
+
+  @override
+  String get earlyUpdateAutoInstallDesc => '发现新版本后自动下载，并打开 Android 系统安装器。';
+
+  @override
+  String get earlyUpdateCheckNow => '立即检查';
+
+  @override
+  String get earlyUpdateChecking => '正在检查 GitHub 预发布版本...';
+
+  @override
+  String get earlyUpdateSkippedMobile => '已跳过：当前开启了仅 Wi-Fi 下载。';
+
+  @override
+  String get earlyUpdateNoUpdate => '当前已经是最新 Early 版本。';
+
+  @override
+  String earlyUpdateFound(Object version, Object build) {
+    return '发现 Early 版本 $version+$build。';
+  }
+
+  @override
+  String get earlyUpdateDownloadAndInstall => '下载并安装';
+
+  @override
+  String earlyUpdateDownloadingPercent(Object percent) {
+    return '正在下载更新：$percent%';
+  }
+
+  @override
+  String get earlyUpdateInstallStarted => '已打开 Android 系统安装器。';
+
+  @override
+  String get earlyUpdateInstallPermissionRequired =>
+      '请允许 Memex 安装未知来源应用，然后再次点击下载并安装。';
+
+  @override
+  String earlyUpdateLastChecked(Object time) {
+    return '上次检查：$time';
+  }
+
+  @override
+  String earlyUpdateCheckFailed(Object error) {
+    return '检查更新失败：$error';
+  }
+
+  @override
+  String get earlyUpdateDialogTitle => '发现 Early 更新';
+
+  @override
+  String get earlyUpdateReleaseNotes => '更新说明';
 }

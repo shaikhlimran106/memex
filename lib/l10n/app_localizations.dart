@@ -4267,6 +4267,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose background image'**
   String get chooseChatBackgroundImage;
+
+  /// No description provided for @earlyUpdateSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Early access updates'**
+  String get earlyUpdateSettingsTitle;
+
+  /// No description provided for @earlyUpdateSettingsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Check GitHub pre-releases for the matching Early APK, download it, and hand it to Android\'s installer.'**
+  String get earlyUpdateSettingsDesc;
+
+  /// No description provided for @earlyUpdateUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Early updates are only available in the Android Early build.'**
+  String get earlyUpdateUnsupported;
+
+  /// No description provided for @earlyUpdateAutoCheckTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto check for updates'**
+  String get earlyUpdateAutoCheckTitle;
+
+  /// No description provided for @earlyUpdateAutoCheckDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Check at startup at most once every 12 hours.'**
+  String get earlyUpdateAutoCheckDesc;
+
+  /// No description provided for @earlyUpdateWifiOnlyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Download on Wi-Fi only'**
+  String get earlyUpdateWifiOnlyTitle;
+
+  /// No description provided for @earlyUpdateWifiOnlyDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip update downloads while using mobile data.'**
+  String get earlyUpdateWifiOnlyDesc;
+
+  /// No description provided for @earlyUpdateAutoInstallTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto download and install'**
+  String get earlyUpdateAutoInstallTitle;
+
+  /// No description provided for @earlyUpdateAutoInstallDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When a new build is found, download it and open the Android installer automatically.'**
+  String get earlyUpdateAutoInstallDesc;
+
+  /// No description provided for @earlyUpdateCheckNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Check now'**
+  String get earlyUpdateCheckNow;
+
+  /// No description provided for @earlyUpdateChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking GitHub pre-releases...'**
+  String get earlyUpdateChecking;
+
+  /// No description provided for @earlyUpdateSkippedMobile.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped because Wi-Fi-only downloads are enabled.'**
+  String get earlyUpdateSkippedMobile;
+
+  /// No description provided for @earlyUpdateNoUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'You are already on the latest Early build.'**
+  String get earlyUpdateNoUpdate;
+
+  /// No description provided for @earlyUpdateFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Early build {version}+{build} is available.'**
+  String earlyUpdateFound(Object version, Object build);
+
+  /// No description provided for @earlyUpdateDownloadAndInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Download and install'**
+  String get earlyUpdateDownloadAndInstall;
+
+  /// No description provided for @earlyUpdateDownloadingPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading update: {percent}%'**
+  String earlyUpdateDownloadingPercent(Object percent);
+
+  /// No description provided for @earlyUpdateInstallStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Android installer opened.'**
+  String get earlyUpdateInstallStarted;
+
+  /// No description provided for @earlyUpdateInstallPermissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Memex to install unknown apps, then tap download and install again.'**
+  String get earlyUpdateInstallPermissionRequired;
+
+  /// No description provided for @earlyUpdateLastChecked.
+  ///
+  /// In en, this message translates to:
+  /// **'Last checked: {time}'**
+  String earlyUpdateLastChecked(Object time);
+
+  /// No description provided for @earlyUpdateCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Update check failed: {error}'**
+  String earlyUpdateCheckFailed(Object error);
+
+  /// No description provided for @earlyUpdateDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Early update available'**
+  String get earlyUpdateDialogTitle;
+
+  /// No description provided for @earlyUpdateReleaseNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Release notes'**
+  String get earlyUpdateReleaseNotes;
 }
 
 class _AppLocalizationsDelegate
