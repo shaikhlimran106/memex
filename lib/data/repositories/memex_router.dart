@@ -71,6 +71,7 @@ import 'package:memex/data/repositories/get_knowledge_insight_detail.dart';
 import 'package:memex/data/repositories/chat.dart' as chat_endpoint;
 import 'package:memex/data/services/llm_call_record_service.dart';
 import 'package:memex/data/services/agent_activity_service.dart';
+import 'package:memex/agent/state_util.dart';
 import 'package:memex/agent/skills/knowledge_insight/native_widgets.dart';
 import 'package:memex/utils/result.dart';
 import 'package:memex/domain/models/system_event.dart';
@@ -780,6 +781,21 @@ class MemexRouter {
       _logger.severe('Failed to clear data locally: $e');
       rethrow;
     }
+  }
+
+  Future<int> clearFailedAgentConversationContexts() async {
+    await _ensureInitialized();
+    final userId = await UserStorage.getUserId();
+    if (userId == null) throw Exception('User not logged in');
+
+    final deleted = await deleteAgentStatesWhere(userId, (sessionId, metadata) {
+      final scene = metadata['scene']?.toString();
+      return scene == 'insight' || scene == 'schedule_aggregation';
+    });
+    _logger.info(
+      'Cleared ${deleted.length} failed agent conversation context(s): $deleted',
+    );
+    return deleted.length;
   }
 
   // Native widget IDs are now dynamically loaded from nativeWidgets definition

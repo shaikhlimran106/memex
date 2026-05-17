@@ -314,6 +314,30 @@ abstract class AppLocalizations {
   /// **'Only the Facts directory (raw input) will be kept. All other workspace directories (Cards, Discoveries, KnowledgeInsights, PKM, _System, etc.) will be deleted.\n\nThis action cannot be undone!'**
   String get confirmClearDataKeepFactsMessage;
 
+  /// No description provided for @clearFailedAgentContexts.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear failed conversation context'**
+  String get clearFailedAgentContexts;
+
+  /// No description provided for @confirmClearFailedAgentContextsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the saved conversation context for Insight and Schedule agents? This is useful after changing models when previous agent messages are no longer compatible. Facts, cards, knowledge, memories, and model settings will not be deleted.'**
+  String get confirmClearFailedAgentContextsMessage;
+
+  /// No description provided for @failedAgentContextsCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleared {count} saved conversation context(s)'**
+  String failedAgentContextsCleared(Object count);
+
+  /// No description provided for @clearFailedAgentContextsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to clear conversation context: {error}'**
+  String clearFailedAgentContextsFailed(Object error);
+
   /// No description provided for @dataClearedSuccess.
   ///
   /// In en, this message translates to:

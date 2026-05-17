@@ -116,5 +116,51 @@ void main() {
       final message = loaded.history.messages.single as ModelMessage;
       expect(message.thought, ' ');
     });
+
+    test('deletes only agent states matching metadata predicate', () async {
+      final insightState = AgentState(
+        sessionId: 'knowledge_insight_state',
+        metadata: {'userId': userId, 'scene': 'insight'},
+      );
+      final scheduleState = AgentState(
+        sessionId: 'schedule_aggregator_state',
+        metadata: {'userId': userId, 'scene': 'schedule_aggregation'},
+      );
+      final pkmState = AgentState(
+        sessionId: 'pkm_state',
+        metadata: {'userId': userId, 'scene': 'pkm'},
+      );
+      await saveAgentState(insightState);
+      await saveAgentState(scheduleState);
+      await saveAgentState(pkmState);
+
+      final deleted = await deleteAgentStatesWhere(userId, (
+        sessionId,
+        metadata,
+      ) {
+        final scene = metadata['scene'];
+        return scene == 'insight' || scene == 'schedule_aggregation';
+      });
+
+      expect(
+        deleted,
+        unorderedEquals([
+          'knowledge_insight_state',
+          'schedule_aggregator_state',
+        ]),
+      );
+
+      final stateDirPath =
+          await FileSystemService.instance.getAgentStateDirectory(userId);
+      expect(
+        await File('$stateDirPath/knowledge_insight_state.json').exists(),
+        isFalse,
+      );
+      expect(
+        await File('$stateDirPath/schedule_aggregator_state.json').exists(),
+        isFalse,
+      );
+      expect(await File('$stateDirPath/pkm_state.json').exists(), isTrue);
+    });
   });
 }

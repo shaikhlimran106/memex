@@ -131,6 +131,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'Only the Facts directory (raw input) will be kept. All other workspace directories (Cards, Discoveries, KnowledgeInsights, PKM, _System, etc.) will be deleted.\n\nThis action cannot be undone!';
 
   @override
+  String get clearFailedAgentContexts => 'Clear failed conversation context';
+
+  @override
+  String get confirmClearFailedAgentContextsMessage =>
+      'Clear the saved conversation context for Insight and Schedule agents? This is useful after changing models when previous agent messages are no longer compatible. Facts, cards, knowledge, memories, and model settings will not be deleted.';
+
+  @override
+  String failedAgentContextsCleared(Object count) {
+    return 'Cleared $count saved conversation context(s)';
+  }
+
+  @override
+  String clearFailedAgentContextsFailed(Object error) {
+    return 'Failed to clear conversation context: $error';
+  }
+
+  @override
   String get dataClearedSuccess => 'Data cleared successfully';
 
   @override

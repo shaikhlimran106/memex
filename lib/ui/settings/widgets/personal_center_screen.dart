@@ -36,6 +36,7 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
   bool _isReprocessingComments = false;
   bool _isReprocessingKnowledgeBase = false;
   bool _isRebuildingSearchIndex = false;
+  bool _isClearingFailedAgentContexts = false;
   bool _showAuthBadge = false;
   String? _userAvatar;
 
@@ -666,6 +667,53 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
     }
   }
 
+  Future<void> _clearFailedAgentContexts() async {
+    if (_isClearingFailedAgentContexts) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(UserStorage.l10n.clearFailedAgentContexts),
+        content: Text(UserStorage.l10n.confirmClearFailedAgentContextsMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(UserStorage.l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(UserStorage.l10n.confirmClear),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isClearingFailedAgentContexts = true);
+    try {
+      final deletedCount =
+          await _memexRouter.clearFailedAgentConversationContexts();
+      if (!mounted) return;
+      ToastHelper.showSuccessWithKey(
+        _scaffoldMessengerKey,
+        UserStorage.l10n.failedAgentContextsCleared(deletedCount),
+      );
+    } catch (e) {
+      _logger.severe('Error clearing failed agent contexts: $e', e);
+      if (!mounted) return;
+      ToastHelper.showErrorWithKey(
+        _scaffoldMessengerKey,
+        UserStorage.l10n.clearFailedAgentContextsFailed(e),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isClearingFailedAgentContexts = false);
+      }
+    }
+  }
+
   Future<void> _clearData() async {
     if (_isClearingData) return;
 
@@ -977,6 +1025,8 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                                   builder: (context) => DebugSettingsPage(
                                     onClearToken: () async => _clearToken(),
                                     onClearData: () async => _clearData(),
+                                    onClearFailedAgentContexts: () async =>
+                                        _clearFailedAgentContexts(),
                                     onReprocessCards: () async =>
                                         _reprocessCards(),
                                     onReprocessComments: () async =>
@@ -991,6 +1041,8 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                                         _isReprocessingComments,
                                     isReprocessingKnowledgeBase:
                                         _isReprocessingKnowledgeBase,
+                                    isClearingFailedAgentContexts:
+                                        _isClearingFailedAgentContexts,
                                     isRebuildingSearchIndex:
                                         _isRebuildingSearchIndex,
                                   ),

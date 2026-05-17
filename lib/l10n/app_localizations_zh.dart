@@ -126,6 +126,23 @@ class AppLocalizationsZh extends AppLocalizations {
       '将仅保留 Facts 目录（原始记录），删除工作区内其他所有目录（Cards、Discoveries、KnowledgeInsights、PKM、_System 等）。\n\n此操作不可恢复！';
 
   @override
+  String get clearFailedAgentContexts => '清除失败的对话上下文';
+
+  @override
+  String get confirmClearFailedAgentContextsMessage =>
+      '清除 Insight 和 Schedule Agent 已保存的对话上下文？这适用于切换模型后，旧的 agent 消息与新模型 API 不兼容的情况。Facts、卡片、知识库、记忆和模型配置不会被删除。';
+
+  @override
+  String failedAgentContextsCleared(Object count) {
+    return '已清除 $count 个已保存的对话上下文';
+  }
+
+  @override
+  String clearFailedAgentContextsFailed(Object error) {
+    return '清除对话上下文失败: $error';
+  }
+
+  @override
   String get dataClearedSuccess => '数据清除成功';
 
   @override

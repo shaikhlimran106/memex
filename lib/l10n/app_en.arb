@@ -56,6 +56,12 @@
   "clearData": "Clear data",
   "confirmClearDataMessage": "Clear data?",
   "confirmClearDataKeepFactsMessage": "Only the Facts directory (raw input) will be kept. All other workspace directories (Cards, Discoveries, KnowledgeInsights, PKM, _System, etc.) will be deleted.\n\nThis action cannot be undone!",
+  "clearFailedAgentContexts": "Clear failed conversation context",
+  "confirmClearFailedAgentContextsMessage": "Clear the saved conversation context for Insight and Schedule agents? This is useful after changing models when previous agent messages are no longer compatible. Facts, cards, knowledge, memories, and model settings will not be deleted.",
+  "failedAgentContextsCleared": "Cleared {count} saved conversation context(s)",
+  "@failedAgentContextsCleared": { "placeholders": { "count": {} } },
+  "clearFailedAgentContextsFailed": "Failed to clear conversation context: {error}",
+  "@clearFailedAgentContextsFailed": { "placeholders": { "error": {} } },
   "dataClearedSuccess": "Data cleared successfully",
   "@clearDataFailed": {
     "placeholders": {

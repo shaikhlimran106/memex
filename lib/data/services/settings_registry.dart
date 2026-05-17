@@ -232,11 +232,13 @@ class SettingsRegistry {
             pageBuilder: (_) => DebugSettingsPage(
               onClearToken: () async {},
               onClearData: () async {},
+              onClearFailedAgentContexts: () async {},
               onReprocessCards: () async {},
               onReprocessComments: () async {},
               onReprocessKnowledgeBase: () async {},
               onRebuildSearchIndex: () async {},
               isClearingData: false,
+              isClearingFailedAgentContexts: false,
               isReprocessingCards: false,
               isReprocessingComments: false,
               isReprocessingKnowledgeBase: false,

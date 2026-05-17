@@ -4,6 +4,9 @@ import 'dart:io';
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:memex/data/services/file_system_service.dart';
 
+typedef AgentStateMatcher =
+    bool Function(String sessionId, Map<String, dynamic> metadata);
+
 Future<AgentState> loadOrCreateAgentState(
   String sessionId,
   Map<String, dynamic>? initialMetadata,
@@ -146,6 +149,58 @@ Future<void> deleteAgentState(String userId, String sessionId) async {
   final stateDir = Directory(stateDirPath);
   final storage = FileStateStorage(stateDir);
   await storage.delete(sessionId);
+}
+
+Future<List<String>> deleteAgentStatesWhere(
+  String userId,
+  AgentStateMatcher shouldDelete,
+) async {
+  final stateDirPath = await FileSystemService.instance.getAgentStateDirectory(
+    userId,
+  );
+  final stateDir = Directory(stateDirPath);
+  if (!await stateDir.exists()) {
+    return const [];
+  }
+
+  final storage = FileStateStorage(stateDir);
+  final deletedSessionIds = <String>[];
+  await for (final entity in stateDir.list(followLinks: false)) {
+    if (entity is! File) continue;
+
+    final filename = entity.uri.pathSegments.last;
+    if (!filename.endsWith('.json')) continue;
+
+    final sessionId = filename.substring(0, filename.length - 5);
+    final metadata = await _readAgentStateMetadata(entity);
+    if (!shouldDelete(sessionId, metadata)) continue;
+
+    await storage.delete(sessionId);
+    deletedSessionIds.add(sessionId);
+  }
+  return deletedSessionIds;
+}
+
+Future<Map<String, dynamic>> _readAgentStateMetadata(File file) async {
+  try {
+    final content = await file.readAsString();
+    final decoded = jsonDecode(content);
+    if (decoded is! Map<String, dynamic>) {
+      return const {};
+    }
+    final metadata = decoded['metadata'];
+    if (metadata is Map<String, dynamic>) {
+      return metadata;
+    }
+    if (metadata is Map) {
+      return Map<String, dynamic>.from(metadata);
+    }
+  } catch (_) {
+    // Corrupt state files are left alone here. They can still be removed by a
+    // broader data clear, but this targeted action should only delete known
+    // Insight/Schedule conversation contexts.
+  }
+  return const {};
 }
 
 /// Resolve the session ID for a character agent.
