@@ -1,0 +1,120 @@
+name: PR Policy Preflight
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  preflight:
+    name: PR Policy Preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out trusted base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - name: Fetch PR ref as data
+        run: |
+          git fetch --no-tags origin \
+            "pull/${{ github.event.pull_request.number }}/head:refs/remotes/origin/pr-head"
+
+      - name: Extract PR metadata
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+          pr = event["pull_request"]
+          Path("pr-title.txt").write_text(pr.get("title") or "", encoding="utf-8")
+          Path("pr-body.txt").write_text(pr.get("body") or "", encoding="utf-8")
+          PY
+
+      - name: Run preflight in shadow mode
+        run: |
+          set +e
+          python3 scripts/pr_policy_check.py \
+            --repo-path . \
+            --base "origin/${{ github.event.repository.default_branch }}" \
+            --head "refs/remotes/origin/pr-head" \
+            --pr-title-file pr-title.txt \
+            --pr-body-file pr-body.txt \
+            --output preflight.json \
+            --markdown-output preflight.md \
+            --no-fail-on-decision
+          status="$?"
+          set -e
+
+          if [ -f preflight.md ]; then
+            cat preflight.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "# PR Policy Preflight"
+              echo
+              echo "Preflight did not produce a Markdown report."
+              echo
+              echo "Script exit code: \`${status}\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          exit 0
+
+      - name: Comment preflight result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MARKER: "<!-- memex-pr-policy-preflight -->"
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ ! -f preflight.md ]; then
+            {
+              echo "# PR Policy Preflight"
+              echo
+              echo "Preflight did not produce a report."
+            } > preflight.md
+          fi
+
+          {
+            echo "$MARKER"
+            echo
+            cat preflight.md
+            echo
+            echo "_Shadow mode: this result is informational and does not block merge._"
+          } > preflight-comment.md
+
+          existing_comment_id="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+            --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id" \
+            | head -n 1)"
+
+          if [ -n "$existing_comment_id" ]; then
+            gh api \
+              --method PATCH \
+              "repos/${GITHUB_REPOSITORY}/issues/comments/${existing_comment_id}" \
+              -f body=@preflight-comment.md
+          else
+            gh api \
+              --method POST \
+              "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+              -f body=@preflight-comment.md
+          fi
+
+      - name: Upload preflight result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-policy-preflight
+          if-no-files-found: warn
+          path: |
+            preflight.json
+            preflight.md
