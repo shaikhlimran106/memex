@@ -95,8 +95,12 @@ class PolicyPreflightTest(unittest.TestCase):
 
         self.assertEqual(data["decision_zh"], "高风险")
         self.assertTrue(data["findings"][0]["message_zh"])
-        self.assertIn("Decision / 判定", markdown)
-        self.assertIn("Findings / 规则命中", markdown)
+        self.assertIn("## 中文", markdown)
+        self.assertIn("### 规则命中", markdown)
+        self.assertIn("## English", markdown)
+        self.assertIn("### Findings", markdown)
+        self.assertNotIn("Risk score", markdown)
+        self.assertNotIn("风险分", markdown)
 
 
 if __name__ == "__main__":

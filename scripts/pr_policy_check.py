@@ -512,23 +512,40 @@ def result_to_markdown(result: PreflightResult) -> str:
     lines = [
         "# PR Policy Preflight / PR 规则预检",
         "",
-        f"- Decision / 判定: `{status}` / `{status_zh}`",
-        f"- Risk score / 风险分: `{result.risk_score}`",
-        f"- Changed files / 变更文件数: `{result.metrics['changed_files']}`",
-        f"- Changed lines / 变更行数: `{result.metrics['total_changed_lines']}`",
-        f"- Diff truncated / Diff 是否截断: `{str(result.metrics['diff_truncated']).lower()}`",
+        "## 中文",
         "",
+        f"- 判定：`{status_zh}`",
+        f"- 变更文件数：`{result.metrics['changed_files']}`",
+        f"- 变更行数：`{result.metrics['total_changed_lines']}`",
+        f"- Diff 是否截断：`{str(result.metrics['diff_truncated']).lower()}`",
     ]
     if result.findings:
-        lines.append("## Findings / 规则命中")
+        lines.extend(["", "### 规则命中"])
         for finding in result.findings:
             path = f" `{finding.path}`" if finding.path else ""
             severity_zh = severity_label_zh(finding.severity)
-            lines.append(f"- `{finding.severity}` / `{severity_zh}` `{finding.rule_id}`{path}")
-            lines.append(f"  - EN: {finding.message}")
-            lines.append(f"  - 中文: {finding.message_zh}")
+            lines.append(f"- `{severity_zh}` `{finding.rule_id}`{path}: {finding.message_zh}")
     else:
-        lines.append("No deterministic policy findings. / 未发现确定性规则问题。")
+        lines.extend(["", "未发现确定性规则问题。"])
+
+    lines.extend(
+        [
+            "",
+            "## English",
+            "",
+            f"- Decision: `{status}`",
+            f"- Changed files: `{result.metrics['changed_files']}`",
+            f"- Changed lines: `{result.metrics['total_changed_lines']}`",
+            f"- Diff truncated: `{str(result.metrics['diff_truncated']).lower()}`",
+        ]
+    )
+    if result.findings:
+        lines.extend(["", "### Findings"])
+        for finding in result.findings:
+            path = f" `{finding.path}`" if finding.path else ""
+            lines.append(f"- `{finding.severity}` `{finding.rule_id}`{path}: {finding.message}")
+    else:
+        lines.extend(["", "No deterministic policy findings."])
     return "\n".join(lines) + "\n"
 
 
@@ -614,12 +631,17 @@ def main(argv: list[str] | None = None) -> int:
             [
                 "# PR Policy Preflight / PR 规则预检",
                 "",
-                "- Decision / 判定: `REJECT` / `打回`",
-                "- Risk score / 风险分: `100`",
+                "## 中文",
                 "",
-                "Preflight failed to collect or evaluate PR context.",
+                "- 判定：`打回`",
                 "",
                 "Preflight 无法采集或评估 PR context。",
+                "",
+                "## English",
+                "",
+                "- Decision: `REJECT`",
+                "",
+                "Preflight failed to collect or evaluate PR context.",
                 "",
                 f"Error: `{exc}`",
                 "",
