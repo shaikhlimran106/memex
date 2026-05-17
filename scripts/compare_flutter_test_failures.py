@@ -5,7 +5,8 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+import json
 from pathlib import Path
 import re
 import sys
@@ -102,6 +103,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base", required=True, type=Path)
     parser.add_argument("--head", required=True, type=Path)
     parser.add_argument("--summary", type=Path)
+    parser.add_argument("--markdown-output", type=Path)
+    parser.add_argument("--json-output", type=Path)
     args = parser.parse_args(argv)
 
     base_failures = parse_failures(read_report(args.base))
@@ -117,6 +120,27 @@ def main(argv: list[str] | None = None) -> int:
     if args.summary:
         with args.summary.open("a", encoding="utf-8") as handle:
             handle.write(summary)
+    if args.markdown_output:
+        args.markdown_output.parent.mkdir(parents=True, exist_ok=True)
+        args.markdown_output.write_text(summary, encoding="utf-8")
+    if args.json_output:
+        args.json_output.parent.mkdir(parents=True, exist_ok=True)
+        args.json_output.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "base_count": len(base_failures),
+                    "head_count": len(head_failures),
+                    "new_count": len(new_failures),
+                    "new_failures": [asdict(failure) for failure in new_failures],
+                },
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
 
     if new_failures:
         for failure in new_failures[:50]:

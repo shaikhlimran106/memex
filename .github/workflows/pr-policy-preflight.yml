@@ -6,8 +6,11 @@ on:
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: write
+  pull-requests: read
+
+concurrency:
+  group: pr-policy-preflight-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   preflight:
@@ -38,6 +41,22 @@ jobs:
           pr = event["pull_request"]
           Path("pr-title.txt").write_text(pr.get("title") or "", encoding="utf-8")
           Path("pr-body.txt").write_text(pr.get("body") or "", encoding="utf-8")
+          context = {
+              "schema_version": 1,
+              "workflow": "PR Policy Preflight",
+              "artifact": "pr-policy-preflight",
+              "pr_number": pr["number"],
+              "head_sha": pr["head"]["sha"],
+              "head_ref": pr["head"]["ref"],
+              "base_sha": pr["base"]["sha"],
+              "base_ref": pr["base"]["ref"],
+              "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+              "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT", ""),
+          }
+          Path("preflight-context.json").write_text(
+              json.dumps(context, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
           PY
 
       - name: Run preflight in shadow mode
@@ -71,47 +90,6 @@ jobs:
 
           exit 0
 
-      - name: Comment preflight result
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          MARKER: "<!-- memex-pr-policy-preflight -->"
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          if [ ! -f preflight.md ]; then
-            {
-              echo "# PR Policy Preflight / PR 规则预检"
-              echo
-              echo "Preflight did not produce a report."
-              echo
-              echo "Preflight 未生成报告。"
-            } > preflight.md
-          fi
-
-          {
-            echo "$MARKER"
-            echo
-            cat preflight.md
-          } > preflight-comment.md
-
-          existing_comment_id="$(gh api \
-            "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
-            --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id" \
-            | head -n 1)"
-          comment_body="$(cat preflight-comment.md)"
-
-          if [ -n "$existing_comment_id" ]; then
-            gh api \
-              --method PATCH \
-              "repos/${GITHUB_REPOSITORY}/issues/comments/${existing_comment_id}" \
-              -f body="$comment_body"
-          else
-            gh api \
-              --method POST \
-              "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
-              -f body="$comment_body"
-          fi
-
       - name: Upload preflight result
         if: always()
         uses: actions/upload-artifact@v4
@@ -119,5 +97,6 @@ jobs:
           name: pr-policy-preflight
           if-no-files-found: warn
           path: |
+            preflight-context.json
             preflight.json
             preflight.md
