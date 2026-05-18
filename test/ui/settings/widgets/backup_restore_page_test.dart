@@ -254,12 +254,95 @@ void main() {
     expect(find.text(UserStorage.l10n.defaultBackupLocation), findsOneWidget);
     expect(find.text(UserStorage.l10n.chooseBackupLocation), findsOneWidget);
   });
+
+  testWidgets('opens copyable full backup location details', (tester) async {
+    const fullPath =
+        '/very/long/device/path/that/does/not/fit/in/two/lines/Memex/Backups';
+
+    await _pumpBackupPage(
+      tester,
+      currentBackupLocationInfo: () async => const BackupLocationInfo(
+        kind: BackupLocationKind.fileSystem,
+        label: fullPath,
+        detail: fullPath,
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('backup-location-row')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(UserStorage.l10n.backupLocationDetails), findsOneWidget);
+    expect(find.text(UserStorage.l10n.backupLocationFullPath), findsOneWidget);
+    final detail = tester.widget<SelectableText>(
+      find.byKey(const ValueKey('backup-location-detail-value')),
+    );
+    expect(detail.data, fullPath);
+    expect(find.text(UserStorage.l10n.copyBackupLocationPath), findsOneWidget);
+  });
+
+  testWidgets('shows iOS Files label with full sandbox path in details', (
+    tester,
+  ) async {
+    const fullPath =
+        '/private/var/mobile/Library/Mobile Documents/iCloud~com~memexlab~memex/Documents/Backups';
+
+    await _pumpBackupPage(
+      tester,
+      currentBackupLocationInfo: () async => const BackupLocationInfo(
+        kind: BackupLocationKind.iosICloud,
+        label: fullPath,
+        detail: fullPath,
+      ),
+    );
+
+    expect(find.text(UserStorage.l10n.iosICloudBackupLocation), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('backup-location-row')));
+    await tester.pumpAndSettle();
+
+    final detail = tester.widget<SelectableText>(
+      find.byKey(const ValueKey('backup-location-detail-value')),
+    );
+    expect(detail.data, fullPath);
+  });
+
+  testWidgets('shows Android SAF folder name and URI details', (tester) async {
+    const treeUri =
+        'content://com.android.externalstorage.documents/tree/'
+        'primary%3ADownload%2FMemexBackups';
+
+    await _pumpBackupPage(
+      tester,
+      isAndroid: true,
+      currentBackupLocationInfo: () async => const BackupLocationInfo(
+        kind: BackupLocationKind.androidTree,
+        label: 'MemexBackups',
+        detail: treeUri,
+      ),
+    );
+
+    expect(
+      find.text(UserStorage.l10n.androidBackupLocationSelected('MemexBackups')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('backup-location-row')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(UserStorage.l10n.backupLocationUri), findsOneWidget);
+    expect(find.text(UserStorage.l10n.backupLocationMenu), findsWidgets);
+    final detail = tester.widget<SelectableText>(
+      find.byKey(const ValueKey('backup-location-detail-value')),
+    );
+    expect(detail.data, treeUri);
+  });
 }
 
 Future<void> _pumpBackupPage(
   WidgetTester tester, {
   bool isAndroid = false,
   Future<int> Function()? estimateBackupSize,
+  Future<BackupLocationInfo> Function()? currentBackupLocationInfo,
   Future<List<BackupSnapshot>> Function()? listStoredBackups,
   AutoBackupCreator? createAutoBackup,
   StoredBackupDeleter? deleteStoredBackup,
@@ -271,6 +354,7 @@ Future<void> _pumpBackupPage(
       home: BackupRestorePage(
         isAndroidOverride: isAndroid,
         estimateBackupSize: estimateBackupSize ?? () async => 0,
+        currentBackupLocationInfo: currentBackupLocationInfo,
         currentBackupLocationLabel: () async => '/tmp/Backups',
         listStoredBackups: listStoredBackups ?? () async => const [],
         createAutoBackup: createAutoBackup,

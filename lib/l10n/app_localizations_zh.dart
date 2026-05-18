@@ -1755,6 +1755,36 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupLocation => '位置';
 
   @override
+  String get backupLocationDetails => '位置详情';
+
+  @override
+  String get backupLocationSummary => '应用中显示';
+
+  @override
+  String get backupLocationFullPath => '完整路径';
+
+  @override
+  String get backupLocationUri => '文件夹授权 URI';
+
+  @override
+  String get copyBackupLocationPath => '复制路径';
+
+  @override
+  String get backupLocationCopied => '备份位置已复制';
+
+  @override
+  String androidBackupLocationSelected(Object folderName) {
+    return '已选文件夹：$folderName';
+  }
+
+  @override
+  String get iosICloudBackupLocation => 'iCloud 云盘 > Memex > Backups';
+
+  @override
+  String get iosAppDocumentsBackupLocation =>
+      '文件 > 我的 iPhone > Memex > Backups';
+
+  @override
   String get autoBackupStatus => '状态';
 
   @override
@@ -1769,7 +1799,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get createSnapshotNow => '立即备份';
 
   @override
-  String get backupLocationMenu => '位置';
+  String get backupLocationMenu => '更改位置';
 
   @override
   String get defaultBackupLocation => '默认备份文件夹';

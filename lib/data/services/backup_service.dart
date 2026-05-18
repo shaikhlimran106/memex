@@ -41,6 +41,22 @@ class AndroidBackupDirectory {
   });
 }
 
+enum BackupLocationKind { fileSystem, androidTree, iosICloud, iosAppDocuments }
+
+/// Current automatic backup location, split into a concise label and the
+/// underlying path/URI for copyable details.
+class BackupLocationInfo {
+  final BackupLocationKind kind;
+  final String label;
+  final String detail;
+
+  const BackupLocationInfo({
+    required this.kind,
+    required this.label,
+    required this.detail,
+  });
+}
+
 /// A restorable .memex snapshot stored by the automatic backup system.
 class BackupSnapshot {
   final String id;
@@ -663,12 +679,52 @@ class BackupService {
 
   /// Human-readable current automatic backup location.
   static Future<String> currentBackupLocationLabel() async {
+    final info = await currentBackupLocationInfo();
+    return info.label;
+  }
+
+  /// Current automatic backup location with full path/URI details.
+  static Future<BackupLocationInfo> currentBackupLocationInfo() async {
     final userId = await UserStorage.getUserId();
     if (Platform.isAndroid && userId != null && userId.isNotEmpty) {
+      final treeUri = await UserStorage.getAndroidBackupTreeUri(userId);
       final name = await UserStorage.getAndroidBackupTreeName(userId);
-      if (name != null && name.isNotEmpty) return name;
+      if (treeUri != null && treeUri.isNotEmpty) {
+        return BackupLocationInfo(
+          kind: BackupLocationKind.androidTree,
+          label: name != null && name.isNotEmpty ? name : treeUri,
+          detail: treeUri,
+        );
+      }
     }
-    return (await resolveDefaultBackupDirectory()).path;
+
+    if (Platform.isIOS) {
+      final iCloudDocumentsPath =
+          await UserStorage.resolveICloudDocumentsPath();
+      if (iCloudDocumentsPath != null && iCloudDocumentsPath.isNotEmpty) {
+        final backupDir = await _ensureBackupDirectory(iCloudDocumentsPath);
+        return BackupLocationInfo(
+          kind: BackupLocationKind.iosICloud,
+          label: backupDir.path,
+          detail: backupDir.path,
+        );
+      }
+
+      final appDir = await getApplicationDocumentsDirectory();
+      final backupDir = await _ensureBackupDirectory(appDir.path);
+      return BackupLocationInfo(
+        kind: BackupLocationKind.iosAppDocuments,
+        label: backupDir.path,
+        detail: backupDir.path,
+      );
+    }
+
+    final backupDir = await resolveDefaultBackupDirectory();
+    return BackupLocationInfo(
+      kind: BackupLocationKind.fileSystem,
+      label: backupDir.path,
+      detail: backupDir.path,
+    );
   }
 
   /// Resolve the app-managed default backup directory.
@@ -685,6 +741,10 @@ class BackupService {
       rootPath = (await getApplicationDocumentsDirectory()).path;
     }
 
+    return _ensureBackupDirectory(rootPath);
+  }
+
+  static Future<Directory> _ensureBackupDirectory(String rootPath) async {
     final dir = Directory(path.join(rootPath, 'Backups'));
     if (!await dir.exists()) {
       await dir.create(recursive: true);

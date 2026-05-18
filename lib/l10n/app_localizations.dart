@@ -63,7 +63,7 @@ import 'app_localizations_zh.dart';
 /// property.
 abstract class AppLocalizations {
   AppLocalizations(String locale)
-    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -86,16 +86,16 @@ abstract class AppLocalizations {
   /// of delegates is preferred or required.
   static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
       <LocalizationsDelegate<dynamic>>[
-        delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ];
+    delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+  ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
-    Locale('zh'),
+    Locale('zh')
   ];
 
   /// No description provided for @timesLabel.
@@ -3326,6 +3326,60 @@ abstract class AppLocalizations {
   /// **'Location'**
   String get backupLocation;
 
+  /// No description provided for @backupLocationDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Location details'**
+  String get backupLocationDetails;
+
+  /// No description provided for @backupLocationSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown in app'**
+  String get backupLocationSummary;
+
+  /// No description provided for @backupLocationFullPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Full path'**
+  String get backupLocationFullPath;
+
+  /// No description provided for @backupLocationUri.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder access URI'**
+  String get backupLocationUri;
+
+  /// No description provided for @copyBackupLocationPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy path'**
+  String get copyBackupLocationPath;
+
+  /// No description provided for @backupLocationCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup location copied'**
+  String get backupLocationCopied;
+
+  /// No description provided for @androidBackupLocationSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected folder: {folderName}'**
+  String androidBackupLocationSelected(Object folderName);
+
+  /// No description provided for @iosICloudBackupLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'iCloud Drive > Memex > Backups'**
+  String get iosICloudBackupLocation;
+
+  /// No description provided for @iosAppDocumentsBackupLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Files > On My iPhone > Memex > Backups'**
+  String get iosAppDocumentsBackupLocation;
+
   /// No description provided for @autoBackupStatus.
   ///
   /// In en, this message translates to:
@@ -3353,7 +3407,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupLocationMenu.
   ///
   /// In en, this message translates to:
-  /// **'Location'**
+  /// **'Change location'**
   String get backupLocationMenu;
 
   /// No description provided for @defaultBackupLocation.
@@ -5142,9 +5196,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   }
 
   throw FlutterError(
-    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-    'an issue with the localizations generation tool. Please file an issue '
-    'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.',
-  );
+      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+      'an issue with the localizations generation tool. Please file an issue '
+      'on GitHub with a reproducible sample app and the gen-l10n configuration '
+      'that was used.');
 }

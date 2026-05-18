@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
 import 'package:share_plus/share_plus.dart';
@@ -23,6 +24,7 @@ typedef StoredBackupDeleter = Future<void> Function(BackupSnapshot snapshot);
 class BackupRestorePage extends StatefulWidget {
   final bool? isAndroidOverride;
   final Future<int> Function()? estimateBackupSize;
+  final Future<BackupLocationInfo> Function()? currentBackupLocationInfo;
   final Future<String> Function()? currentBackupLocationLabel;
   final Future<List<BackupSnapshot>> Function()? listStoredBackups;
   final AutoBackupCreator? createAutoBackup;
@@ -34,6 +36,7 @@ class BackupRestorePage extends StatefulWidget {
     super.key,
     this.isAndroidOverride,
     this.estimateBackupSize,
+    this.currentBackupLocationInfo,
     this.currentBackupLocationLabel,
     this.listStoredBackups,
     this.createAutoBackup,
@@ -58,7 +61,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
   bool _autoBackupEnabled = false;
   String _statusText = '';
   String _estimatedSize = '';
-  String _backupLocation = '';
+  BackupLocationInfo? _backupLocationInfo;
   DateTime? _lastAutoBackupAt;
   List<BackupSnapshot> _storedBackups = const [];
 
@@ -74,8 +77,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
         ? await (widget.estimateBackupSize ??
             BackupService.estimateBackupSize)()
         : null;
-    final location = await (widget.currentBackupLocationLabel ??
-        BackupService.currentBackupLocationLabel)();
+    final location = await _resolveBackupLocationInfo();
     final snapshots =
         await (widget.listStoredBackups ?? BackupService.listStoredBackups)();
     final autoEnabled = userId != null && userId.isNotEmpty
@@ -90,7 +92,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
         if (size != null) {
           _estimatedSize = _formatBytes(size);
         }
-        _backupLocation = location;
+        _backupLocationInfo = location;
         _storedBackups = snapshots;
         _autoBackupEnabled = autoEnabled;
         _lastAutoBackupAt = lastAutoBackupAt;
@@ -111,6 +113,23 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     return DateFormat.yMd(
       UserStorage.l10n.localeName,
     ).add_Hm().format(dateTime);
+  }
+
+  Future<BackupLocationInfo> _resolveBackupLocationInfo() async {
+    if (widget.currentBackupLocationInfo != null) {
+      return widget.currentBackupLocationInfo!();
+    }
+
+    if (widget.currentBackupLocationLabel != null) {
+      final label = await widget.currentBackupLocationLabel!();
+      return BackupLocationInfo(
+        kind: BackupLocationKind.fileSystem,
+        label: label,
+        detail: label,
+      );
+    }
+
+    return BackupService.currentBackupLocationInfo();
   }
 
   Future<void> _createBackup() async {
@@ -241,6 +260,133 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
         ),
       ),
     );
+  }
+
+  Future<void> _showBackupLocationDetails() async {
+    final info = _backupLocationInfo;
+    if (info == null) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final bottomPadding = MediaQuery.viewInsetsOf(sheetContext).bottom;
+        final detailLabel = info.kind == BackupLocationKind.androidTree
+            ? UserStorage.l10n.backupLocationUri
+            : UserStorage.l10n.backupLocationFullPath;
+
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 24 + bottomPadding),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        UserStorage.l10n.backupLocationDetails,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: UserStorage.l10n.close,
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _detailLabel(UserStorage.l10n.backupLocationSummary),
+                const SizedBox(height: 6),
+                Text(
+                  _formatBackupLocationSummary(info),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _detailLabel(detailLabel),
+                const SizedBox(height: 6),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppColors.textSecondary.withValues(alpha: 0.12),
+                    ),
+                  ),
+                  child: SelectableText(
+                    info.detail,
+                    key: const ValueKey('backup-location-detail-value'),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textPrimary,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _copyBackupLocation(info.detail),
+                        icon: const Icon(Icons.copy_outlined, size: 18),
+                        label: Text(UserStorage.l10n.copyBackupLocationPath),
+                      ),
+                    ),
+                    if (widget.isAndroid) ...[
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.of(sheetContext).pop();
+                            _showBackupLocationMenu();
+                          },
+                          icon: const Icon(
+                            Icons.folder_open_outlined,
+                            size: 18,
+                          ),
+                          label: Text(UserStorage.l10n.backupLocationMenu),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _detailLabel(String label) {
+    return Text(
+      label,
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textSecondary,
+      ),
+    );
+  }
+
+  Future<void> _copyBackupLocation(String value) async {
+    await Clipboard.setData(ClipboardData(text: value));
+    if (!mounted) return;
+    ToastHelper.showSuccess(context, UserStorage.l10n.backupLocationCopied);
   }
 
   Future<void> _pickAndroidBackupLocation() async {
@@ -597,7 +743,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
             ),
           ),
           const SizedBox(height: 14),
-          _infoRow(UserStorage.l10n.backupLocation, _backupLocation),
+          _backupLocationRow(),
           const SizedBox(height: 8),
           _infoRow(UserStorage.l10n.autoBackupStatus, lastBackupText),
           const SizedBox(height: 16),
@@ -795,6 +941,71 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       ),
       child: child,
     );
+  }
+
+  Widget _backupLocationRow() {
+    final info = _backupLocationInfo;
+    final summary = info == null ? '' : _formatBackupLocationSummary(info);
+
+    return Semantics(
+      button: info != null,
+      child: InkWell(
+        key: const ValueKey('backup-location-row'),
+        onTap: info == null ? null : _showBackupLocationDetails,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 96,
+                child: Text(
+                  UserStorage.l10n.backupLocation,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  summary,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textPrimary,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+              if (info != null) ...[
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: AppColors.textSecondary,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatBackupLocationSummary(BackupLocationInfo info) {
+    switch (info.kind) {
+      case BackupLocationKind.androidTree:
+        return UserStorage.l10n.androidBackupLocationSelected(info.label);
+      case BackupLocationKind.iosICloud:
+        return UserStorage.l10n.iosICloudBackupLocation;
+      case BackupLocationKind.iosAppDocuments:
+        return UserStorage.l10n.iosAppDocumentsBackupLocation;
+      case BackupLocationKind.fileSystem:
+        return info.label;
+    }
   }
 
   Widget _infoRow(String label, String value) {

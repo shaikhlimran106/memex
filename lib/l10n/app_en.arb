@@ -828,6 +828,20 @@
   "autoBackupDescription": "When enabled, Memex creates at most one local snapshot per day after startup or when returning to the foreground.",
   "backupSensitiveSettingsHint": "Backups include settings and model provider keys. Keep backup files somewhere you trust.",
   "backupLocation": "Location",
+  "backupLocationDetails": "Location details",
+  "backupLocationSummary": "Shown in app",
+  "backupLocationFullPath": "Full path",
+  "backupLocationUri": "Folder access URI",
+  "copyBackupLocationPath": "Copy path",
+  "backupLocationCopied": "Backup location copied",
+  "androidBackupLocationSelected": "Selected folder: {folderName}",
+  "@androidBackupLocationSelected": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "iosICloudBackupLocation": "iCloud Drive > Memex > Backups",
+  "iosAppDocumentsBackupLocation": "Files > On My iPhone > Memex > Backups",
   "autoBackupStatus": "Status",
   "noAutoBackupYet": "No automatic backup yet",
   "@lastBackupAt": {
@@ -837,7 +851,7 @@
   },
   "lastBackupAt": "Last backup: {time}",
   "createSnapshotNow": "Back up now",
-  "backupLocationMenu": "Location",
+  "backupLocationMenu": "Change location",
   "defaultBackupLocation": "Default backup folder",
   "defaultBackupLocationAndroidDesc": "Use Memex's app-specific external files folder. No storage permission needed.",
   "chooseBackupLocation": "Choose backup folder",

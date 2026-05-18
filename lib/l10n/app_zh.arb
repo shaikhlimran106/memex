@@ -828,6 +828,20 @@
   "autoBackupDescription": "开启后，Memex 会在启动或回到前台时检查，每天最多创建一次本地时间点快照。",
   "backupSensitiveSettingsHint": "备份包含设置和模型服务商密钥，请只保存到你信任的位置。",
   "backupLocation": "位置",
+  "backupLocationDetails": "位置详情",
+  "backupLocationSummary": "应用中显示",
+  "backupLocationFullPath": "完整路径",
+  "backupLocationUri": "文件夹授权 URI",
+  "copyBackupLocationPath": "复制路径",
+  "backupLocationCopied": "备份位置已复制",
+  "androidBackupLocationSelected": "已选文件夹：{folderName}",
+  "@androidBackupLocationSelected": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "iosICloudBackupLocation": "iCloud 云盘 > Memex > Backups",
+  "iosAppDocumentsBackupLocation": "文件 > 我的 iPhone > Memex > Backups",
   "autoBackupStatus": "状态",
   "noAutoBackupYet": "还没有自动备份",
   "@lastBackupAt": {
@@ -837,7 +851,7 @@
   },
   "lastBackupAt": "上次备份：{time}",
   "createSnapshotNow": "立即备份",
-  "backupLocationMenu": "位置",
+  "backupLocationMenu": "更改位置",
   "defaultBackupLocation": "默认备份文件夹",
   "defaultBackupLocationAndroidDesc": "使用 Memex 的应用专属外部目录，不需要存储权限。",
   "chooseBackupLocation": "选择备份文件夹",

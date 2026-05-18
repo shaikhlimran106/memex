@@ -1816,6 +1816,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupLocation => 'Location';
 
   @override
+  String get backupLocationDetails => 'Location details';
+
+  @override
+  String get backupLocationSummary => 'Shown in app';
+
+  @override
+  String get backupLocationFullPath => 'Full path';
+
+  @override
+  String get backupLocationUri => 'Folder access URI';
+
+  @override
+  String get copyBackupLocationPath => 'Copy path';
+
+  @override
+  String get backupLocationCopied => 'Backup location copied';
+
+  @override
+  String androidBackupLocationSelected(Object folderName) {
+    return 'Selected folder: $folderName';
+  }
+
+  @override
+  String get iosICloudBackupLocation => 'iCloud Drive > Memex > Backups';
+
+  @override
+  String get iosAppDocumentsBackupLocation =>
+      'Files > On My iPhone > Memex > Backups';
+
+  @override
   String get autoBackupStatus => 'Status';
 
   @override
@@ -1830,7 +1860,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createSnapshotNow => 'Back up now';
 
   @override
-  String get backupLocationMenu => 'Location';
+  String get backupLocationMenu => 'Change location';
 
   @override
   String get defaultBackupLocation => 'Default backup folder';
