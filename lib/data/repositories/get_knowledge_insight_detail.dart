@@ -8,7 +8,7 @@ import 'package:memex/data/services/html_templates.dart';
 import 'package:memex/agent/skills/knowledge_insight/native_widgets.dart';
 
 final _logger = getLogger('GetKnowledgeInsightDetailEndpoint');
-final _fileSystemService = FileSystemService.instance;
+FileSystemService get _fileSystemService => FileSystemService.instance;
 
 class KnowledgeInsightNotFoundException implements Exception {
   final String insightId;

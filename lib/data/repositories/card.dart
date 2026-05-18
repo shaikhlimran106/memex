@@ -11,7 +11,7 @@ import 'package:memex/data/services/card_renderer.dart';
 import 'package:memex/utils/token_usage_utils.dart';
 
 final _logger = getLogger('CardDetailEndpoint');
-final _fileSystemService = FileSystemService.instance;
+FileSystemService get _fileSystemService => FileSystemService.instance;
 
 /// Get card detail
 /// Maps to backend GET /cards/detail

@@ -4,7 +4,7 @@ import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/api_exception.dart';
 
 final _logger = getLogger('HealthEndpoint');
-final _fileSystemService = FileSystemService.instance;
+FileSystemService get _fileSystemService => FileSystemService.instance;
 
 Future<bool> reportDailyHealthSummaryEndpoint(
     Map<String, Map<String, dynamic>> dailySummary) async {

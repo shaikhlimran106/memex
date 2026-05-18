@@ -3,7 +3,7 @@ import 'package:memex/utils/user_storage.dart';
 import 'package:memex/data/services/file_system_service.dart';
 
 final _logger = getLogger('PinInsightEndpoint');
-final _fileSystemService = FileSystemService.instance;
+FileSystemService get _fileSystemService => FileSystemService.instance;
 
 /// Pin Knowledge Insight card
 ///

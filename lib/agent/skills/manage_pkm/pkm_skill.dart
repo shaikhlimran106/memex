@@ -31,7 +31,6 @@ class PkmSkill extends Skill {
         );
 
   static List<Tool> _buildTools(List<bool>? stopAfterUpdateCardInsightRef) {
-    final fileService = FileSystemService.instance;
     final logger = getLogger('PkmAgent');
 
     return [
@@ -47,6 +46,7 @@ class PkmSkill extends Skill {
                 "update_timeline_card_insight must be called within an agent execution context.");
           }
           final userId = context.state.metadata['userId'] as String;
+          final fileService = FileSystemService.instance;
 
           final factInfo =
               await fileService.extractFactContentFromFile(userId, fact_id);

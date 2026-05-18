@@ -8,7 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
 final _logger = getLogger('ChatEndpoint');
-final _fileSystemService = FileSystemService.instance;
+FileSystemService get _fileSystemService => FileSystemService.instance;
 
 /// Get chat session list
 ///

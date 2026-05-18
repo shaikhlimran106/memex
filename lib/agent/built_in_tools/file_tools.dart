@@ -7,7 +7,7 @@ import 'package:path/path.dart' as p;
 
 // Helper to access services
 final _fileOpService = FileOperationService.instance;
-final _fileSystem = FileSystemService.instance;
+FileSystemService get _fileSystem => FileSystemService.instance;
 
 class FileToolFactory {
   final FilePermissionManager permissionManager;

@@ -34,7 +34,7 @@ class ChatService {
   ChatService._internal();
 
   final Logger _logger = getLogger('ChatService');
-  final FileSystemService _fileService = FileSystemService.instance;
+  FileSystemService get _fileService => FileSystemService.instance;
   final Uuid _uuid = const Uuid();
 
   /// Send a message and get a stream of events.

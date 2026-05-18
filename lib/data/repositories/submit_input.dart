@@ -9,7 +9,7 @@ import 'package:memex/data/services/location_context_service.dart';
 import 'package:memex/domain/models/system_event.dart';
 
 final _logger = getLogger('SubmitInputEndpoint');
-final _fileSystem = FileSystemService.instance;
+FileSystemService get _fileSystem => FileSystemService.instance;
 final _lock = Lock();
 
 /// Submit input locally

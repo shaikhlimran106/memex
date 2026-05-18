@@ -8,7 +8,7 @@ import 'dart:convert';
 
 class SaveTemplateTool {
   final Logger _logger = getLogger('SaveTemplateTool');
-  final FileSystemService _fileService = FileSystemService.instance;
+  FileSystemService get _fileService => FileSystemService.instance;
 
   Future<String> tool({
     required String templateId,

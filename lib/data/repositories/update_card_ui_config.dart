@@ -6,7 +6,7 @@ import 'package:memex/domain/models/system_event.dart';
 import 'package:memex/data/services/file_system_service.dart';
 
 final _logger = getLogger('UpdateCardUiConfigEndpoint');
-final _fileSystemService = FileSystemService.instance;
+FileSystemService get _fileSystemService => FileSystemService.instance;
 
 /// Update card UI config data
 ///

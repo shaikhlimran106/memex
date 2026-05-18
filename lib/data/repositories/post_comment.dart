@@ -15,7 +15,7 @@ import 'package:memex/domain/models/system_event.dart';
 import 'package:memex/utils/time_context.dart';
 
 final _logger = Logger('PostCommentEndpoint');
-final _fileSystemService = FileSystemService.instance;
+FileSystemService get _fileSystemService => FileSystemService.instance;
 
 /// Post comment (AI reply handled async)
 ///

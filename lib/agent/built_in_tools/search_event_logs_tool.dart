@@ -5,8 +5,6 @@ import 'package:memex/data/services/file_system_service.dart';
 ///
 /// Allows agents to query historical events to understand context
 Tool buildSearchEventLogsTool() {
-  final fileService = FileSystemService.instance;
-
   return Tool(
     name: 'search_workspace_event_logs',
     description:
@@ -74,6 +72,7 @@ A list of events sorted by time (newest first), each containing:
       final effectiveOffset = (offset ?? 0).clamp(0, 10000);
 
       try {
+        final fileService = FileSystemService.instance;
         final userId = AgentCallToolContext.current!.state.metadata['userId'];
         final events = await fileService.eventLogService.searchEvents(
           userId: userId,
