@@ -11,41 +11,49 @@ class CommentToolFactory {
   final String userId;
   final String cardId;
   final String? characterId;
+  final String? forcedReplyToId;
 
   CommentToolFactory({
     required this.userId,
     required this.cardId,
     this.characterId,
+    this.forcedReplyToId,
   });
 
   Tool buildSaveCommentTool() {
+    final fixedReplyTarget = _normalizedReplyToId(forcedReplyToId);
     return Tool(
       name: 'SaveComment',
-      description: 'Saves your comment to the current raw input or reply.',
+      description: fixedReplyTarget == null
+          ? 'Saves your comment to the current raw input or reply.'
+          : 'Saves your comment as a reply to the current user comment. '
+              'The reply_to_id parameter is fixed by the system for this task.',
       parameters: {
         'type': 'object',
         'properties': {
           'content': {
             'type': 'string',
-            'description': 'The content of your comment.'
+            'description': 'The content of your comment.',
           },
           'reply_to_id': {
             'type': 'string',
             'description':
-                'Optional. The ID of the comment you are replying to. Leave empty for a top-level comment.'
+                'Optional. The ID of the comment you are replying to. Leave empty for a top-level comment.',
           },
         },
-        'required': ['content']
+        'required': ['content'],
       },
       executable: (String content, String? reply_to_id) async {
         if (content.isEmpty) {
-          return "Error: Comment content cannot be empty.";
+          throw ArgumentError('Comment content cannot be empty.');
         }
 
         try {
           final fileSystemService = FileSystemService.instance;
           final commentId = const Uuid().v4();
           final now = DateTime.now();
+          final resolvedReplyToId =
+              fixedReplyTarget ?? _normalizedReplyToId(reply_to_id);
 
           final updatedCardData = await fileSystemService.updateCardFile(
             userId,
@@ -57,22 +65,24 @@ class CommentToolFactory {
                 isAi: true,
                 timestamp: now.millisecondsSinceEpoch ~/ 1000,
                 characterId: characterId,
-                replyToId: reply_to_id,
+                replyToId: resolvedReplyToId,
               );
               return card.copyWith(comments: [...card.comments, newComment]);
             },
           );
 
           if (updatedCardData == null) {
-            return "Error: Card not found: $cardId";
+            throw StateError('Card not found: $cardId');
           }
 
           // Log event
           try {
             final cardPath = fileSystemService.getCardPath(userId, cardId);
             final workspacePath = fileSystemService.getWorkspacePath(userId);
-            final relativePath = fileSystemService.toRelativePath(cardPath,
-                rootPath: workspacePath);
+            final relativePath = fileSystemService.toRelativePath(
+              cardPath,
+              rootPath: workspacePath,
+            );
             await fileSystemService.eventLogService.logFileModified(
               userId: userId,
               filePath: relativePath,
@@ -81,7 +91,7 @@ class CommentToolFactory {
                 'card_id': cardId,
                 'comment_id': commentId,
                 'character_id': characterId,
-                'content': content
+                'content': content,
               },
             );
           } catch (e) {
@@ -99,20 +109,19 @@ class CommentToolFactory {
                 threadId: cardId,
                 factId: cardId,
                 commentId: commentId,
-                replyToId: reply_to_id != null && reply_to_id.isNotEmpty
-                    ? reply_to_id
-                    : null,
+                replyToId: resolvedReplyToId,
                 sourceId: commentId,
                 timestamp: now,
                 metadata: {
-                  if (reply_to_id != null && reply_to_id.isNotEmpty)
-                    'reply_to_id': reply_to_id,
+                  if (resolvedReplyToId != null)
+                    'reply_to_id': resolvedReplyToId,
                   'source': 'comment_tool',
                 },
               );
             } catch (e) {
-              getLogger('CommentTool')
-                  .warning('Failed to append character timeline event: $e');
+              getLogger(
+                'CommentTool',
+              ).warning('Failed to append character timeline event: $e');
             }
           }
 
@@ -120,10 +129,16 @@ class CommentToolFactory {
             content: TextPart("Comment saved successfully."),
             stopFlag: true,
           );
-        } catch (e) {
-          return "Error saving comment: $e";
+        } catch (e, st) {
+          getLogger('CommentTool').severe('Error saving comment', e, st);
+          rethrow;
         }
       },
     );
+  }
+
+  static String? _normalizedReplyToId(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
   }
 }

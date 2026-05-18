@@ -50,12 +50,15 @@ import 'package:memex/ui/agent_activity/widgets/agent_activity_widget.dart';
 import 'package:memex/ui/main_screen/widgets/ai_core_button.dart';
 import 'package:memex/db/app_database.dart';
 import 'package:memex/data/services/local_server_service.dart';
+import 'package:memex/data/services/app_update_service.dart';
+import 'package:memex/data/services/backup_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:memex/routing/router.dart';
 import 'package:memex/data/services/onboarding_service.dart';
 import 'package:memex/data/services/demo_service.dart';
 import 'package:memex/ui/core/widgets/demo_overlay.dart';
 import 'package:memex/ui/main_screen/widgets/share_intent_handler.dart';
+import 'package:memex/ui/settings/widgets/backup_restore_confirm_dialog.dart';
 import 'package:quick_actions/quick_actions.dart';
 import 'package:memex/data/services/quick_action_service.dart';
 import 'package:memex/data/services/speech_transcription_service.dart';
@@ -313,6 +316,7 @@ class _MemexAppState extends State<MemexApp> with WidgetsBindingObserver {
       _checkLockSettingsBeforeLocking();
     } else if (state == AppLifecycleState.resumed) {
       unawaited(LocalTaskExecutor.instance.clearGracefulShutdownMarker());
+      MemexRouter().scheduleAutoBackupCheck(trigger: 'foreground');
       _checkGracePeriod();
     } else if (state == AppLifecycleState.detached) {
       unawaited(LocalTaskExecutor.instance
@@ -427,6 +431,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   final EventBusService _eventBus = EventBusService.instance;
   Timer? _memoryButtonTapTimer;
   int _memoryButtonTapCount = 0;
+  bool _isRestoringExternalBackup = false;
   Timer? _knowledgeBaseButtonTapTimer;
   int _knowledgeBaseButtonTapCount = 0;
   final Logger _logger = getLogger('MainScreen');
@@ -449,6 +454,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   final GlobalKey _mainStackKey = GlobalKey();
   bool _isInvalidConfigDialogShowing = false;
   bool _isErrorNotificationDialogShowing = false;
+  bool _earlyUpdateCheckStarted = false;
   late final ShareIntentHandler _shareIntentHandler;
   InputData? _sharedDraft;
 
@@ -498,11 +504,145 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           _isInputOpen = true;
         });
       },
+      onBackupFileShared: _handleExternalBackupFile,
     )..init();
 
     // Consume pending quick action (app icon long-press shortcut).
     QuickActionService.instance.attach();
     _consumeQuickActionIfNeeded();
+
+    _scheduleEarlyUpdateCheck();
+  }
+
+  void _scheduleEarlyUpdateCheck() {
+    final service = AppUpdateService.instance;
+    if (!service.isSupported || _earlyUpdateCheckStarted) return;
+    _earlyUpdateCheckStarted = true;
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      unawaited(_checkEarlyUpdateInBackground());
+    });
+  }
+
+  Future<void> _checkEarlyUpdateInBackground() async {
+    final service = AppUpdateService.instance;
+    if (!await service.shouldRunAutoCheck()) return;
+
+    try {
+      final settings = await service.loadSettings();
+      final result = await service.checkForUpdate(manual: false);
+      if (!mounted || result.status != AppUpdateCheckStatus.updateAvailable) {
+        return;
+      }
+
+      final update = result.update!;
+      if (settings.autoDownloadAndInstall) {
+        await _downloadAndInstallEarlyUpdate(update);
+      } else {
+        _showEarlyUpdateDialog(update);
+      }
+    } catch (e, st) {
+      _logger.warning('Early update check failed: $e', e, st);
+    }
+  }
+
+  void _showEarlyUpdateDialog(AppUpdateInfo update) {
+    final context = rootNavigatorKey.currentContext;
+    if (context == null) return;
+
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        final notes = update.releaseNotes.trim();
+        return AlertDialog(
+          title: Text(UserStorage.l10n.earlyUpdateDialogTitle),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  UserStorage.l10n.earlyUpdateFound(
+                    update.versionName,
+                    update.buildNumber,
+                  ),
+                ),
+                if (notes.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    UserStorage.l10n.earlyUpdateReleaseNotes,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    notes,
+                    maxLines: 8,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(UserStorage.l10n.cancel),
+            ),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                unawaited(_downloadAndInstallEarlyUpdate(update));
+              },
+              icon: const Icon(Icons.download, size: 18),
+              label: Text(UserStorage.l10n.earlyUpdateDownloadAndInstall),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _downloadAndInstallEarlyUpdate(AppUpdateInfo update) async {
+    final context = rootNavigatorKey.currentContext;
+    if (context != null) {
+      ToastHelper.showInfo(
+        context,
+        UserStorage.l10n.earlyUpdateDownloadingPercent(0),
+      );
+    }
+
+    try {
+      final download = await AppUpdateService.instance.downloadUpdate(update);
+      final install =
+          await AppUpdateService.instance.installUpdate(download.apkPath);
+      final currentContext = rootNavigatorKey.currentContext;
+      if (currentContext == null) return;
+
+      switch (install.status) {
+        case AppUpdateInstallStatus.started:
+          ToastHelper.showSuccess(
+            currentContext,
+            UserStorage.l10n.earlyUpdateInstallStarted,
+          );
+        case AppUpdateInstallStatus.permissionRequired:
+          ToastHelper.showInfo(
+            currentContext,
+            UserStorage.l10n.earlyUpdateInstallPermissionRequired,
+          );
+        case AppUpdateInstallStatus.unsupported:
+          break;
+      }
+    } catch (e) {
+      final currentContext = rootNavigatorKey.currentContext;
+      if (e is AppUpdateWifiRequiredException) {
+        ToastHelper.showInfo(
+          currentContext,
+          UserStorage.l10n.earlyUpdateSkippedMobile,
+        );
+      } else {
+        ToastHelper.showError(currentContext, e);
+      }
+    }
   }
 
   void _handleInvalidModelConfig(EventBusMessage message) {
@@ -821,6 +961,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     try {
       final speechService = SpeechTranscriptionService.instance;
 
+      _logger.info('Starting quick recording');
       // Check if local speech model needs downloading
       if (await speechService.requiresLocalModelDownload()) {
         setState(() => _isRadialMenuOpen = false);
@@ -834,6 +975,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         _quickTranscribedText = '';
         _quickPcmBuffer.clear();
         if (await speechService.supportsStreamingTranscription()) {
+          _logger
+              .info('Initializing streaming transcriber for quick recording');
           _quickTranscriber = StreamingTranscriber(
             onTextChanged: (fullText) {
               _quickTranscribedText = fullText;
@@ -841,9 +984,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             },
           );
           await _quickTranscriber!.init();
+          _logger.info('Streaming transcriber initialized for quick recording');
         }
 
         // Start streaming PCM recording
+        _logger.info('Starting PCM audio stream for quick recording');
         final audioStream = await _audioRecorder.startStream(
           const RecordConfig(
             encoder: AudioEncoder.pcm16bits,
@@ -859,8 +1004,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
         _recordingPath = 'streaming'; // marker that recording is active
       }
-    } catch (e) {
-      _logger.severe('Error starting recording: $e', e);
+    } catch (e, stackTrace) {
+      _logger.severe('Error starting quick recording', e, stackTrace);
     }
   }
 
@@ -1156,6 +1301,104 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     });
   }
 
+  Future<void> _handleExternalBackupFile(String backupFilePath) async {
+    if (_isRestoringExternalBackup) return;
+    _isRestoringExternalBackup = true;
+
+    try {
+      final backupInfo = await BackupService.inspectBackup(backupFilePath);
+      if (!mounted) return;
+
+      final confirmed = await _confirmExternalBackupRestore(backupInfo);
+      if (confirmed != true || !mounted) return;
+
+      await _restoreExternalBackup(backupInfo.path);
+    } catch (e) {
+      if (mounted) {
+        ToastHelper.showError(context, UserStorage.l10n.restoreFailed(e));
+      }
+    } finally {
+      _isRestoringExternalBackup = false;
+    }
+  }
+
+  Future<bool?> _confirmExternalBackupRestore(BackupFileInfo backupInfo) {
+    final dialogContext = rootNavigatorKey.currentContext ?? context;
+
+    return showDialog<bool>(
+      context: dialogContext,
+      builder: (_) => BackupRestoreConfirmDialog(backupInfo: backupInfo),
+    );
+  }
+
+  Future<void> _restoreExternalBackup(String backupFilePath) async {
+    final dialogContext = rootNavigatorKey.currentContext ?? context;
+    final rootNavigator = Navigator.of(dialogContext, rootNavigator: true);
+    var statusText = UserStorage.l10n.restoreInProgress;
+    StateSetter? setProgressState;
+
+    showDialog<void>(
+      context: dialogContext,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          setProgressState = setState;
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            content: Row(
+              children: [
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 16),
+                Expanded(child: Text(statusText)),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    try {
+      await BackupService.restoreBackup(
+        backupFilePath,
+        onProgress: (status) {
+          setProgressState?.call(() {
+            statusText = status;
+          });
+        },
+      );
+
+      if (!mounted || !rootNavigator.mounted) return;
+      rootNavigator.pop();
+      await showDialog<void>(
+        context: rootNavigator.context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          backgroundColor: Colors.white,
+          title: Text(UserStorage.l10n.restoreComplete),
+          content: Text(UserStorage.l10n.restoreRestartHint),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+              child: Text(UserStorage.l10n.ok),
+            ),
+          ],
+        ),
+      );
+    } catch (_) {
+      if (mounted && rootNavigator.mounted) {
+        rootNavigator.pop();
+      }
+      rethrow;
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
@@ -1198,6 +1441,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
     // Show loading in timeline
     if (mounted) context.read<TimelineViewModel>().setSubmitting(true);
+    await WidgetsBinding.instance.endOfFrame;
 
     try {
       // Call API
@@ -1311,7 +1555,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 left: 0,
                 right: 0,
                 child: Center(
-                  child: AgentActivityWidget(navigatorKey: null),
+                  child: AgentActivityWidget(
+                    navigatorKey: null,
+                    forceVisible:
+                        context.watch<TimelineViewModel>().isSubmitting,
+                  ),
                 ),
               ),
 

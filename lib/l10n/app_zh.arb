@@ -56,6 +56,12 @@
   "clearData": "清除数据",
   "confirmClearDataMessage": "确定要清除数据吗？\n",
   "confirmClearDataKeepFactsMessage": "将仅保留 Facts 目录（原始记录），删除工作区内其他所有目录（Cards、Discoveries、KnowledgeInsights、PKM、_System 等）。\n\n此操作不可恢复！",
+  "clearFailedAgentContexts": "清除失败的对话上下文",
+  "confirmClearFailedAgentContextsMessage": "清除 Insight 和 Schedule Agent 已保存的对话上下文？这适用于切换模型后，旧的 agent 消息与新模型 API 不兼容的情况。Facts、卡片、知识库、记忆和模型配置不会被删除。",
+  "failedAgentContextsCleared": "已清除 {count} 个已保存的对话上下文",
+  "@failedAgentContextsCleared": { "placeholders": { "count": {} } },
+  "clearFailedAgentContextsFailed": "清除对话上下文失败: {error}",
+  "@clearFailedAgentContextsFailed": { "placeholders": { "error": {} } },
   "dataClearedSuccess": "数据清除成功",
   "@clearDataFailed": {
     "placeholders": {
@@ -81,6 +87,7 @@
   "autoRefresh": "自动刷新",
   "lineCount": "行数: ",
   "all": "全部",
+  "schedule": "日程",
   "@loadStatsFailed": {
     "placeholders": {
       "error": {}
@@ -89,10 +96,43 @@
   "loadStatsFailed": "加载统计数据失败: {error}",
   "overview": "概览",
   "daily": "每日",
+  "modelStatsByAgent": "分模型统计",
   "detail": "详情",
   "date": "日期",
+  "agent": "Agent",
   "noData": "暂无数据",
   "totalCalls": "总调用次数",
+  "calls": "调用",
+  "@callsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "callsCount": "{count} 次调用",
+  "selectDateRange": "选择日期范围",
+  "totalTokens": "总 Token",
+  "cacheRate": "缓存命中率",
+  "promptTokens": "Prompt Token",
+  "completionTokens": "Completion Token",
+  "cachedTokens": "Cached Token",
+  "thoughtTokens": "Thought Token",
+  "prompt": "Prompt",
+  "completion": "Completion",
+  "cached": "Cached",
+  "thought": "Thought",
+  "model": "模型",
+  "scene": "场景",
+  "sceneId": "场景 ID",
+  "tokenUsage": "Token 用量",
+  "handler": "处理器",
+  "modelBreakdown": "模型拆分",
+  "callDetails": "调用详情",
+  "@recordDetailsTitle": {
+    "placeholders": {
+      "scene": {}
+    }
+  },
+  "recordDetailsTitle": "记录详情: {scene}",
   "@saveLlmConfigFailed": {
     "placeholders": {
       "error": {}
@@ -464,6 +504,48 @@
   "knowledgeInsight": "知识洞察",
   "completeSort": "完成排序",
   "noKnowledgeInsight": "暂无知识洞察",
+  "@insightProcessingBacklogMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "insightProcessingBacklogMessage": "还有 {count} 个后台任务正在处理，洞察可能会在完成后更新。",
+  "insightUnavailableMessage": "这个洞察仍在生成中，或已被更新。请刷新洞察后稍后再试。",
+  "scheduleAggregation": "日程聚合",
+  "noScheduleAggregation": "暂无日程聚合",
+  "scheduleAggregationEmptyHint": "点击更新，从真实时间卡片里整理日程和待办。",
+  "scheduleAggregationDirtyReason": "有新的日程相关内容，点击更新后重新整理。",
+  "scheduleAggregationLoadFailed": "加载日程数据失败",
+  "scheduleAggregationRefreshFailed": "刷新日程数据失败",
+  "scheduleTaskUpdateFailed": "更新待办失败",
+  "scheduleFeatured": "重点",
+  "scheduleThisWeek": "本周",
+  "scheduleDone": "已完成",
+  "scheduleTbd": "待定",
+  "scheduleWeekOverview": "本周概览",
+  "scheduleImportant": "重要",
+  "scheduleBriefingTitle": "日程简报",
+  "scheduleBriefingNeedsUpdate": "待更新",
+  "scheduleBriefingOpen": "查看",
+  "scheduleBriefingNoData": "暂无日程简报",
+  "@scheduleBriefingUpdated": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "scheduleBriefingUpdated": "{time} 更新",
+  "@scheduleBriefingDoneCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "scheduleBriefingDoneCount": "完成 {count}",
+  "@scheduleBriefingConflictCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "scheduleBriefingConflictCount": "冲突 {count}",
   "updating": "更新中...",
   "update": "更新",
   "enabled": "已启用",
@@ -564,6 +646,7 @@
   "relatedMemories": "相关回忆",
   "viewMore": "查看更多",
   "relatedRecords": "相关记录",
+  "reply": "回复",
   "replySent": "回复已发送",
   "insightTemplateGalleryTitle": "洞察卡片模板展示",
   "timelineTemplateGalleryTitle": "Timeline 卡片模板展示",
@@ -766,6 +849,80 @@
   },
   "restoreFailed": "恢复失败: {error}",
   "invalidBackupFile": "无效的备份文件，请选择 .memex 文件。",
+  "automaticBackup": "自动备份",
+  "autoBackupDescription": "开启后，Memex 会在启动或回到前台时检查，每天最多创建一次本地时间点快照。",
+  "backupSensitiveSettingsHint": "备份包含设置和模型服务商密钥，请只保存到你信任的位置。",
+  "backupLocation": "位置",
+  "backupLocationDetails": "位置详情",
+  "backupLocationSummary": "应用中显示",
+  "backupLocationFullPath": "完整路径",
+  "backupLocationUri": "文件夹授权 URI",
+  "copyBackupLocationPath": "复制路径",
+  "backupLocationCopied": "备份位置已复制",
+  "androidBackupLocationSelected": "已选文件夹：{folderName}",
+  "@androidBackupLocationSelected": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "iosICloudBackupLocation": "iCloud 云盘 > Memex > Backups",
+  "iosAppDocumentsBackupLocation": "文件 > 我的 iPhone > Memex > Backups",
+  "autoBackupStatus": "状态",
+  "noAutoBackupYet": "还没有自动备份",
+  "@lastBackupAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "lastBackupAt": "上次备份：{time}",
+  "createSnapshotNow": "立即备份",
+  "backupLocationMenu": "更改位置",
+  "defaultBackupLocation": "默认备份文件夹",
+  "defaultBackupLocationAndroidDesc": "使用 Memex 的应用专属外部目录，不需要存储权限。",
+  "chooseBackupLocation": "选择备份文件夹",
+  "chooseBackupLocationAndroidDesc": "使用 Android 系统选择器选择文件夹，并授予 Memex 持久访问权限。",
+  "storedBackups": "已保存备份",
+  "noStoredBackups": "创建第一个自动快照后会显示在这里。",
+  "refresh": "刷新",
+  "restoreThisBackup": "恢复此备份",
+  "deleteThisBackup": "删除此备份",
+  "confirmDeleteBackup": "删除备份？",
+  "@confirmDeleteBackupMessage": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "confirmDeleteBackupMessage": "删除 {fileName}？这会移除已保存的备份文件，且无法撤销。",
+  "@backupDeleted": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupDeleted": "备份已删除：{fileName}",
+  "@backupDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "backupDeleteFailed": "无法删除备份：{error}",
+  "creatingSafetySnapshot": "正在创建安全快照...",
+  "@autoBackupCreated": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "autoBackupCreated": "快照已创建：{fileName}",
+  "@backupLocationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "backupLocationFailed": "无法更新备份位置：{error}",
+  "backupImportCreatedAt": "创建时间",
+  "backupImportSourceVersion": "来源版本",
+  "backupImportFlavor": "构建渠道",
+  "backupLegacyFormat": "旧版备份（无 manifest）",
+  "restoreInProgress": "正在恢复备份...",
   "dataStorage": "数据存储",
   "dataStorageDescription": "选择 Memex 存储数据的位置。自定义文件夹或 iCloud 可在卸载重装后保留数据。",
   "dataStorageDescriptionAndroid": "选择自定义文件夹存放工作区数据，卸载重装后仍可保留。",
@@ -954,6 +1111,7 @@
   "personaChatInputHint": "输入消息...",
   "personaChatEmptyHint": "发出第一条消息，让这段陪伴开始",
   "today": "今天",
+  "tomorrow": "明天",
   "yesterday": "昨天",
 
   "showInsightTextTitle": "显示 Memex 洞察评论",
@@ -975,6 +1133,55 @@
   "cdnSignalsInsight": "生成了新洞察",
   "cdnSignalsBoth": "有新回复和洞察",
   "untitledCard": "未命名卡片",
+
+  "locationContextTitle": "位置上下文",
+  "locationContextDescription": "为 Agent 对话提供当前城市与街区上下文",
+  "locationContextAttachTitle": "为对话附加当前位置",
+  "locationContextAttachDesc": "使用设备 GPS 和逆地理编码，为 Agent 提供城市、区县和街区上下文。",
+  "reverseGeocodingProvider": "逆地理编码服务商",
+  "amapProviderName": "高德地图",
+  "amapApiKey": "高德地图 API Key",
+  "amapGcj02Note": "高德地图使用 GCJ-02 坐标；设备 GPS 会先转换后再逆地理编码。",
+  "contextGranularity": "上下文粒度",
+  "granularityCity": "城市",
+  "granularityDistrict": "区县",
+  "granularityNeighborhood": "街区",
+  "granularityStreet": "街道",
+  "granularityFullAddress": "完整地址候选",
+  "locationFreshness": "位置新鲜度",
+  "minutesShort": "{minutes} 分钟",
+  "@minutesShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "oneHour": "1 小时",
+  "testCurrentLocation": "测试当前位置",
+  "locationUnavailable": "位置不可用",
+  "locationTestFailed": "失败：{error}",
+  "@locationTestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "locationDebugGps": "GPS",
+  "locationDebugReverseGeocode": "逆地理编码",
+  "locationDebugProvider": "服务商",
+  "locationDebugAgentContext": "Agent 上下文",
+  "locationDebugSource": "来源",
+  "locationDebugAddressSummary": "地址摘要",
+  "locationDebugFullAddress": "完整地址",
+  "locationDebugCoordinates": "坐标",
+  "locationDebugAccuracy": "精度",
+  "locationDebugReason": "原因",
+  "locationDebugOk": "成功",
+  "locationDebugUnavailable": "不可用",
+  "locationDebugInjected": "已注入",
+  "locationDebugNotInjected": "未注入",
 
   "settingsSearchPlaceholder": "搜索设置项...",
   "settingsSearchEmpty": "未找到匹配的设置项",
@@ -1068,5 +1275,51 @@
   "setPrimaryCompanionSubtitle": "导入后自动设为你的主要陪伴角色",
   "confirmImport": "确认导入",
   "chatBackground": "聊天背景",
-  "chooseChatBackgroundImage": "选择聊天背景图"
+  "chooseChatBackgroundImage": "选择聊天背景图",
+  "earlyUpdateSettingsTitle": "Early 体验版更新",
+  "earlyUpdateSettingsDesc": "从 GitHub 预发布版本中检测匹配当前 Early 渠道的 APK，下载后交给 Android 系统安装器安装。",
+  "earlyUpdateUnsupported": "Early 更新仅支持 Android Early 包。",
+  "earlyUpdateAutoCheckTitle": "自动检测更新",
+  "earlyUpdateAutoCheckDesc": "启动时检测，每 12 小时最多一次。",
+  "earlyUpdateWifiOnlyTitle": "仅在 Wi-Fi 下载",
+  "earlyUpdateWifiOnlyDesc": "使用移动数据时跳过更新下载。",
+  "earlyUpdateAutoInstallTitle": "自动下载并安装",
+  "earlyUpdateAutoInstallDesc": "发现新版本后自动下载，并打开 Android 系统安装器。",
+  "earlyUpdateCheckNow": "立即检查",
+  "earlyUpdateChecking": "正在检查 GitHub 预发布版本...",
+  "earlyUpdateSkippedMobile": "已跳过：当前开启了仅 Wi-Fi 下载。",
+  "earlyUpdateNoUpdate": "当前已经是最新 Early 版本。",
+  "@earlyUpdateFound": {
+    "placeholders": {
+      "version": {},
+      "build": {}
+    }
+  },
+  "earlyUpdateFound": "发现 Early 版本 {version}+{build}。",
+  "earlyUpdateDownloadAndInstall": "下载并安装",
+  "@earlyUpdateDownloadingPercent": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "earlyUpdateDownloadingPercent": "正在下载更新：{percent}%",
+  "earlyUpdateInstallDownloadedPackage": "安装已下载包",
+  "earlyUpdateClearDownloadedPackage": "清除下载包",
+  "earlyUpdateClearDownloadedPackageSuccess": "已清除下载包。",
+  "earlyUpdateInstallStarted": "已打开 Android 系统安装器。",
+  "earlyUpdateInstallPermissionRequired": "请允许 Memex 安装未知来源应用，然后再次点击下载并安装。",
+  "@earlyUpdateLastChecked": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "earlyUpdateLastChecked": "上次检查：{time}",
+  "@earlyUpdateCheckFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "earlyUpdateCheckFailed": "检查更新失败：{error}",
+  "earlyUpdateDialogTitle": "发现 Early 更新",
+  "earlyUpdateReleaseNotes": "更新说明"
 }

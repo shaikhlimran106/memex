@@ -7,7 +7,7 @@ import 'package:memex/data/services/api_exception.dart';
 import 'package:path/path.dart' as p;
 
 final _logger = getLogger('PkmEndpoint');
-final _fileSystemService = FileSystemService.instance;
+FileSystemService get _fileSystemService => FileSystemService.instance;
 
 /// English → Chinese mapping for PARA root categories.
 const _paraCategoryMapping = <String, String>{

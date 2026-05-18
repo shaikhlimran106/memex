@@ -1,0 +1,282 @@
+name: PR Flutter Quality
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-flutter-quality-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  flutter-quality:
+    name: Flutter Analyze and Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out PR code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Write preflight context
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+          pr = event["pull_request"]
+          context = {
+              "schema_version": 1,
+              "workflow": "PR Flutter Quality",
+              "artifact": "pr-flutter-quality",
+              "pr_number": pr["number"],
+              "head_sha": pr["head"]["sha"],
+              "head_ref": pr["head"]["ref"],
+              "base_sha": pr["base"]["sha"],
+              "base_ref": pr["base"]["ref"],
+              "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+              "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT", ""),
+          }
+          Path("preflight-context.json").write_text(
+              json.dumps(context, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Prepare base worktree
+        run: |
+          git fetch --no-tags origin "${{ github.event.pull_request.base.sha }}"
+          git worktree add ../memex-base "${{ github.event.pull_request.base.sha }}"
+
+      - name: Run preflight script unit tests
+        run: python3 scripts/compare_flutter_analyze_test.py
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Show Flutter version
+        run: flutter --version
+
+      - name: Install base Flutter dependencies
+        working-directory: ../memex-base
+        run: flutter pub get
+
+      - name: Install PR Flutter dependencies
+        run: flutter pub get
+
+      - name: Analyze base and PR code
+        shell: bash
+        run: |
+          set +e
+          (
+            cd ../memex-base
+            flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings --no-congratulate \
+              --write "$RUNNER_TEMP/flutter-analyze-base.txt"
+          )
+          base_status="$?"
+
+          flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings --no-congratulate \
+            --write "$RUNNER_TEMP/flutter-analyze-head.txt"
+          head_status="$?"
+
+          echo "Base analyzer exit code: ${base_status}"
+          echo "PR analyzer exit code: ${head_status}"
+          exit 0
+
+      - name: Check analyzer baseline
+        id: analyzer_baseline
+        shell: bash
+        run: |
+          set +e
+          python3 scripts/compare_flutter_analyze.py \
+            --base "$RUNNER_TEMP/flutter-analyze-base.txt" \
+            --head "$RUNNER_TEMP/flutter-analyze-head.txt" \
+            --summary "$GITHUB_STEP_SUMMARY" \
+            --markdown-output flutter-analyze.md \
+            --json-output flutter-analyze.json
+          status="$?"
+          set -e
+          echo "status=${status}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Run base and PR Flutter tests
+        shell: bash
+        run: |
+          set +e
+          (
+            cd ../memex-base
+            flutter test --no-pub
+          ) | tee "$RUNNER_TEMP/flutter-test-base.txt"
+          base_status="${PIPESTATUS[0]}"
+
+          flutter test --no-pub | tee "$RUNNER_TEMP/flutter-test-head.txt"
+          head_status="${PIPESTATUS[0]}"
+
+          echo "Base test exit code: ${base_status}"
+          echo "PR test exit code: ${head_status}"
+          exit 0
+
+      - name: Check test baseline
+        id: test_baseline
+        shell: bash
+        run: |
+          set +e
+          python3 scripts/compare_flutter_test_failures.py \
+            --base "$RUNNER_TEMP/flutter-test-base.txt" \
+            --head "$RUNNER_TEMP/flutter-test-head.txt" \
+            --summary "$GITHUB_STEP_SUMMARY" \
+            --markdown-output flutter-test.md \
+            --json-output flutter-test.json
+          status="$?"
+          set -e
+          echo "status=${status}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Build Flutter quality report
+        if: always()
+        shell: bash
+        env:
+          ANALYZER_STATUS: ${{ steps.analyzer_baseline.outputs.status }}
+          TEST_STATUS: ${{ steps.test_baseline.outputs.status }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          def status_label(status: str) -> tuple[str, str, str]:
+              if not status:
+                  return ("INCOMPLETE", "未完成", "incomplete")
+              if status == "0":
+                  return ("PASS", "通过", "passed")
+              return ("FAIL", "失败", "failed")
+
+          analyzer_status = os.environ.get("ANALYZER_STATUS", "")
+          test_status = os.environ.get("TEST_STATUS", "")
+          analyzer_en, analyzer_zh, analyzer_key = status_label(analyzer_status)
+          test_en, test_zh, test_key = status_label(test_status)
+          overall_key = (
+              "passed"
+              if analyzer_key == "passed" and test_key == "passed"
+              else "incomplete"
+              if "incomplete" in {analyzer_key, test_key}
+              else "failed"
+          )
+          overall_en = {
+              "passed": "PASS",
+              "failed": "FAIL",
+              "incomplete": "INCOMPLETE",
+          }[overall_key]
+          overall_zh = {
+              "passed": "通过",
+              "failed": "失败",
+              "incomplete": "未完成",
+          }[overall_key]
+
+          def read_text(path: str, fallback: str) -> str:
+              file = Path(path)
+              if file.exists():
+                  return file.read_text(encoding="utf-8", errors="replace").strip()
+              return fallback
+
+          analyzer_md = read_text(
+              "flutter-analyze.md",
+              "## Flutter Analyzer Baseline\n\nAnalyzer baseline result was not produced.",
+          )
+          test_md = read_text(
+              "flutter-test.md",
+              "## Flutter Test Baseline\n\nFlutter test baseline result was not produced.",
+          )
+
+          markdown = "\n".join(
+              [
+                  "# PR Flutter Quality / Flutter 质量预检",
+                  "",
+                  "## 中文",
+                  "",
+                  f"- 总体：`{overall_zh}`",
+                  f"- Analyzer baseline：`{analyzer_zh}`",
+                  f"- Test baseline：`{test_zh}`",
+                  "",
+                  "## English",
+                  "",
+                  f"- Overall: `{overall_en}`",
+                  f"- Analyzer baseline: `{analyzer_en}`",
+                  f"- Test baseline: `{test_en}`",
+                  "",
+                  analyzer_md,
+                  "",
+                  test_md,
+                  "",
+              ]
+          )
+          Path("flutter-quality.md").write_text(markdown, encoding="utf-8")
+          Path("flutter-quality.json").write_text(
+              json.dumps(
+                  {
+                      "schema_version": 1,
+                      "overall": overall_key,
+                      "analyzer": {
+                          "status": analyzer_key,
+                          "exit_code": analyzer_status,
+                      },
+                      "tests": {
+                          "status": test_key,
+                          "exit_code": test_status,
+                      },
+                  },
+                  ensure_ascii=False,
+                  indent=2,
+                  sort_keys=True,
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload Flutter quality result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-flutter-quality
+          if-no-files-found: warn
+          path: |
+            preflight-context.json
+            flutter-quality.md
+            flutter-quality.json
+            flutter-analyze.md
+            flutter-analyze.json
+            flutter-test.md
+            flutter-test.json
+
+      - name: Fail on Flutter quality regressions
+        if: always()
+        shell: bash
+        env:
+          ANALYZER_STATUS: ${{ steps.analyzer_baseline.outputs.status }}
+          TEST_STATUS: ${{ steps.test_baseline.outputs.status }}
+        run: |
+          status=0
+          if [ -z "$ANALYZER_STATUS" ] || [ "$ANALYZER_STATUS" != "0" ]; then
+            status=1
+          fi
+          if [ -z "$TEST_STATUS" ] || [ "$TEST_STATUS" != "0" ]; then
+            status=1
+          fi
+          exit "$status"

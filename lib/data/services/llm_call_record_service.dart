@@ -16,11 +16,11 @@ import 'base_file_service.dart';
 /// Records token usage and related info for all LLM calls.
 /// Supports storage by scene (raw input, insight generation, discovery generation, etc.).
 class LLMCallRecordService {
-  final FileSystemService _fileSystem;
   final BaseFileService _baseService = BaseFileService();
   final Logger _logger = getLogger('LLMCallRecordService');
   final _lock = Lock();
   final _uuid = const Uuid();
+  FileSystemService get _fileSystem => FileSystemService.instance;
 
   static LLMCallRecordService? _instance;
   static LLMCallRecordService get instance {
@@ -28,7 +28,7 @@ class LLMCallRecordService {
     return _instance!;
   }
 
-  LLMCallRecordService._() : _fileSystem = FileSystemService.instance;
+  LLMCallRecordService._();
 
   /// Returns the directory path for LLM call records.
   String _getLLMCallsPath(String userId) {

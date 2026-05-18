@@ -26,6 +26,79 @@ import 'package:memex/agent/agent_cache_helper.dart';
 class PkmAgent {
   static final Logger _logger = getLogger('PkmAgent');
 
+  static const Set<String> validSkipReasons = {
+    'explicit_user_opt_out',
+    'temporary_state',
+    'low_signal_noise',
+    'duplicate_existing_memory',
+  };
+
+  /// Detects raw inputs where the user explicitly opts out of persistent PKM
+  /// organization before we invoke the LLM agent.
+  static PkmSkipDecision detectNonPersistentInput(String rawInput) {
+    final text = rawInput.trim();
+    if (text.isEmpty) return const PkmSkipDecision.persist();
+
+    final normalized = text
+        .toLowerCase()
+        .replaceAll(RegExp(r'\s+'), '')
+        .replaceAll('長', '长')
+        .replaceAll('記', '记')
+        .replaceAll('憶', '忆');
+
+    final explicitOptOutPatterns = [
+      RegExp(
+        r'(不要|别|不用|无需|不必).{0,8}(写成|写进|写入|存入|保存|沉淀|长期|长久|持久|记住|记忆|记录).{0,12}(长期记忆|长记忆|记忆|pkm|知识库|长期|memory)',
+      ),
+      RegExp(r'(不要|别|不用|无需|不必)(记住|记下来|记录下来|记录|保存|沉淀)'),
+      RegExp(r'(不要记|别记|不用记|无需记|不必记)(这个|这条|这件事|本条|本次)?($|[，。！？,.!;；])'),
+      RegExp(r'(别|不要)写进(长期)?记忆'),
+      RegExp(r'(不要|别|不用|无需|不必).{0,8}(长期保存|长期沉淀|写长期记忆|写成长记忆)'),
+      RegExp(
+        r"(do\s*not|don't|dont|never).{0,30}(save|store|persist|remember|write).{0,30}(memory|pkm|knowledge|long[-\s]?term)",
+      ),
+    ];
+
+    final hasExplicitOptOut = explicitOptOutPatterns.any(
+      (pattern) => pattern.hasMatch(normalized),
+    );
+    if (hasExplicitOptOut) {
+      return PkmSkipDecision.skip(
+        reason: 'explicit_user_opt_out',
+        temporalScope:
+            _looksTemporary(normalized) ? 'temporary' : 'unspecified',
+        evidence: _shortEvidence(text),
+      );
+    }
+
+    final isTemporaryOnly = _looksTemporary(normalized) &&
+        RegExp(r'(状态|心情|碎事|临时事|试一下|测试|temporary|test)').hasMatch(normalized);
+    final hasPersistenceBoundary = RegExp(
+      r'(不要|别|不用|无需|不必).{0,8}(影响|改动|修改|覆盖|更新).{0,18}(项目|规则|安排|提醒|偏好|知识|记忆)',
+    ).hasMatch(normalized);
+    if (isTemporaryOnly && hasPersistenceBoundary) {
+      return PkmSkipDecision.skip(
+        reason: 'temporary_state',
+        temporalScope: 'temporary',
+        evidence: _shortEvidence(text),
+      );
+    }
+
+    return const PkmSkipDecision.persist();
+  }
+
+  static bool _looksTemporary(String normalized) {
+    return RegExp(
+      r'(只是|仅仅|就是|临时|暂时|今天状态|当下状态|试一下|测试|temporary|transient|justtesting)',
+    ).hasMatch(normalized);
+  }
+
+  static String _shortEvidence(String text) {
+    const maxLength = 120;
+    if (text.length <= maxLength) return text;
+    return '${text.substring(0, maxLength)}...';
+  }
+
   static Future<StatefulAgent> createAgent({
     required LLMClient client,
     required ModelConfig modelConfig,
@@ -271,7 +344,7 @@ class PkmAgent {
 
   /// Static method to run the agent with user message
   /// This method handles responseId caching and agent initialization internally
-  static Future<void> runWithContent({
+  static Future<PkmRunCompletionEvidence> runWithContent({
     required LLMClient client,
     required ModelConfig modelConfig,
     required String userId,
@@ -373,8 +446,11 @@ $instruction
       final factId = agent.state.metadata['factId'] as String?;
       if (factId == null) break;
 
-      final check = _checkPkmRunComplete(agent.state.history.messages, factId);
-      if (check.wrotePara && check.updatedInsight) break;
+      final check = inspectPkmRunCompletion(
+        messages: agent.state.history.messages,
+        factId: factId,
+      );
+      if (check.isComplete) break;
 
       final reminderParts = <String>[];
       if (!check.wrotePara) {
@@ -389,7 +465,11 @@ $instruction
       messagesToRun = [
         UserMessage([
           TextPart(
-              '<system-reminder>The following required steps are still incomplete. You must complete both before finishing:\n$reminderText</system-reminder>'),
+            '<system-reminder>The PKM task is incomplete. Complete one valid path before finishing:\n'
+            '1. Persistent organization path: complete all missing steps below.\n'
+            '$reminderText\n'
+            '2. Non-persistent skip path: if the user explicitly asked not to save, persist, write long-term memory, or modify existing knowledge, call skip_pkm_organization with the reason and evidence instead of writing P.A.R.A. files.</system-reminder>',
+          ),
         ])
       ];
     }
@@ -434,20 +514,37 @@ $instruction
     } catch (e) {
       _logger.warning('Failed to record session edits: $e');
     }
+
+    return inspectPkmRunCompletion(
+      messages: agent.state.history.messages,
+      factId: factId,
+    );
   }
 
   /// Returns whether history contains successful write/edit (with fact_id) and
-  /// successful update_timeline_card_insight.
-  static ({bool wrotePara, bool updatedInsight}) _checkPkmRunComplete(
-    List<LLMMessage> messages,
-    String factId,
-  ) {
+  /// successful update_timeline_card_insight, or a successful explicit skip.
+  static PkmRunCompletionEvidence inspectPkmRunCompletion({
+    required List<LLMMessage> messages,
+    required String factId,
+  }) {
     bool wrotePara = false;
     bool updatedInsight = false;
+    bool skippedPkm = false;
+    bool successfulPkmMutation = false;
+    String? skipReason;
+    String? skipTemporalScope;
+    String? skipEvidence;
+
     for (final msg in messages) {
       if (msg is! FunctionExecutionResultMessage) continue;
       for (final r in msg.results) {
         if (r.isError) continue;
+        if (r.name == 'Write' ||
+            r.name == 'Edit' ||
+            r.name == 'Move' ||
+            r.name == 'Remove') {
+          successfulPkmMutation = true;
+        }
         if ((r.name == 'Write' || r.name == 'Edit') &&
             r.arguments.contains(factId)) {
           wrotePara = true;
@@ -455,9 +552,35 @@ $instruction
         if (r.name == 'update_timeline_card_insight') {
           updatedInsight = true;
         }
+        if (r.name == 'skip_pkm_organization') {
+          skippedPkm = true;
+          final args = _decodeToolArguments(r.arguments);
+          skipReason = args['reason'] as String?;
+          skipTemporalScope = args['temporal_scope'] as String?;
+          skipEvidence = args['evidence'] as String?;
+        }
       }
     }
-    return (wrotePara: wrotePara, updatedInsight: updatedInsight);
+
+    return PkmRunCompletionEvidence(
+      wrotePara: wrotePara,
+      updatedInsight: updatedInsight,
+      skippedPkm: skippedPkm,
+      successfulPkmMutation: successfulPkmMutation,
+      skipReason: skipReason,
+      skipTemporalScope: skipTemporalScope,
+      skipEvidence: skipEvidence,
+    );
+  }
+
+  static Map<String, dynamic> _decodeToolArguments(String arguments) {
+    try {
+      final decoded = jsonDecode(arguments);
+      if (decoded is Map<String, dynamic>) return decoded;
+    } catch (_) {
+      // Some older tool histories may not store JSON arguments.
+    }
+    return const {};
   }
 
   static Future<String> _getPkmOverview(String userId) async {
@@ -493,4 +616,86 @@ $header
 $pkmStructure
 </system-reminder>''';
   }
+}
+
+class PkmSkipDecision {
+  const PkmSkipDecision._({
+    required this.shouldSkip,
+    this.reason,
+    this.temporalScope,
+    this.evidence,
+  });
+
+  final bool shouldSkip;
+  final String? reason;
+  final String? temporalScope;
+  final String? evidence;
+
+  const PkmSkipDecision.persist() : this._(shouldSkip: false);
+
+  const PkmSkipDecision.skip({
+    required String reason,
+    required String temporalScope,
+    required String evidence,
+  }) : this._(
+          shouldSkip: true,
+          reason: reason,
+          temporalScope: temporalScope,
+          evidence: evidence,
+        );
+
+  Map<String, dynamic> toJson() => {
+        'should_skip': shouldSkip,
+        if (reason != null) 'reason': reason,
+        if (temporalScope != null) 'temporal_scope': temporalScope,
+        if (evidence != null) 'evidence': evidence,
+      };
+}
+
+class PkmRunCompletionEvidence {
+  const PkmRunCompletionEvidence({
+    required this.wrotePara,
+    required this.updatedInsight,
+    required this.skippedPkm,
+    required this.successfulPkmMutation,
+    this.skipReason,
+    this.skipTemporalScope,
+    this.skipEvidence,
+  });
+
+  final bool wrotePara;
+  final bool updatedInsight;
+  final bool skippedPkm;
+  final bool successfulPkmMutation;
+  final String? skipReason;
+  final String? skipTemporalScope;
+  final String? skipEvidence;
+
+  bool get isComplete =>
+      (wrotePara && updatedInsight) || (skippedPkm && !successfulPkmMutation);
+
+  List<String> get missingRequirements {
+    if (isComplete) return const [];
+    if (skippedPkm && successfulPkmMutation) {
+      return const ['skip_without_successful_pkm_mutation'];
+    }
+
+    final missing = <String>[];
+    if (!wrotePara) missing.add('wrote_para_with_fact_id');
+    if (!updatedInsight) missing.add('updated_timeline_card_insight');
+    if (!skippedPkm) missing.add('skip_pkm_organization');
+    return missing;
+  }
+
+  Map<String, dynamic> toJson() => {
+        'is_complete': isComplete,
+        'wrote_para': wrotePara,
+        'updated_insight': updatedInsight,
+        'skipped_pkm': skippedPkm,
+        'successful_pkm_mutation': successfulPkmMutation,
+        'missing_requirements': missingRequirements,
+        if (skipReason != null) 'skip_reason': skipReason,
+        if (skipTemporalScope != null) 'skip_temporal_scope': skipTemporalScope,
+        if (skipEvidence != null) 'skip_evidence': skipEvidence,
+      };
 }

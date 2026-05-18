@@ -10,11 +10,12 @@ import 'package:uuid/uuid.dart';
 import 'package:memex/domain/models/agent_definitions.dart';
 import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/global_event_bus.dart';
+import 'package:memex/data/services/location_context_service.dart';
 import 'package:memex/domain/models/system_event.dart';
 import 'package:memex/utils/time_context.dart';
 
 final _logger = Logger('PostCommentEndpoint');
-final _fileSystemService = FileSystemService.instance;
+FileSystemService get _fileSystemService => FileSystemService.instance;
 
 /// Post comment (AI reply handled async)
 ///
@@ -33,7 +34,8 @@ Future<Map<String, dynamic>> postCommentEndpoint(
   String? replyToId,
 }) async {
   _logger.info(
-      'PostCommentEndpoint: postComment called: cardId=$cardId, userId=$userId');
+    'PostCommentEndpoint: postComment called: cardId=$cardId, userId=$userId',
+  );
 
   try {
     // Read card file
@@ -78,8 +80,9 @@ Future<Map<String, dynamic>> postCommentEndpoint(
           commentId: commentId,
           replyToId: replyToId,
           sourceId: commentId,
-          timestamp:
-              DateTime.fromMillisecondsSinceEpoch(commentTimestamp * 1000),
+          timestamp: DateTime.fromMillisecondsSinceEpoch(
+            commentTimestamp * 1000,
+          ),
           metadata: {
             if (replyToId != null && replyToId.isNotEmpty)
               'reply_to_id': replyToId,
@@ -97,8 +100,10 @@ Future<Map<String, dynamic>> postCommentEndpoint(
     try {
       final cardPath = _fileSystemService.getCardPath(userId, cardId);
       final workspacePath = _fileSystemService.getWorkspacePath(userId);
-      final relativePath =
-          _fileSystemService.toRelativePath(cardPath, rootPath: workspacePath);
+      final relativePath = _fileSystemService.toRelativePath(
+        cardPath,
+        rootPath: workspacePath,
+      );
       await _fileSystemService.eventLogService.logFileModified(
         userId: userId,
         filePath: relativePath,
@@ -113,6 +118,15 @@ Future<Map<String, dynamic>> postCommentEndpoint(
       // Event logging failure should not break comment posting
     }
 
+    String? locationContextReminder;
+    try {
+      final locationContext =
+          await LocationContextService.instance.getCurrentContext();
+      locationContextReminder = locationContext.toAgentSystemReminderContent();
+    } catch (e) {
+      _logger.warning('Failed to decorate comment with location context: $e');
+    }
+
     // Publish domain event and let event subscribers enqueue persistent tasks.
     await GlobalEventBus.instance.publish(
       userId: userId,
@@ -125,6 +139,7 @@ Future<Map<String, dynamic>> postCommentEndpoint(
           commentId: commentId,
           createdAtTs: commentTimestamp,
           replyToId: replyToId,
+          locationContextReminder: locationContextReminder,
         ),
       ),
     );
@@ -158,12 +173,14 @@ Future<void> processAICommentReply({
   String? userCommentId,
   String? characterId,
   String? rawInputContent,
+  String? locationContextReminder,
   bool sendEventBus = true,
   DateTime? inputDateTime,
   bool withMemoryManagement = false,
 }) async {
   _logger.info(
-      'PostCommentEndpoint: processAICommentReply called: cardId=$cardId, userId=$userId');
+    'PostCommentEndpoint: processAICommentReply called: cardId=$cardId, userId=$userId',
+  );
 
   try {
     // 1. Read card file
@@ -198,8 +215,10 @@ Future<void> processAICommentReply({
     // 3. Raw Input Content
     // If rawInputContent is null, we should try to extract it from file.
     // Always extract factContent to get assetAnalyses
-    final factContent =
-        await _fileSystemService.extractFactContentFromFile(userId, cardId);
+    final factContent = await _fileSystemService.extractFactContentFromFile(
+      userId,
+      cardId,
+    );
     String contentToUse = rawInputContent ?? '';
     if (contentToUse.isEmpty) {
       contentToUse = factContent?.content ?? '';
@@ -238,7 +257,8 @@ Future<void> processAICommentReply({
           DateTime.fromMillisecondsSinceEpoch(c.timestamp * 1000),
         );
         buf.writeln(
-            '- [$author] (id: ${c.id}, time: $commentTime)$replyInfo: ${c.content}');
+          '- [$author] (id: ${c.id}, time: $commentTime)$replyInfo: ${c.content}',
+        );
       }
       buf.writeln('</existing_comments>');
       existingCommentsContext = buf.toString();
@@ -256,8 +276,10 @@ Future<void> processAICommentReply({
         initialInsight: initialInsight,
         existingCommentsContext: existingCommentsContext,
         characterId: characterId,
+        forcedReplyToId: userCommentId,
         currentTime: inputDateTime ?? DateTime.now(),
         entryTime: entryDateTime,
+        locationContextReminder: locationContextReminder,
         withMemoryManagement: withMemoryManagement,
       );
     } catch (e) {
@@ -270,9 +292,9 @@ Future<void> processAICommentReply({
 
     // 8. EventBus Update
     if (sendEventBus) {
-      EventBusService.instance.emitEvent(CardDetailUpdatedMessage(
-        cardId: cardId,
-      ));
+      EventBusService.instance.emitEvent(
+        CardDetailUpdatedMessage(cardId: cardId),
+      );
     }
   } catch (e) {
     _logger.severe('Failed to process AI comment reply for card $cardId: $e');

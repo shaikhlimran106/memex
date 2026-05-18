@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:logging/logging.dart';
 import 'package:memex/agent/prompts.dart';
@@ -118,7 +120,7 @@ class TimelineCardSkill extends Skill {
             'address': {
               'type': 'string',
               'description':
-                  'Location information, set when raw input contains location-related information. Do not be too specific. Use the format "City · Specific Location" (e.g., Beijing · Chaoyang Park) if possible, otherwise just the specific location name is fine.'
+                  'Location information for where the recorded card actually happened. Use raw input named places only when they are the actual occurrence, check-in, visit, photo capture, or activity location. For tasks, todos, reminders, plans, wishes, future destinations, or places the user merely wants to go to, omit address even if a place is mentioned. If raw input describes an immediate present-time event, check-in, photo capture, or daily activity and current_location_context is available, use its location_summary or full_address_candidate as a conservative default. Do not use current_location_context for memories, plans, remote events, or when raw input names a conflicting place. Do not be too specific. Use the format "City · Specific Location" (e.g., Beijing · Chaoyang Park) if possible, otherwise just the specific location name is fine.'
             },
             'user_mark_address': {
               'type': 'string',
@@ -156,11 +158,11 @@ class TimelineCardSkill extends Skill {
         },
         executable: (String fact_id,
             String title,
-            List ui_configs,
+            dynamic ui_configs,
             String? address,
             String? user_mark_address,
             String? content_creation_date,
-            List? tags) async {
+            dynamic tags) async {
           final fileService = FileSystemService.instance;
 
           // Access context
@@ -181,13 +183,16 @@ class TimelineCardSkill extends Skill {
             if (title.isEmpty) {
               throw ArgumentError("title is required");
             }
+            final uiConfigsList =
+                _normalizeListArgument(ui_configs, 'ui_configs');
+
             // ui_configs: must be array, each element must be dict with valid template_id and data
-            if (ui_configs.isEmpty) {
+            if (uiConfigsList.isEmpty) {
               throw ArgumentError("ui_configs must be provided and non-empty.");
             }
             final List<Map<String, dynamic>> finalUiConfigs = [];
-            for (var i = 0; i < ui_configs.length; i++) {
-              final raw = ui_configs[i];
+            for (var i = 0; i < uiConfigsList.length; i++) {
+              final raw = uiConfigsList[i];
               if (raw is! Map) {
                 throw ArgumentError(
                     "ui_configs[$i] must be an object (Map), got ${raw.runtimeType}.");
@@ -245,8 +250,10 @@ class TimelineCardSkill extends Skill {
             final tagNames = <String>[];
             final newTagsToCreate = <Map<String, dynamic>>[];
 
-            if (tags != null) {
-              for (var tagObj in tags) {
+            final tagsList =
+                tags == null ? null : _normalizeListArgument(tags, 'tags');
+            if (tagsList != null) {
+              for (var tagObj in tagsList) {
                 final extractMap = Map<String, dynamic>.from(tagObj as Map);
                 var tagName = (extractMap['name'] as String?)?.trim() ?? '';
 
@@ -344,10 +351,8 @@ class TimelineCardSkill extends Skill {
             );
 
             if (updatedCardData == null) {
-              return AgentToolResult(
-                content: TextPart(
-                    "Card file not found for fact_id: $fact_id, maybe it has been deleted"),
-              );
+              throw StateError(
+                  "Card file not found for fact_id: $fact_id, maybe it has been deleted");
             }
 
             // Log event
@@ -379,12 +384,35 @@ class TimelineCardSkill extends Skill {
             );
           } catch (e, stack) {
             logger.severe("SaveTimelineCard failed", e, stack);
-            return AgentToolResult(
-              content: TextPart("Failed to save timeline card: $e"),
-            );
+            rethrow;
           }
         },
       ),
     ];
+  }
+
+  static List<dynamic> _normalizeListArgument(dynamic value, String name) {
+    if (value is List) {
+      return value;
+    }
+    if (value is String) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) {
+        throw ArgumentError('$name must be a non-empty array.');
+      }
+      try {
+        final decoded = jsonDecode(trimmed);
+        if (decoded is List) {
+          return decoded;
+        }
+        throw ArgumentError(
+            '$name must be an array or a JSON-encoded array string.');
+      } on FormatException catch (e) {
+        throw ArgumentError('$name must be valid JSON when passed as a string: '
+            '${e.message}');
+      }
+    }
+    throw ArgumentError(
+        '$name must be an array or a JSON-encoded array string, got ${value.runtimeType}.');
   }
 }

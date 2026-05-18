@@ -4,16 +4,12 @@ import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/api_exception.dart';
+import 'package:memex/utils/time_context.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
-import 'package:memex/domain/models/llm_config.dart';
-import 'package:memex/agent/persona_agent/persona_agent.dart';
-import 'package:dart_agent_core/dart_agent_core.dart';
-import 'package:uuid/uuid.dart';
 
 final _logger = getLogger('ChatEndpoint');
-final _fileSystemService = FileSystemService.instance;
-const _uuid = Uuid();
+FileSystemService get _fileSystemService => FileSystemService.instance;
 
 /// Get chat session list
 ///
@@ -116,8 +112,16 @@ Future<List<Map<String, dynamic>>> fetchChatSessionsEndpoint({
           'title': sessionData['title'] as String? ?? 'New chat',
           'created_at': sessionData['created_at'] as String? ??
               DateTime.now().toIso8601String(),
+          'created_at_local': sessionData['created_at_local'] as String? ??
+              formatLocalDateTimeWithZoneOrNull(sessionData['created_at']),
+          'created_at_unix_seconds': sessionData['created_at_unix_seconds'] ??
+              unixSecondsFromDateTimeOrNull(sessionData['created_at']),
           'updated_at': sessionData['updated_at'] as String? ??
               DateTime.now().toIso8601String(),
+          'updated_at_local': sessionData['updated_at_local'] as String? ??
+              formatLocalDateTimeWithZoneOrNull(sessionData['updated_at']),
+          'updated_at_unix_seconds': sessionData['updated_at_unix_seconds'] ??
+              unixSecondsFromDateTimeOrNull(sessionData['updated_at']),
           'message_count': messages.length,
           'last_message_preview': lastMessagePreview,
           'is_quick_query': sessionData['is_quick_query'] == true,
@@ -148,7 +152,8 @@ Future<List<Map<String, dynamic>>> fetchChatSessionsEndpoint({
 /// Returns:
 ///   Map<String, dynamic>: session detail (session_id, agent_name, title, created_at, updated_at, messages)
 Future<Map<String, dynamic>> fetchChatSessionDetailEndpoint(
-    String sessionId) async {
+  String sessionId,
+) async {
   _logger.info('fetchChatSessionDetail called: sessionId=$sessionId');
 
   try {
@@ -178,8 +183,16 @@ Future<Map<String, dynamic>> fetchChatSessionDetailEndpoint(
       'title': sessionData['title'] as String? ?? 'New chat',
       'created_at': sessionData['created_at'] as String? ??
           DateTime.now().toIso8601String(),
+      'created_at_local': sessionData['created_at_local'] as String? ??
+          formatLocalDateTimeWithZoneOrNull(sessionData['created_at']),
+      'created_at_unix_seconds': sessionData['created_at_unix_seconds'] ??
+          unixSecondsFromDateTimeOrNull(sessionData['created_at']),
       'updated_at': sessionData['updated_at'] as String? ??
           DateTime.now().toIso8601String(),
+      'updated_at_local': sessionData['updated_at_local'] as String? ??
+          formatLocalDateTimeWithZoneOrNull(sessionData['updated_at']),
+      'updated_at_unix_seconds': sessionData['updated_at_unix_seconds'] ??
+          unixSecondsFromDateTimeOrNull(sessionData['updated_at']),
       'messages': messages,
       if (sessionData['total_usage'] != null)
         'total_usage': sessionData['total_usage'],
@@ -236,89 +249,6 @@ File _getSessionFilePath(String userId, String sessionId) {
   return File(p.join(sessionsPath, '$sessionId.yaml'));
 }
 
-Future<String> _createSession(
-  String userId,
-  String? agentName,
-  List<Map<String, dynamic>> initialContent,
-) async {
-  // Generate sessionId as agentName_uuid format
-  final uuidStr = _uuid.v4();
-  final sessionId = agentName != null && agentName.isNotEmpty
-      ? '${agentName}_$uuidStr'
-      : uuidStr;
-  final now = DateTime.now();
-
-  // Generate title from first message text
-  String? title;
-  for (final item in initialContent) {
-    if (item['type'] == 'text' && item['text'] != null) {
-      final text = item['text'] as String;
-      title = text.length > 50 ? text.substring(0, 50) : text;
-      break;
-    }
-  }
-
-  final sessionData = {
-    'session_id': sessionId,
-    'agent_name': agentName,
-    'title': title ?? 'New chat',
-    'created_at': now.toIso8601String(),
-    'updated_at': now.toIso8601String(),
-    'messages': <dynamic>[],
-  };
-
-  final sessionFile = _getSessionFilePath(userId, sessionId);
-  final parentDir = sessionFile.parent;
-  await parentDir.create(recursive: true);
-
-  await _fileSystemService.writeYamlFile(sessionFile.path, sessionData);
-  _logger.info('Created chat session $sessionId for user $userId');
-
-  return sessionId;
-}
-
-Future<void> _addMessageToSession(
-  String userId,
-  String sessionId,
-  String role,
-  List<Map<String, dynamic>> content,
-) async {
-  final sessionFile = _getSessionFilePath(userId, sessionId);
-  if (!await sessionFile.exists()) {
-    throw ApiException('Session not found: $sessionId');
-  }
-
-  final fileContent = await sessionFile.readAsString();
-  final doc = loadYaml(fileContent);
-  final sessionData = jsonDecode(jsonEncode(doc)) as Map<String, dynamic>;
-
-  final messageDict = {
-    'role': role,
-    'content': content,
-    'timestamp': DateTime.now().toIso8601String(),
-  };
-
-  final messages = (sessionData['messages'] as List<dynamic>? ?? [])
-    ..add(messageDict);
-  sessionData['messages'] = messages;
-  sessionData['updated_at'] = DateTime.now().toIso8601String();
-
-  // If this is the first user message, update title
-  if ((sessionData['title'] as String? ?? '') == 'New chat' && role == 'user') {
-    for (final item in content) {
-      if (item['type'] == 'text' && item['text'] != null) {
-        final text = item['text'] as String;
-        final title = text.length > 50 ? text.substring(0, 50) : text;
-        sessionData['title'] = title;
-        break;
-      }
-    }
-  }
-
-  await _fileSystemService.writeYamlFile(sessionFile.path, sessionData);
-  _logger.info('Added message to session $sessionId');
-}
-
 Future<List<Map<String, dynamic>>> _getSessionMessages(
   String userId,
   String sessionId,
@@ -335,8 +265,20 @@ Future<List<Map<String, dynamic>>> _getSessionMessages(
   final messages = sessionData['messages'] as List<dynamic>? ?? [];
   return messages.map((msg) {
     if (msg is Map<String, dynamic>) {
-      return msg;
+      return _withLocalTimestampFallback(msg);
     }
     return <String, dynamic>{};
   }).toList();
+}
+
+Map<String, dynamic> _withLocalTimestampFallback(Map<String, dynamic> msg) {
+  final result = Map<String, dynamic>.from(msg);
+  if (result['local_time'] == null) {
+    final parsed = tryParseDateTime(result['timestamp']);
+    if (parsed != null) {
+      result['local_time'] = formatLocalDateTimeWithZone(parsed);
+      result['unix_seconds'] ??= unixSecondsFromDateTime(parsed);
+    }
+  }
+  return result;
 }

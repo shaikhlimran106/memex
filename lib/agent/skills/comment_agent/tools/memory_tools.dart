@@ -37,7 +37,7 @@ Usage:
       },
       executable: (List<dynamic>? labels) async {
         final characterId = _targetId;
-        if (characterId == null) return 'Error: No default character set.';
+        if (characterId == null) throw StateError('No default character set.');
         return CharacterMemoryService.instance.readMemoryEntries(
           userId: userId,
           characterId: characterId,
@@ -88,7 +88,7 @@ Usage:
         bool? replace_all,
       ]) async {
         final characterId = _targetId;
-        if (characterId == null) return 'Error: No default character set.';
+        if (characterId == null) throw StateError('No default character set.');
         return CharacterMemoryService.instance.editMemoryEntry(
           userId: userId,
           characterId: characterId,
@@ -134,7 +134,7 @@ Usage:
         num? salience,
       ]) async {
         final characterId = _targetId;
-        if (characterId == null) return 'Error: No default character set.';
+        if (characterId == null) throw StateError('No default character set.');
         return CharacterMemoryService.instance.writeMemoryEntry(
           userId: userId,
           characterId: characterId,
@@ -162,7 +162,7 @@ Usage:
       },
       executable: (String label) async {
         final characterId = _targetId;
-        if (characterId == null) return 'Error: No default character set.';
+        if (characterId == null) throw StateError('No default character set.');
         return CharacterMemoryService.instance.removeMemoryEntry(
           userId: userId,
           characterId: characterId,
@@ -209,7 +209,7 @@ Use this when compressed checkpoints or memory entries are too vague and you nee
         String? thread_id,
       ]) async {
         final characterId = _targetId;
-        if (characterId == null) return 'Error: No default character set.';
+        if (characterId == null) throw StateError('No default character set.');
         CharacterMemoryScene? sceneFilter;
         if (scene != null && scene.trim().isNotEmpty) {
           for (final candidate in CharacterMemoryScene.values) {
@@ -219,7 +219,7 @@ Use this when compressed checkpoints or memory entries are too vague and you nee
             }
           }
           if (sceneFilter == null) {
-            return 'Error: scene must be "chat" or "comment".';
+            throw ArgumentError('scene must be "chat" or "comment".');
           }
         }
         return CharacterMemoryService.instance.searchTimelineEvents(

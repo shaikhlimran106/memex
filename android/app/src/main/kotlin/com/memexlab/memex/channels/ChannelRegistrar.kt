@@ -18,5 +18,8 @@ object ChannelRegistrar {
         WebViewChannelHandler.register(flutterEngine, activity)
         AudioConverterChannelHandler.register(flutterEngine, activity)
         SystemActionsChannelHandler.register(flutterEngine, activity)
+        AppUpdateChannelHandler.register(flutterEngine, activity)
+        BackupStorageChannelHandler.register(flutterEngine, activity)
+        BackupImportChannelHandler.register(flutterEngine, activity)
     }
 }

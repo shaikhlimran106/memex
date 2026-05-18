@@ -7,7 +7,7 @@ import 'package:path/path.dart' as p;
 
 // Helper to access services
 final _fileOpService = FileOperationService.instance;
-final _fileSystem = FileSystemService.instance;
+FileSystemService get _fileSystem => FileSystemService.instance;
 
 class FileToolFactory {
   final FilePermissionManager permissionManager;
@@ -561,7 +561,7 @@ class FileToolFactory {
           type: type,
           headLimit: head_limit,
           multiline: multiline ?? false,
-          filter: (p) => permissionManager.allowsRead(p),
+          accessScope: permissionManager.buildSearchAccessScope(searchPath),
         );
       },
     );

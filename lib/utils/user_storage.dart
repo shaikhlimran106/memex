@@ -9,6 +9,7 @@ import 'package:logging/logging.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/domain/models/llm_config.dart';
 import 'package:memex/domain/models/agent_config.dart';
+import 'package:memex/domain/models/location_context_config.dart';
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:memex/domain/models/agent_definitions.dart';
 import '../l10n/app_localizations_ext.dart';
@@ -65,11 +66,22 @@ class UserStorage {
   static const String _keyUserId = 'user_id';
   static const String _keyPhotoSuggestionCache = 'photo_suggestion_cache';
   static const String _keyUserAvatar = 'user_avatar';
+  static const String _keyLocationContextConfig = 'location_context_config';
+  static const String _keyGeocodingCache = 'geocoding_cache';
 
   /// Per-user workspace storage preference keys.
   static const String _keyStorageLocationPrefix = 'memex_storage_location_';
   static const String _keyCustomDataRootPathPrefix =
       'memex_custom_data_root_path_';
+  static const String _keyAutoBackupEnabledPrefix =
+      'memex_auto_backup_enabled_';
+  static const String _keyLastAutoBackupAtPrefix = 'memex_last_auto_backup_at_';
+  static const String _keyLastAutoBackupFingerprintPrefix =
+      'memex_last_auto_backup_fingerprint_';
+  static const String _keyAndroidBackupTreeUriPrefix =
+      'memex_android_backup_tree_uri_';
+  static const String _keyAndroidBackupTreeNamePrefix =
+      'memex_android_backup_tree_name_';
 
   static final Logger _logger = getLogger('UserStorage');
   static const MethodChannel _storageChannel =
@@ -401,6 +413,57 @@ class UserStorage {
       await prefs.remove(_keyUseLocalSpeechToText);
     } catch (e) {
       throw Exception('Failed to reset speech preference: $e');
+    }
+  }
+
+  static Future<LocationContextConfig> getLocationContextConfig() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_keyLocationContextConfig);
+      if (jsonString == null || jsonString.isEmpty) {
+        return const LocationContextConfig();
+      }
+      return LocationContextConfig.fromJson(
+        jsonDecode(jsonString) as Map<String, dynamic>,
+      );
+    } catch (e) {
+      _logger.warning('Failed to load location context config: $e');
+      return const LocationContextConfig();
+    }
+  }
+
+  static Future<void> saveLocationContextConfig(
+    LocationContextConfig config,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _keyLocationContextConfig,
+        jsonEncode(config.toJson()),
+      );
+    } catch (e) {
+      throw Exception('Failed to save location context config: $e');
+    }
+  }
+
+  static Future<Map<String, dynamic>> getGeocodingCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_keyGeocodingCache);
+      if (jsonString == null || jsonString.isEmpty) return {};
+      return jsonDecode(jsonString) as Map<String, dynamic>;
+    } catch (e) {
+      _logger.warning('Failed to load geocoding cache: $e');
+      return {};
+    }
+  }
+
+  static Future<void> saveGeocodingCache(Map<String, dynamic> cache) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyGeocodingCache, jsonEncode(cache));
+    } catch (e) {
+      _logger.warning('Failed to save geocoding cache: $e');
     }
   }
 
@@ -809,6 +872,68 @@ class UserStorage {
         _keyStorageLocationPrefix + userId, StorageLocation.icloud.index);
   }
 
+  /// Whether automatic local snapshots are enabled for [userId].
+  static Future<bool> isAutoBackupEnabled(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyAutoBackupEnabledPrefix + userId) ?? false;
+  }
+
+  static Future<void> setAutoBackupEnabled(
+      String userId, bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyAutoBackupEnabledPrefix + userId, enabled);
+  }
+
+  static Future<DateTime?> getLastAutoBackupAt(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString(_keyLastAutoBackupAtPrefix + userId);
+    if (value == null || value.isEmpty) return null;
+    return DateTime.tryParse(value);
+  }
+
+  static Future<String?> getLastAutoBackupFingerprint(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyLastAutoBackupFingerprintPrefix + userId);
+  }
+
+  static Future<void> setLastAutoBackupMetadata(
+    String userId, {
+    required DateTime createdAt,
+    required String fingerprint,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        _keyLastAutoBackupAtPrefix + userId, createdAt.toIso8601String());
+    await prefs.setString(
+        _keyLastAutoBackupFingerprintPrefix + userId, fingerprint);
+  }
+
+  static Future<String?> getAndroidBackupTreeUri(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyAndroidBackupTreeUriPrefix + userId);
+  }
+
+  static Future<String?> getAndroidBackupTreeName(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyAndroidBackupTreeNamePrefix + userId);
+  }
+
+  static Future<void> setAndroidBackupTree({
+    required String userId,
+    required String treeUri,
+    required String displayName,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyAndroidBackupTreeUriPrefix + userId, treeUri);
+    await prefs.setString(_keyAndroidBackupTreeNamePrefix + userId, displayName);
+  }
+
+  static Future<void> clearAndroidBackupTree(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyAndroidBackupTreeUriPrefix + userId);
+    await prefs.remove(_keyAndroidBackupTreeNamePrefix + userId);
+  }
+
   /// Whether iCloud storage is available (iOS with iCloud capability).
   static Future<bool> isICloudAvailable() async {
     if (!Platform.isIOS) return false;
@@ -818,6 +943,19 @@ class UserStorage {
     } catch (_) {
       return false;
     }
+  }
+
+  /// Resolve the user-visible iCloud Documents folder, if available.
+  static Future<String?> resolveICloudDocumentsPath() async {
+    if (!Platform.isIOS) return null;
+    final path = await _getICloudContainerPath();
+    if (path == null || path.isEmpty) return null;
+    final documentsPath = '$path/Documents';
+    final dir = Directory(documentsPath);
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    return documentsPath;
   }
 
   static Future<String?> _getICloudContainerPath() async {

@@ -56,6 +56,12 @@
   "clearData": "Clear data",
   "confirmClearDataMessage": "Clear data?",
   "confirmClearDataKeepFactsMessage": "Only the Facts directory (raw input) will be kept. All other workspace directories (Cards, Discoveries, KnowledgeInsights, PKM, _System, etc.) will be deleted.\n\nThis action cannot be undone!",
+  "clearFailedAgentContexts": "Clear failed conversation context",
+  "confirmClearFailedAgentContextsMessage": "Clear the saved conversation context for Insight and Schedule agents? This is useful after changing models when previous agent messages are no longer compatible. Facts, cards, knowledge, memories, and model settings will not be deleted.",
+  "failedAgentContextsCleared": "Cleared {count} saved conversation context(s)",
+  "@failedAgentContextsCleared": { "placeholders": { "count": {} } },
+  "clearFailedAgentContextsFailed": "Failed to clear conversation context: {error}",
+  "@clearFailedAgentContextsFailed": { "placeholders": { "error": {} } },
   "dataClearedSuccess": "Data cleared successfully",
   "@clearDataFailed": {
     "placeholders": {
@@ -81,6 +87,7 @@
   "autoRefresh": "Auto refresh",
   "lineCount": "Line count: ",
   "all": "All",
+  "schedule": "Schedule",
   "@loadStatsFailed": {
     "placeholders": {
       "error": {}
@@ -89,10 +96,43 @@
   "loadStatsFailed": "Failed to load stats: {error}",
   "overview": "Overview",
   "daily": "Daily",
+  "modelStatsByAgent": "By agent",
   "detail": "Detail",
   "date": "Date",
+  "agent": "Agent",
   "noData": "No data",
   "totalCalls": "Total calls",
+  "calls": "Calls",
+  "@callsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "callsCount": "{count} calls",
+  "selectDateRange": "Select date range",
+  "totalTokens": "Total tokens",
+  "cacheRate": "Cache rate",
+  "promptTokens": "Prompt tokens",
+  "completionTokens": "Completion tokens",
+  "cachedTokens": "Cached tokens",
+  "thoughtTokens": "Thought tokens",
+  "prompt": "Prompt",
+  "completion": "Completion",
+  "cached": "Cached",
+  "thought": "Thought",
+  "model": "Model",
+  "scene": "Scene",
+  "sceneId": "Scene ID",
+  "tokenUsage": "Token usage",
+  "handler": "Handler",
+  "modelBreakdown": "Model breakdown",
+  "callDetails": "Call details",
+  "@recordDetailsTitle": {
+    "placeholders": {
+      "scene": {}
+    }
+  },
+  "recordDetailsTitle": "Record details: {scene}",
   "@saveLlmConfigFailed": {
     "placeholders": {
       "error": {}
@@ -464,6 +504,48 @@
   "knowledgeInsight": "Knowledge insight",
   "completeSort": "Complete sort",
   "noKnowledgeInsight": "No knowledge insight",
+  "@insightProcessingBacklogMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "insightProcessingBacklogMessage": "{count} background tasks are still processing. Insights may update after they finish.",
+  "insightUnavailableMessage": "This insight is still being generated or was updated. Refresh insights and try again later.",
+  "scheduleAggregation": "Schedule aggregation",
+  "noScheduleAggregation": "No schedule aggregation",
+  "scheduleAggregationEmptyHint": "Tap Update to organize schedules and todos from real temporal cards.",
+  "scheduleAggregationDirtyReason": "New schedule-related content is available. Tap Update to reorganize.",
+  "scheduleAggregationLoadFailed": "Failed to load schedule data",
+  "scheduleAggregationRefreshFailed": "Failed to refresh schedule data",
+  "scheduleTaskUpdateFailed": "Failed to update task",
+  "scheduleFeatured": "Featured",
+  "scheduleThisWeek": "This week",
+  "scheduleDone": "Done",
+  "scheduleTbd": "TBD",
+  "scheduleWeekOverview": "This week",
+  "scheduleImportant": "Important",
+  "scheduleBriefingTitle": "Schedule briefing",
+  "scheduleBriefingNeedsUpdate": "Needs update",
+  "scheduleBriefingOpen": "Open",
+  "scheduleBriefingNoData": "No schedule briefing yet",
+  "@scheduleBriefingUpdated": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "scheduleBriefingUpdated": "Updated {time}",
+  "@scheduleBriefingDoneCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "scheduleBriefingDoneCount": "{count} done",
+  "@scheduleBriefingConflictCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "scheduleBriefingConflictCount": "{count} conflicts",
   "updating": "Updating...",
   "update": "Update",
   "enabled": "Enabled",
@@ -564,6 +646,7 @@
   "relatedMemories": "Related memories",
   "viewMore": "View more",
   "relatedRecords": "Related records",
+  "reply": "Reply",
   "replySent": "Reply sent",
   "insightTemplateGalleryTitle": "Insight card templates",
   "timelineTemplateGalleryTitle": "Timeline card templates",
@@ -781,6 +864,80 @@
   },
   "restoreFailed": "Restore failed: {error}",
   "invalidBackupFile": "Invalid backup file. Please select a .memex file.",
+  "automaticBackup": "Automatic Backup",
+  "autoBackupDescription": "When enabled, Memex creates at most one local snapshot per day after startup or when returning to the foreground.",
+  "backupSensitiveSettingsHint": "Backups include settings and model provider keys. Keep backup files somewhere you trust.",
+  "backupLocation": "Location",
+  "backupLocationDetails": "Location details",
+  "backupLocationSummary": "Shown in app",
+  "backupLocationFullPath": "Full path",
+  "backupLocationUri": "Folder access URI",
+  "copyBackupLocationPath": "Copy path",
+  "backupLocationCopied": "Backup location copied",
+  "androidBackupLocationSelected": "Selected folder: {folderName}",
+  "@androidBackupLocationSelected": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "iosICloudBackupLocation": "iCloud Drive > Memex > Backups",
+  "iosAppDocumentsBackupLocation": "Files > On My iPhone > Memex > Backups",
+  "autoBackupStatus": "Status",
+  "noAutoBackupYet": "No automatic backup yet",
+  "@lastBackupAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "lastBackupAt": "Last backup: {time}",
+  "createSnapshotNow": "Back up now",
+  "backupLocationMenu": "Change location",
+  "defaultBackupLocation": "Default backup folder",
+  "defaultBackupLocationAndroidDesc": "Use Memex's app-specific external files folder. No storage permission needed.",
+  "chooseBackupLocation": "Choose backup folder",
+  "chooseBackupLocationAndroidDesc": "Pick a folder with Android's system picker and grant Memex persistent access.",
+  "storedBackups": "Stored Backups",
+  "noStoredBackups": "Automatic backups will appear here after the first snapshot.",
+  "refresh": "Refresh",
+  "restoreThisBackup": "Restore this backup",
+  "deleteThisBackup": "Delete this backup",
+  "confirmDeleteBackup": "Delete backup?",
+  "@confirmDeleteBackupMessage": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "confirmDeleteBackupMessage": "Delete {fileName}? This removes the stored backup file and cannot be undone.",
+  "@backupDeleted": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupDeleted": "Backup deleted: {fileName}",
+  "@backupDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "backupDeleteFailed": "Could not delete backup: {error}",
+  "creatingSafetySnapshot": "Creating safety snapshot...",
+  "@autoBackupCreated": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "autoBackupCreated": "Snapshot created: {fileName}",
+  "@backupLocationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "backupLocationFailed": "Could not update backup location: {error}",
+  "backupImportCreatedAt": "Created",
+  "backupImportSourceVersion": "Source version",
+  "backupImportFlavor": "Build",
+  "backupLegacyFormat": "Legacy backup (no manifest)",
+  "restoreInProgress": "Restoring backup...",
   "dataStorage": "Data Storage",
   "dataStorageDescription": "Choose where Memex stores your data. Custom folder or iCloud keeps data when you reinstall the app.",
   "dataStorageDescriptionAndroid": "Choose a custom folder to store your workspace. Data is kept when you reinstall the app.",
@@ -991,6 +1148,7 @@
   "personaChatInputHint": "Type a message...",
   "personaChatEmptyHint": "Send the first message to begin this companion chat",
   "today": "Today",
+  "tomorrow": "Tomorrow",
   "yesterday": "Yesterday",
 
   "showInsightTextTitle": "Show Memex insight comment",
@@ -1012,6 +1170,55 @@
   "cdnSignalsInsight": "New insight generated",
   "cdnSignalsBoth": "New reply and insight",
   "untitledCard": "Untitled card",
+
+  "locationContextTitle": "Location Context",
+  "locationContextDescription": "Current city and neighborhood context for agent chat",
+  "locationContextAttachTitle": "Attach current location to chat",
+  "locationContextAttachDesc": "Uses device GPS and reverse geocoding to provide city, district, and neighborhood context to the agent.",
+  "reverseGeocodingProvider": "Reverse geocoding provider",
+  "amapProviderName": "Amap",
+  "amapApiKey": "Amap API Key",
+  "amapGcj02Note": "Amap uses GCJ-02 coordinates. Device GPS is converted before reverse geocoding.",
+  "contextGranularity": "Context granularity",
+  "granularityCity": "City",
+  "granularityDistrict": "District",
+  "granularityNeighborhood": "Neighborhood",
+  "granularityStreet": "Street",
+  "granularityFullAddress": "Full address candidate",
+  "locationFreshness": "Location freshness",
+  "minutesShort": "{minutes} minutes",
+  "@minutesShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "oneHour": "1 hour",
+  "testCurrentLocation": "Test current location",
+  "locationUnavailable": "location unavailable",
+  "locationTestFailed": "Failed: {error}",
+  "@locationTestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "locationDebugGps": "GPS",
+  "locationDebugReverseGeocode": "Reverse geocode",
+  "locationDebugProvider": "Provider",
+  "locationDebugAgentContext": "Agent context",
+  "locationDebugSource": "Source",
+  "locationDebugAddressSummary": "Address summary",
+  "locationDebugFullAddress": "Full address",
+  "locationDebugCoordinates": "Coordinates",
+  "locationDebugAccuracy": "Accuracy",
+  "locationDebugReason": "Reason",
+  "locationDebugOk": "OK",
+  "locationDebugUnavailable": "unavailable",
+  "locationDebugInjected": "injected",
+  "locationDebugNotInjected": "not injected",
 
   "settingsSearchPlaceholder": "Search settings...",
   "settingsSearchEmpty": "No matching settings found",
@@ -1105,5 +1312,51 @@
   "setPrimaryCompanionSubtitle": "Automatically set as your primary companion after import",
   "confirmImport": "Confirm Import",
   "chatBackground": "Chat Background",
-  "chooseChatBackgroundImage": "Choose background image"
+  "chooseChatBackgroundImage": "Choose background image",
+  "earlyUpdateSettingsTitle": "Early access updates",
+  "earlyUpdateSettingsDesc": "Check GitHub pre-releases for the matching Early APK, download it, and hand it to Android's installer.",
+  "earlyUpdateUnsupported": "Early updates are only available in the Android Early build.",
+  "earlyUpdateAutoCheckTitle": "Auto check for updates",
+  "earlyUpdateAutoCheckDesc": "Check at startup at most once every 12 hours.",
+  "earlyUpdateWifiOnlyTitle": "Download on Wi-Fi only",
+  "earlyUpdateWifiOnlyDesc": "Skip update downloads while using mobile data.",
+  "earlyUpdateAutoInstallTitle": "Auto download and install",
+  "earlyUpdateAutoInstallDesc": "When a new build is found, download it and open the Android installer automatically.",
+  "earlyUpdateCheckNow": "Check now",
+  "earlyUpdateChecking": "Checking GitHub pre-releases...",
+  "earlyUpdateSkippedMobile": "Skipped because Wi-Fi-only downloads are enabled.",
+  "earlyUpdateNoUpdate": "You are already on the latest Early build.",
+  "@earlyUpdateFound": {
+    "placeholders": {
+      "version": {},
+      "build": {}
+    }
+  },
+  "earlyUpdateFound": "Early build {version}+{build} is available.",
+  "earlyUpdateDownloadAndInstall": "Download and install",
+  "@earlyUpdateDownloadingPercent": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "earlyUpdateDownloadingPercent": "Downloading update: {percent}%",
+  "earlyUpdateInstallDownloadedPackage": "Install downloaded package",
+  "earlyUpdateClearDownloadedPackage": "Clear downloaded package",
+  "earlyUpdateClearDownloadedPackageSuccess": "Downloaded update package cleared.",
+  "earlyUpdateInstallStarted": "Android installer opened.",
+  "earlyUpdateInstallPermissionRequired": "Allow Memex to install unknown apps, then tap download and install again.",
+  "@earlyUpdateLastChecked": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "earlyUpdateLastChecked": "Last checked: {time}",
+  "@earlyUpdateCheckFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "earlyUpdateCheckFailed": "Update check failed: {error}",
+  "earlyUpdateDialogTitle": "Early update available",
+  "earlyUpdateReleaseNotes": "Release notes"
 }

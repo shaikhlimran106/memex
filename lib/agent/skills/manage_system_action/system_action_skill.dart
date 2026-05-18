@@ -108,9 +108,9 @@ The current time is provided dynamically in your agent's state/reminders. Always
               content: TextPart(
                   "Successfully created calendar event '$title' (Action ID: $actionId)."),
             );
-          } catch (e) {
-            _logger.severe("Failed to create_calendar_event: $e");
-            return AgentToolResult(content: TextPart("Error: $e"));
+          } catch (e, st) {
+            _logger.severe("Failed to create_calendar_event", e, st);
+            rethrow;
           }
         },
       ),
@@ -163,9 +163,9 @@ The current time is provided dynamically in your agent's state/reminders. Always
               content: TextPart(
                   "Successfully created reminder '$title' (Action ID: $actionId)."),
             );
-          } catch (e) {
-            _logger.severe("Failed to create_reminder: $e");
-            return AgentToolResult(content: TextPart("Error: $e"));
+          } catch (e, st) {
+            _logger.severe("Failed to create_reminder", e, st);
+            rethrow;
           }
         },
       ),
@@ -190,9 +190,9 @@ The current time is provided dynamically in your agent's state/reminders. Always
                   "- ID: ${a.id} | Type: ${a.actionType} | Status: ${a.status} | Data: ${a.actionData}");
             }
             return AgentToolResult(content: TextPart(buffer.toString()));
-          } catch (e) {
-            _logger.severe("Failed to get_recent_actions: $e");
-            return AgentToolResult(content: TextPart("Error: $e"));
+          } catch (e, st) {
+            _logger.severe("Failed to get_recent_actions", e, st);
+            rethrow;
           }
         },
       ),
@@ -220,14 +220,11 @@ The current time is provided dynamically in your agent's state/reminders. Always
                 content: TextPart(
                     "Successfully cancelled action with ID: $action_id"),
               );
-            } else {
-              return AgentToolResult(
-                content: TextPart("Action with ID $action_id not found."),
-              );
             }
-          } catch (e) {
-            _logger.severe("Failed to cancel_action: $e");
-            return AgentToolResult(content: TextPart("Error: $e"));
+            throw StateError("Action with ID $action_id not found.");
+          } catch (e, st) {
+            _logger.severe("Failed to cancel_action", e, st);
+            rethrow;
           }
         },
       ),

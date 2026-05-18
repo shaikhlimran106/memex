@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
+import 'package:memex/domain/models/system_card_constants.dart';
 import 'package:memex/domain/models/timeline_card_model.dart';
 import 'package:memex/domain/models/tag_model.dart';
 import 'package:memex/domain/models/card_detail_model.dart';
@@ -9,12 +10,67 @@ import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/card_attachment_service.dart';
 import 'package:memex/ui/card_attachments/card_attachment_data.dart';
+import 'package:memex/ui/timeline/models/schedule_briefing_merge.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/result.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/utils/command.dart';
 
 enum TimelineViewMode { timeline, insight }
+
+/// Upserts a card into a timeline list by stable card id.
+///
+/// New local submissions and card-added events can describe the same fact, so
+/// the in-memory list must be idempotent even when multiple sources race.
+@visibleForTesting
+List<TimelineCardModel> upsertTimelineCardById(
+  List<TimelineCardModel> cards,
+  TimelineCardModel card,
+) {
+  return [card, ...cards.where((existing) => existing.id != card.id)];
+}
+
+/// Replaces all existing copies of [updatedCard] while preserving the first
+/// loaded position. If the card is not currently visible, the list is unchanged.
+@visibleForTesting
+List<TimelineCardModel> replaceTimelineCardById(
+  List<TimelineCardModel> cards,
+  TimelineCardModel updatedCard,
+) {
+  var inserted = false;
+  var found = false;
+  final next = <TimelineCardModel>[];
+
+  for (final card in cards) {
+    if (card.id != updatedCard.id) {
+      next.add(card);
+      continue;
+    }
+
+    found = true;
+    if (!inserted) {
+      next.add(updatedCard);
+      inserted = true;
+    }
+  }
+
+  return found ? next : cards;
+}
+
+/// Keeps the first occurrence of each card id, preserving timeline order.
+@visibleForTesting
+List<TimelineCardModel> dedupeTimelineCardsById(List<TimelineCardModel> cards) {
+  final seen = <String>{};
+  final next = <TimelineCardModel>[];
+
+  for (final card in cards) {
+    if (seen.add(card.id)) {
+      next.add(card);
+    }
+  }
+
+  return next;
+}
 
 /// ViewModel for the Timeline page. Holds cards, tags, loading state, and
 /// delegates data access to [MemexRouter]. Call [init] once after creation.
@@ -61,8 +117,12 @@ class TimelineViewModel extends ChangeNotifier {
     return cardsResult.when(
       onOk: (list) async {
         _currentPage = 1;
-        cards = list;
-        hasMore = list.length >= pageLimit;
+        final loadedHasMore = list.length >= pageLimit;
+        cards = await _withScheduleBriefingCard(
+          list,
+          hasMoreAfterList: loadedHasMore,
+        );
+        hasMore = loadedHasMore;
         errorMessage = null;
         _startPollingIfNeeded();
         // Load attachments for all cards in parallel
@@ -71,10 +131,10 @@ class TimelineViewModel extends ChangeNotifier {
         notifyListeners();
         return const Ok.v();
       },
-      onError: (e, st) {
+      onError: (error, stackTrace) {
         errorMessage = UserStorage.l10n.timelineLoadFailedRetry;
         notifyListeners();
-        return Error<void>(e, st);
+        return Error<void>(error, stackTrace);
       },
     );
   }
@@ -93,6 +153,14 @@ class TimelineViewModel extends ChangeNotifier {
     eventBus.addHandler(EventBusMessageType.cardAdded, _handleCardAdded);
     eventBus.addHandler(
         EventBusMessageType.attachmentsChanged, _handleAttachmentsChanged);
+    eventBus.addHandler(
+      EventBusMessageType.scheduleAggregationDirty,
+      _handleScheduleBriefingChanged,
+    );
+    eventBus.addHandler(
+      EventBusMessageType.scheduleAggregationUpdated,
+      _handleScheduleBriefingChanged,
+    );
     eventBus.connect();
   }
 
@@ -186,6 +254,10 @@ class TimelineViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _handleScheduleBriefingChanged(EventBusMessage message) {
+    unawaited(_refreshScheduleBriefingCard());
+  }
+
   void _startPollingIfNeeded() {
     final hasProcessing = cards.any((c) => c.status == 'processing');
     if (hasProcessing && _pollingTimer == null) {
@@ -237,7 +309,7 @@ class TimelineViewModel extends ChangeNotifier {
   }
 
   void addCard(TimelineCardModel card) {
-    cards.insert(0, card);
+    cards = upsertTimelineCardById(cards, card);
     isSubmitting = false;
     if (card.status == 'processing') {
       _startPollingIfNeeded();
@@ -246,10 +318,7 @@ class TimelineViewModel extends ChangeNotifier {
   }
 
   void updateCard(TimelineCardModel updatedCard) {
-    final index = cards.indexWhere((c) => c.id == updatedCard.id);
-    if (index != -1) {
-      cards[index] = updatedCard;
-    }
+    cards = replaceTimelineCardById(cards, updatedCard);
     _checkAndStopPollingIfNeeded();
     notifyListeners();
   }
@@ -287,8 +356,12 @@ class TimelineViewModel extends ChangeNotifier {
     result.when(
       onOk: (newCards) async {
         _currentPage++;
-        cards.addAll(newCards);
-        hasMore = newCards.length >= pageLimit;
+        final loadedHasMore = newCards.length >= pageLimit;
+        cards = await _withScheduleBriefingCard(
+          [...cards, ...newCards],
+          hasMoreAfterList: loadedHasMore,
+        );
+        hasMore = loadedHasMore;
         _startPollingIfNeeded();
         await _loadAttachmentsForCards(newCards);
       },
@@ -297,6 +370,43 @@ class TimelineViewModel extends ChangeNotifier {
     isLoading = false;
     notifyListeners();
   }
+
+  Future<List<TimelineCardModel>> _withScheduleBriefingCard(
+    List<TimelineCardModel> list, {
+    required bool hasMoreAfterList,
+  }) async {
+    final withoutBriefing = dedupeTimelineCardsById(
+      list,
+    ).where((card) => card.id != scheduleBriefingCardId).toList();
+    if (!_shouldShowScheduleBriefing) return withoutBriefing;
+
+    final briefingResult = await _router.fetchScheduleBriefingCard();
+    return briefingResult.when(
+      onOk: (briefing) {
+        return mergeScheduleBriefingInTimelineOrder(
+          cards: withoutBriefing,
+          briefing: briefing,
+          hasMore: hasMoreAfterList,
+        );
+      },
+      onError: (e, st) {
+        _logger.warning('Failed to load schedule briefing card: $e');
+        return withoutBriefing;
+      },
+    );
+  }
+
+  Future<void> _refreshScheduleBriefingCard() async {
+    if (!_shouldShowScheduleBriefing) return;
+    cards = await _withScheduleBriefingCard(
+      cards,
+      hasMoreAfterList: hasMore,
+    );
+    notifyListeners();
+  }
+
+  bool get _shouldShowScheduleBriefing =>
+      viewMode == TimelineViewMode.timeline && activeFilter == 'all';
 
   Future<void> loadMore() async {
     if (isLoading || !hasMore) return;
@@ -310,8 +420,12 @@ class TimelineViewModel extends ChangeNotifier {
     result.when(
       onOk: (newCards) async {
         _currentPage++;
-        cards.addAll(newCards);
-        hasMore = newCards.length >= pageLimit;
+        final loadedHasMore = newCards.length >= pageLimit;
+        cards = await _withScheduleBriefingCard(
+          [...cards, ...newCards],
+          hasMoreAfterList: loadedHasMore,
+        );
+        hasMore = loadedHasMore;
         await _loadAttachmentsForCards(newCards);
       },
       onError: (_, __) {},
@@ -336,6 +450,14 @@ class TimelineViewModel extends ChangeNotifier {
       eventBus.removeHandler(EventBusMessageType.cardAdded, _handleCardAdded);
       eventBus.removeHandler(
           EventBusMessageType.attachmentsChanged, _handleAttachmentsChanged);
+      eventBus.removeHandler(
+        EventBusMessageType.scheduleAggregationDirty,
+        _handleScheduleBriefingChanged,
+      );
+      eventBus.removeHandler(
+        EventBusMessageType.scheduleAggregationUpdated,
+        _handleScheduleBriefingChanged,
+      );
     }
     super.dispose();
   }

@@ -1,7 +1,5 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:memex/domain/models/timeline_card_model.dart';
 import 'package:memex/db/app_database.dart';
@@ -10,6 +8,7 @@ import 'package:memex/ui/card_attachments/card_attachment_factory.dart';
 import 'package:memex/ui/core/widgets/html_webview_card.dart';
 import 'package:memex/ui/main_screen/widgets/action_center_sheet.dart';
 
+import 'package:memex/domain/models/system_card_constants.dart';
 import 'package:memex/ui/core/cards/native_card_factory.dart';
 import 'package:memex/data/services/demo_service.dart';
 import 'package:memex/ui/core/cards/card_action_notification.dart';
@@ -28,8 +27,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:memex/ui/settings/widgets/model_config_list_page.dart';
 import 'package:memex/ui/settings/widgets/system_authorization_page.dart';
 import 'package:memex/ui/core/widgets/agent_logo_loading.dart';
+import 'package:memex/ui/core/widgets/memex_brand_title.dart';
 import 'package:memex/ui/core/widgets/character_avatar.dart';
 import 'package:memex/ui/character/widgets/persona_avatar_button.dart';
+import 'package:memex/ui/schedule/widgets/schedule_aggregator_screen.dart';
 
 /// Timeline screen - main memory view. Receives [viewModel] and [insightViewModel] from parent (Compass-style).
 class TimelineScreen extends StatefulWidget {
@@ -218,22 +219,24 @@ class TimelineScreenState extends State<TimelineScreen> {
     }
   }
 
-  /// Get the total number of tab pages: All(0) + Insight(1) + user tags(2..)
-  int _totalPageCount(TimelineViewModel vm) => 2 + vm.tags.length;
+  /// Get the total number of tab pages: All(0) + Insight(1) + Schedule(2) + user tags(3..)
+  int _totalPageCount(TimelineViewModel vm) => 3 + vm.tags.length;
 
   /// Convert a page index to the corresponding filter string.
   String _pageIndexToFilter(int index, TimelineViewModel vm) {
     if (index == 0) return 'all';
     if (index == 1) return 'insight';
-    return vm.tags[index - 2].name;
+    if (index == 2) return 'schedule';
+    return vm.tags[index - 3].name;
   }
 
   /// Convert the current active filter to a page index.
   int _filterToPageIndex(TimelineViewModel vm) {
     if (vm.viewMode == TimelineViewMode.insight) return 1;
+    if (vm.activeFilter == 'schedule') return 2;
     if (vm.activeFilter == 'all') return 0;
     final idx = vm.tags.indexWhere((t) => t.name == vm.activeFilter);
-    return idx >= 0 ? idx + 2 : 0;
+    return idx >= 0 ? idx + 3 : 0;
   }
 
   /// Called when user swipes to a new page.
@@ -247,7 +250,9 @@ class TimelineScreenState extends State<TimelineScreen> {
     } else {
       vm.setViewMode(TimelineViewMode.timeline);
       vm.setActiveFilter(filter);
-      vm.loadCards(refresh: true);
+      if (index != 2) {
+        vm.loadCards(refresh: true);
+      }
     }
     _scrollTagIntoView(index, vm);
   }
@@ -334,30 +339,14 @@ class TimelineScreenState extends State<TimelineScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'Meme',
-                          style: GoogleFonts.bricolageGrotesque(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.41,
-                            height: 22 / 32,
-                            color: const Color(0xFF0A0A0A),
-                          ),
-                        ),
-                        TextSpan(
-                          text: 'x',
-                          style: GoogleFonts.bricolageGrotesque(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.41,
-                            height: 22 / 32,
-                            color: const Color(0xFF5B6CFF),
-                          ),
-                        ),
-                      ],
+                  const Flexible(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: MemexBrandTitle(),
+                      ),
                     ),
                   ),
                   // 4 buttons: chat, notification, companion, user avatar
@@ -494,100 +483,94 @@ class TimelineScreenState extends State<TimelineScreen> {
                       ),
                     ).then((_) => _checkModelConfig());
                   },
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Colors.white.withOpacity(0.72),
-                              Colors.white.withOpacity(0.48),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white.withOpacity(0.92),
+                          Colors.white.withOpacity(0.82),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.6),
+                        width: 0.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                        BoxShadow(
+                          color: const Color(0xFF6366F1).withOpacity(0.08),
+                          blurRadius: 24,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFF818CF8),
+                                Color(0xFF6366F1),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.auto_awesome,
+                              size: 18, color: Colors.white),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                UserStorage.l10n.configureNow,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1E293B),
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                UserStorage.l10n.modelNotConfiguredBanner,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color:
+                                      const Color(0xFF64748B).withOpacity(0.9),
+                                  height: 1.3,
+                                ),
+                              ),
                             ],
                           ),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.6),
-                            width: 0.5,
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6366F1).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.06),
-                              blurRadius: 16,
-                              offset: const Offset(0, 4),
-                            ),
-                            BoxShadow(
-                              color: const Color(0xFF6366F1).withOpacity(0.08),
-                              blurRadius: 24,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
+                          child: const Icon(Icons.arrow_forward_ios,
+                              size: 12, color: Color(0xFF6366F1)),
                         ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Color(0xFF818CF8),
-                                    Color(0xFF6366F1),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(Icons.auto_awesome,
-                                  size: 18, color: Colors.white),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    UserStorage.l10n.configureNow,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF1E293B),
-                                      letterSpacing: -0.2,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    UserStorage.l10n.modelNotConfiguredBanner,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: const Color(0xFF64748B)
-                                          .withOpacity(0.9),
-                                      height: 1.3,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF6366F1).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.arrow_forward_ios,
-                                  size: 12, color: Color(0xFF6366F1)),
-                            ),
-                          ],
-                        ),
-                      ),
+                      ],
                     ),
                   ),
                 ),
@@ -595,142 +578,135 @@ class TimelineScreenState extends State<TimelineScreen> {
             if (_showFitnessBanner)
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white.withOpacity(0.72),
-                            Colors.white.withOpacity(0.48),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.6),
-                          width: 0.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
-                          ),
-                          BoxShadow(
-                            color: const Color(0xFF10B981).withOpacity(0.08),
-                            blurRadius: 24,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const SystemAuthorizationPage(),
-                                ),
-                              ).then((_) {
-                                _checkPermissionBadge();
-                                _checkFitnessBanner();
-                              });
-                            },
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Color(0xFF34D399),
-                                    Color(0xFF10B981),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(Icons.favorite_rounded,
-                                  size: 18, color: Colors.white),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const SystemAuthorizationPage(),
-                                  ),
-                                ).then((_) {
-                                  _checkPermissionBadge();
-                                  _checkFitnessBanner();
-                                });
-                              },
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    UserStorage.l10n.enableFitness,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF1E293B),
-                                      letterSpacing: -0.2,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    UserStorage.l10n.fitnessBannerMessage,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: const Color(0xFF64748B)
-                                          .withOpacity(0.9),
-                                      height: 1.3,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: _dismissFitnessBanner,
-                            child: Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF94A3B8).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.close_rounded,
-                                  size: 14, color: Color(0xFF94A3B8)),
-                            ),
-                          ),
-                        ],
-                      ),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white.withOpacity(0.92),
+                        Colors.white.withOpacity(0.82),
+                      ],
                     ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.6),
+                      width: 0.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                      BoxShadow(
+                        color: const Color(0xFF10B981).withOpacity(0.08),
+                        blurRadius: 24,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const SystemAuthorizationPage(),
+                            ),
+                          ).then((_) {
+                            _checkPermissionBadge();
+                            _checkFitnessBanner();
+                          });
+                        },
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFF34D399),
+                                Color(0xFF10B981),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.favorite_rounded,
+                              size: 18, color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const SystemAuthorizationPage(),
+                              ),
+                            ).then((_) {
+                              _checkPermissionBadge();
+                              _checkFitnessBanner();
+                            });
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                UserStorage.l10n.enableFitness,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1E293B),
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                UserStorage.l10n.fitnessBannerMessage,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color:
+                                      const Color(0xFF64748B).withOpacity(0.9),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: _dismissFitnessBanner,
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF94A3B8).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.close_rounded,
+                              size: 14, color: Color(0xFF94A3B8)),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            if (vm.tags.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: SizedBox(
-                  height: 36,
-                  child: _buildInlineTagChips(vm),
-                ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: SizedBox(
+                height: 36,
+                child: _buildInlineTagChips(vm),
               ),
+            ),
 
             // Content
             Expanded(
@@ -782,6 +758,10 @@ class TimelineScreenState extends State<TimelineScreen> {
                         viewModel: widget.insightViewModel,
                       );
                     }
+                    if (index == 2) {
+                      // Schedule Aggregator page
+                      return const ScheduleAggregatorScreen();
+                    }
                     // Timeline page (All or filtered by tag)
                     return _buildTimelineBody(vm);
                   },
@@ -795,11 +775,9 @@ class TimelineScreenState extends State<TimelineScreen> {
   }
 
   Widget _buildInlineTagChips(TimelineViewModel vm) {
-    if (vm.tags.isEmpty) return const SizedBox.shrink();
-
     final userTags = vm.tags;
-    // Items: All(0) + Insight(1) + user tags(2..)
-    final totalCount = 2 + userTags.length;
+    // Items: All(0) + Insight(1) + Schedule(2) + user tags(3..)
+    final totalCount = 3 + userTags.length;
 
     return ListView.separated(
       controller: _tagScrollController,
@@ -847,8 +825,23 @@ class TimelineScreenState extends State<TimelineScreen> {
           return chip;
         }
 
-        // Index 2+: user tags
-        final tag = userTags[index - 2];
+        // Index 2: "Schedule"
+        if (index == 2) {
+          final isSelected = vm.activeFilter == 'schedule';
+          return _buildTagChip(
+            label: UserStorage.l10n.schedule,
+            icon: '📅',
+            isSelected: isSelected,
+            onTap: () {
+              vm.setViewMode(TimelineViewMode.timeline);
+              vm.setActiveFilter('schedule');
+              _animateToPage(2);
+            },
+          );
+        }
+
+        // Index 3+: user tags
+        final tag = userTags[index - 3];
         final isSelected = vm.activeFilter == tag.name &&
             vm.viewMode == TimelineViewMode.timeline;
         return _buildTagChip(
@@ -903,24 +896,6 @@ class TimelineScreenState extends State<TimelineScreen> {
   Widget _buildTimelineBody(TimelineViewModel vm) {
     if ((vm.isLoading || vm.load.running) && vm.cards.isEmpty) {
       return const Center(child: AgentLogoLoading());
-    }
-
-    if (vm.isSubmitting) {
-      if (vm.cards.isEmpty) {
-        return const Center(child: AgentLogoLoading());
-      } else {
-        return Stack(
-          children: [
-            _buildTimelineContent(vm),
-            Container(
-              color: Colors.white.withOpacity(0.7),
-              child: const Center(
-                child: AgentLogoLoading(),
-              ),
-            ),
-          ],
-        );
-      }
     }
 
     return _buildTimelineContent(vm);
@@ -1033,7 +1008,7 @@ class TimelineScreenState extends State<TimelineScreen> {
       child: ListView.builder(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 220),
         cacheExtent: 400,
         itemCount: entries.length + (vm.hasMore ? 1 : 0),
         itemBuilder: (context, index) {
@@ -1047,9 +1022,11 @@ class TimelineScreenState extends State<TimelineScreen> {
           final entry = entries[index];
           final card = entry.card;
           final cardIndex = entry.cardIndex;
-          return _TimelineEntryItem(
+          final isDemoTarget = _isDemoTargetCard(vm.cards, cardIndex);
+          return TimelineEntryItem(
+            key: ValueKey(card.id),
             card: card,
-            isDemoTarget: cardIndex == 0,
+            isDemoTarget: isDemoTarget,
             attachments: vm.attachments[card.id] ?? const [],
             onTap: () async {
               // If this is a custom agent system_task card, open chat dialog.
@@ -1059,6 +1036,12 @@ class TimelineScreenState extends State<TimelineScreen> {
               }
               // Clarification Ask cards are self-contained; no detail page.
               if (_isClarificationAskCard(card)) return;
+              if (_isScheduleBriefingCard(card)) {
+                vm.setViewMode(TimelineViewMode.timeline);
+                vm.setActiveFilter('schedule');
+                _animateToPage(2);
+                return;
+              }
               final result = await Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -1069,7 +1052,7 @@ class TimelineScreenState extends State<TimelineScreen> {
 
               // Advance demo AFTER returning from detail screen so the
               // knowledgeTab spotlight measures the correct position.
-              if (cardIndex == 0) {
+              if (isDemoTarget) {
                 DemoService.instance.tryAdvance(DemoStep.tapCard);
               }
 
@@ -1109,13 +1092,29 @@ class _TimelineFeedEntry {
   final int cardIndex;
 }
 
-class _TimelineEntryItem extends StatefulWidget {
+bool _isScheduleBriefingCard(TimelineCardModel card) {
+  return card.id == scheduleBriefingCardId ||
+      card.uiConfigs.any(
+        (config) => config.templateId == scheduleBriefingTemplateId,
+      );
+}
+
+bool _isDemoTargetCard(List<TimelineCardModel> cards, int index) {
+  if (index < 0 || index >= cards.length) return false;
+  if (_isScheduleBriefingCard(cards[index])) return false;
+  final firstUserCardIndex =
+      cards.indexWhere((card) => !_isScheduleBriefingCard(card));
+  return index == firstUserCardIndex;
+}
+
+class TimelineEntryItem extends StatefulWidget {
   final TimelineCardModel card;
   final VoidCallback onTap;
   final bool isDemoTarget;
   final List<CardAttachmentData> attachments;
 
-  const _TimelineEntryItem({
+  const TimelineEntryItem({
+    super.key,
     required this.card,
     required this.onTap,
     required this.attachments,
@@ -1123,10 +1122,10 @@ class _TimelineEntryItem extends StatefulWidget {
   });
 
   @override
-  State<_TimelineEntryItem> createState() => _TimelineEntryItemState();
+  State<TimelineEntryItem> createState() => _TimelineEntryItemState();
 }
 
-class _TimelineEntryItemState extends State<_TimelineEntryItem> {
+class _TimelineEntryItemState extends State<TimelineEntryItem> {
   bool _isClassicMode = false;
 
   void _toggleClassicMode() {
@@ -1167,9 +1166,13 @@ class _TimelineEntryItemState extends State<_TimelineEntryItem> {
 
     // System-generated cards (no user raw input) should not support long-press
     // toggle to classic mode — they have no rawText to fall back to.
-    const _systemOnlyTemplates = {'clarification_ask', 'system_task'};
+    const systemOnlyTemplates = {
+      'clarification_ask',
+      'schedule_briefing',
+      'system_task',
+    };
     final isSystemCard = card.uiConfigs.isNotEmpty &&
-        _systemOnlyTemplates.contains(card.uiConfigs.first.templateId);
+        systemOnlyTemplates.contains(card.uiConfigs.first.templateId);
     final canToggleClassic = !isAlreadyClassic && !isSystemCard;
 
     // Check for single compact card

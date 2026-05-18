@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:memex/data/repositories/memex_router.dart';
+import 'package:memex/data/services/backup_service.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/ui/core/widgets/agent_logo_loading.dart';
 import 'package:memex/utils/toast_helper.dart';
@@ -68,28 +68,6 @@ class _DataStoragePageState extends State<DataStoragePage> {
     }
   }
 
-  /// On Android: request storage permission (and all-files on Android 11+) before picking folder.
-  /// Returns true if we can proceed (granted or not Android).
-  Future<bool> _requestStoragePermissionIfNeeded() async {
-    if (!Platform.isAndroid) return true;
-    // Android 13+ `Permission.storage` always returns denied.
-    // For arbitrary folder paths (Documents, Downloads, etc.) we need all-files access.
-    var manageStatus = await Permission.manageExternalStorage.status;
-    if (!manageStatus.isGranted) {
-      manageStatus = await Permission.manageExternalStorage.request();
-    }
-    if (!manageStatus.isGranted) {
-      if (mounted) {
-        ToastHelper.showInfo(
-            context, UserStorage.l10n.storagePermissionRequired);
-      }
-      // Best-effort jump to system settings when user denied or policy requires manual enable.
-      await openAppSettings();
-      return false;
-    }
-    return true;
-  }
-
   /// Verify we can read/write the path (create and delete a test file). Returns true if OK.
   Future<bool> _verifyPathWritable(String path) async {
     try {
@@ -114,10 +92,6 @@ class _DataStoragePageState extends State<DataStoragePage> {
       }
       return;
     }
-    if (Platform.isAndroid) {
-      final ok = await _requestStoragePermissionIfNeeded();
-      if (!ok || !mounted) return;
-    }
     final path = await FilePicker.platform.getDirectoryPath();
     if (path == null || path.isEmpty || !mounted) return;
     final canWrite = await _verifyPathWritable(path);
@@ -130,6 +104,14 @@ class _DataStoragePageState extends State<DataStoragePage> {
       _isSwitching = true;
       _switchingTarget = StorageLocation.custom;
     });
+    if (!await _createSafetySnapshotBeforeSwitch()) {
+      if (!mounted) return;
+      setState(() {
+        _isSwitching = false;
+        _switchingTarget = null;
+      });
+      return;
+    }
     await UserStorage.setWorkspaceStorageToCustom(uid, path);
     if (!widget.onboardingMode) {
       await MemexRouter().applyWorkspaceStorageChange();
@@ -153,6 +135,14 @@ class _DataStoragePageState extends State<DataStoragePage> {
       _isSwitching = true;
       _switchingTarget = StorageLocation.app;
     });
+    if (!await _createSafetySnapshotBeforeSwitch()) {
+      if (!mounted) return;
+      setState(() {
+        _isSwitching = false;
+        _switchingTarget = null;
+      });
+      return;
+    }
     await UserStorage.setWorkspaceStorageToApp(uid);
     if (!widget.onboardingMode) {
       await MemexRouter().applyWorkspaceStorageChange();
@@ -180,6 +170,14 @@ class _DataStoragePageState extends State<DataStoragePage> {
       _isSwitching = true;
       _switchingTarget = StorageLocation.icloud;
     });
+    if (!await _createSafetySnapshotBeforeSwitch()) {
+      if (!mounted) return;
+      setState(() {
+        _isSwitching = false;
+        _switchingTarget = null;
+      });
+      return;
+    }
     await UserStorage.setWorkspaceStorageToICloud(uid);
     if (!widget.onboardingMode) {
       await MemexRouter().applyWorkspaceStorageChange();
@@ -192,6 +190,20 @@ class _DataStoragePageState extends State<DataStoragePage> {
     });
     if (!widget.onboardingMode) {
       rootShellKey.currentState?.resetAndRecheck();
+    }
+  }
+
+  Future<bool> _createSafetySnapshotBeforeSwitch() async {
+    if (widget.onboardingMode) return true;
+    try {
+      await BackupService.createSafetySnapshot(reason: 'before_storage_switch');
+      return true;
+    } catch (e) {
+      if (mounted) {
+        ToastHelper.showError(
+            context, UserStorage.l10n.backupFailed(e.toString()));
+      }
+      return false;
     }
   }
 
@@ -220,6 +232,7 @@ class _DataStoragePageState extends State<DataStoragePage> {
       items.add(item);
     }
 
+    // ignore: unused_local_variable
     final customCard = _buildOptionCard(
       title: l10n.storageLocationCustom,
       subtitle: l10n.storageLocationCustomDesc,
@@ -310,7 +323,7 @@ class _DataStoragePageState extends State<DataStoragePage> {
             )
           : null,
       body: _loading
-          ? Center(child: AgentLogoLoading())
+          ? const Center(child: AgentLogoLoading())
           : _userId == null
               ? Center(
                   child: Padding(
@@ -415,11 +428,11 @@ class _DataStoragePageState extends State<DataStoragePage> {
               color: selected ? AppColors.primary : Colors.grey[300]!,
               width: selected ? 2 : 1,
             ),
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
                 color: AppColors.shadowLight,
                 blurRadius: 16,
-                offset: const Offset(0, 2),
+                offset: Offset(0, 2),
               ),
             ],
           ),

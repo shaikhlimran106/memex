@@ -31,7 +31,6 @@ class PkmSkill extends Skill {
         );
 
   static List<Tool> _buildTools(List<bool>? stopAfterUpdateCardInsightRef) {
-    final fileService = FileSystemService.instance;
     final logger = getLogger('PkmAgent');
 
     return [
@@ -47,6 +46,7 @@ class PkmSkill extends Skill {
                 "update_timeline_card_insight must be called within an agent execution context.");
           }
           final userId = context.state.metadata['userId'] as String;
+          final fileService = FileSystemService.instance;
 
           final factInfo =
               await fileService.extractFactContentFromFile(userId, fact_id);
@@ -84,11 +84,8 @@ class PkmSkill extends Skill {
           if (updatedCardData == null) {
             logger.warning(
                 "Card file not found for fact_id: $fact_id, maybe it has been deleted");
-            return AgentToolResult(
-              content: TextPart(
-                  Prompts.pkmAgentUpdateCardInsightErrorCardNotFound(fact_id)),
-              stopFlag: stopFlag,
-            );
+            throw StateError(
+                Prompts.pkmAgentUpdateCardInsightErrorCardNotFound(fact_id));
           }
 
           // Notify detail page to refresh after insight update
@@ -100,6 +97,46 @@ class PkmSkill extends Skill {
             content: TextPart(Prompts.pkmAgentUpdateCardInsightSuccess(
                 cardPath, fact_id, relatedCount)),
             stopFlag: stopFlag,
+          );
+        },
+      ),
+      Tool(
+        name: 'skip_pkm_organization',
+        description: Prompts.pkmAgentSkipOrganizationToolDescription,
+        parameters: Prompts.pkmAgentSkipOrganizationToolParameters,
+        executable:
+            (String reason, String temporalScope, String evidence) async {
+          const validReasons = {
+            'explicit_user_opt_out',
+            'temporary_state',
+            'low_signal_noise',
+            'duplicate_existing_memory',
+          };
+          if (!validReasons.contains(reason)) {
+            throw ArgumentError.value(
+              reason,
+              'reason',
+              'Must be one of: ${validReasons.join(', ')}',
+            );
+          }
+
+          final context = AgentCallToolContext.current;
+          final factId = context?.state.metadata['factId'];
+          if (context != null) {
+            context.state.metadata['skippedPkm'] = true;
+            context.state.metadata['pkmSkipReason'] = reason;
+            context.state.metadata['pkmSkipTemporalScope'] = temporalScope;
+            context.state.metadata['pkmSkipEvidence'] = evidence;
+          }
+          logger.info(
+            'Skipping PKM organization for fact_id=$factId, reason=$reason, temporal_scope=$temporalScope',
+          );
+
+          return AgentToolResult(
+            content: TextPart(
+              'PKM organization skipped. reason=$reason; temporal_scope=$temporalScope; evidence=$evidence',
+            ),
+            stopFlag: true,
           );
         },
       ),

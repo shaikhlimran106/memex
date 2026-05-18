@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:logging/logging.dart';
 import 'package:memex/agent/card_agent/card_agent.dart';
 import 'package:memex/agent/card_agent/rule_based_card_matcher.dart';
@@ -25,12 +27,13 @@ final Logger _logger = getLogger('CardAgentHandler');
 /// executes the CardAgent. It mimics the backend's `_process_with_card_agent`.
 ///
 /// [dryRun] - If true, the agent will run but tools will skip side-effects.
-Future<void> processWithCardAgent({
+Future<CardRunCompletionEvidence> processWithCardAgent({
   required String userId,
   required String factId,
   required String contentText,
   List<Map<String, dynamic>>? assetAnalyses,
   DateTime? inputDateTime,
+  String? locationContextReminder,
   bool dryRun = false,
 }) async {
   try {
@@ -50,7 +53,18 @@ Future<void> processWithCardAgent({
         factId: factId,
         combinedText: contentText,
       );
-      return;
+      final evidence = await CardAgent.inspectCardRunCompletion(
+        userId: userId,
+        factId: factId,
+        requireSaveToolCall: false,
+      );
+      if (!evidence.isComplete) {
+        throw StateError(
+          'Rule-based card generation did not produce a completed card for '
+          '$factId. Evidence: ${jsonEncode(evidence.toJson())}',
+        );
+      }
+      return evidence;
     }
 
     // 1. Get LLM Config
@@ -63,6 +77,12 @@ Future<void> processWithCardAgent({
 
     // 2. Prepare Fact Content (merge assets info if needed)
     var enhancedFactContent = contentText;
+    final locationReminder = _formatLocationContextReminder(
+      locationContextReminder,
+    );
+    if (locationReminder.isNotEmpty) {
+      enhancedFactContent = '$locationReminder$enhancedFactContent';
+    }
     if (assetAnalyses != null && assetAnalyses.isNotEmpty) {
       enhancedFactContent += formatAssetAnalysis(
         assetAnalyses,
@@ -73,8 +93,9 @@ Future<void> processWithCardAgent({
     // 3. (Client initialized above)
     final client = resources.client;
 
-    final publishTime =
-        formatLocalDateTimeWithZone(inputDateTime ?? DateTime.now());
+    final publishTime = formatLocalDateTimeWithZone(
+      inputDateTime ?? DateTime.now(),
+    );
 
     final userMessageContent =
         Prompts.cardAgentUserMessagePromptForPublishNewContent(
@@ -84,7 +105,7 @@ Future<void> processWithCardAgent({
     );
 
     // 4. Run Agent
-    await CardAgent.runWithContent(
+    final completionEvidence = await CardAgent.runWithContent(
       client: client,
       modelConfig: resources.modelConfig,
       userId: userId,
@@ -93,10 +114,17 @@ Future<void> processWithCardAgent({
     );
 
     _logger.info('Card Agent task completed for $factId');
+    return completionEvidence;
   } catch (e, stack) {
     _logger.severe('Error in processWithCardAgent', e, stack);
     rethrowIfNonRetryable(e);
   }
+}
+
+String _formatLocationContextReminder(String? reminder) {
+  final trimmed = reminder?.trim();
+  if (trimmed == null || trimmed.isEmpty) return '';
+  return '<system-reminder>\n$trimmed\n</system-reminder>\n\n';
 }
 
 /// Applies rule-based template matching and writes the card file.
@@ -147,6 +175,8 @@ Future<void> handleCardAgentImpl(
     final factId = payload['fact_id'] as String;
     final combinedText = payload['combined_text'] as String;
     final inputDateTime = dateTimeFromUnixSeconds(payload['created_at_ts']);
+    final locationContextReminder =
+        payload['location_context_reminder'] as String?;
 
     // 2. Retrieve asset analyses (Stage 1 result)
     List<Map<String, dynamic>>? assetAnalyses;
@@ -176,13 +206,19 @@ Future<void> handleCardAgentImpl(
     }
 
     // 3. Call re-usable process function
-    await processWithCardAgent(
+    final completionEvidence = await processWithCardAgent(
       userId: userId,
       factId: factId,
       contentText: combinedText,
       assetAnalyses: assetAnalyses,
       inputDateTime: inputDateTime,
+      locationContextReminder: locationContextReminder,
       dryRun: false,
+    );
+
+    await LocalTaskExecutor.instance.updateTaskResult(
+      taskContext.taskId,
+      jsonEncode({'card_completion_evidence': completionEvidence.toJson()}),
     );
 
     _logger.info("Card Agent task completed successfully for $factId");

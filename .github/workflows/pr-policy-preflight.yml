@@ -1,0 +1,102 @@
+name: PR Policy Preflight
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: pr-policy-preflight-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    name: PR Policy Preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out trusted base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - name: Fetch PR ref as data
+        run: |
+          git fetch --no-tags origin \
+            "pull/${{ github.event.pull_request.number }}/head:refs/remotes/origin/pr-head"
+
+      - name: Extract PR metadata
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+          pr = event["pull_request"]
+          Path("pr-title.txt").write_text(pr.get("title") or "", encoding="utf-8")
+          Path("pr-body.txt").write_text(pr.get("body") or "", encoding="utf-8")
+          context = {
+              "schema_version": 1,
+              "workflow": "PR Policy Preflight",
+              "artifact": "pr-policy-preflight",
+              "pr_number": pr["number"],
+              "head_sha": pr["head"]["sha"],
+              "head_ref": pr["head"]["ref"],
+              "base_sha": pr["base"]["sha"],
+              "base_ref": pr["base"]["ref"],
+              "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+              "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT", ""),
+          }
+          Path("preflight-context.json").write_text(
+              json.dumps(context, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Run preflight in shadow mode
+        run: |
+          set +e
+          python3 scripts/pr_policy_check.py \
+            --repo-path . \
+            --base "origin/${{ github.event.repository.default_branch }}" \
+            --head "refs/remotes/origin/pr-head" \
+            --pr-title-file pr-title.txt \
+            --pr-body-file pr-body.txt \
+            --output preflight.json \
+            --markdown-output preflight.md \
+            --no-fail-on-decision
+          status="$?"
+          set -e
+
+          if [ -f preflight.md ]; then
+            cat preflight.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "# PR Policy Preflight / PR 规则预检"
+              echo
+              echo "Preflight did not produce a Markdown report."
+              echo
+              echo "Preflight 未生成 Markdown 报告。"
+              echo
+              echo "Script exit code: \`${status}\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          exit 0
+
+      - name: Upload preflight result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-policy-preflight
+          if-no-files-found: warn
+          path: |
+            preflight-context.json
+            preflight.json
+            preflight.md

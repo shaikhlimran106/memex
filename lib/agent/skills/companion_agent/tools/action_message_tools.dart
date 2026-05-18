@@ -36,7 +36,7 @@ Do NOT put dialogue or spoken words in this tool.''',
       executable: (String action) async {
         final trimmed = action.trim();
         if (trimmed.isEmpty) {
-          return 'Error: action text cannot be empty.';
+          throw ArgumentError('action text cannot be empty.');
         }
         // Wrap in asterisks if not already wrapped.
         final wrapped = (trimmed.startsWith('*') && trimmed.endsWith('*'))
@@ -55,7 +55,7 @@ Do NOT put dialogue or spoken words in this tool.''',
           );
           return 'Action message sent.';
         } catch (e) {
-          return 'Error sending action message: $e';
+          throw StateError('Error sending action message: $e');
         }
       },
     );

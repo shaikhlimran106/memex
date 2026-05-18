@@ -25,10 +25,19 @@ Future<void> processWithPkmAgent({
   required String contentText,
   List<Map<String, dynamic>>? assetAnalyses,
   DateTime? inputDateTime,
+  String? locationContextReminder,
   bool dryRun = false,
 }) async {
   try {
     _logger.info("processWithPkmAgent for $factId (dryRun: $dryRun)");
+
+    final skipDecision = PkmAgent.detectNonPersistentInput(contentText);
+    if (skipDecision.shouldSkip) {
+      _logger.info(
+        'Skipping PKM agent for $factId because input is non-persistent: ${skipDecision.toJson()}',
+      );
+      return;
+    }
 
     // Skip if LLM is not configured.
     final llmConfig = await UserStorage.getAgentLLMConfig(
@@ -53,6 +62,12 @@ Future<void> processWithPkmAgent({
     // Build asset info string
     // Build asset info string
     final assetInfo = formatAssetAnalysis(assetAnalyses);
+    final locationReminder = _formatLocationContextReminder(
+      locationContextReminder,
+    );
+    final contentWithLocation = locationReminder.isEmpty
+        ? contentText
+        : '$locationReminder$contentText';
 
     final currentTime = formatLocalDateTimeWithZone(dateTime);
 
@@ -61,12 +76,12 @@ Future<void> processWithPkmAgent({
     final instruction = Prompts.pkmAgentInstructionForNewPublishedContent(
       currentTime,
       factId,
-      contentText,
+      contentWithLocation,
       assetInfo,
     );
 
     // 4. Run Agent
-    await PkmAgent.runWithContent(
+    final completion = await PkmAgent.runWithContent(
       client: client,
       modelConfig: resources.modelConfig,
       userId: userId,
@@ -74,11 +89,24 @@ Future<void> processWithPkmAgent({
       instruction: instruction,
     );
 
+    if (completion.skippedPkm) {
+      _logger.info(
+        'PKM agent completed with non-persistent skip for $factId: ${completion.toJson()}',
+      );
+      return;
+    }
+
     await MemorySyncService.instance.enqueueFact(userId, factId);
   } catch (e, stack) {
     _logger.severe('Error in processWithPkmAgent', e, stack);
     rethrowIfNonRetryable(e);
   }
+}
+
+String _formatLocationContextReminder(String? reminder) {
+  final trimmed = reminder?.trim();
+  if (trimmed == null || trimmed.isEmpty) return '';
+  return '<system-reminder>\n$trimmed\n</system-reminder>\n\n';
 }
 
 /// Task Handler implementation for `pkm_agent_task`.
@@ -93,6 +121,8 @@ Future<void> handlePkmAgentImpl(
     // 1. Parse Payload
     final factId = payload['fact_id'] as String;
     final combinedText = payload['combined_text'] as String;
+    final locationContextReminder =
+        payload['location_context_reminder'] as String?;
 
     // Check for dry_run flag in payload, default to false
     final dryRun = payload['dry_run'] as bool? ?? false;
@@ -108,9 +138,12 @@ Future<void> handlePkmAgentImpl(
         combinedText: combinedText,
       );
       try {
-        final analysisResult = await LocalTaskExecutor.instance
-            .getTaskResultByBizId(
-                userId, 'handle_analyze_assets', context.bizId!);
+        final analysisResult =
+            await LocalTaskExecutor.instance.getTaskResultByBizId(
+          userId,
+          'handle_analyze_assets',
+          context.bizId!,
+        );
 
         if (analysisResult != null &&
             analysisResult.containsKey('asset_analyses')) {
@@ -130,6 +163,7 @@ Future<void> handlePkmAgentImpl(
       contentText: combinedText,
       assetAnalyses: assetAnalyses,
       inputDateTime: inputDateTime,
+      locationContextReminder: locationContextReminder,
       dryRun: dryRun,
     );
 

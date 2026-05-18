@@ -314,6 +314,30 @@ abstract class AppLocalizations {
   /// **'Only the Facts directory (raw input) will be kept. All other workspace directories (Cards, Discoveries, KnowledgeInsights, PKM, _System, etc.) will be deleted.\n\nThis action cannot be undone!'**
   String get confirmClearDataKeepFactsMessage;
 
+  /// No description provided for @clearFailedAgentContexts.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear failed conversation context'**
+  String get clearFailedAgentContexts;
+
+  /// No description provided for @confirmClearFailedAgentContextsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the saved conversation context for Insight and Schedule agents? This is useful after changing models when previous agent messages are no longer compatible. Facts, cards, knowledge, memories, and model settings will not be deleted.'**
+  String get confirmClearFailedAgentContextsMessage;
+
+  /// No description provided for @failedAgentContextsCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleared {count} saved conversation context(s)'**
+  String failedAgentContextsCleared(Object count);
+
+  /// No description provided for @clearFailedAgentContextsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to clear conversation context: {error}'**
+  String clearFailedAgentContextsFailed(Object error);
+
   /// No description provided for @dataClearedSuccess.
   ///
   /// In en, this message translates to:
@@ -434,6 +458,12 @@ abstract class AppLocalizations {
   /// **'All'**
   String get all;
 
+  /// No description provided for @schedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule'**
+  String get schedule;
+
   /// No description provided for @loadStatsFailed.
   ///
   /// In en, this message translates to:
@@ -452,6 +482,12 @@ abstract class AppLocalizations {
   /// **'Daily'**
   String get daily;
 
+  /// No description provided for @modelStatsByAgent.
+  ///
+  /// In en, this message translates to:
+  /// **'By agent'**
+  String get modelStatsByAgent;
+
   /// No description provided for @detail.
   ///
   /// In en, this message translates to:
@@ -464,6 +500,12 @@ abstract class AppLocalizations {
   /// **'Date'**
   String get date;
 
+  /// No description provided for @agent.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent'**
+  String get agent;
+
   /// No description provided for @noData.
   ///
   /// In en, this message translates to:
@@ -475,6 +517,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Total calls'**
   String get totalCalls;
+
+  /// No description provided for @calls.
+  ///
+  /// In en, this message translates to:
+  /// **'Calls'**
+  String get calls;
+
+  /// No description provided for @callsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} calls'**
+  String callsCount(Object count);
+
+  /// No description provided for @selectDateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Select date range'**
+  String get selectDateRange;
+
+  /// No description provided for @totalTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Total tokens'**
+  String get totalTokens;
+
+  /// No description provided for @cacheRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Cache rate'**
+  String get cacheRate;
+
+  /// No description provided for @promptTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt tokens'**
+  String get promptTokens;
+
+  /// No description provided for @completionTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Completion tokens'**
+  String get completionTokens;
+
+  /// No description provided for @cachedTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached tokens'**
+  String get cachedTokens;
+
+  /// No description provided for @thoughtTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Thought tokens'**
+  String get thoughtTokens;
+
+  /// No description provided for @prompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompt'**
+  String get prompt;
+
+  /// No description provided for @completion.
+  ///
+  /// In en, this message translates to:
+  /// **'Completion'**
+  String get completion;
+
+  /// No description provided for @cached.
+  ///
+  /// In en, this message translates to:
+  /// **'Cached'**
+  String get cached;
+
+  /// No description provided for @thought.
+  ///
+  /// In en, this message translates to:
+  /// **'Thought'**
+  String get thought;
+
+  /// No description provided for @model.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get model;
+
+  /// No description provided for @scene.
+  ///
+  /// In en, this message translates to:
+  /// **'Scene'**
+  String get scene;
+
+  /// No description provided for @sceneId.
+  ///
+  /// In en, this message translates to:
+  /// **'Scene ID'**
+  String get sceneId;
+
+  /// No description provided for @tokenUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'Token usage'**
+  String get tokenUsage;
+
+  /// No description provided for @handler.
+  ///
+  /// In en, this message translates to:
+  /// **'Handler'**
+  String get handler;
+
+  /// No description provided for @modelBreakdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Model breakdown'**
+  String get modelBreakdown;
+
+  /// No description provided for @callDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Call details'**
+  String get callDetails;
+
+  /// No description provided for @recordDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Record details: {scene}'**
+  String recordDetailsTitle(Object scene);
 
   /// No description provided for @saveLlmConfigFailed.
   ///
@@ -1754,6 +1922,138 @@ abstract class AppLocalizations {
   /// **'No knowledge insight'**
   String get noKnowledgeInsight;
 
+  /// No description provided for @insightProcessingBacklogMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} background tasks are still processing. Insights may update after they finish.'**
+  String insightProcessingBacklogMessage(Object count);
+
+  /// No description provided for @insightUnavailableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This insight is still being generated or was updated. Refresh insights and try again later.'**
+  String get insightUnavailableMessage;
+
+  /// No description provided for @scheduleAggregation.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule aggregation'**
+  String get scheduleAggregation;
+
+  /// No description provided for @noScheduleAggregation.
+  ///
+  /// In en, this message translates to:
+  /// **'No schedule aggregation'**
+  String get noScheduleAggregation;
+
+  /// No description provided for @scheduleAggregationEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Update to organize schedules and todos from real temporal cards.'**
+  String get scheduleAggregationEmptyHint;
+
+  /// No description provided for @scheduleAggregationDirtyReason.
+  ///
+  /// In en, this message translates to:
+  /// **'New schedule-related content is available. Tap Update to reorganize.'**
+  String get scheduleAggregationDirtyReason;
+
+  /// No description provided for @scheduleAggregationLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load schedule data'**
+  String get scheduleAggregationLoadFailed;
+
+  /// No description provided for @scheduleAggregationRefreshFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to refresh schedule data'**
+  String get scheduleAggregationRefreshFailed;
+
+  /// No description provided for @scheduleTaskUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update task'**
+  String get scheduleTaskUpdateFailed;
+
+  /// No description provided for @scheduleFeatured.
+  ///
+  /// In en, this message translates to:
+  /// **'Featured'**
+  String get scheduleFeatured;
+
+  /// No description provided for @scheduleThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get scheduleThisWeek;
+
+  /// No description provided for @scheduleDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get scheduleDone;
+
+  /// No description provided for @scheduleTbd.
+  ///
+  /// In en, this message translates to:
+  /// **'TBD'**
+  String get scheduleTbd;
+
+  /// No description provided for @scheduleWeekOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get scheduleWeekOverview;
+
+  /// No description provided for @scheduleImportant.
+  ///
+  /// In en, this message translates to:
+  /// **'Important'**
+  String get scheduleImportant;
+
+  /// No description provided for @scheduleBriefingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule briefing'**
+  String get scheduleBriefingTitle;
+
+  /// No description provided for @scheduleBriefingNeedsUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs update'**
+  String get scheduleBriefingNeedsUpdate;
+
+  /// No description provided for @scheduleBriefingOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get scheduleBriefingOpen;
+
+  /// No description provided for @scheduleBriefingNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'No schedule briefing yet'**
+  String get scheduleBriefingNoData;
+
+  /// No description provided for @scheduleBriefingUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {time}'**
+  String scheduleBriefingUpdated(Object time);
+
+  /// No description provided for @scheduleBriefingDoneCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} done'**
+  String scheduleBriefingDoneCount(Object count);
+
+  /// No description provided for @scheduleBriefingConflictCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} conflicts'**
+  String scheduleBriefingConflictCount(Object count);
+
   /// No description provided for @updating.
   ///
   /// In en, this message translates to:
@@ -2203,6 +2503,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Related records'**
   String get relatedRecords;
+
+  /// No description provided for @reply.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get reply;
 
   /// No description provided for @replySent.
   ///
@@ -3146,6 +3452,240 @@ abstract class AppLocalizations {
   /// **'Invalid backup file. Please select a .memex file.'**
   String get invalidBackupFile;
 
+  /// No description provided for @automaticBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic Backup'**
+  String get automaticBackup;
+
+  /// No description provided for @autoBackupDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'When enabled, Memex creates at most one local snapshot per day after startup or when returning to the foreground.'**
+  String get autoBackupDescription;
+
+  /// No description provided for @backupSensitiveSettingsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Backups include settings and model provider keys. Keep backup files somewhere you trust.'**
+  String get backupSensitiveSettingsHint;
+
+  /// No description provided for @backupLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get backupLocation;
+
+  /// No description provided for @backupLocationDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Location details'**
+  String get backupLocationDetails;
+
+  /// No description provided for @backupLocationSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown in app'**
+  String get backupLocationSummary;
+
+  /// No description provided for @backupLocationFullPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Full path'**
+  String get backupLocationFullPath;
+
+  /// No description provided for @backupLocationUri.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder access URI'**
+  String get backupLocationUri;
+
+  /// No description provided for @copyBackupLocationPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy path'**
+  String get copyBackupLocationPath;
+
+  /// No description provided for @backupLocationCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup location copied'**
+  String get backupLocationCopied;
+
+  /// No description provided for @androidBackupLocationSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected folder: {folderName}'**
+  String androidBackupLocationSelected(Object folderName);
+
+  /// No description provided for @iosICloudBackupLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'iCloud Drive > Memex > Backups'**
+  String get iosICloudBackupLocation;
+
+  /// No description provided for @iosAppDocumentsBackupLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Files > On My iPhone > Memex > Backups'**
+  String get iosAppDocumentsBackupLocation;
+
+  /// No description provided for @autoBackupStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get autoBackupStatus;
+
+  /// No description provided for @noAutoBackupYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No automatic backup yet'**
+  String get noAutoBackupYet;
+
+  /// No description provided for @lastBackupAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Last backup: {time}'**
+  String lastBackupAt(Object time);
+
+  /// No description provided for @createSnapshotNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Back up now'**
+  String get createSnapshotNow;
+
+  /// No description provided for @backupLocationMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Change location'**
+  String get backupLocationMenu;
+
+  /// No description provided for @defaultBackupLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Default backup folder'**
+  String get defaultBackupLocation;
+
+  /// No description provided for @defaultBackupLocationAndroidDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Memex\'s app-specific external files folder. No storage permission needed.'**
+  String get defaultBackupLocationAndroidDesc;
+
+  /// No description provided for @chooseBackupLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose backup folder'**
+  String get chooseBackupLocation;
+
+  /// No description provided for @chooseBackupLocationAndroidDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a folder with Android\'s system picker and grant Memex persistent access.'**
+  String get chooseBackupLocationAndroidDesc;
+
+  /// No description provided for @storedBackups.
+  ///
+  /// In en, this message translates to:
+  /// **'Stored Backups'**
+  String get storedBackups;
+
+  /// No description provided for @noStoredBackups.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic backups will appear here after the first snapshot.'**
+  String get noStoredBackups;
+
+  /// No description provided for @refresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get refresh;
+
+  /// No description provided for @restoreThisBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore this backup'**
+  String get restoreThisBackup;
+
+  /// No description provided for @deleteThisBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this backup'**
+  String get deleteThisBackup;
+
+  /// No description provided for @confirmDeleteBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete backup?'**
+  String get confirmDeleteBackup;
+
+  /// No description provided for @confirmDeleteBackupMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {fileName}? This removes the stored backup file and cannot be undone.'**
+  String confirmDeleteBackupMessage(Object fileName);
+
+  /// No description provided for @backupDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup deleted: {fileName}'**
+  String backupDeleted(Object fileName);
+
+  /// No description provided for @backupDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete backup: {error}'**
+  String backupDeleteFailed(Object error);
+
+  /// No description provided for @creatingSafetySnapshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Creating safety snapshot...'**
+  String get creatingSafetySnapshot;
+
+  /// No description provided for @autoBackupCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Snapshot created: {fileName}'**
+  String autoBackupCreated(Object fileName);
+
+  /// No description provided for @backupLocationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update backup location: {error}'**
+  String backupLocationFailed(Object error);
+
+  /// No description provided for @backupImportCreatedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Created'**
+  String get backupImportCreatedAt;
+
+  /// No description provided for @backupImportSourceVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Source version'**
+  String get backupImportSourceVersion;
+
+  /// No description provided for @backupImportFlavor.
+  ///
+  /// In en, this message translates to:
+  /// **'Build'**
+  String get backupImportFlavor;
+
+  /// No description provided for @backupLegacyFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Legacy backup (no manifest)'**
+  String get backupLegacyFormat;
+
+  /// No description provided for @restoreInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring backup...'**
+  String get restoreInProgress;
+
   /// No description provided for @dataStorage.
   ///
   /// In en, this message translates to:
@@ -4034,6 +4574,12 @@ abstract class AppLocalizations {
   /// **'Today'**
   String get today;
 
+  /// No description provided for @tomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow'**
+  String get tomorrow;
+
   /// No description provided for @yesterday.
   ///
   /// In en, this message translates to:
@@ -4105,6 +4651,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Untitled card'**
   String get untitledCard;
+
+  /// No description provided for @locationContextTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Location Context'**
+  String get locationContextTitle;
+
+  /// No description provided for @locationContextDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Current city and neighborhood context for agent chat'**
+  String get locationContextDescription;
+
+  /// No description provided for @locationContextAttachTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach current location to chat'**
+  String get locationContextAttachTitle;
+
+  /// No description provided for @locationContextAttachDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Uses device GPS and reverse geocoding to provide city, district, and neighborhood context to the agent.'**
+  String get locationContextAttachDesc;
+
+  /// No description provided for @reverseGeocodingProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Reverse geocoding provider'**
+  String get reverseGeocodingProvider;
+
+  /// No description provided for @amapProviderName.
+  ///
+  /// In en, this message translates to:
+  /// **'Amap'**
+  String get amapProviderName;
+
+  /// No description provided for @amapApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Amap API Key'**
+  String get amapApiKey;
+
+  /// No description provided for @amapGcj02Note.
+  ///
+  /// In en, this message translates to:
+  /// **'Amap uses GCJ-02 coordinates. Device GPS is converted before reverse geocoding.'**
+  String get amapGcj02Note;
+
+  /// No description provided for @contextGranularity.
+  ///
+  /// In en, this message translates to:
+  /// **'Context granularity'**
+  String get contextGranularity;
+
+  /// No description provided for @granularityCity.
+  ///
+  /// In en, this message translates to:
+  /// **'City'**
+  String get granularityCity;
+
+  /// No description provided for @granularityDistrict.
+  ///
+  /// In en, this message translates to:
+  /// **'District'**
+  String get granularityDistrict;
+
+  /// No description provided for @granularityNeighborhood.
+  ///
+  /// In en, this message translates to:
+  /// **'Neighborhood'**
+  String get granularityNeighborhood;
+
+  /// No description provided for @granularityStreet.
+  ///
+  /// In en, this message translates to:
+  /// **'Street'**
+  String get granularityStreet;
+
+  /// No description provided for @granularityFullAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Full address candidate'**
+  String get granularityFullAddress;
+
+  /// No description provided for @locationFreshness.
+  ///
+  /// In en, this message translates to:
+  /// **'Location freshness'**
+  String get locationFreshness;
+
+  /// No description provided for @minutesShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} minutes'**
+  String minutesShort(int minutes);
+
+  /// No description provided for @oneHour.
+  ///
+  /// In en, this message translates to:
+  /// **'1 hour'**
+  String get oneHour;
+
+  /// No description provided for @testCurrentLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Test current location'**
+  String get testCurrentLocation;
+
+  /// No description provided for @locationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'location unavailable'**
+  String get locationUnavailable;
+
+  /// No description provided for @locationTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed: {error}'**
+  String locationTestFailed(String error);
+
+  /// No description provided for @locationDebugGps.
+  ///
+  /// In en, this message translates to:
+  /// **'GPS'**
+  String get locationDebugGps;
+
+  /// No description provided for @locationDebugReverseGeocode.
+  ///
+  /// In en, this message translates to:
+  /// **'Reverse geocode'**
+  String get locationDebugReverseGeocode;
+
+  /// No description provided for @locationDebugProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider'**
+  String get locationDebugProvider;
+
+  /// No description provided for @locationDebugAgentContext.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent context'**
+  String get locationDebugAgentContext;
+
+  /// No description provided for @locationDebugSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Source'**
+  String get locationDebugSource;
+
+  /// No description provided for @locationDebugAddressSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Address summary'**
+  String get locationDebugAddressSummary;
+
+  /// No description provided for @locationDebugFullAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Full address'**
+  String get locationDebugFullAddress;
+
+  /// No description provided for @locationDebugCoordinates.
+  ///
+  /// In en, this message translates to:
+  /// **'Coordinates'**
+  String get locationDebugCoordinates;
+
+  /// No description provided for @locationDebugAccuracy.
+  ///
+  /// In en, this message translates to:
+  /// **'Accuracy'**
+  String get locationDebugAccuracy;
+
+  /// No description provided for @locationDebugReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason'**
+  String get locationDebugReason;
+
+  /// No description provided for @locationDebugOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get locationDebugOk;
+
+  /// No description provided for @locationDebugUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'unavailable'**
+  String get locationDebugUnavailable;
+
+  /// No description provided for @locationDebugInjected.
+  ///
+  /// In en, this message translates to:
+  /// **'injected'**
+  String get locationDebugInjected;
+
+  /// No description provided for @locationDebugNotInjected.
+  ///
+  /// In en, this message translates to:
+  /// **'not injected'**
+  String get locationDebugNotInjected;
 
   /// No description provided for @settingsSearchPlaceholder.
   ///
@@ -4417,6 +5167,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose background image'**
   String get chooseChatBackgroundImage;
+
+  /// No description provided for @earlyUpdateSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Early access updates'**
+  String get earlyUpdateSettingsTitle;
+
+  /// No description provided for @earlyUpdateSettingsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Check GitHub pre-releases for the matching Early APK, download it, and hand it to Android\'s installer.'**
+  String get earlyUpdateSettingsDesc;
+
+  /// No description provided for @earlyUpdateUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Early updates are only available in the Android Early build.'**
+  String get earlyUpdateUnsupported;
+
+  /// No description provided for @earlyUpdateAutoCheckTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto check for updates'**
+  String get earlyUpdateAutoCheckTitle;
+
+  /// No description provided for @earlyUpdateAutoCheckDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Check at startup at most once every 12 hours.'**
+  String get earlyUpdateAutoCheckDesc;
+
+  /// No description provided for @earlyUpdateWifiOnlyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Download on Wi-Fi only'**
+  String get earlyUpdateWifiOnlyTitle;
+
+  /// No description provided for @earlyUpdateWifiOnlyDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip update downloads while using mobile data.'**
+  String get earlyUpdateWifiOnlyDesc;
+
+  /// No description provided for @earlyUpdateAutoInstallTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto download and install'**
+  String get earlyUpdateAutoInstallTitle;
+
+  /// No description provided for @earlyUpdateAutoInstallDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'When a new build is found, download it and open the Android installer automatically.'**
+  String get earlyUpdateAutoInstallDesc;
+
+  /// No description provided for @earlyUpdateCheckNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Check now'**
+  String get earlyUpdateCheckNow;
+
+  /// No description provided for @earlyUpdateChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking GitHub pre-releases...'**
+  String get earlyUpdateChecking;
+
+  /// No description provided for @earlyUpdateSkippedMobile.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped because Wi-Fi-only downloads are enabled.'**
+  String get earlyUpdateSkippedMobile;
+
+  /// No description provided for @earlyUpdateNoUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'You are already on the latest Early build.'**
+  String get earlyUpdateNoUpdate;
+
+  /// No description provided for @earlyUpdateFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Early build {version}+{build} is available.'**
+  String earlyUpdateFound(Object version, Object build);
+
+  /// No description provided for @earlyUpdateDownloadAndInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Download and install'**
+  String get earlyUpdateDownloadAndInstall;
+
+  /// No description provided for @earlyUpdateDownloadingPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading update: {percent}%'**
+  String earlyUpdateDownloadingPercent(Object percent);
+
+  /// No description provided for @earlyUpdateInstallDownloadedPackage.
+  ///
+  /// In en, this message translates to:
+  /// **'Install downloaded package'**
+  String get earlyUpdateInstallDownloadedPackage;
+
+  /// No description provided for @earlyUpdateClearDownloadedPackage.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear downloaded package'**
+  String get earlyUpdateClearDownloadedPackage;
+
+  /// No description provided for @earlyUpdateClearDownloadedPackageSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded update package cleared.'**
+  String get earlyUpdateClearDownloadedPackageSuccess;
+
+  /// No description provided for @earlyUpdateInstallStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Android installer opened.'**
+  String get earlyUpdateInstallStarted;
+
+  /// No description provided for @earlyUpdateInstallPermissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Memex to install unknown apps, then tap download and install again.'**
+  String get earlyUpdateInstallPermissionRequired;
+
+  /// No description provided for @earlyUpdateLastChecked.
+  ///
+  /// In en, this message translates to:
+  /// **'Last checked: {time}'**
+  String earlyUpdateLastChecked(Object time);
+
+  /// No description provided for @earlyUpdateCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Update check failed: {error}'**
+  String earlyUpdateCheckFailed(Object error);
+
+  /// No description provided for @earlyUpdateDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Early update available'**
+  String get earlyUpdateDialogTitle;
+
+  /// No description provided for @earlyUpdateReleaseNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Release notes'**
+  String get earlyUpdateReleaseNotes;
 }
 
 class _AppLocalizationsDelegate

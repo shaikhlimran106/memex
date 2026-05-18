@@ -195,7 +195,7 @@ ${UserStorage.l10n.userLanguageInstruction}
             );
           } catch (e, st) {
             _logger.severe('Failed to create clarification request', e, st);
-            return AgentToolResult(content: TextPart('Error: $e'));
+            rethrow;
           }
         },
       ),
@@ -222,7 +222,7 @@ ${UserStorage.l10n.userLanguageInstruction}
             return AgentToolResult(content: TextPart(buffer.toString()));
           } catch (e, st) {
             _logger.severe('Failed to list clarification requests', e, st);
-            return AgentToolResult(content: TextPart('Error: $e'));
+            rethrow;
           }
         },
       ),
@@ -258,7 +258,7 @@ ${UserStorage.l10n.userLanguageInstruction}
           } catch (e, st) {
             _logger.severe(
                 'Failed to list recent clarification requests', e, st);
-            return AgentToolResult(content: TextPart('Error: $e'));
+            rethrow;
           }
         },
       ),

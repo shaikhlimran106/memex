@@ -1,12 +1,11 @@
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/utils/time_context.dart';
 
 /// Build a tool for searching event logs
 ///
 /// Allows agents to query historical events to understand context
 Tool buildSearchEventLogsTool() {
-  final fileService = FileSystemService.instance;
-
   return Tool(
     name: 'search_workspace_event_logs',
     description:
@@ -40,7 +39,8 @@ Returns:
 A list of events sorted by time (newest first), each containing:
 - event_type: Type of event
 - description: Human-readable description
-- event_time: When the event occurred
+- local_time: When the event occurred in the user's local timezone, including explicit UTC offset
+- raw_event_time: Original stored timestamp
 - file_path: File path (for file operations)
 - metadata: Additional context
 ''',
@@ -69,64 +69,87 @@ A list of events sorted by time (newest first), each containing:
       'required': ['from_time'],
     },
     executable:
-        (String from_time, int? limit, int? offset, String? to_time) async {
+        (String fromTime, int? limit, int? offset, String? toTime) async {
       final effectiveLimit = (limit ?? 50).clamp(1, 200);
       final effectiveOffset = (offset ?? 0).clamp(0, 10000);
 
       try {
+        final fileService = FileSystemService.instance;
         final userId = AgentCallToolContext.current!.state.metadata['userId'];
         final events = await fileService.eventLogService.searchEvents(
           userId: userId,
-          fromTime: from_time,
+          fromTime: fromTime,
           offset: effectiveOffset,
           limit: effectiveLimit,
-          toTime: to_time,
+          toTime: toTime,
         );
 
         if (events.isEmpty) {
           return 'No events found matching the criteria.';
         }
 
-        // Format events for display
-        final buffer = StringBuffer();
-        buffer.writeln('Found ${events.length} events:');
-        buffer.writeln();
-
-        for (var i = 0; i < events.length; i++) {
-          final event = events[i];
-          buffer.writeln('--- Event ${i + 1} ---');
-          buffer.writeln('Time: ${event['event_time']}');
-          buffer.writeln('Type: ${event['event_type']}');
-          buffer.writeln('Description: ${event['description']}');
-
-          if (event['file_path'] != null) {
-            buffer.writeln('File: ${event['file_path']}');
-          }
-
-          if (event['metadata'] != null) {
-            buffer.writeln('Metadata: ${event['metadata']}');
-          }
-
-          buffer.writeln();
-        }
-
-        // Add smart pagination hint
-        if (events.length == effectiveLimit) {
-          buffer.writeln(
-              '⚠️ Returned exactly $effectiveLimit events (the limit).');
-          buffer.writeln('There might be more events available. To see more:');
-          buffer.writeln(
-              '- Use offset=${effectiveOffset + effectiveLimit} to see next page');
-          buffer.writeln('- Or increase limit (max: 200) to see more at once');
-        } else {
-          buffer.writeln(
-              'Showing all ${events.length} events matching the criteria.');
-        }
-
-        return buffer.toString();
+        return renderEventLogSearchResultsForAgent(
+          events,
+          effectiveLimit: effectiveLimit,
+          effectiveOffset: effectiveOffset,
+        );
       } catch (e) {
-        return 'Error searching event logs: $e';
+        throw StateError('Error searching event logs: $e');
       }
     },
   );
+}
+
+String renderEventLogSearchResultsForAgent(
+  List<Map<String, dynamic>> events, {
+  required int effectiveLimit,
+  required int effectiveOffset,
+}) {
+  final buffer = StringBuffer();
+  buffer.writeln('Found ${events.length} events:');
+  buffer.writeln();
+
+  for (var i = 0; i < events.length; i++) {
+    final event = events[i];
+    final localTime = event['event_time_local'] as String? ??
+        formatLocalDateTimeWithZoneOrNull(event['event_time']) ??
+        'Unknown';
+    buffer.writeln('--- Event ${i + 1} ---');
+    buffer.writeln('Local Time: $localTime');
+    if (event['event_time_unix_seconds'] != null) {
+      buffer.writeln('Unix Seconds: ${event['event_time_unix_seconds']}');
+    }
+    if (event['event_time'] != null) {
+      buffer.writeln('Raw Time: ${event['event_time']}');
+    }
+    buffer.writeln('Type: ${event['event_type']}');
+    buffer.writeln('Description: ${event['description']}');
+
+    if (event['file_path'] != null) {
+      buffer.writeln('File: ${event['file_path']}');
+    }
+
+    if (event['metadata'] != null) {
+      buffer.writeln('Metadata: ${event['metadata']}');
+    }
+
+    buffer.writeln();
+  }
+
+  if (events.length == effectiveLimit) {
+    buffer.writeln(
+      '⚠️ Returned exactly $effectiveLimit events (the limit).',
+    );
+    buffer.writeln('There might be more events available. To see more:');
+    buffer.writeln(
+      '- Use offset=${effectiveOffset + effectiveLimit} to see next page',
+    );
+    buffer.writeln('- Or increase limit (max: 200) to see more at once');
+  } else {
+    buffer.writeln(
+      'Showing all ${events.length} events matching the criteria.',
+    );
+  }
+
+  return buffer.toString();
 }

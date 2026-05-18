@@ -102,9 +102,9 @@ Tool buildGetExistsKnowledgeInsightCardsTool() {
           return "No existing knowledge insight cards found.";
         }
         return jsonEncode(cards);
-      } catch (e) {
-        logger.warning('Failed to get knowledge insight data: $e');
-        return "Error: $e";
+      } catch (e, st) {
+        logger.warning('Failed to get knowledge insight data', e, st);
+        rethrow;
       }
     },
   );
@@ -134,12 +134,12 @@ Tool buildDeleteKnowledgeInsightCardTool() {
             await fileSystem.deleteKnowledgeInsightCard(userId, cardId);
         if (success) {
           return "Card $cardId deleted successfully.";
-        } else {
-          return "Failed to delete card $cardId (File not found or error).";
         }
-      } catch (e) {
-        logger.warning('Failed to delete knowledge insight card: $e');
-        return "Error: $e";
+        throw StateError(
+            "Failed to delete card $cardId (File not found or error).");
+      } catch (e, st) {
+        logger.warning('Failed to delete knowledge insight card', e, st);
+        rethrow;
       }
     },
   );
@@ -170,9 +170,9 @@ Tool buildDeleteKnowledgeInsightTagsTool() {
         final tagList = tags.cast<String>();
         await fileSystem.deleteInsightTags(userId, tagList);
         return "Successfully deleted tags: ${tagList.join(', ')}";
-      } catch (e) {
-        logger.warning('Failed to delete insight tags: $e');
-        return "Error: $e";
+      } catch (e, st) {
+        logger.warning('Failed to delete insight tags', e, st);
+        rethrow;
       }
     },
   );
@@ -226,7 +226,8 @@ Tool buildSaveKnowledgeInsightCardsTool() {
               !availableTemplateIds.contains(chart.templateId))
           .toList();
       if (notSupportedTemplateIds.isNotEmpty) {
-        return "Error: Template IDs ${notSupportedTemplateIds.map((t) => t.templateId).join(", ")} do not exist. Please check available templates using 'get_available_insight_card_templates' tool.";
+        throw ArgumentError(
+            "Template IDs ${notSupportedTemplateIds.map((t) => t.templateId).join(", ")} do not exist. Please check available templates using 'get_available_insight_card_templates' tool.");
       }
 
       // Validate data against schema
@@ -236,7 +237,8 @@ Tool buildSaveKnowledgeInsightCardsTool() {
               nativeWidgets.firstWhere((w) => w.id == chart.templateId);
           final error = widgetDef.validator(chart.data!);
           if (error != null) {
-            return "Error: Validation failed for card (id: ${chart.id}, template: ${chart.templateId}): $error";
+            throw ArgumentError(
+                "Validation failed for card (id: ${chart.id}, template: ${chart.templateId}): $error");
           }
         }
       }
@@ -249,12 +251,14 @@ Tool buildSaveKnowledgeInsightCardsTool() {
         // Actually, for 'add', it MUST be provided.
         if (chart.type == 'add') {
           if (chart.relatedFacts == null || chart.relatedFacts!.isEmpty) {
-            return "Error: `related_facts` is REQUIRED and must not be empty for new insight cards (id: ${chart.id}). Please provide at least one related fact ID.";
+            throw ArgumentError(
+                "`related_facts` is REQUIRED and must not be empty for new insight cards (id: ${chart.id}). Please provide at least one related fact ID.");
           }
         } else if (chart.type == 'update') {
           // For updates, if provided, it must be non-empty
           if (chart.relatedFacts != null && chart.relatedFacts!.isEmpty) {
-            return "Error: `related_facts` cannot be set to empty (id: ${chart.id}). Please provide valid related fact IDs or omit the field to keep existing facts.";
+            throw ArgumentError(
+                "`related_facts` cannot be set to empty (id: ${chart.id}). Please provide valid related fact IDs or omit the field to keep existing facts.");
           }
         }
       }

@@ -14,11 +14,13 @@ import 'package:memex/utils/toast_helper.dart';
 class DebugSettingsPage extends StatelessWidget {
   final Future<void> Function() onClearToken;
   final Future<void> Function() onClearData;
+  final Future<void> Function() onClearFailedAgentContexts;
   final Future<void> Function() onReprocessCards;
   final Future<void> Function() onReprocessComments;
   final Future<void> Function() onReprocessKnowledgeBase;
   final Future<void> Function() onRebuildSearchIndex;
   final bool isClearingData;
+  final bool isClearingFailedAgentContexts;
   final bool isReprocessingCards;
   final bool isReprocessingComments;
   final bool isReprocessingKnowledgeBase;
@@ -28,11 +30,13 @@ class DebugSettingsPage extends StatelessWidget {
     super.key,
     required this.onClearToken,
     required this.onClearData,
+    required this.onClearFailedAgentContexts,
     required this.onReprocessCards,
     required this.onReprocessComments,
     required this.onReprocessKnowledgeBase,
     required this.onRebuildSearchIndex,
     required this.isClearingData,
+    required this.isClearingFailedAgentContexts,
     required this.isReprocessingCards,
     required this.isReprocessingComments,
     required this.isReprocessingKnowledgeBase,
@@ -203,6 +207,14 @@ class DebugSettingsPage extends StatelessWidget {
             title: UserStorage.l10n.clearData,
             onTap: onClearData,
             isLoading: isClearingData,
+          ),
+          const SizedBox(height: 12),
+          _buildFunctionTab(
+            context: context,
+            icon: Icons.psychology_alt_outlined,
+            title: UserStorage.l10n.clearFailedAgentContexts,
+            onTap: onClearFailedAgentContexts,
+            isLoading: isClearingFailedAgentContexts,
           ),
           const SizedBox(height: 12),
           _buildFunctionTab(

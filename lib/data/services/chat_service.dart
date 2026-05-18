@@ -8,7 +8,9 @@ import 'package:memex/agent/memex_skill_host_agent/memex_skill_host_agent.dart';
 import 'package:memex/agent/pure_skill_host_agent/pure_skill_host_agent.dart';
 import 'package:memex/agent/super_agent/super_agent.dart';
 import 'package:memex/data/services/custom_agent_config_service.dart';
+import 'package:memex/data/services/location_context_service.dart';
 import 'package:memex/domain/models/custom_agent_config.dart';
+import 'package:memex/domain/models/location_context_config.dart';
 import 'package:memex/domain/models/llm_config.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/utils/logger.dart';
@@ -32,7 +34,7 @@ class ChatService {
   ChatService._internal();
 
   final Logger _logger = getLogger('ChatService');
-  final FileSystemService _fileService = FileSystemService.instance;
+  FileSystemService get _fileService => FileSystemService.instance;
   final Uuid _uuid = const Uuid();
 
   /// Send a message and get a stream of events.
@@ -49,7 +51,8 @@ class ChatService {
     bool isQuickQuery = false,
   }) async* {
     _logger.info(
-        'sendMessage: sessionId=$sessionId, message=$message, refs=${refs?.length}');
+      'sendMessage: sessionId=$sessionId, message=$message, refs=${refs?.length}',
+    );
 
     final userId = await UserStorage.getUserId();
     if (userId == null) {
@@ -58,17 +61,20 @@ class ChatService {
     }
 
     String finalSessionId = sessionId ?? '';
+    final userMessageTime = DateTime.now();
 
     // 1. Session Management
     try {
       if (finalSessionId.isEmpty) {
         finalSessionId = await _createSession(
-            userId,
-            agentName,
-            [
-              {'type': 'text', 'text': message}
-            ],
-            isQuickQuery: isQuickQuery);
+          userId,
+          agentName,
+          [
+            {'type': 'text', 'text': message},
+          ],
+          isQuickQuery: isQuickQuery,
+          createdAt: userMessageTime,
+        );
       }
 
       // Notify UI of the active session ID immediately
@@ -76,14 +82,16 @@ class ChatService {
 
       // Save User Message
       await _addMessageToSession(
-          userId,
-          finalSessionId,
-          'user',
-          [
-            {'type': 'text', 'text': message}
-          ],
-          refs: refs,
-          isQuickQuery: isQuickQuery);
+        userId,
+        finalSessionId,
+        'user',
+        [
+          {'type': 'text', 'text': message},
+        ],
+        refs: refs,
+        isQuickQuery: isQuickQuery,
+        timestamp: userMessageTime,
+      );
 
       // Log chat event
       try {
@@ -97,6 +105,8 @@ class ChatService {
             'scene_id': sceneId,
             'session_id': finalSessionId,
             'message': message,
+            'message_local_time': formatLocalDateTimeWithZone(userMessageTime),
+            'message_unix_seconds': unixSecondsFromDateTime(userMessageTime),
             'has_refs': refs != null && refs.isNotEmpty,
             'is_quick_query': isQuickQuery,
           },
@@ -122,8 +132,9 @@ class ChatService {
       if (sessionId != null && sessionId.isNotEmpty) {
         final isCustom = await _isCustomAgentSession(userId, finalSessionId);
         if (isCustom && agentName != null && agentName.isNotEmpty) {
-          final configs =
-              await CustomAgentConfigService.instance.loadAll(userId);
+          final configs = await CustomAgentConfigService.instance.loadAll(
+            userId,
+          );
           customAgentCfg =
               configs.where((c) => c.agentName == agentName).firstOrNull;
         }
@@ -154,9 +165,13 @@ class ChatService {
       if (customAgentCfg != null) {
         // Recreate the same agent type used by custom_agent_task_handler.
         final skillDir = _fileService.resolveSkillPath(
-            userId, customAgentCfg.skillDirectoryPath);
+          userId,
+          customAgentCfg.skillDirectoryPath,
+        );
         final workingDirAbs = await _fileService.resolveWorkingDirectory(
-            userId, customAgentCfg.workingDirectory);
+          userId,
+          customAgentCfg.workingDirectory,
+        );
 
         // Sync skill directory into workingDirectory if it's outside,
         // so file tools (Read, LS, etc.) can access skill files.
@@ -242,7 +257,11 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
 
     // Forward events from agent controller to stream
     _setupControllerListeners(
-        controller, streamController, userId, finalSessionId);
+      controller,
+      streamController,
+      userId,
+      finalSessionId,
+    );
 
     // Build scene context reminder
     String sceneContext = "";
@@ -261,9 +280,20 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     }
 
     List<LLMMessage> userMessages = [];
+    CurrentLocationContext? locationContext;
+    String? locationContextReminder;
+    try {
+      locationContext =
+          await LocationContextService.instance.getCurrentContext();
+      locationContextReminder = locationContext.toAgentSystemReminderContent();
+    } catch (e) {
+      _logger.warning('Failed to decorate chat with location context: $e');
+    }
 
     // Build combined system reminder content
-    if (sceneContext.isNotEmpty || (refs != null && refs.isNotEmpty)) {
+    if (sceneContext.isNotEmpty ||
+        locationContextReminder != null ||
+        (refs != null && refs.isNotEmpty)) {
       final StringBuffer reminderContent = StringBuffer();
       reminderContent.write('<system-reminder>\n');
 
@@ -273,17 +303,28 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
         reminderContent.write('\n');
       }
 
-      // Add refs context if available
-      if (refs != null && refs.isNotEmpty) {
+      if (locationContextReminder != null) {
         if (sceneContext.isNotEmpty) {
           reminderContent.write('\n');
         }
+        reminderContent.write(locationContextReminder);
+        reminderContent.write('\n');
+      }
+
+      // Add refs context if available
+      if (refs != null && refs.isNotEmpty) {
+        if (sceneContext.isNotEmpty || locationContextReminder != null) {
+          reminderContent.write('\n');
+        }
         final refsString = refs
-            .map((r) =>
-                'Title: ${r['title']}\nType: ${r['type'] ?? 'unknown'}\nContent: ${r['content']}')
+            .map(
+              (r) =>
+                  'Title: ${r['title']}\nType: ${r['type'] ?? 'unknown'}\nContent: ${r['content']}',
+            )
             .join('\n\n');
         reminderContent.write(
-            'The user has referenced the following content. Use this context to answer the user query:\n');
+          'The user has referenced the following content. Use this context to answer the user query:\n',
+        );
         reminderContent.write(refsString);
         reminderContent.write('\n');
       }
@@ -293,15 +334,19 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
       userMessages.addAll([
         UserMessage.text(reminderContent.toString()),
         ModelMessage(
-            model: "mocked",
-            textOutput: "Understood, I will keep this context in mind.")
+          model: "mocked",
+          textOutput: "Understood, I will keep this context in mind.",
+        ),
       ]);
     }
 
-    userMessages.add(UserMessage([
-      TextPart(buildCurrentTimeReminder(DateTime.now())),
-      TextPart(message),
-    ]));
+    userMessages.add(
+      UserMessage([
+        TextPart(buildCurrentTimeReminder(userMessageTime)),
+        TextPart(buildMessageTimePrefix(userMessageTime)),
+        TextPart(message),
+      ]),
+    );
 
     // We don't await the result here, we rely on AgentStoppedEvent to handle completion
     agent.run(userMessages).whenComplete(() async {
@@ -369,9 +414,10 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
         );
         turnCacheSemantics ??= sem;
         final effP = TokenUsageUtils.effectivePromptTokensOrNull(
-            promptTokens: p,
-            cachedTokens: ca,
-            cachedTokensIncludedInPrompt: sem);
+          promptTokens: p,
+          cachedTokens: ca,
+          cachedTokensIncludedInPrompt: sem,
+        );
 
         totalPrompt += p;
         totalCompletion += c;
@@ -384,12 +430,13 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
 
         // Calculate cost
         final cost = TokenUsageUtils.calculateCost(
-            model: msg.model,
-            promptTokens: p,
-            completionTokens: c,
-            cachedTokens: ca,
-            thoughtTokens: u.thoughtToken,
-            cachedTokensIncludedInPrompt: sem)['total']!;
+          model: msg.model,
+          promptTokens: p,
+          completionTokens: c,
+          cachedTokens: ca,
+          thoughtTokens: u.thoughtToken,
+          cachedTokensIncludedInPrompt: sem,
+        )['total']!;
         totalCost += cost;
       }
 
@@ -412,41 +459,53 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
       }
 
       // Save AI response with usage stats
-      final sessionTotalUsage =
-          await _addMessageToSession(userId, sessionId, 'ai', [
-        {'type': 'text', 'text': response}
-      ], usage: {
-        'prompt_tokens': totalPrompt,
-        'completion_tokens': totalCompletion,
-        'cached_tokens': totalCached,
-        if (turnCacheSemantics != null)
-          'cache_tokens_included_in_prompt': turnCacheSemantics,
-        'total_tokens': totalTokens,
-        'total_cost': totalCost
-      });
+      final responseTime = DateTime.now();
+      final sessionTotalUsage = await _addMessageToSession(
+        userId,
+        sessionId,
+        'ai',
+        [
+          {'type': 'text', 'text': response},
+        ],
+        usage: {
+          'prompt_tokens': totalPrompt,
+          'completion_tokens': totalCompletion,
+          'cached_tokens': totalCached,
+          if (turnCacheSemantics != null)
+            'cache_tokens_included_in_prompt': turnCacheSemantics,
+          'total_tokens': totalTokens,
+          'total_cost': totalCost,
+        },
+        timestamp: responseTime,
+      );
 
       // Emit Token Usage (Cumulative if available, else current turn)
       if (sessionTotalUsage != null) {
-        stream.add(ChatTokenUsageEvent(
-          promptTokens: sessionTotalUsage['prompt_tokens'] as int? ?? 0,
-          completionTokens: sessionTotalUsage['completion_tokens'] as int? ?? 0,
-          cachedTokens: sessionTotalUsage['cached_tokens'] as int? ?? 0,
-          effectivePromptTokens: totalEffectivePrompt,
-          cachedTokensForRate: totalCachedForRate,
-          totalTokens: sessionTotalUsage['total_tokens'] as int? ?? 0,
-          estimatedCost: sessionTotalUsage['total_cost'] as double? ?? 0.0,
-        ));
+        stream.add(
+          ChatTokenUsageEvent(
+            promptTokens: sessionTotalUsage['prompt_tokens'] as int? ?? 0,
+            completionTokens:
+                sessionTotalUsage['completion_tokens'] as int? ?? 0,
+            cachedTokens: sessionTotalUsage['cached_tokens'] as int? ?? 0,
+            effectivePromptTokens: totalEffectivePrompt,
+            cachedTokensForRate: totalCachedForRate,
+            totalTokens: sessionTotalUsage['total_tokens'] as int? ?? 0,
+            estimatedCost: sessionTotalUsage['total_cost'] as double? ?? 0.0,
+          ),
+        );
       } else if (totalTokens > 0) {
         // Fallback to single turn usage
-        stream.add(ChatTokenUsageEvent(
-          promptTokens: totalPrompt,
-          completionTokens: totalCompletion,
-          cachedTokens: totalCached,
-          effectivePromptTokens: totalEffectivePrompt,
-          cachedTokensForRate: totalCachedForRate,
-          totalTokens: totalTokens,
-          estimatedCost: totalCost,
-        ));
+        stream.add(
+          ChatTokenUsageEvent(
+            promptTokens: totalPrompt,
+            completionTokens: totalCompletion,
+            cachedTokens: totalCached,
+            effectivePromptTokens: totalEffectivePrompt,
+            cachedTokensForRate: totalCachedForRate,
+            totalTokens: totalTokens,
+            estimatedCost: totalCost,
+          ),
+        );
       }
 
       if (!stream.isClosed) {
@@ -500,8 +559,12 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
 
     // 4. Tool Call
     controller.on((BeforeToolCallEvent event) {
-      stream.add(ChatToolCallEvent(
-          event.functionCall.name, event.functionCall.arguments.toString()));
+      stream.add(
+        ChatToolCallEvent(
+          event.functionCall.name,
+          event.functionCall.arguments.toString(),
+        ),
+      );
     });
 
     // 5. Tool Result
@@ -525,8 +588,13 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
       if (resultPreview.length > 300) {
         resultPreview = '${resultPreview.substring(0, 300)}...';
       }
-      stream.add(ChatToolResultEvent(event.result.name, resultPreview,
-          isError: event.result.isError));
+      stream.add(
+        ChatToolResultEvent(
+          event.result.name,
+          resultPreview,
+          isError: event.result.isError,
+        ),
+      );
     });
   }
 
@@ -552,12 +620,13 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     String? agentName,
     List<Map<String, dynamic>> initialContent, {
     bool isQuickQuery = false,
+    DateTime? createdAt,
   }) async {
     final uuidStr = _uuid.v4();
     final sessionId = agentName != null && agentName.isNotEmpty
         ? '${agentName}_$uuidStr'
         : uuidStr;
-    final now = DateTime.now();
+    final now = createdAt ?? DateTime.now();
 
     String? title;
     for (final item in initialContent) {
@@ -573,7 +642,11 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
       'agent_name': agentName,
       'title': title ?? 'New Chat',
       'created_at': now.toIso8601String(),
+      'created_at_local': formatLocalDateTimeWithZone(now),
+      'created_at_unix_seconds': unixSecondsFromDateTime(now),
       'updated_at': now.toIso8601String(),
+      'updated_at_local': formatLocalDateTimeWithZone(now),
+      'updated_at_unix_seconds': unixSecondsFromDateTime(now),
       'is_quick_query': isQuickQuery,
       'messages': <dynamic>[],
     };
@@ -594,6 +667,7 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     Map<String, dynamic>? usage,
     List<Map<String, String>>? refs,
     bool? isQuickQuery,
+    DateTime? timestamp,
   }) async {
     final sessionFile = _getSessionFilePath(userId, sessionId);
     if (!await sessionFile.exists()) return null;
@@ -601,16 +675,22 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     final fileContent = await sessionFile.readAsString();
     final doc = loadYaml(fileContent);
     final sessionData = jsonDecode(jsonEncode(doc)) as Map<String, dynamic>;
+    _backfillSessionTimeContext(sessionData);
 
+    final messageTime = timestamp ?? DateTime.now();
     final messageDict = {
       'role': role,
       'content': content,
       if (usage != null) 'usage': usage,
       if (refs != null) 'refs': refs,
-      'timestamp': DateTime.now().toIso8601String(),
+      'timestamp': messageTime.toIso8601String(),
+      'local_time': formatLocalDateTimeWithZone(messageTime),
+      'unix_seconds': unixSecondsFromDateTime(messageTime),
     };
 
     final messages = (sessionData['messages'] as List<dynamic>? ?? [])
+        .map(_backfillMessageTimeContext)
+        .toList()
       ..add(messageDict);
     sessionData['messages'] = messages;
 
@@ -645,7 +725,10 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
       sessionData['is_quick_query'] = isQuickQuery;
     }
 
-    sessionData['updated_at'] = DateTime.now().toIso8601String();
+    final updatedAt = DateTime.now();
+    sessionData['updated_at'] = updatedAt.toIso8601String();
+    sessionData['updated_at_local'] = formatLocalDateTimeWithZone(updatedAt);
+    sessionData['updated_at_unix_seconds'] = unixSecondsFromDateTime(updatedAt);
 
     await _fileService.writeYamlFile(sessionFile.path, sessionData);
     return sessionData['total_usage'] as Map<String, dynamic>?;
@@ -654,5 +737,46 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
   File _getSessionFilePath(String userId, String sessionId) {
     final sessionsPath = _fileService.getChatSessionsPath(userId);
     return File(p.join(sessionsPath, '$sessionId.yaml'));
+  }
+
+  void _backfillSessionTimeContext(Map<String, dynamic> sessionData) {
+    final createdAt = tryParseDateTime(sessionData['created_at']);
+    if (createdAt != null) {
+      sessionData['created_at_local'] ??= formatLocalDateTimeWithZone(
+        createdAt,
+      );
+      sessionData['created_at_unix_seconds'] ??= unixSecondsFromDateTime(
+        createdAt,
+      );
+    }
+
+    final updatedAt = tryParseDateTime(sessionData['updated_at']);
+    if (updatedAt != null) {
+      sessionData['updated_at_local'] ??= formatLocalDateTimeWithZone(
+        updatedAt,
+      );
+      sessionData['updated_at_unix_seconds'] ??= unixSecondsFromDateTime(
+        updatedAt,
+      );
+    }
+  }
+
+  dynamic _backfillMessageTimeContext(dynamic message) {
+    if (message is! Map<String, dynamic>) {
+      return message;
+    }
+
+    final parsed = tryParseDateTime(message['timestamp']);
+    if (parsed == null) {
+      return message;
+    }
+
+    return {
+      ...message,
+      'local_time':
+          message['local_time'] ?? formatLocalDateTimeWithZone(parsed),
+      'unix_seconds':
+          message['unix_seconds'] ?? unixSecondsFromDateTime(parsed),
+    };
   }
 }

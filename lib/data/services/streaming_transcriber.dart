@@ -48,6 +48,7 @@ class StreamingTranscriber {
   sherpa.VoiceActivityDetector? _vad;
   bool _isRunning = false;
   final List<double> _sampleBuffer = [];
+  bool _hasLoggedFirstVadWindow = false;
   static const int _vadWindowSize = 512;
 
   /// Calibrate when pending audio reaches this duration.
@@ -149,6 +150,11 @@ class StreamingTranscriber {
         _sampleBuffer.sublist(0, _vadWindowSize),
       );
       _sampleBuffer.removeRange(0, _vadWindowSize);
+      if (!_hasLoggedFirstVadWindow) {
+        _hasLoggedFirstVadWindow = true;
+        _logger.info('Running first VAD acceptWaveform window: '
+            '${window.length} samples');
+      }
       _vad!.acceptWaveform(window);
     }
 
