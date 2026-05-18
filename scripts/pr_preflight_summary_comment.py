@@ -314,6 +314,70 @@ def quality_label(overall: str, conclusion: str) -> tuple[str, str]:
     }.get(overall, ("UNKNOWN", "未知"))
 
 
+def policy_detail(policy_data: dict[str, Any]) -> tuple[str, str]:
+    findings = policy_data.get("findings", [])
+    if not isinstance(findings, list):
+        findings = []
+    reject_count = sum(1 for item in findings if isinstance(item, dict) and item.get("severity") == "reject")
+    high_count = sum(1 for item in findings if isinstance(item, dict) and item.get("severity") == "high")
+    warn_count = sum(1 for item in findings if isinstance(item, dict) and item.get("severity") == "warn")
+    decision = str(policy_data.get("decision", "unknown"))
+
+    if decision == "reject":
+        return (
+            f"Found {reject_count} blocking policy issue(s); fix them before normal review.",
+            f"命中 {reject_count} 条打回规则，需要修复后再进入普通 review。",
+        )
+    if decision == "high_risk":
+        warning_part_en = f" and {warn_count} warning(s)" if warn_count else ""
+        warning_part_zh = f"，另有 {warn_count} 条警告" if warn_count else ""
+        return (
+            f"Found {high_count} high-risk policy signal(s){warning_part_en}; maintainer review is required.",
+            f"命中 {high_count} 条高风险规则{warning_part_zh}，需要 maintainer 人工确认。",
+        )
+    if decision == "low_risk":
+        if warn_count:
+            return (
+                f"No blocking or high-risk policy signal; {warn_count} warning(s) remain for review context.",
+                f"未命中打回或高风险规则，仅有 {warn_count} 条警告供 review 参考。",
+            )
+        return (
+            "No blocking, high-risk, or warning policy signal was found.",
+            "未命中打回、高风险或警告规则。",
+        )
+    return (
+        "Policy decision is unknown; check the detailed report below.",
+        "Policy 判定不可识别，请查看下方详情。",
+    )
+
+
+def flutter_detail(
+    *,
+    flutter_data: dict[str, Any],
+    analyzer_data: dict[str, Any],
+    test_data: dict[str, Any],
+    conclusion: str,
+) -> tuple[str, str]:
+    overall = str(flutter_data.get("overall", "unknown"))
+    analyzer_new = int(analyzer_data.get("new_count") or 0)
+    test_new = int(test_data.get("new_count") or 0)
+
+    if conclusion == "success" and overall == "passed":
+        return (
+            "Analyzer and test baselines found no newly introduced issue.",
+            "Analyzer 和 test baseline 均未发现新增问题。",
+        )
+    if analyzer_new or test_new:
+        return (
+            f"Found {analyzer_new} new analyzer issue(s) and {test_new} new test failure(s).",
+            f"发现 {analyzer_new} 个新增 analyzer 问题和 {test_new} 个新增失败测试。",
+        )
+    return (
+        "Flutter quality did not complete successfully; check the detailed report below.",
+        "Flutter quality 未完整通过，请查看下方详情。",
+    )
+
+
 def limited(text: str, *, max_chars: int = 25000) -> str:
     if len(text) <= max_chars:
         return text
@@ -336,18 +400,28 @@ def details(summary: str, body: str) -> str:
 def build_comment(*, policy: TargetResult, flutter: TargetResult) -> str:
     policy_data = load_json_file(policy.files, policy.target.json_file)
     flutter_data = load_json_file(flutter.files, flutter.target.json_file)
+    analyzer_data = load_json_file(flutter.files, "flutter-analyze.json")
+    test_data = load_json_file(flutter.files, "flutter-test.json")
     policy_md = find_file(policy.files, policy.target.markdown_file) or "Policy preflight report was not produced."
     flutter_md = find_file(flutter.files, flutter.target.markdown_file) or "Flutter quality report was not produced."
 
     decision = policy_data.get("decision", "unknown")
     decision_en, decision_zh = decision_label(decision)
     flutter_overall = str(flutter_data.get("overall", "unknown"))
-    flutter_en, flutter_zh = quality_label(flutter_overall, str(flutter.run.get("conclusion", "")))
+    flutter_conclusion = str(flutter.run.get("conclusion", ""))
+    flutter_en, flutter_zh = quality_label(flutter_overall, flutter_conclusion)
+    policy_detail_en, policy_detail_zh = policy_detail(policy_data)
+    flutter_detail_en, flutter_detail_zh = flutter_detail(
+        flutter_data=flutter_data,
+        analyzer_data=analyzer_data,
+        test_data=test_data,
+        conclusion=flutter_conclusion,
+    )
 
     if decision == "reject":
         final_zh = "打回：规则预检命中阻断项，需要修复后再进入普通 review。"
         final_en = "Rejected: policy preflight found a blocking issue."
-    elif str(flutter.run.get("conclusion", "")) != "success" or flutter_overall != "passed":
+    elif flutter_conclusion != "success" or flutter_overall != "passed":
         final_zh = "需要修复：Flutter quality 发现新增 analyzer/test 问题或未完整完成。"
         final_en = "Needs fixes: Flutter quality found new analyzer/test issues or did not complete."
     elif decision == "high_risk":
@@ -368,8 +442,8 @@ def build_comment(*, policy: TargetResult, flutter: TargetResult) -> str:
             "\n".join(
                 [
                     f"- 统一结论：{final_zh}",
-                    f"- Policy preflight：`{decision_zh}`",
-                    f"- Flutter quality：`{flutter_zh}`",
+                    f"- Policy preflight：`{decision_zh}`。{policy_detail_zh}",
+                    f"- Flutter quality：`{flutter_zh}`。{flutter_detail_zh}",
                     f"- PR head：`{policy.context['head_sha']}`",
                     f"- Policy run：[{policy.run['id']}]({policy.run['html_url']})",
                     f"- Flutter run：[{flutter.run['id']}]({flutter.run['html_url']})",
@@ -379,8 +453,8 @@ def build_comment(*, policy: TargetResult, flutter: TargetResult) -> str:
             "\n".join(
                 [
                     f"- Combined result: {final_en}",
-                    f"- Policy preflight: `{decision_en}`",
-                    f"- Flutter quality: `{flutter_en}`",
+                    f"- Policy preflight: `{decision_en}`. {policy_detail_en}",
+                    f"- Flutter quality: `{flutter_en}`. {flutter_detail_en}",
                     f"- PR head: `{policy.context['head_sha']}`",
                     f"- Policy run: [{policy.run['id']}]({policy.run['html_url']})",
                     f"- Flutter run: [{flutter.run['id']}]({flutter.run['html_url']})",
