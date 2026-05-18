@@ -669,6 +669,46 @@
   "providerOpenRouter": "OpenRouter",
   "providerOllama": "Ollama (Local)",
   "providerMimo": "Xiaomi MIMO",
+  "providerMemex": "Memex AI",
+  "memexSignIn": "Sign In",
+  "memexCreateAccount": "Create Account",
+  "memexSignInToMemex": "Sign in to Memex AI",
+  "memexCreateMemexAccount": "Create Memex AI account",
+  "memexUsername": "Username",
+  "memexPassword": "Password",
+  "memexCreateAccountLink": "Create account",
+  "memexSignInLink": "Sign in instead",
+  "memexTopUp": "Top up to start using Memex AI",
+  "memexApplyCredentials": "Apply Credentials",
+  "memexCredentialsApplied": "Credentials applied",
+  "memexTopUpSuccess": "Top up successful!",
+  "memexFillAllFields": "Please fill in all fields",
+  "memexUsernameTooShort": "Username must be at least 6 characters",
+  "memexAuthFailed": "Authentication failed",
+  "memexPaymentFailed": "Failed to create payment",
+  "memexLogout": "Logout",
+  "memexPricingInfo": "Pay-as-you-go · Official API pricing × {ratio}",
+  "@memexPricingInfo": {
+    "placeholders": {
+      "ratio": {}
+    }
+  },
+  "memexCustomAmount": "Custom Amount",
+  "memexViewHistory": "Usage History",
+  "memexBalanceLabel": "Balance: ${amount}",
+  "@memexBalanceLabel": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "memexConfirmPassword": "Confirm Password",
+  "memexPasswordMismatch": "Passwords do not match",
+  "memexPayAmount": "Pay ${amount}",
+  "@memexPayAmount": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
   "modelIdLabel": "Model ID",
   "modelIdHelper": "e.g. gemini-3.1-pro-preview, gpt-4o",
   "fetchingModels": "Fetching models...",

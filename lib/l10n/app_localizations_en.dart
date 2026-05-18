@@ -1435,6 +1435,87 @@ class AppLocalizationsEn extends AppLocalizations {
   String get providerMimo => 'Xiaomi MIMO';
 
   @override
+  String get providerMemex => 'Memex AI';
+
+  @override
+  String get memexSignIn => 'Sign In';
+
+  @override
+  String get memexCreateAccount => 'Create Account';
+
+  @override
+  String get memexSignInToMemex => 'Sign in to Memex AI';
+
+  @override
+  String get memexCreateMemexAccount => 'Create Memex AI account';
+
+  @override
+  String get memexUsername => 'Username';
+
+  @override
+  String get memexPassword => 'Password';
+
+  @override
+  String get memexCreateAccountLink => 'Create account';
+
+  @override
+  String get memexSignInLink => 'Sign in instead';
+
+  @override
+  String get memexTopUp => 'Top up to start using Memex AI';
+
+  @override
+  String get memexApplyCredentials => 'Apply Credentials';
+
+  @override
+  String get memexCredentialsApplied => 'Credentials applied';
+
+  @override
+  String get memexTopUpSuccess => 'Top up successful!';
+
+  @override
+  String get memexFillAllFields => 'Please fill in all fields';
+
+  @override
+  String get memexUsernameTooShort => 'Username must be at least 6 characters';
+
+  @override
+  String get memexAuthFailed => 'Authentication failed';
+
+  @override
+  String get memexPaymentFailed => 'Failed to create payment';
+
+  @override
+  String get memexLogout => 'Logout';
+
+  @override
+  String memexPricingInfo(Object ratio) {
+    return 'Pay-as-you-go · Official API pricing × $ratio';
+  }
+
+  @override
+  String get memexCustomAmount => 'Custom Amount';
+
+  @override
+  String get memexViewHistory => 'Usage History';
+
+  @override
+  String memexBalanceLabel(Object amount) {
+    return 'Balance: \$$amount';
+  }
+
+  @override
+  String get memexConfirmPassword => 'Confirm Password';
+
+  @override
+  String get memexPasswordMismatch => 'Passwords do not match';
+
+  @override
+  String memexPayAmount(Object amount) {
+    return 'Pay \$$amount';
+  }
+
+  @override
   String get modelIdLabel => 'Model ID';
 
   @override

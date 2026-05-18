@@ -2654,6 +2654,156 @@ abstract class AppLocalizations {
   /// **'Xiaomi MIMO'**
   String get providerMimo;
 
+  /// No description provided for @providerMemex.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex AI'**
+  String get providerMemex;
+
+  /// No description provided for @memexSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get memexSignIn;
+
+  /// No description provided for @memexCreateAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account'**
+  String get memexCreateAccount;
+
+  /// No description provided for @memexSignInToMemex.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to Memex AI'**
+  String get memexSignInToMemex;
+
+  /// No description provided for @memexCreateMemexAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Memex AI account'**
+  String get memexCreateMemexAccount;
+
+  /// No description provided for @memexUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get memexUsername;
+
+  /// No description provided for @memexPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get memexPassword;
+
+  /// No description provided for @memexCreateAccountLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Create account'**
+  String get memexCreateAccountLink;
+
+  /// No description provided for @memexSignInLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in instead'**
+  String get memexSignInLink;
+
+  /// No description provided for @memexTopUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Top up to start using Memex AI'**
+  String get memexTopUp;
+
+  /// No description provided for @memexApplyCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply Credentials'**
+  String get memexApplyCredentials;
+
+  /// No description provided for @memexCredentialsApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Credentials applied'**
+  String get memexCredentialsApplied;
+
+  /// No description provided for @memexTopUpSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Top up successful!'**
+  String get memexTopUpSuccess;
+
+  /// No description provided for @memexFillAllFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Please fill in all fields'**
+  String get memexFillAllFields;
+
+  /// No description provided for @memexUsernameTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Username must be at least 6 characters'**
+  String get memexUsernameTooShort;
+
+  /// No description provided for @memexAuthFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication failed'**
+  String get memexAuthFailed;
+
+  /// No description provided for @memexPaymentFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create payment'**
+  String get memexPaymentFailed;
+
+  /// No description provided for @memexLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Logout'**
+  String get memexLogout;
+
+  /// No description provided for @memexPricingInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay-as-you-go · Official API pricing × {ratio}'**
+  String memexPricingInfo(Object ratio);
+
+  /// No description provided for @memexCustomAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Amount'**
+  String get memexCustomAmount;
+
+  /// No description provided for @memexViewHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage History'**
+  String get memexViewHistory;
+
+  /// No description provided for @memexBalanceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance: \${amount}'**
+  String memexBalanceLabel(Object amount);
+
+  /// No description provided for @memexConfirmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Password'**
+  String get memexConfirmPassword;
+
+  /// No description provided for @memexPasswordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match'**
+  String get memexPasswordMismatch;
+
+  /// No description provided for @memexPayAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay \${amount}'**
+  String memexPayAmount(Object amount);
+
   /// No description provided for @modelIdLabel.
   ///
   /// In en, this message translates to:

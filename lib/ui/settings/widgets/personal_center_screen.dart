@@ -219,12 +219,8 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   value: reanalyzeAssets,
-                  title: Text(
-                    UserStorage.l10n.reanalyzeMediaAssets,
-                  ),
-                  subtitle: Text(
-                    UserStorage.l10n.reanalyzeMediaAssetsDesc,
-                  ),
+                  title: Text(UserStorage.l10n.reanalyzeMediaAssets),
+                  subtitle: Text(UserStorage.l10n.reanalyzeMediaAssetsDesc),
                   onChanged: (value) {
                     setDialogState(() {
                       reanalyzeAssets = value;
@@ -779,7 +775,9 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 8),
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF1F5F9),
                                 borderRadius: BorderRadius.circular(20),
@@ -787,8 +785,11 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.search,
-                                      color: Color(0xFF94A3B8), size: 16),
+                                  const Icon(
+                                    Icons.search,
+                                    color: Color(0xFF94A3B8),
+                                    size: 16,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     UserStorage.l10n.settingsSearchPlaceholder,
@@ -908,7 +909,6 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                               ).then((_) => _checkPermissionBadge());
                             },
                           ),
-                          const SizedBox(height: 12),
                           const SizedBox(height: 12),
                           _buildFunctionTab(
                             icon: Icons.settings_input_component_outlined,

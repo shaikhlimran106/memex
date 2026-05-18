@@ -20,6 +20,7 @@ class LLMConfig {
   static const String typeOpenRouter = 'openrouter';
   static const String typeOllama = 'ollama';
   static const String typeMimo = 'mimo';
+  static const String typeMemex = 'memex';
 
   /// User-friendly display name for a provider type.
   /// Only OpenAI and Anthropic types need special handling since their
@@ -56,6 +57,8 @@ class LLMConfig {
         return 'OpenRouter';
       case typeOllama:
         return 'Ollama';
+      case typeMemex:
+        return 'Memex AI';
       default:
         return type;
     }
@@ -70,6 +73,7 @@ class LLMConfig {
       case typeZhipu:
       case typeOpenRouter:
       case typeOllama:
+      case typeMemex:
         return typeChatCompletion;
       case typeSeed:
         return typeResponses;
@@ -112,6 +116,8 @@ class LLMConfig {
         return 'OpenRouter';
       case typeOllama:
         return 'Ollama';
+      case typeMemex:
+        return 'Memex AI';
       case typeMimo:
         return 'Xiaomi MIMO';
       default:
@@ -302,6 +308,7 @@ class LLMConfig {
       case typeOpenRouter:
       case typeOllama:
       case typeGemini:
+      case typeMemex:
         return true;
       default:
         return false;
@@ -359,6 +366,7 @@ class LLMConfig {
             id.contains('vision') ||
             id.contains('omni');
       case typeOpenRouter:
+      case typeMemex:
         return id.contains('gemini') ||
             id.contains('claude') ||
             id.contains('gpt-4o') ||
@@ -401,6 +409,8 @@ class LLMConfig {
         return 'https://openrouter.ai/api/v1';
       case typeOllama:
         return 'http://localhost:11434/v1';
+      case typeMemex:
+        return ''; // Auto-filled after login via MemexCloudService
       case typeMimo:
         return 'https://api.xiaomimimo.com/anthropic';
       default:
@@ -477,7 +487,8 @@ class LLMConfig {
             type == typeZhipu ||
             type == typeMinimax ||
             type == typeMimo ||
-            type == typeOpenRouter) &&
+            type == typeOpenRouter ||
+            type == typeMemex) &&
         getEffectiveApiKey().isEmpty) {
       return false;
     }
@@ -495,6 +506,7 @@ class LLMConfig {
       typeOpenRouter,
       typeOllama,
       typeMimo,
+      typeMemex,
     ];
     if (typesRequiringBaseUrl.contains(type)) {
       return baseUrl.isNotEmpty;

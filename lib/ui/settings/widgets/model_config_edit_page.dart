@@ -11,6 +11,7 @@ import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/ui/core/widgets/searchable_dropdown.dart';
 import 'package:memex/config/app_config.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
+import 'package:memex/ui/settings/widgets/memex_auth_section.dart';
 
 class ModelConfigEditPage extends StatefulWidget {
   final LLMConfig? config;
@@ -538,6 +539,7 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage>
         _ProviderEntry(LLMConfig.typeGeminiOauth, l10n.providerGeminiOauth),
       ],
       l10n.providerGroupOthers: [
+        _ProviderEntry(LLMConfig.typeMemex, 'Memex AI'),
         _ProviderEntry(LLMConfig.typeKimi, l10n.providerKimi),
         _ProviderEntry(LLMConfig.typeQwen, l10n.providerQwen),
         _ProviderEntry(LLMConfig.typeSeed, l10n.providerSeed),
@@ -1092,7 +1094,8 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage>
               // Base URL (before API key — needed for model fetching)
               if (_selectedType != LLMConfig.typeBedrockClaude &&
                   _selectedType != LLMConfig.typeOpenAiOauth &&
-                  _selectedType != LLMConfig.typeGeminiOauth) ...[
+                  _selectedType != LLMConfig.typeGeminiOauth &&
+                  _selectedType != LLMConfig.typeMemex) ...[
                 TextFormField(
                   controller: _baseUrlController,
                   decoration: InputDecoration(
@@ -1115,6 +1118,56 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage>
                 const SizedBox(height: 16),
               ] else if (_selectedType == LLMConfig.typeGeminiOauth) ...[
                 _buildGeminiAuthSection(),
+                const SizedBox(height: 16),
+              ] else if (_selectedType == LLMConfig.typeMemex) ...[
+                MemexAuthSection(
+                  onCredentialsReady: (baseUrl, apiKey, models) {
+                    setState(() {
+                      _baseUrlController.text = baseUrl;
+                      _apiKeyController.text = apiKey;
+                      if (models.isNotEmpty) {
+                        _fetchedModels = models;
+                        _modelIdController.text = models.first;
+                        _modelDropdownKey.currentState?.setText(models.first);
+                      }
+                    });
+                    _checkChanges();
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _baseUrlController,
+                  decoration: InputDecoration(
+                    labelText: UserStorage.l10n.baseUrlLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                  onChanged: (_) {
+                    _checkChanges();
+                    setState(() {});
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _apiKeyController,
+                  decoration: InputDecoration(
+                    labelText: UserStorage.l10n.apiKeyLabel,
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isObscureApiKey
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () =>
+                          setState(() => _isObscureApiKey = !_isObscureApiKey),
+                    ),
+                  ),
+                  obscureText: _isObscureApiKey,
+                  onChanged: (_) {
+                    _checkChanges();
+                    setState(() {});
+                  },
+                ),
                 const SizedBox(height: 16),
               ] else if (_selectedType == LLMConfig.typeBedrockClaude) ...[
                 // Bedrock-specific fields

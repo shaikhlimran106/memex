@@ -47,9 +47,13 @@ class AppConfig {
     // Aggregators
     LLMConfig.typeOpenRouter,
     LLMConfig.typeOllama,
+    // Memex AI (built-in service)
+    LLMConfig.typeMemex,
   ];
 
   static const _cnProviders = [
+    // Memex AI (built-in service)
+    LLMConfig.typeMemex,
     // Chinese providers
     LLMConfig.typeKimi,
     LLMConfig.typeQwen,

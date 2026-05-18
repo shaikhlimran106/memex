@@ -1391,6 +1391,87 @@ class AppLocalizationsZh extends AppLocalizations {
   String get providerMimo => 'Xiaomi MIMO (小米)';
 
   @override
+  String get providerMemex => 'Memex AI';
+
+  @override
+  String get memexSignIn => '登录';
+
+  @override
+  String get memexCreateAccount => '注册';
+
+  @override
+  String get memexSignInToMemex => '登录 Memex AI';
+
+  @override
+  String get memexCreateMemexAccount => '注册 Memex AI 账号';
+
+  @override
+  String get memexUsername => '用户名';
+
+  @override
+  String get memexPassword => '密码';
+
+  @override
+  String get memexCreateAccountLink => '注册账号';
+
+  @override
+  String get memexSignInLink => '已有账号，去登录';
+
+  @override
+  String get memexTopUp => '充值后即可使用 Memex AI';
+
+  @override
+  String get memexApplyCredentials => '应用凭证';
+
+  @override
+  String get memexCredentialsApplied => '凭证已应用';
+
+  @override
+  String get memexTopUpSuccess => '充值成功！';
+
+  @override
+  String get memexFillAllFields => '请填写所有字段';
+
+  @override
+  String get memexUsernameTooShort => '用户名至少 6 个字符';
+
+  @override
+  String get memexAuthFailed => '认证失败';
+
+  @override
+  String get memexPaymentFailed => '创建支付失败';
+
+  @override
+  String get memexLogout => '退出';
+
+  @override
+  String memexPricingInfo(Object ratio) {
+    return '按量计费 · 官方 API 定价 × $ratio';
+  }
+
+  @override
+  String get memexCustomAmount => '自定义金额';
+
+  @override
+  String get memexViewHistory => '使用记录';
+
+  @override
+  String memexBalanceLabel(Object amount) {
+    return '余额: \$$amount';
+  }
+
+  @override
+  String get memexConfirmPassword => '确认密码';
+
+  @override
+  String get memexPasswordMismatch => '两次密码不一致';
+
+  @override
+  String memexPayAmount(Object amount) {
+    return '支付 \$$amount';
+  }
+
+  @override
   String get modelIdLabel => 'Model ID';
 
   @override

@@ -51,6 +51,8 @@ class _ModelConfigListPageState extends State<ModelConfigListPage> {
         return l10n.providerOpenRouter;
       case LLMConfig.typeOllama:
         return l10n.providerOllama;
+      case LLMConfig.typeMemex:
+        return l10n.providerMemex;
       default:
         return type;
     }
