@@ -8,8 +8,9 @@ class InvalidModelConfigException implements NonRetryableTaskException {
   @override
   final String message;
 
-  InvalidModelConfigException(
-      [this.message = 'The LLM configuration is invalid.']);
+  InvalidModelConfigException([
+    this.message = 'The LLM configuration is invalid.',
+  ]);
 
   @override
   String toString() => "InvalidModelConfigException: $message";
@@ -24,16 +25,29 @@ class NonRetryableLlmException implements NonRetryableTaskException {
   final int? statusCode;
   final Object? originalError;
 
-  NonRetryableLlmException(
-    this.message, {
-    this.statusCode,
-    this.originalError,
-  });
+  NonRetryableLlmException(this.message, {this.statusCode, this.originalError});
 
   @override
   String toString() {
     final buf = StringBuffer('NonRetryableLlmException: $message');
     if (statusCode != null) buf.write(' (HTTP $statusCode)');
+    if (originalError != null) buf.write('\nOriginal error: $originalError');
+    return buf.toString();
+  }
+}
+
+/// Exception thrown when an agent reached its max-turn/loop guard.
+class NonRetryableAgentLoopException implements NonRetryableTaskException {
+  @override
+  final String message;
+
+  final Object? originalError;
+
+  NonRetryableAgentLoopException(this.message, {this.originalError});
+
+  @override
+  String toString() {
+    final buf = StringBuffer('NonRetryableAgentLoopException: $message');
     if (originalError != null) buf.write('\nOriginal error: $originalError');
     return buf.toString();
   }

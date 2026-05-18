@@ -3,8 +3,155 @@ import 'dart:convert';
 import 'package:memex/agent/skills/schedule_aggregation/schedule_aggregation_skill.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/schedule_refresh_state_service.dart';
+import 'package:memex/domain/models/schedule_refresh_state.dart';
 
 const int defaultScheduleAggregationCardLimit = 80;
+
+class ScheduleAggregationWindow {
+  const ScheduleAggregationWindow({
+    required this.from,
+    required this.to,
+    required this.source,
+    this.sourceCardIds = const [],
+  });
+
+  final DateTime from;
+  final DateTime to;
+  final String source;
+  final List<String> sourceCardIds;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'from': from.toIso8601String(),
+      'to': to.toIso8601String(),
+      'source': source,
+      if (sourceCardIds.isNotEmpty) 'source_card_ids': sourceCardIds,
+    };
+  }
+}
+
+class ScheduleAggregationRunPlan {
+  const ScheduleAggregationRunPlan({
+    required this.runId,
+    required this.generatedAt,
+    required this.window,
+    required this.scheduleCards,
+    required this.refreshState,
+    required this.latestAggregation,
+  });
+
+  final String runId;
+  final DateTime generatedAt;
+  final ScheduleAggregationWindow window;
+  final Map<String, dynamic> scheduleCards;
+  final ScheduleRefreshState refreshState;
+  final Map<String, dynamic>? latestAggregation;
+
+  bool get hasScheduleCards =>
+      (scheduleCards['cards'] as List?)?.isNotEmpty == true;
+}
+
+Future<ScheduleAggregationRunPlan> buildScheduleAggregationRunPlan({
+  required String userId,
+  required String runId,
+  DateTime? now,
+  int scheduleCardLimit = defaultScheduleAggregationCardLimit,
+}) async {
+  final fileSystem = FileSystemService.instance;
+  final generatedAt = now ?? DateTime.now();
+  final refreshState = await ScheduleRefreshStateService.instance.read(userId);
+  final window = resolveScheduleAggregationWindow(
+    generatedAt: generatedAt,
+    refreshState: refreshState,
+  );
+
+  final scheduleCards = await queryScheduleCardsForRange(
+    userId: userId,
+    from: window.from,
+    to: window.to,
+    limit: scheduleCardLimit,
+  );
+  final latestAggregation = await fileSystem.getLatestScheduleAggregation(
+    userId,
+  );
+
+  return ScheduleAggregationRunPlan(
+    runId: runId,
+    generatedAt: generatedAt,
+    window: window,
+    scheduleCards: scheduleCards,
+    refreshState: refreshState,
+    latestAggregation: latestAggregation,
+  );
+}
+
+ScheduleAggregationWindow resolveScheduleAggregationWindow({
+  required DateTime generatedAt,
+  required ScheduleRefreshState refreshState,
+}) {
+  final dirtyDates = <DateTime>[];
+  final sourceCardIds = <String>[];
+  for (final cardId in refreshState.cardIds) {
+    final cardDate = _parseFactIdDate(cardId);
+    if (cardDate == null) continue;
+    dirtyDates.add(cardDate);
+    sourceCardIds.add(cardId);
+  }
+
+  if (dirtyDates.isNotEmpty) {
+    dirtyDates.sort();
+    final first = _startOfDay(dirtyDates.first);
+    final last = _endOfDay(dirtyDates.last);
+    return ScheduleAggregationWindow(
+      from: first.subtract(const Duration(days: 3)),
+      to: last.add(const Duration(days: 7)),
+      source: 'dirty_card_dates',
+      sourceCardIds: sourceCardIds,
+    );
+  }
+
+  return ScheduleAggregationWindow(
+    from: generatedAt.subtract(const Duration(days: 3)),
+    to: generatedAt.add(const Duration(days: 7)),
+    source: 'generated_at_window',
+  );
+}
+
+String scheduleAggregationIdFor(DateTime generatedAt) {
+  return 'schedule_agg_${generatedAt.year.toString().padLeft(4, '0')}_'
+      '${generatedAt.month.toString().padLeft(2, '0')}_'
+      '${generatedAt.day.toString().padLeft(2, '0')}';
+}
+
+Map<String, dynamic> buildNoOpScheduleAggregation({
+  required String aggregationId,
+  required ScheduleAggregationRunPlan plan,
+  String reason = 'no_temporal_cards_in_window',
+}) {
+  return {
+    'id': aggregationId,
+    'generated_at': plan.generatedAt.toIso8601String(),
+    'version': 1,
+    'time_range': {
+      'from': _formatDate(plan.window.from),
+      'to': _formatDate(plan.window.to),
+    },
+    'editorial_intro':
+        'No temporal schedule cards found for this refresh window.',
+    'quote_blocks': const [],
+    'timeline': const [],
+    'completed': const [],
+    'conflicts': const [],
+    'no_op': true,
+    'no_op_reason': reason,
+    'diagnostics': {
+      'target_window_source': plan.window.source,
+      'target_window': plan.window.toJson(),
+      'schedule_card_count': 0,
+      'refresh_state': plan.refreshState.toJson(),
+    },
+  };
+}
 
 /// Builds a compact context packet for a fresh schedule aggregation run.
 ///
@@ -16,39 +163,33 @@ Future<String> buildScheduleAggregationRunContext({
   required String runId,
   DateTime? now,
   int scheduleCardLimit = defaultScheduleAggregationCardLimit,
+  ScheduleAggregationRunPlan? plan,
 }) async {
-  final fileSystem = FileSystemService.instance;
-  final generatedAt = now ?? DateTime.now();
-  final from = generatedAt.subtract(const Duration(days: 3));
-  final to = generatedAt.add(const Duration(days: 7));
-
-  final scheduleCards = await queryScheduleCardsForRange(
-    userId: userId,
-    from: from,
-    to: to,
-    limit: scheduleCardLimit,
-  );
-  final latestAggregation = await fileSystem.getLatestScheduleAggregation(
-    userId,
-  );
-  final refreshState = await ScheduleRefreshStateService.instance.read(userId);
+  final resolvedPlan = plan ??
+      await buildScheduleAggregationRunPlan(
+        userId: userId,
+        runId: runId,
+        now: now,
+        scheduleCardLimit: scheduleCardLimit,
+      );
 
   final payload = {
-    'run_id': runId,
-    'generated_at': generatedAt.toIso8601String(),
+    'run_id': resolvedPlan.runId,
+    'generated_at': resolvedPlan.generatedAt.toIso8601String(),
     'fresh_execution_state': true,
+    'target_window': resolvedPlan.window.toJson(),
     'durable_sources': {
-      'schedule_cards': scheduleCards,
+      'schedule_cards': resolvedPlan.scheduleCards,
       'schedule_cards_limit': scheduleCardLimit,
       'latest_schedule_aggregation': _compactScheduleAggregation(
-        latestAggregation,
+        resolvedPlan.latestAggregation,
       ),
-      'refresh_state': refreshState.toJson(),
+      'refresh_state': resolvedPlan.refreshState.toJson(),
     },
     'execution_policy': [
       'This is a fresh schedule aggregation execution. Do not rely on prior LLM conversation history.',
       'Use durable workspace data as the source of truth: Cards, Facts, ScheduleAggregations, event log, and injected user memory context.',
-      'Start from schedule_cards for the current refresh window, then inspect source cards with Read or BatchRead when details are needed.',
+      'Start from schedule_cards for target_window, then inspect source cards with Read or BatchRead when details are needed.',
       'Use save_schedule_aggregation to persist exactly one current aggregation result.',
       'Preserve completed task status only when task is_completed is true; card processing status does not mean task completion.',
       'When a task card has subtasks, preserve those subtasks on the timeline item; do not invent subtasks for independent cards.',
@@ -112,4 +253,28 @@ String? _itemId(dynamic value) {
 String _truncate(String value, int maxLength) {
   if (value.length <= maxLength) return value;
   return '${value.substring(0, maxLength)}...';
+}
+
+DateTime? _parseFactIdDate(String value) {
+  final match = RegExp(r'(\d{4})/(\d{2})/(\d{2})\.md#ts_\d+').firstMatch(value);
+  if (match == null) return null;
+  return DateTime(
+    int.parse(match.group(1)!),
+    int.parse(match.group(2)!),
+    int.parse(match.group(3)!),
+  );
+}
+
+DateTime _startOfDay(DateTime value) {
+  return DateTime(value.year, value.month, value.day);
+}
+
+DateTime _endOfDay(DateTime value) {
+  return DateTime(value.year, value.month, value.day, 23, 59, 59, 999);
+}
+
+String _formatDate(DateTime value) {
+  return '${value.year.toString().padLeft(4, '0')}-'
+      '${value.month.toString().padLeft(2, '0')}-'
+      '${value.day.toString().padLeft(2, '0')}';
 }

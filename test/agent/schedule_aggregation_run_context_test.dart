@@ -172,6 +172,92 @@ void main() {
         contains(contains('Do not rely on prior LLM conversation history')),
       );
     });
+
+    test(
+      'uses dirty card dates instead of wall clock for target window',
+      () async {
+        final fileSystem = FileSystemService.instance;
+        await fileSystem.safeWriteCardFile(
+          userId,
+          '2026/01/06.md#ts_1',
+          CardData(
+            factId: '2026/01/06.md#ts_1',
+            title: 'Father follow-up documents',
+            timestamp: DateTime.utc(2026, 1, 6).millisecondsSinceEpoch ~/ 1000,
+            status: 'completed',
+            tags: const ['schedule'],
+            uiConfigs: const [
+              UiConfig(
+                templateId: 'task',
+                data: {
+                  'due_date': '2026-01-08T17:00:00Z',
+                  'is_completed': false,
+                },
+              ),
+            ],
+          ),
+        );
+        await ScheduleRefreshStateService.instance.markDirty(
+          userId: userId,
+          reason: 'historical card changed',
+          cardIds: const ['2026/01/06.md#ts_1'],
+        );
+
+        final context = await buildScheduleAggregationRunContext(
+          userId: userId,
+          runId: 'task_historical_dirty',
+          now: DateTime.utc(2026, 5, 18, 12),
+          scheduleCardLimit: 10,
+        );
+
+        final payload = _decodeContextPayload(context);
+        final targetWindow = payload['target_window'] as Map<String, dynamic>;
+        final sources = payload['durable_sources'] as Map<String, dynamic>;
+        final cards = sources['schedule_cards'] as Map<String, dynamic>;
+
+        expect(targetWindow['source'], 'dirty_card_dates');
+        expect(targetWindow['from'], startsWith('2026-01-03'));
+        expect(targetWindow['to'], startsWith('2026-01-13'));
+        expect(
+          (cards['cards'] as List).map((card) => card['card_id']),
+          contains('2026/01/06.md#ts_1'),
+        );
+        expect(payload['target_window'],
+            containsPair('source', 'dirty_card_dates'));
+      },
+    );
+
+    test('builds no-op aggregation payload for empty target window', () async {
+      await ScheduleRefreshStateService.instance.markDirty(
+        userId: userId,
+        reason: 'historical card changed',
+        cardIds: const ['2026/01/06.md#ts_1'],
+      );
+
+      final plan = await buildScheduleAggregationRunPlan(
+        userId: userId,
+        runId: 'task_empty_window',
+        now: DateTime.utc(2026, 5, 18, 12),
+        scheduleCardLimit: 10,
+      );
+      final aggregationId = scheduleAggregationIdFor(plan.generatedAt);
+      final noOp = buildNoOpScheduleAggregation(
+        aggregationId: aggregationId,
+        plan: plan,
+      );
+
+      expect(plan.hasScheduleCards, isFalse);
+      expect(noOp['id'], 'schedule_agg_2026_05_18');
+      expect(noOp['no_op'], isTrue);
+      expect(noOp['no_op_reason'], 'no_temporal_cards_in_window');
+      expect(noOp['timeline'], isEmpty);
+      expect(noOp['completed'], isEmpty);
+      expect(noOp['conflicts'], isEmpty);
+      expect(
+        (noOp['diagnostics'] as Map)['target_window_source'],
+        'dirty_card_dates',
+      );
+    });
   });
 }
 

@@ -15,6 +15,7 @@ import 'package:memex/agent/skills/schedule_aggregation/schedule_aggregation_ski
 import 'package:memex/agent/state_util.dart';
 import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/data/services/schedule_refresh_state_service.dart';
 import 'package:memex/domain/models/agent_definitions.dart';
 import 'package:memex/domain/models/llm_config.dart';
 import 'package:memex/utils/logger.dart';
@@ -144,6 +145,20 @@ class ScheduleAggregatorAgent {
       effectiveRunId,
     );
 
+    final runPlan = await buildScheduleAggregationRunPlan(
+      userId: effectiveUserId,
+      runId: effectiveRunId,
+      now: now,
+    );
+    if (!runPlan.hasScheduleCards) {
+      await _completeNoOpScheduleAggregation(
+        userId: effectiveUserId,
+        sessionId: sessionId,
+        plan: runPlan,
+      );
+      return true;
+    }
+
     final resources = await UserStorage.getAgentLLMResources(
       AgentDefinitions.scheduleAggregatorAgent,
       defaultClientKey: LLMConfig.defaultClientKey,
@@ -157,6 +172,7 @@ class ScheduleAggregatorAgent {
       sessionId: sessionId,
       now: now,
     );
+    _applyScheduleWindowMetadata(state, runPlan.window);
 
     if (!state.isRunning && state.history.messages.isNotEmpty) {
       _logger.info(
@@ -169,6 +185,7 @@ class ScheduleAggregatorAgent {
         sessionId: sessionId,
         now: now,
       );
+      _applyScheduleWindowMetadata(state, runPlan.window);
     } else if (state.isRunning &&
         !shouldResumeScheduleAggregatorRun(state, now, resumeTtl)) {
       _logger.info(
@@ -181,6 +198,7 @@ class ScheduleAggregatorAgent {
         sessionId: sessionId,
         now: now,
       );
+      _applyScheduleWindowMetadata(state, runPlan.window);
     }
 
     final agent = await _createAgent(
@@ -207,6 +225,7 @@ class ScheduleAggregatorAgent {
           userId: effectiveUserId,
           runId: effectiveRunId,
           now: now,
+          plan: runPlan,
         );
 
         final messages = [
@@ -258,5 +277,55 @@ class ScheduleAggregatorAgent {
       "ScheduleAggregatorAgent done, sessionId:${state.sessionId}, result messages length:${result.length}",
     );
     return true;
+  }
+
+  static void _applyScheduleWindowMetadata(
+    AgentState state,
+    ScheduleAggregationWindow window,
+  ) {
+    state.metadata['schedule_window_from'] = window.from.toIso8601String();
+    state.metadata['schedule_window_to'] = window.to.toIso8601String();
+    state.metadata['schedule_window_source'] = window.source;
+  }
+
+  static Future<void> _completeNoOpScheduleAggregation({
+    required String userId,
+    required String sessionId,
+    required ScheduleAggregationRunPlan plan,
+  }) async {
+    final aggregationId = scheduleAggregationIdFor(plan.generatedAt);
+    final fileSystem = FileSystemService.instance;
+    await fileSystem.writeScheduleAggregation(
+      userId,
+      aggregationId,
+      buildNoOpScheduleAggregation(aggregationId: aggregationId, plan: plan),
+    );
+    await ScheduleRefreshStateService.instance.clearDirty(
+      userId: userId,
+      aggregationId: aggregationId,
+    );
+
+    try {
+      await fileSystem.eventLogService.logFileCreated(
+        userId: userId,
+        filePath: 'ScheduleAggregations/$aggregationId.yaml',
+        description: 'Schedule aggregation completed as no-op',
+        metadata: {
+          'aggregation_id': aggregationId,
+          'reason': 'no_temporal_cards_in_window',
+          'target_window_source': plan.window.source,
+        },
+      );
+    } catch (e) {
+      // Event logging failure should not break no-op completion.
+    }
+
+    await deleteAgentState(userId, sessionId);
+    EventBusService.instance.emitEvent(
+      ScheduleAggregationUpdatedMessage(aggregationId: aggregationId),
+    );
+    _logger.info(
+      'ScheduleAggregatorAgent no-op completed, sessionId:$sessionId, aggregationId:$aggregationId',
+    );
   }
 }

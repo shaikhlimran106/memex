@@ -33,10 +33,7 @@ const scheduleTemporalTemplateIds = {
   'procedure',
 };
 
-dynamic scheduleStartTimeForCard(
-  String templateId,
-  Map<String, dynamic> data,
-) {
+dynamic scheduleStartTimeForCard(String templateId, Map<String, dynamic> data) {
   final startTime = _nonEmptyScheduleValue(data['start_time']);
   if (startTime != null) return startTime;
 
@@ -157,22 +154,24 @@ Tool buildGetScheduleCardsTool() {
         },
       },
     },
-    executable: (
-      String? fromDate,
-      String? toDate,
-    ) async {
+    executable: (String? fromDate, String? toDate) async {
       final logger = getLogger('ScheduleAggregationSkill');
-      final userId = AgentCallToolContext.current!.state.metadata['userId'];
+      final metadata = AgentCallToolContext.current!.state.metadata;
+      final userId = metadata['userId'] as String;
 
-      // Default date range: past 3 days ~ future 7 days
       final now = DateTime.now();
-      final from = _parseBoundaryDate(
-        fromDate,
+      final defaultFrom = _parseBoundaryDate(
+        metadata['schedule_window_from']?.toString(),
         fallback: now.subtract(const Duration(days: 3)),
       );
+      final defaultTo = _parseBoundaryDate(
+        metadata['schedule_window_to']?.toString(),
+        fallback: now.add(const Duration(days: 7)),
+      );
+      final from = _parseBoundaryDate(fromDate, fallback: defaultFrom);
       final to = _parseBoundaryDate(
         toDate,
-        fallback: now.add(const Duration(days: 7)),
+        fallback: defaultTo,
         endOfDay: true,
       );
 
@@ -217,10 +216,7 @@ Tool buildSaveScheduleAggregationTool() {
       },
       'required': ['aggregation_id', 'yaml_data'],
     },
-    executable: (
-      String aggregationId,
-      Map<String, dynamic> yamlData,
-    ) async {
+    executable: (String aggregationId, Map<String, dynamic> yamlData) async {
       final logger = getLogger('ScheduleAggregationSkill');
       final fileSystem = FileSystemService.instance;
       final userId = AgentCallToolContext.current!.state.metadata['userId'];
@@ -313,14 +309,17 @@ DateTime? _parseScheduleDateTime(dynamic value) {
   if (value is DateTime) return value;
   if (value is int) {
     final milliseconds = value > 100000000000 ? value : value * 1000;
-    return DateTime.fromMillisecondsSinceEpoch(milliseconds, isUtc: true)
-        .toLocal();
+    return DateTime.fromMillisecondsSinceEpoch(
+      milliseconds,
+      isUtc: true,
+    ).toLocal();
   }
   if (value is num) {
     final milliseconds = value > 100000000000 ? value.toInt() : value * 1000;
-    return DateTime.fromMillisecondsSinceEpoch(milliseconds.toInt(),
-            isUtc: true)
-        .toLocal();
+    return DateTime.fromMillisecondsSinceEpoch(
+      milliseconds.toInt(),
+      isUtc: true,
+    ).toLocal();
   }
   if (value is String) return DateTime.tryParse(value);
   return null;
@@ -342,10 +341,7 @@ DateTime _resultScheduleDate(Map<String, dynamic> result) {
       fallback;
 }
 
-String deriveScheduleCardStatus(
-  String templateId,
-  Map<String, dynamic> data,
-) {
+String deriveScheduleCardStatus(String templateId, Map<String, dynamic> data) {
   if (templateId == 'task') {
     return _parseScheduleBool(data['is_completed']) == true
         ? 'completed'
