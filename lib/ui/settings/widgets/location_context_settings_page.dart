@@ -702,11 +702,10 @@ class _LocationContextSettingsPageState
   }
 
   Widget _section({required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.all(20),
+    final borderRadius = BorderRadius.circular(16);
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: borderRadius,
         boxShadow: [
           BoxShadow(
             color: AppColors.textSecondary.withValues(alpha: 0.08),
@@ -715,7 +714,12 @@ class _LocationContextSettingsPageState
           ),
         ],
       ),
-      child: child,
+      child: Material(
+        color: Colors.white,
+        borderRadius: borderRadius,
+        clipBehavior: Clip.antiAlias,
+        child: Padding(padding: const EdgeInsets.all(20), child: child),
+      ),
     );
   }
 }
