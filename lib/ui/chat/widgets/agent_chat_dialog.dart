@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:memex/data/repositories/memex_router.dart';
@@ -763,54 +764,76 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                   Icon(Icons.auto_awesome, size: 12, color: AppColors.primary),
             ),
             const SizedBox(width: 8),
-            Container(
-              constraints: BoxConstraints(
-                  maxWidth: MediaQuery.of(context).size.width * 0.75),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16)
-                    .copyWith(topLeft: const Radius.circular(4)),
-                border: Border.all(color: const Color(0xFFF7F8FA)),
-              ),
-              child: MarkdownBody(
-                data: item.text,
-                selectable: true,
-                softLineBreak: true,
-                styleSheet: MarkdownStyleSheet(
-                  p: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                    height: 1.5,
-                  ),
-                  strong: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                  em: const TextStyle(fontStyle: FontStyle.italic),
-                  listBullet: const TextStyle(color: AppColors.primary),
-                  code: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textPrimary,
-                    backgroundColor: Color(0xFFF7F8FA),
-                    fontFamily: 'monospace',
-                  ),
-                  codeblockDecoration: BoxDecoration(
-                    color: const Color(0xFFF7F8FA),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  blockquote: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontStyle: FontStyle.italic,
-                  ),
-                  blockquoteDecoration: BoxDecoration(
-                    color: const Color(0xFFF7F8FA),
-                    borderRadius: BorderRadius.circular(8),
-                    border: const Border(
-                      left: BorderSide(color: AppColors.primary, width: 3),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.75),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16)
+                          .copyWith(topLeft: const Radius.circular(4)),
+                      border: Border.all(color: const Color(0xFFF7F8FA)),
+                    ),
+                    child: MarkdownBody(
+                      data: item.text,
+                      selectable: true,
+                      softLineBreak: true,
+                      styleSheet: MarkdownStyleSheet(
+                        p: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                          height: 1.5,
+                        ),
+                        strong: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                        em: const TextStyle(fontStyle: FontStyle.italic),
+                        listBullet: const TextStyle(color: AppColors.primary),
+                        code: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textPrimary,
+                          backgroundColor: Color(0xFFF7F8FA),
+                          fontFamily: 'monospace',
+                        ),
+                        codeblockDecoration: BoxDecoration(
+                          color: const Color(0xFFF7F8FA),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        blockquote: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        blockquoteDecoration: BoxDecoration(
+                          color: const Color(0xFFF7F8FA),
+                          borderRadius: BorderRadius.circular(8),
+                          border: const Border(
+                            left:
+                                BorderSide(color: AppColors.primary, width: 3),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  if (!item.isStreaming)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 2, top: 6),
+                      child: _CopyMessageButton(
+                        text: item.text,
+                        onCopied: () {
+                          ToastHelper.showSuccess(
+                            context,
+                            UserStorage.l10n.copiedToClipboard,
+                          );
+                        },
+                      ),
+                    ),
+                ],
               ),
             ),
           ],
@@ -1062,3 +1085,49 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     );
   }
 } // End of _AgentChatDialogState
+
+/// A minimal copy icon shown below AI messages.
+/// Only displays a small icon that transitions to a checkmark on success.
+class _CopyMessageButton extends StatefulWidget {
+  final String text;
+  final VoidCallback? onCopied;
+
+  const _CopyMessageButton({required this.text, this.onCopied});
+
+  @override
+  State<_CopyMessageButton> createState() => _CopyMessageButtonState();
+}
+
+class _CopyMessageButtonState extends State<_CopyMessageButton> {
+  bool _copied = false;
+
+  Future<void> _handleCopy() async {
+    await Clipboard.setData(ClipboardData(text: widget.text));
+    if (!mounted) return;
+    setState(() => _copied = true);
+    widget.onCopied?.call();
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _copied = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _handleCopy,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: Icon(
+            _copied ? Icons.check_rounded : Icons.copy_outlined,
+            key: ValueKey(_copied),
+            size: 18,
+            color: _copied ? AppColors.success : AppColors.textTertiary,
+          ),
+        ),
+      ),
+    );
+  }
+}
