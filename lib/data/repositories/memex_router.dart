@@ -7,6 +7,7 @@ import 'package:memex/data/repositories/update_card_ui_config.dart'
     as update_config_endpoint;
 import 'package:memex/data/services/search_service.dart';
 import 'package:memex/data/services/backup_service.dart';
+import 'package:memex/data/services/user_stats_service.dart';
 import 'package:memex/domain/models/calendar_model.dart';
 import 'package:memex/data/repositories/hydrate_card.dart';
 import 'package:memex/data/services/task_handlers/knowledge_insight_handler.dart';
@@ -75,6 +76,7 @@ import 'package:memex/agent/state_util.dart';
 import 'package:memex/agent/skills/knowledge_insight/native_widgets.dart';
 import 'package:memex/utils/result.dart';
 import 'package:memex/domain/models/system_event.dart';
+import 'package:memex/domain/models/user_stats_model.dart';
 
 /// Local data service for Memex. Handles all data operations via local storage (FileSystemService, DB).
 class MemexRouter {
@@ -863,6 +865,24 @@ class MemexRouter {
       });
 
       return insights;
+    });
+  }
+
+  Future<Result<UserStatsSnapshot>> fetchUserStats({
+    required UserStatsDateRange range,
+  }) async {
+    return runResult(() async {
+      await _ensureInitialized();
+      _logger.info(
+        'LocalMode: fetchUserStats called: start=${range.start}, end=${range.end}',
+      );
+      final userId = await UserStorage.getUserId();
+      if (userId == null) {
+        return UserStatsSnapshot.empty(range);
+      }
+      return UserStatsService(
+        fileSystemService: fileSystemService,
+      ).fetchSnapshot(userId: userId, range: range);
     });
   }
 

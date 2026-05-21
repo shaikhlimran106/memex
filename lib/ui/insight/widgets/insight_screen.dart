@@ -9,6 +9,8 @@ import 'package:memex/ui/chat/widgets/agent_chat_dialog.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/data/services/demo_service.dart';
 import 'package:memex/ui/insight/widgets/insight_preview_data.dart';
+import 'package:memex/ui/insight/widgets/user_stats_overview_card.dart';
+import 'package:memex/ui/insight/widgets/user_stats_page.dart';
 
 /// Insight screen - global knowledge analytics. Receives [viewModel] from parent (Compass-style).
 class InsightScreen extends StatefulWidget {
@@ -74,6 +76,13 @@ class _InsightScreenState extends State<InsightScreen> {
             context, UserStorage.l10n.refreshFailed(e.toString()));
       }
     }
+  }
+
+  Future<void> _onRefreshCurrentSection(InsightViewModel vm) {
+    if (vm.selectedSection == InsightSection.stats) {
+      return vm.loadStats();
+    }
+    return vm.loadData();
   }
 
   void _onChatWithAssistant() {
@@ -382,6 +391,83 @@ class _InsightScreenState extends State<InsightScreen> {
     );
   }
 
+  Widget _buildSectionSwitcher(InsightViewModel vm) {
+    final items = [
+      (
+        InsightSection.insights,
+        UserStorage.l10n.knowledgeInsight,
+        Icons.auto_graph_rounded,
+      ),
+      (
+        InsightSection.stats,
+        UserStorage.l10n.activityStats,
+        Icons.query_stats_rounded,
+      ),
+    ];
+
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF1F5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: items.map((item) {
+          final selected = vm.selectedSection == item.$1;
+          return Expanded(
+            child: InkWell(
+              onTap: () => vm.setSection(item.$1),
+              borderRadius: BorderRadius.circular(9),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: selected ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(9),
+                  boxShadow: selected
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.07),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      item.$3,
+                      size: 17,
+                      color: selected
+                          ? const Color(0xFF111827)
+                          : const Color(0xFF6B7280),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      item.$2,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: selected
+                            ? const Color(0xFF111827)
+                            : const Color(0xFF6B7280),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -396,7 +482,7 @@ class _InsightScreenState extends State<InsightScreen> {
             final content = Stack(
               children: [
                 RefreshIndicator(
-                  onRefresh: () => vm.loadData(),
+                  onRefresh: () => _onRefreshCurrentSection(vm),
                   child: vm.isReordering
                       ? ReorderableListView(
                           padding: const EdgeInsets.fromLTRB(20, 16, 20, 160),
@@ -444,9 +530,21 @@ class _InsightScreenState extends State<InsightScreen> {
                                   ))
                               .toList(),
                         )
-                      : ListView(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 160),
-                          children: [
+                      : vm.selectedSection == InsightSection.stats
+                          ? UserStatsPage(
+                              snapshot: vm.statsSnapshot,
+                              isLoading: vm.isStatsLoading,
+                              errorMessage: vm.statsErrorMessage,
+                              selectedMetric: vm.selectedStatsMetric,
+                              onMetricChanged: vm.setStatsMetric,
+                              onPresetSelected: (days) =>
+                                  vm.setStatsPresetDays(days),
+                              onReload: () => vm.loadStats(),
+                              header: _buildSectionSwitcher(vm),
+                            )
+                          : ListView(
+                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 160),
+                              children: [
                             // Header
                             // Add some top padding if embedded since we removed SafeArea/Scaffold top padding
                             // Actually ListView padding controls it.
@@ -516,6 +614,10 @@ class _InsightScreenState extends State<InsightScreen> {
 
                             const SizedBox(height: 16),
 
+                            _buildSectionSwitcher(vm),
+
+                            const SizedBox(height: 16),
+
                             if (vm.hasActiveTaskBacklog)
                               _buildBacklogBanner(vm),
 
@@ -549,6 +651,13 @@ class _InsightScreenState extends State<InsightScreen> {
                                 ),
                               )
                             else ...[
+                              UserStatsOverviewCard(
+                                snapshot: vm.statsSnapshot,
+                                isLoading: vm.isStatsLoading,
+                                onTap: () =>
+                                    vm.setSection(InsightSection.stats),
+                              ),
+                              const SizedBox(height: 16),
                               if (vm.insights != null &&
                                   vm.insights!.isNotEmpty)
                                 ...(vm.insights!.map((item) => Padding(
@@ -600,7 +709,8 @@ class _InsightScreenState extends State<InsightScreen> {
                           ],
                         ),
                 ),
-                if (!vm.isReordering)
+                if (!vm.isReordering &&
+                    vm.selectedSection == InsightSection.insights)
                   Positioned(
                     left: _fabPosition?.dx,
                     top: _fabPosition?.dy,

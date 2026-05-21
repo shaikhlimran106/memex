@@ -247,6 +247,7 @@ class TimelineScreenState extends State<TimelineScreen> {
     if (index == 1) {
       vm.setViewMode(TimelineViewMode.insight);
       vm.setActiveFilter('insight');
+      widget.insightViewModel.refreshStatsForVisibleInsightPage();
     } else {
       vm.setViewMode(TimelineViewMode.timeline);
       vm.setActiveFilter(filter);
@@ -812,6 +813,7 @@ class TimelineScreenState extends State<TimelineScreen> {
             onTap: () {
               vm.setViewMode(TimelineViewMode.insight);
               vm.setActiveFilter('insight');
+              widget.insightViewModel.refreshStatsForVisibleInsightPage();
               _animateToPage(1);
               DemoService.instance.tryAdvance(DemoStep.tapInsightTab);
             },

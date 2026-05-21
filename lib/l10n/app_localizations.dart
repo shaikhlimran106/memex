@@ -464,6 +464,144 @@ abstract class AppLocalizations {
   /// **'Schedule'**
   String get schedule;
 
+  /// No description provided for @statistics.
+  ///
+  /// In en, this message translates to:
+  /// **'Stats'**
+  String get statistics;
+
+  /// No description provided for @activityStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity stats'**
+  String get activityStats;
+
+  /// No description provided for @activityStatsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'In this period you recorded {inputs} time(s), generated {cards} card(s), and completed {todos} todo(s).'**
+  String activityStatsSummary(Object inputs, Object cards, Object todos);
+
+  /// No description provided for @last7Days.
+  ///
+  /// In en, this message translates to:
+  /// **'7 days'**
+  String get last7Days;
+
+  /// No description provided for @last30Days.
+  ///
+  /// In en, this message translates to:
+  /// **'30 days'**
+  String get last30Days;
+
+  /// No description provided for @last90Days.
+  ///
+  /// In en, this message translates to:
+  /// **'90 days'**
+  String get last90Days;
+
+  /// No description provided for @records.
+  ///
+  /// In en, this message translates to:
+  /// **'Records'**
+  String get records;
+
+  /// No description provided for @words.
+  ///
+  /// In en, this message translates to:
+  /// **'Words'**
+  String get words;
+
+  /// No description provided for @cards.
+  ///
+  /// In en, this message translates to:
+  /// **'Cards'**
+  String get cards;
+
+  /// No description provided for @knowledgeUnits.
+  ///
+  /// In en, this message translates to:
+  /// **'Knowledge units'**
+  String get knowledgeUnits;
+
+  /// No description provided for @completedTodos.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed todos'**
+  String get completedTodos;
+
+  /// No description provided for @activeDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Active days'**
+  String get activeDays;
+
+  /// No description provided for @streakDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak'**
+  String get streakDays;
+
+  /// No description provided for @dailyRhythm.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily rhythm'**
+  String get dailyRhythm;
+
+  /// No description provided for @recordToOutput.
+  ///
+  /// In en, this message translates to:
+  /// **'Record to output'**
+  String get recordToOutput;
+
+  /// No description provided for @sourceBreakdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Source breakdown'**
+  String get sourceBreakdown;
+
+  /// No description provided for @topThemes.
+  ///
+  /// In en, this message translates to:
+  /// **'Top themes'**
+  String get topThemes;
+
+  /// No description provided for @textInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get textInput;
+
+  /// No description provided for @imageInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Images'**
+  String get imageInput;
+
+  /// No description provided for @audioInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get audioInput;
+
+  /// No description provided for @noStatsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No activity stats yet'**
+  String get noStatsYet;
+
+  /// No description provided for @tapDayForDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a day to view details'**
+  String get tapDayForDetails;
+
+  /// No description provided for @dayDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Day details'**
+  String get dayDetails;
+
   /// No description provided for @loadStatsFailed.
   ///
   /// In en, this message translates to:
