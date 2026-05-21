@@ -5,6 +5,8 @@ import 'package:memex/agent/prompts.dart';
 import 'package:memex/agent/skills/knowledge_insight/native_widgets.dart';
 
 import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/data/services/user_stats_service.dart';
+import 'package:memex/domain/models/user_stats_model.dart';
 import 'package:memex/utils/user_storage.dart';
 import '../../../utils/logger.dart';
 
@@ -24,6 +26,7 @@ class KnowledgeInsightSkill extends Skill {
             buildDeleteKnowledgeInsightCardTool(),
             buildDeleteKnowledgeInsightTagsTool(),
             buildGetAvailableTemplatesTool(),
+            buildGetUserActivityStatsTool(),
           ],
         );
 }
@@ -471,6 +474,42 @@ Tool buildGetAvailableTemplatesTool() {
       }
 
       return buffer.toString();
+    },
+  );
+}
+
+Tool buildGetUserActivityStatsTool() {
+  return Tool(
+    name: 'get_user_activity_stats',
+    description:
+        'Get deterministic user-facing activity statistics for recent recording, card, PKM, insight, and todo activity. Use this as read-only evidence when explaining trends or creating recap insight cards.',
+    parameters: {
+      'type': 'object',
+      'properties': {
+        'days': {
+          'type': 'integer',
+          'description':
+              'Number of recent calendar days to include. Defaults to 7. Maximum 90.',
+        },
+      },
+    },
+    executable: (int? days) async {
+      final logger = getLogger('KnowledgeInsightSkill');
+      final fileSystem = FileSystemService.instance;
+      final userId = AgentCallToolContext.current!.state.metadata['userId'];
+      final safeDays = (days ?? 7).clamp(1, 90).toInt();
+
+      try {
+        final snapshot = await UserStatsService(fileSystemService: fileSystem)
+            .fetchSnapshot(
+          userId: userId,
+          range: UserStatsDateRange.lastDays(safeDays),
+        );
+        return jsonEncode(snapshot.toJson());
+      } catch (e, st) {
+        logger.warning('Failed to get user activity stats', e, st);
+        rethrow;
+      }
     },
   );
 }

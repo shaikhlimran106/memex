@@ -208,6 +208,77 @@ class AppLocalizationsZh extends AppLocalizations {
   String get schedule => '日程';
 
   @override
+  String get statistics => '统计';
+
+  @override
+  String get activityStats => '活动统计';
+
+  @override
+  String activityStatsSummary(Object inputs, Object cards, Object todos) {
+    return '这段时间你记录了 $inputs 次，生成了 $cards 张卡片，完成了 $todos 个待办。';
+  }
+
+  @override
+  String get last7Days => '7 天';
+
+  @override
+  String get last30Days => '30 天';
+
+  @override
+  String get last90Days => '90 天';
+
+  @override
+  String get records => '记录';
+
+  @override
+  String get words => '字词';
+
+  @override
+  String get cards => '卡片';
+
+  @override
+  String get knowledgeUnits => '知识单元';
+
+  @override
+  String get completedTodos => '完成待办';
+
+  @override
+  String get activeDays => '活跃天数';
+
+  @override
+  String get streakDays => '连续记录';
+
+  @override
+  String get dailyRhythm => '每日节奏';
+
+  @override
+  String get recordToOutput => '记录到沉淀';
+
+  @override
+  String get sourceBreakdown => '来源分布';
+
+  @override
+  String get topThemes => '高频主题';
+
+  @override
+  String get textInput => '文本';
+
+  @override
+  String get imageInput => '图片';
+
+  @override
+  String get audioInput => '音频';
+
+  @override
+  String get noStatsYet => '暂无活动统计';
+
+  @override
+  String get tapDayForDetails => '点击某一天查看详情';
+
+  @override
+  String get dayDetails => '当天详情';
+
+  @override
   String loadStatsFailed(Object error) {
     return '加载统计数据失败: $error';
   }

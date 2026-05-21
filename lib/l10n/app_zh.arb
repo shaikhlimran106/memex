@@ -88,6 +88,36 @@
   "lineCount": "行数: ",
   "all": "全部",
   "schedule": "日程",
+  "statistics": "统计",
+  "activityStats": "活动统计",
+  "activityStatsSummary": "这段时间你记录了 {inputs} 次，生成了 {cards} 张卡片，完成了 {todos} 个待办。",
+  "@activityStatsSummary": {
+    "placeholders": {
+      "inputs": {},
+      "cards": {},
+      "todos": {}
+    }
+  },
+  "last7Days": "7 天",
+  "last30Days": "30 天",
+  "last90Days": "90 天",
+  "records": "记录",
+  "words": "字词",
+  "cards": "卡片",
+  "knowledgeUnits": "知识单元",
+  "completedTodos": "完成待办",
+  "activeDays": "活跃天数",
+  "streakDays": "连续记录",
+  "dailyRhythm": "每日节奏",
+  "recordToOutput": "记录到沉淀",
+  "sourceBreakdown": "来源分布",
+  "topThemes": "高频主题",
+  "textInput": "文本",
+  "imageInput": "图片",
+  "audioInput": "音频",
+  "noStatsYet": "暂无活动统计",
+  "tapDayForDetails": "点击某一天查看详情",
+  "dayDetails": "当天详情",
   "@loadStatsFailed": {
     "placeholders": {
       "error": {}

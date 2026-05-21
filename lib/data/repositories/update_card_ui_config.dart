@@ -70,11 +70,56 @@ Future<bool> updateCardUiConfigEndpoint(
       previousData: previousData,
       updatedData: updatedData,
     );
+    await _logUserStatsEventIfNeeded(
+      userId: userId,
+      cardId: cardId,
+      templateId: templateId,
+      updates: updates,
+      previousData: previousData,
+      updatedData: updatedData,
+    );
     return true;
   } catch (e) {
     _logger.severe('Failed to update card ui config for $cardId: $e');
     return false;
   }
+}
+
+Future<void> _logUserStatsEventIfNeeded({
+  required String userId,
+  required String cardId,
+  required String? templateId,
+  required Map<String, dynamic> updates,
+  required Map<String, dynamic>? previousData,
+  required Map<String, dynamic>? updatedData,
+}) async {
+  if (templateId != 'task' && templateId != 'todo') return;
+  if (!updates.containsKey('is_completed')) return;
+  if (previousData == null || updatedData == null) return;
+
+  final wasCompleted = previousData['is_completed'] == true;
+  final isCompleted = updatedData['is_completed'] == true;
+  if (wasCompleted == isCompleted) return;
+
+  final title = updatedData['title']?.toString();
+  await _fileSystemService.eventLogService.logEvent(
+    userId: userId,
+    eventType: isCompleted ? 'todo_completed' : 'todo_reopened',
+    description: isCompleted ? 'User completed todo' : 'User reopened todo',
+    filePath: _cardRelativePath(cardId),
+    metadata: {
+      'card_id': cardId,
+      if (title != null && title.trim().isNotEmpty) 'title': title.trim(),
+    },
+  );
+}
+
+String? _cardRelativePath(String cardId) {
+  final match = RegExp(
+    r'^(\d{4})/(\d{2})/(\d{2})\.md#(ts_\d+)$',
+  ).firstMatch(cardId);
+  if (match == null) return null;
+  return 'Cards/${match.group(1)}/${match.group(2)}/${match.group(3)}_${match.group(4)}.yaml';
 }
 
 Future<void> _publishCardUiConfigUpdated({

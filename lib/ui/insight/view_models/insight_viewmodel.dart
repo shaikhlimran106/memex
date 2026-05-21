@@ -3,22 +3,39 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'package:memex/domain/models/knowledge_insight_card.dart';
+import 'package:memex/domain/models/user_stats_model.dart';
 import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/utils/result.dart';
 import 'package:memex/utils/user_storage.dart';
 
+enum InsightSection { insights, stats }
+
+typedef UserStatsFetcher = Future<Result<UserStatsSnapshot>> Function(
+    UserStatsDateRange range);
+
 /// ViewModel for the Insight page. Holds insight list, pin/delete/reorder state.
 class InsightViewModel extends ChangeNotifier {
-  InsightViewModel({required MemexRouter router}) : _router = router {
+  InsightViewModel({
+    required MemexRouter router,
+    UserStatsFetcher? userStatsFetcher,
+  })  : _router = router,
+        _userStatsFetcher =
+            userStatsFetcher ?? ((range) => router.fetchUserStats(range: range)) {
     EventBusService.instance
         .addHandler(EventBusMessageType.newInsight, _handleNewInsightEvent);
+    EventBusService.instance
+        .addHandler(EventBusMessageType.cardAdded, _handleActivityChangedEvent);
+    EventBusService.instance.addHandler(
+        EventBusMessageType.cardUpdated, _handleActivityChangedEvent);
   }
 
   final MemexRouter _router;
+  final UserStatsFetcher _userStatsFetcher;
 
   List<KnowledgeInsightCard>? insights;
+  InsightSection selectedSection = InsightSection.insights;
   bool isLoading = true;
   String? errorMessage;
   String? activeCardId;
@@ -27,6 +44,11 @@ class InsightViewModel extends ChangeNotifier {
   bool isReordering = false;
   TaskActivitySnapshot taskActivity = const TaskActivitySnapshot.empty();
   final Set<String> pinningIds = {};
+  UserStatsDateRange statsRange = UserStatsDateRange.lastDays(7);
+  UserStatsSnapshot? statsSnapshot;
+  bool isStatsLoading = false;
+  String? statsErrorMessage;
+  UserStatsMetric selectedStatsMetric = UserStatsMetric.inputs;
 
   int get activeTaskCount => taskActivity.total;
   bool get hasActiveTaskBacklog => activeTaskCount > 0;
@@ -34,6 +56,10 @@ class InsightViewModel extends ChangeNotifier {
   void _handleNewInsightEvent(EventBusMessage message) {
     if (message is! NewInsightMessage) return;
     unawaited(_reloadAfterInsightUpdated());
+  }
+
+  void _handleActivityChangedEvent(EventBusMessage message) {
+    unawaited(refreshStatsForVisibleInsightPage());
   }
 
   Future<void> _reloadAfterInsightUpdated() async {
@@ -50,6 +76,7 @@ class InsightViewModel extends ChangeNotifier {
     notifyListeners();
     final result = await _router.fetchKnowledgeInsights();
     await refreshTaskActivity(notify: false);
+    await loadStats(notify: false);
     result.when(
       onOk: (list) {
         insights = list;
@@ -70,6 +97,53 @@ class InsightViewModel extends ChangeNotifier {
       taskActivity = const TaskActivitySnapshot.empty();
     }
     if (notify) notifyListeners();
+  }
+
+  Future<void> loadStats({bool notify = true}) async {
+    isStatsLoading = true;
+    statsErrorMessage = null;
+    if (notify) notifyListeners();
+
+    final result = await _userStatsFetcher(statsRange);
+    result.when(
+      onOk: (snapshot) {
+        statsSnapshot = snapshot;
+        statsErrorMessage = null;
+      },
+      onError: (_, __) {
+        statsErrorMessage = UserStorage.l10n.dataLoadFailedRetry;
+      },
+    );
+    isStatsLoading = false;
+    if (notify) notifyListeners();
+  }
+
+  void setSection(InsightSection section) {
+    if (selectedSection == section) return;
+    selectedSection = section;
+    notifyListeners();
+    if (section == InsightSection.stats) {
+      unawaited(loadStats());
+    }
+  }
+
+  Future<void> refreshStatsForVisibleInsightPage() {
+    return loadStats(notify: selectedSection == InsightSection.stats);
+  }
+
+  void setStatsMetric(UserStatsMetric metric) {
+    if (selectedStatsMetric == metric) return;
+    selectedStatsMetric = metric;
+    notifyListeners();
+  }
+
+  void setStatsPresetDays(int days) {
+    final nextRange = UserStatsDateRange.lastDays(days);
+    if (statsRange.start == nextRange.start && statsRange.end == nextRange.end) {
+      return;
+    }
+    statsRange = nextRange;
+    unawaited(loadStats());
   }
 
   Future<void> togglePin(KnowledgeInsightCard item) async {
@@ -171,6 +245,10 @@ class InsightViewModel extends ChangeNotifier {
   void dispose() {
     EventBusService.instance
         .removeHandler(EventBusMessageType.newInsight, _handleNewInsightEvent);
+    EventBusService.instance.removeHandler(
+        EventBusMessageType.cardAdded, _handleActivityChangedEvent);
+    EventBusService.instance.removeHandler(
+        EventBusMessageType.cardUpdated, _handleActivityChangedEvent);
     super.dispose();
   }
 }

@@ -213,6 +213,77 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedule => 'Schedule';
 
   @override
+  String get statistics => 'Stats';
+
+  @override
+  String get activityStats => 'Activity stats';
+
+  @override
+  String activityStatsSummary(Object inputs, Object cards, Object todos) {
+    return 'In this period you recorded $inputs time(s), generated $cards card(s), and completed $todos todo(s).';
+  }
+
+  @override
+  String get last7Days => '7 days';
+
+  @override
+  String get last30Days => '30 days';
+
+  @override
+  String get last90Days => '90 days';
+
+  @override
+  String get records => 'Records';
+
+  @override
+  String get words => 'Words';
+
+  @override
+  String get cards => 'Cards';
+
+  @override
+  String get knowledgeUnits => 'Knowledge units';
+
+  @override
+  String get completedTodos => 'Completed todos';
+
+  @override
+  String get activeDays => 'Active days';
+
+  @override
+  String get streakDays => 'Streak';
+
+  @override
+  String get dailyRhythm => 'Daily rhythm';
+
+  @override
+  String get recordToOutput => 'Record to output';
+
+  @override
+  String get sourceBreakdown => 'Source breakdown';
+
+  @override
+  String get topThemes => 'Top themes';
+
+  @override
+  String get textInput => 'Text';
+
+  @override
+  String get imageInput => 'Images';
+
+  @override
+  String get audioInput => 'Audio';
+
+  @override
+  String get noStatsYet => 'No activity stats yet';
+
+  @override
+  String get tapDayForDetails => 'Tap a day to view details';
+
+  @override
+  String get dayDetails => 'Day details';
+
+  @override
   String loadStatsFailed(Object error) {
     return 'Failed to load stats: $error';
   }
