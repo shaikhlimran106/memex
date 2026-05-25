@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:dart_agent_core/dart_agent_core.dart';
-import 'package:intl/intl.dart';
 import 'package:memex/agent/agent_controller.util.dart';
 import 'package:memex/agent/agent_system_prompt_helper.dart';
 import 'package:memex/agent/post_card_router_agent/prompt.dart';
@@ -12,6 +11,7 @@ import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/data/services/schedule_refresh_state_service.dart';
 import 'package:memex/domain/models/system_event.dart';
 import 'package:memex/utils/logger.dart';
+import 'package:memex/utils/time_context.dart';
 
 final _logger = getLogger('PostCardRouterAgent');
 
@@ -111,11 +111,7 @@ class PostCardRouterAgent {
 
     final messages = [
       UserMessage([
-        TextPart(
-          '<system-reminder>current time is '
-          '${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}.'
-          '</system-reminder>',
-        ),
+        TextPart(buildCurrentTimeReminder(DateTime.now())),
         TextPart(
           'Decide which downstream agents to activate for this new input. '
           'Call the `select_downstream_agents` tool exactly once. Use an '

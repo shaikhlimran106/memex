@@ -1,11 +1,11 @@
 import 'package:dart_agent_core/dart_agent_core.dart';
-import 'package:intl/intl.dart';
 import 'package:memex/agent/agent_controller.util.dart';
 import 'package:memex/agent/agent_system_prompt_helper.dart';
 import 'package:memex/agent/skills/manage_system_action/system_action_skill.dart';
 import 'package:memex/agent/state_util.dart';
 import 'package:memex/agent/system_action_agent/prompt.dart';
 import 'package:memex/utils/logger.dart';
+import 'package:memex/utils/time_context.dart';
 
 final _logger = getLogger('SystemActionAgent');
 
@@ -60,16 +60,15 @@ class SystemActionAgent {
       },
     );
 
-    final formattedNow = DateFormat('yyyy-MM-dd HH:mm:ss').format(effectiveNow);
+    final formattedNow = formatLocalDateTimeWithZone(effectiveNow);
     final messages = [
       UserMessage([
-        TextPart(
-          '<system-reminder>Current User Time: $formattedNow.</system-reminder>',
-        ),
+        TextPart(buildCurrentTimeReminder(effectiveNow)),
         TextPart(
           'Decide whether this raw input contains a calendar event or '
           'reminder intent. If it does, create the matching action(s); '
           'otherwise stop without writing anything.\n\n'
+          'Current Local Time: $formattedNow\n'
           'Raw Input ID (fact_id): $factId\n\n'
           'Raw Input Content:\n$combinedText',
         ),
