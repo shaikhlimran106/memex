@@ -104,37 +104,20 @@ class PkmSkill extends Skill {
         name: 'skip_pkm_organization',
         description: Prompts.pkmAgentSkipOrganizationToolDescription,
         parameters: Prompts.pkmAgentSkipOrganizationToolParameters,
-        executable:
-            (String reason, String temporalScope, String evidence) async {
-          const validReasons = {
-            'explicit_user_opt_out',
-            'temporary_state',
-            'low_signal_noise',
-            'duplicate_existing_memory',
-          };
-          if (!validReasons.contains(reason)) {
-            throw ArgumentError.value(
-              reason,
-              'reason',
-              'Must be one of: ${validReasons.join(', ')}',
-            );
-          }
-
+        executable: (String evidence) async {
           final context = AgentCallToolContext.current;
           final factId = context?.state.metadata['factId'];
           if (context != null) {
             context.state.metadata['skippedPkm'] = true;
-            context.state.metadata['pkmSkipReason'] = reason;
-            context.state.metadata['pkmSkipTemporalScope'] = temporalScope;
             context.state.metadata['pkmSkipEvidence'] = evidence;
           }
           logger.info(
-            'Skipping PKM organization for fact_id=$factId, reason=$reason, temporal_scope=$temporalScope',
+            'Skipping PKM organization for fact_id=$factId, evidence=$evidence',
           );
 
           return AgentToolResult(
             content: TextPart(
-              'PKM organization skipped. reason=$reason; temporal_scope=$temporalScope; evidence=$evidence',
+              'PKM organization skipped. evidence=$evidence',
             ),
             stopFlag: true,
           );

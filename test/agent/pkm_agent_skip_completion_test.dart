@@ -11,36 +11,21 @@ const _factId = '2026/05/18.md#ts_1';
 
 void main() {
   group('PkmAgent non-persistent input detection', () {
-    test('detects explicit opt-out phrases from issue 128', () {
-      final cases = {
-        '只是试一下 今天早点睡，不要写成长记忆，也不要影响 导出灰度。': 'explicit_user_opt_out',
-        '今天有点烦，主要是临时事情太碎，这只是今天状态，不要写成长记忆。': 'explicit_user_opt_out',
-        '临时提醒，不要长期保存': 'explicit_user_opt_out',
-        '测试一下，别写进记忆': 'explicit_user_opt_out',
-        '只是试一下，不要记': 'explicit_user_opt_out',
-      };
+    test('detects explicit opt-out phrases', () {
+      final inputs = [
+        '只是试一下 今天早点睡，不要写成长记忆，也不要影响 导出灰度。',
+        '今天有点烦，主要是临时事情太碎，这只是今天状态，不要写成长记忆。',
+        '临时提醒，不要长期保存',
+        '测试一下，别写进记忆',
+        '只是试一下，不要记',
+      ];
 
-      for (final entry in cases.entries) {
-        final decision = PkmAgent.detectNonPersistentInput(entry.key);
-
-        expect(decision.shouldSkip, isTrue, reason: entry.key);
-        expect(decision.reason, entry.value, reason: entry.key);
+      for (final input in inputs) {
+        final decision = PkmAgent.detectNonPersistentInput(input);
+        expect(decision.shouldSkip, isTrue, reason: input);
         expect(decision.evidence, isNotEmpty);
       }
     });
-
-    test(
-      'detects temporary state plus explicit boundary on existing knowledge',
-      () {
-        final decision = PkmAgent.detectNonPersistentInput(
-          '这只是今天状态，不要影响导出灰度提醒规则。',
-        );
-
-        expect(decision.shouldSkip, isTrue);
-        expect(decision.reason, 'temporary_state');
-        expect(decision.temporalScope, 'temporary');
-      },
-    );
 
     test('does not skip durable inputs or unrelated negative wording', () {
       final durableInputs = [
@@ -48,6 +33,9 @@ void main() {
         '咖啡喝多了以后不要影响睡眠，帮我记一下这个规律。',
         '不要忘记明天晚上检查导出灰度。',
         '今天早点睡，导出灰度提醒规则继续保留。',
+        // Q&A and curiosities must not be skipped — they are PKM material.
+        '怎么做 agent 评估呢？',
+        '今天看到一支特别想要的钢笔。',
       ];
 
       for (final input in durableInputs) {
@@ -63,37 +51,31 @@ void main() {
   group('PkmAgent completion evidence', () {
     const factId = '2026/05/18.md#ts_1';
 
-    test(
-      'persistent path is complete only with P.A.R.A. write and insight',
-      () {
-        final evidence = PkmAgent.inspectPkmRunCompletion(
-          factId: factId,
-          messages: [
-            _toolResultMessage(
-              name: 'Write',
-              arguments: {
-                'file_path': '/Projects/export.md',
-                'content': factId,
-              },
-            ),
-            _toolResultMessage(
-              name: 'update_timeline_card_insight',
-              arguments: {
-                'fact_id': factId,
-                'insight_text': 'Keep the cadence small.',
-                'summary_text': 'Updated the related project note.',
-              },
-            ),
-          ],
-        );
+    test('persistent path is complete only with PARA write and insight', () {
+      final evidence = PkmAgent.inspectPkmRunCompletion(
+        factId: factId,
+        messages: [
+          _toolResultMessage(
+            name: 'Write',
+            arguments: {'file_path': '/Projects/export.md', 'content': factId},
+          ),
+          _toolResultMessage(
+            name: 'update_timeline_card_insight',
+            arguments: {
+              'fact_id': factId,
+              'insight_text': 'Keep the cadence small.',
+              'summary_text': 'Updated the related project note.',
+            },
+          ),
+        ],
+      );
 
-        expect(evidence.wrotePara, isTrue);
-        expect(evidence.updatedInsight, isTrue);
-        expect(evidence.skippedPkm, isFalse);
-        expect(evidence.isComplete, isTrue);
-        expect(evidence.missingRequirements, isEmpty);
-      },
-    );
+      expect(evidence.wrotePara, isTrue);
+      expect(evidence.updatedInsight, isTrue);
+      expect(evidence.skippedPkm, isFalse);
+      expect(evidence.isComplete, isTrue);
+      expect(evidence.missingRequirements, isEmpty);
+    });
 
     test('write alone remains incomplete and reports missing insight', () {
       final evidence = PkmAgent.inspectPkmRunCompletion(
@@ -121,11 +103,7 @@ void main() {
         messages: [
           _toolResultMessage(
             name: 'skip_pkm_organization',
-            arguments: {
-              'reason': 'explicit_user_opt_out',
-              'temporal_scope': 'temporary',
-              'evidence': '不要写成长记忆',
-            },
+            arguments: {'evidence': '不要写成长记忆'},
           ),
         ],
       );
@@ -133,40 +111,10 @@ void main() {
       expect(evidence.wrotePara, isFalse);
       expect(evidence.updatedInsight, isFalse);
       expect(evidence.skippedPkm, isTrue);
-      expect(evidence.skipReason, 'explicit_user_opt_out');
-      expect(evidence.skipTemporalScope, 'temporary');
       expect(evidence.skipEvidence, '不要写成长记忆');
       expect(evidence.isComplete, isTrue);
       expect(evidence.toJson()['skipped_pkm'], isTrue);
     });
-
-    test(
-      'clarification request is a valid completion path without PKM writes',
-      () {
-        final evidence = PkmAgent.inspectPkmRunCompletion(
-          factId: factId,
-          messages: [
-            _toolResultMessage(
-              name: 'create_clarification_request',
-              arguments: {
-                'question': '周末具体是周六还是周日？',
-                'response_type': 'single_choice',
-                'evidence_fact_ids': [factId],
-                'dedupe_key': 'weekend:reminder_time',
-              },
-            ),
-          ],
-        );
-
-        expect(evidence.wrotePara, isFalse);
-        expect(evidence.updatedInsight, isFalse);
-        expect(evidence.clarificationRequested, isTrue);
-        expect(evidence.clarificationDedupeKey, 'weekend:reminder_time');
-        expect(evidence.isComplete, isTrue);
-        expect(evidence.missingRequirements, isEmpty);
-        expect(evidence.toJson()['clarification_requested'], isTrue);
-      },
-    );
 
     test('skip is not accepted after a successful PKM mutation', () {
       final evidence = PkmAgent.inspectPkmRunCompletion(
@@ -181,11 +129,7 @@ void main() {
           ),
           _toolResultMessage(
             name: 'skip_pkm_organization',
-            arguments: {
-              'reason': 'explicit_user_opt_out',
-              'temporal_scope': 'temporary',
-              'evidence': '不要影响导出灰度',
-            },
+            arguments: {'evidence': '不要影响导出灰度'},
           ),
         ],
       );
@@ -199,37 +143,6 @@ void main() {
       );
     });
 
-    test('clarification alone is not accepted after a PKM mutation', () {
-      final evidence = PkmAgent.inspectPkmRunCompletion(
-        factId: factId,
-        messages: [
-          _toolResultMessage(
-            name: 'Write',
-            arguments: {
-              'file_path': '/Projects/导出灰度提醒设置.md',
-              'content': 'accidental write',
-            },
-          ),
-          _toolResultMessage(
-            name: 'create_clarification_request',
-            arguments: {
-              'question': '要提醒的具体时间是什么？',
-              'response_type': 'short_text',
-              'dedupe_key': 'reminder:time',
-            },
-          ),
-        ],
-      );
-
-      expect(evidence.clarificationRequested, isTrue);
-      expect(evidence.successfulPkmMutation, isTrue);
-      expect(evidence.isComplete, isFalse);
-      expect(
-        evidence.missingRequirements,
-        contains('clarification_without_persistent_completion'),
-      );
-    });
-
     test('failed skip tool result is ignored', () {
       final evidence = PkmAgent.inspectPkmRunCompletion(
         factId: factId,
@@ -237,11 +150,7 @@ void main() {
           _toolResultMessage(
             name: 'skip_pkm_organization',
             isError: true,
-            arguments: {
-              'reason': 'explicit_user_opt_out',
-              'temporal_scope': 'temporary',
-              'evidence': '不要写成长记忆',
-            },
+            arguments: {'evidence': '不要写成长记忆'},
           ),
         ],
       );
@@ -253,7 +162,7 @@ void main() {
   });
 
   group('PkmAgent skip prompt and tool contract', () {
-    test('prompt teaches the model to use the explicit skip tool', () {
+    test('prompt mentions skip but does not encourage over-skipping', () {
       final prompt = Prompts.pkmSkillSystemPrompt(
         '/',
         'P.A.R.A. example',
@@ -261,47 +170,52 @@ void main() {
         'Use user language for insight.',
       );
 
+      // Skip is documented, but only for explicit opt-out.
       expect(prompt, contains('skip_pkm_organization'));
-      expect(prompt, contains('explicitly asks not to persist'));
-      expect(prompt, contains('Use this only for explicit'));
-      expect(prompt, contains('Information-Insufficient Inputs'));
-      expect(prompt, contains('ask_clarification'));
-      expect(prompt, isNot(contains('不要写成长记忆')));
-      expect(prompt, isNot(contains('不要影响某某项目/规则')));
+      expect(prompt, contains('explicitly asks not to save'));
+
+      // Clarification responsibility now lives in AskClarificationAgent.
+      expect(prompt, isNot(contains('Information-Insufficient Inputs')));
+      expect(prompt, isNot(contains('ask_clarification')));
+      expect(
+        prompt,
+        contains(
+            'Do not ask users for additional information or clarification.'),
+      );
+
+      // Old over-broad / over-specified skip guidance must be gone.
+      expect(prompt, isNot(contains('low_signal_noise')));
+      expect(prompt, isNot(contains('temporary_state')));
+      expect(prompt, isNot(contains('duplicate_existing_memory')));
     });
 
-    test('skip tool parameters expose enum reason and evidence fields', () {
+    test('skip tool parameters require only an evidence quote', () {
       final parameters = Prompts.pkmAgentSkipOrganizationToolParameters;
       final properties = parameters['properties'] as Map<String, dynamic>;
-      final reason = properties['reason'] as Map<String, dynamic>;
 
-      expect(reason['enum'], containsAll(PkmAgent.validSkipReasons));
-      expect(
-        parameters['required'],
-        containsAll(['reason', 'temporal_scope', 'evidence']),
-      );
+      expect(properties.keys, ['evidence']);
+      expect(parameters['required'], ['evidence']);
     });
   });
 
   group('PkmAgent task handler skip path', () {
-    test('explicit opt-out input completes without invoking LLM resources',
-        () async {
-      await expectLater(
-        handlePkmAgentImpl(
-          'user-a',
-          {
-            'fact_id': _factId,
-            'combined_text': '今天有点烦，这只是今天状态，不要写成长记忆。',
-            'created_at_ts': 1779080000,
-          },
-          TaskContext(
-            taskId: 'task-opt-out',
-            taskType: 'pkm_agent_task',
+    test(
+      'explicit opt-out input completes without invoking LLM resources',
+      () async {
+        await expectLater(
+          handlePkmAgentImpl(
+            'user-a',
+            {
+              'fact_id': _factId,
+              'combined_text': '今天有点烦，这只是今天状态，不要写成长记忆。',
+              'created_at_ts': 1779080000,
+            },
+            TaskContext(taskId: 'task-opt-out', taskType: 'pkm_agent_task'),
           ),
-        ),
-        completes,
-      );
-    });
+          completes,
+        );
+      },
+    );
   });
 }
 

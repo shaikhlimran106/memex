@@ -91,7 +91,7 @@ void main() {
       (tester) async {
     await UserStorage.setDefaultLLMConfigKey(customDefault.key);
 
-    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.physicalSize = const Size(1200, 4000);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
       tester.view.resetPhysicalSize();
