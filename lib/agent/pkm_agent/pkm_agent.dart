@@ -24,13 +24,6 @@ import 'package:memex/agent/agent_cache_helper.dart';
 class PkmAgent {
   static final Logger _logger = getLogger('PkmAgent');
 
-  static const Set<String> validSkipReasons = {
-    'explicit_user_opt_out',
-    'temporary_state',
-    'low_signal_noise',
-    'duplicate_existing_memory',
-  };
-
   /// Detects raw inputs where the user explicitly opts out of persistent PKM
   /// organization before we invoke the LLM agent.
   static PkmSkipDecision detectNonPersistentInput(String rawInput) {
@@ -61,34 +54,10 @@ class PkmAgent {
       (pattern) => pattern.hasMatch(normalized),
     );
     if (hasExplicitOptOut) {
-      return PkmSkipDecision.skip(
-        reason: 'explicit_user_opt_out',
-        temporalScope:
-            _looksTemporary(normalized) ? 'temporary' : 'unspecified',
-        evidence: _shortEvidence(text),
-      );
-    }
-
-    final isTemporaryOnly = _looksTemporary(normalized) &&
-        RegExp(r'(状态|心情|碎事|临时事|试一下|测试|temporary|test)').hasMatch(normalized);
-    final hasPersistenceBoundary = RegExp(
-      r'(不要|别|不用|无需|不必).{0,8}(影响|改动|修改|覆盖|更新).{0,18}(项目|规则|安排|提醒|偏好|知识|记忆)',
-    ).hasMatch(normalized);
-    if (isTemporaryOnly && hasPersistenceBoundary) {
-      return PkmSkipDecision.skip(
-        reason: 'temporary_state',
-        temporalScope: 'temporary',
-        evidence: _shortEvidence(text),
-      );
+      return PkmSkipDecision.skip(evidence: _shortEvidence(text));
     }
 
     return const PkmSkipDecision.persist();
-  }
-
-  static bool _looksTemporary(String normalized) {
-    return RegExp(
-      r'(只是|仅仅|就是|临时|暂时|今天状态|当下状态|试一下|测试|temporary|transient|justtesting)',
-    ).hasMatch(normalized);
   }
 
   static String _shortEvidence(String text) {
@@ -551,8 +520,6 @@ $instruction
     bool updatedInsight = false;
     bool skippedPkm = false;
     bool successfulPkmMutation = false;
-    String? skipReason;
-    String? skipTemporalScope;
     String? skipEvidence;
 
     for (final msg in messages) {
@@ -575,8 +542,6 @@ $instruction
         if (r.name == 'skip_pkm_organization') {
           skippedPkm = true;
           final args = _decodeToolArguments(r.arguments);
-          skipReason = args['reason'] as String?;
-          skipTemporalScope = args['temporal_scope'] as String?;
           skipEvidence = args['evidence'] as String?;
         }
       }
@@ -587,8 +552,6 @@ $instruction
       updatedInsight: updatedInsight,
       skippedPkm: skippedPkm,
       successfulPkmMutation: successfulPkmMutation,
-      skipReason: skipReason,
-      skipTemporalScope: skipTemporalScope,
       skipEvidence: skipEvidence,
     );
   }
@@ -639,35 +602,18 @@ $pkmStructure
 }
 
 class PkmSkipDecision {
-  const PkmSkipDecision._({
-    required this.shouldSkip,
-    this.reason,
-    this.temporalScope,
-    this.evidence,
-  });
+  const PkmSkipDecision._({required this.shouldSkip, this.evidence});
 
   final bool shouldSkip;
-  final String? reason;
-  final String? temporalScope;
   final String? evidence;
 
   const PkmSkipDecision.persist() : this._(shouldSkip: false);
 
-  const PkmSkipDecision.skip({
-    required String reason,
-    required String temporalScope,
-    required String evidence,
-  }) : this._(
-          shouldSkip: true,
-          reason: reason,
-          temporalScope: temporalScope,
-          evidence: evidence,
-        );
+  const PkmSkipDecision.skip({required String evidence})
+      : this._(shouldSkip: true, evidence: evidence);
 
   Map<String, dynamic> toJson() => {
         'should_skip': shouldSkip,
-        if (reason != null) 'reason': reason,
-        if (temporalScope != null) 'temporal_scope': temporalScope,
         if (evidence != null) 'evidence': evidence,
       };
 }
@@ -678,8 +624,6 @@ class PkmRunCompletionEvidence {
     required this.updatedInsight,
     required this.skippedPkm,
     required this.successfulPkmMutation,
-    this.skipReason,
-    this.skipTemporalScope,
     this.skipEvidence,
   });
 
@@ -687,8 +631,6 @@ class PkmRunCompletionEvidence {
   final bool updatedInsight;
   final bool skippedPkm;
   final bool successfulPkmMutation;
-  final String? skipReason;
-  final String? skipTemporalScope;
   final String? skipEvidence;
 
   bool get isComplete =>
@@ -714,8 +656,6 @@ class PkmRunCompletionEvidence {
         'skipped_pkm': skippedPkm,
         'successful_pkm_mutation': successfulPkmMutation,
         'missing_requirements': missingRequirements,
-        if (skipReason != null) 'skip_reason': skipReason,
-        if (skipTemporalScope != null) 'skip_temporal_scope': skipTemporalScope,
         if (skipEvidence != null) 'skip_evidence': skipEvidence,
       };
 }

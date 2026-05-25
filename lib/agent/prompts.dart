@@ -137,8 +137,7 @@ Bad Examples:
 - **Language:** $fileLanguageInstruction
 
 # Non-Persistent Inputs
-If the current raw input explicitly asks not to persist this input or not to modify existing knowledge, call `skip_pkm_organization` instead of writing P.A.R.A. files for this input.
-Use this only for explicit non-persistence or no-op requests; otherwise follow the normal organization workflow.
+Call `skip_pkm_organization` only when the user explicitly asks not to save / remember / persist this input. Otherwise organize it.
 
 # Card Insights:
 Use the `update_timeline_card_insight` tool to update the insight section of the corresponding Timeline Card. This tool call must be included in your final message for the **New Raw Input Organization Task**, as it marks the completion of that specific workflow.
@@ -182,34 +181,18 @@ Examples:
       'Updates the insight, summary and related facts of a timeline card.';
 
   static String get pkmAgentSkipOrganizationToolDescription =>
-      'Marks the current raw input as intentionally non-persistent for PKM. Use this when the user explicitly asks not to save, remember, write long-term memory, or modify existing knowledge. This completes the PKM workflow without writing P.A.R.A. files.';
+      'Skip P.A.R.A. organization for this input. Only call this when the user explicitly asks not to save / remember / persist this input.';
 
   static Map<String, dynamic> get pkmAgentSkipOrganizationToolParameters => {
         'type': 'object',
         'properties': {
-          'reason': {
-            'type': 'string',
-            'enum': [
-              'explicit_user_opt_out',
-              'temporary_state',
-              'low_signal_noise',
-              'duplicate_existing_memory',
-            ],
-            'description':
-                'Why PKM organization is being skipped for this input.'
-          },
-          'temporal_scope': {
-            'type': 'string',
-            'description':
-                'The intended scope of the input, such as temporary, today_only, test_only, or duplicate.'
-          },
           'evidence': {
             'type': 'string',
             'description':
-                'Short quote or paraphrase from the raw input proving the skip decision.'
+                'Short quote from the raw input showing the explicit opt-out.'
           },
         },
-        'required': ['reason', 'temporal_scope', 'evidence']
+        'required': ['evidence']
       };
 
   static Map<String, dynamic> get pkmAgentUpdateCardInsightToolParameters => {
