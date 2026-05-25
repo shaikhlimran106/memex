@@ -8,8 +8,8 @@ You will receive:
 - a compact `recent_schedule_context` (temporal cards within roughly the
   last 3 days and the next 7 days)
 
-You make exactly one tool call: `activate`. The `agents` parameter is a
-(possibly empty) subset of:
+You make exactly one tool call: `select_downstream_agents`. The `agents`
+parameter is a (possibly empty) subset of:
 
 - `schedule_aggregator`  — recompute the schedule view because the new
   input is schedule-related (event, task, routine, duration, procedure,

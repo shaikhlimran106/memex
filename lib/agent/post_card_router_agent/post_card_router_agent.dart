@@ -118,8 +118,9 @@ class PostCardRouterAgent {
         ),
         TextPart(
           'Decide which downstream agents to activate for this new input. '
-          'Call the `activate` tool exactly once. Use an empty list if no '
-          'downstream agent is needed.\n\n${jsonEncode(context)}',
+          'Call the `select_downstream_agents` tool exactly once. Use an '
+          'empty list if no downstream agent is needed.\n\n'
+          '${jsonEncode(context)}',
         ),
       ]),
     ];
@@ -144,7 +145,8 @@ class PostCardRouterAgent {
     }
 
     _logger.warning(
-      'Router did not call activate for $factId; treating as no-op.',
+      'Router did not call select_downstream_agents for $factId; treating '
+      'as no-op.',
     );
     return const PostCardRouteResult(
       activatedAgents: [],
@@ -178,12 +180,13 @@ Tool _buildActivateTool({
   required void Function(PostCardRouteResult decision) onDecision,
 }) {
   return Tool(
-    name: 'activate',
+    name: 'select_downstream_agents',
     description:
-        'Activate the chosen downstream agents for this input. Pass an '
-        'empty list when nothing needs to run. Allowed agent names: '
+        'Select which downstream agents to activate for this input. Pass '
+        'an empty list when nothing needs to run. Allowed agent names: '
         'schedule_aggregator, task_completion, system_action, '
-        'ask_clarification.',
+        'ask_clarification. This tool finishes the routing decision; do '
+        'not call any other tool afterwards.',
     parameters: {
       'type': 'object',
       'properties': {
@@ -248,10 +251,16 @@ Tool _buildActivateTool({
         ),
       );
 
-      if (normalized.isEmpty) {
-        return 'No downstream agent activated: $reason';
-      }
-      return 'Activated downstream agents: ${normalized.join(', ')}. $reason';
+      final summary = normalized.isEmpty
+          ? 'No downstream agent activated: $reason'
+          : 'Activated downstream agents: ${normalized.join(', ')}. $reason';
+
+      // The routing decision is final once this tool returns. Stop the
+      // agent immediately so the model does not produce a follow-up turn.
+      return AgentToolResult(
+        content: TextPart(summary),
+        stopFlag: true,
+      );
     },
   );
 }
