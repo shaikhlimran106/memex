@@ -1,36 +1,36 @@
 class AgentDefinitions {
-  static const String pkmAgent = 'pkm_agent';
+  static const String analyzeAssets = 'analyze_assets';
   static const String cardAgent = 'card_agent';
-  static const String profileAgent = 'profile_agent';
+  static const String pkmAgent = 'pkm_agent';
   static const String knowledgeInsightAgent = 'knowledge_insight_agent';
-  static const String scheduleAggregatorAgent = 'schedule_aggregator_agent';
-  static const String postCardRouterAgent = 'post_card_router_agent';
-
-  static const String systemActionAgent = 'system_action_agent';
-  static const String askClarificationAgent = 'ask_clarification_agent';
-  static const String taskCompletionAgent = 'task_completion_agent';
   static const String commentAgent = 'comment_agent';
   static const String chatAgent = 'chat_agent';
   static const String companionAgent = 'companion_agent';
-  static const String analyzeAssets = 'analyze_assets';
+  static const String profileAgent = 'profile_agent';
+  static const String postCardRouterAgent = 'post_card_router_agent';
+  static const String scheduleAggregatorAgent = 'schedule_aggregator_agent';
+  static const String systemActionAgent = 'system_action_agent';
+  static const String askClarificationAgent = 'ask_clarification_agent';
+  static const String taskCompletionAgent = 'task_completion_agent';
   static const String clarificationResolutionAgent =
       'clarification_resolution_agent';
 
+  /// Order here drives the display order in the agent configuration screen.
   static const Map<String, String> displayNames = {
-    pkmAgent: 'PKM',
+    analyzeAssets: 'Media analysis',
     cardAgent: 'Cards',
-    profileAgent: 'Memory summary',
+    pkmAgent: 'PKM',
     knowledgeInsightAgent: 'Insights',
-    scheduleAggregatorAgent: 'Schedule',
-    postCardRouterAgent: 'Post-Card Router',
-    systemActionAgent: 'System Actions',
-    askClarificationAgent: 'Ask Clarification',
-    taskCompletionAgent: 'Task Completion',
     commentAgent: 'Comments',
     chatAgent: 'Chat',
     companionAgent: 'Companion',
-    analyzeAssets: 'Media analysis',
+    profileAgent: 'Memory summary',
+    postCardRouterAgent: 'Post-Card Router',
+    scheduleAggregatorAgent: 'Schedule',
+    systemActionAgent: 'System Actions',
+    askClarificationAgent: 'Ask Clarification',
     clarificationResolutionAgent: 'Ask resolution',
+    taskCompletionAgent: 'Task Completion',
   };
 
   /// Agent IDs exposed in the model configuration screen.
