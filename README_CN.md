@@ -31,6 +31,10 @@ Memex 是一款开源、本地优先的 AI 日记应用，支持 iOS 和 Android
 
 **这里说的"本地优先"是指：** 你的记录、卡片和知识都保存在你的设备上。没有 Memex 账号，也没有 Memex 服务器存储你的日记。你自带大模型服务商（OpenAI、Claude、Gemini 等），你的请求直接从手机发送到那个服务商 — 我们永远看不到你的数据。
 
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/4bbbb865-52ec-465f-9030-d06a8c71faef" width="300" />
+</div>
+
 > [!IMPORTANT]
 > **Star 关注我们** — 第一时间收到 GitHub 新版本通知 ⭐
 >

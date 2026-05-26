@@ -31,6 +31,10 @@ Memex is an open-source, local-first AI journal for iOS and Android. It takes a 
 
 **What "local-first" means here:** Your records, cards, and knowledge all stay on your device. There is no Memex account and no Memex server storing your journal. You bring your own LLM provider (OpenAI, Claude, Gemini, etc.), and your prompts go directly from your phone to that provider — we never see your data.
 
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/e5fb3ab6-ff99-4397-9018-386c9f90f5ee" width="300" />
+</div>
+
 > [!IMPORTANT]
 > **Star Us** — you'll get notified of every new release on GitHub ⭐
 >
