@@ -117,11 +117,21 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
     }
   }
 
-  void _openAdvancedConfig() {
-    Navigator.push(
+  Future<void> _openAdvancedConfig() async {
+    final configured = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(builder: (context) => const ModelConfigListPage()),
+      MaterialPageRoute(
+        builder: (context) => ModelConfigListPage(
+          popOnConfigSaved: widget.onboardingMode,
+        ),
+      ),
     );
+    if (configured == true && mounted && widget.onboardingMode) {
+      widget.onComplete?.call();
+      if (widget.onComplete == null) {
+        Navigator.of(context).pop(true);
+      }
+    }
   }
 
   void _skip() {
