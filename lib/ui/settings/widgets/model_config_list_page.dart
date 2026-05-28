@@ -9,7 +9,12 @@ import 'package:memex/ui/core/themes/app_colors.dart';
 import 'package:memex/domain/models/agent_definitions.dart';
 
 class ModelConfigListPage extends StatefulWidget {
-  const ModelConfigListPage({super.key});
+  const ModelConfigListPage({
+    super.key,
+    this.popOnConfigSaved = false,
+  });
+
+  final bool popOnConfigSaved;
 
   @override
   State<ModelConfigListPage> createState() => _ModelConfigListPageState();
@@ -191,6 +196,12 @@ class _ModelConfigListPageState extends State<ModelConfigListPage> {
     );
 
     if (result == true) {
+      if (widget.popOnConfigSaved) {
+        if (mounted) {
+          Navigator.pop(context, true);
+        }
+        return;
+      }
       _loadConfigs();
     }
   }

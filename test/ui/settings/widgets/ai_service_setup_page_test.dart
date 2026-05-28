@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:memex/domain/models/llm_config.dart';
 import 'package:memex/ui/settings/widgets/ai_service_setup_page.dart';
 import 'package:memex/ui/settings/widgets/model_config_list_page.dart';
 import 'package:memex/utils/user_storage.dart';
@@ -71,6 +72,53 @@ void main() {
     await tester.pump();
 
     expect(completed, isTrue);
+  });
+
+  testWidgets('onboarding custom model save completes setup flow', (
+    tester,
+  ) async {
+    var completed = false;
+    const customConfig = LLMConfig(
+      key: 'custom-openai',
+      type: LLMConfig.typeChatCompletion,
+      modelId: 'gpt-4o',
+      apiKey: 'sk-test',
+      baseUrl: 'https://api.openai.com/v1',
+    );
+    await UserStorage.saveLLMConfigs([
+      LLMConfig.createDefaultClientConfig(),
+      customConfig,
+    ]);
+    await UserStorage.saveLLMConsent(
+      true,
+      providerType: LLMConfig.typeChatCompletion,
+    );
+
+    await _pumpPage(
+      tester,
+      AiServiceSetupPage(
+        onboardingMode: true,
+        onComplete: () => completed = true,
+      ),
+    );
+
+    final customModelAction =
+        find.text(UserStorage.l10n.advancedModelConfiguration);
+    await tester.scrollUntilVisible(
+      customModelAction,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(customModelAction);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(customConfig.key));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.save));
+    await tester.pumpAndSettle();
+
+    expect(completed, isTrue);
+    expect(find.byType(ModelConfigListPage), findsNothing);
   });
 }
 
