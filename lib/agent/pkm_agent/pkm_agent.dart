@@ -71,6 +71,7 @@ class PkmAgent {
     required ModelConfig modelConfig,
     required String userId,
     required String factId,
+    AgentController? controller,
   }) async {
     final fileService = FileSystemService.instance;
 
@@ -86,9 +87,9 @@ class PkmAgent {
       'sceneId': factId,
     });
 
-    final controller = AgentController();
-    addAgentLogger(controller);
-    addAgentActivityCollector(controller);
+    final agentController = controller ?? AgentController();
+    addAgentLogger(agentController);
+    addAgentActivityCollector(agentController);
 
     final stopAfterUpdateCardInsightRef = [true];
     final skills = [
@@ -295,7 +296,7 @@ class PkmAgent {
         skills: skills,
         systemPrompts: [pkmAgentSystemPrompt],
         disableSubAgents: true,
-        controller: controller,
+        controller: agentController,
         withGeneralPrinciples: true,
         planMode: PlanMode.none,
         autoSaveStateFunc: (state) async {
@@ -315,6 +316,7 @@ class PkmAgent {
     required String userId,
     required String factId,
     required String instruction,
+    AgentController? controller,
   }) async {
     // Ensure we have a valid cached responseId with matching hashCode
     final cachedResponseId = await AgentCacheHelper.ensureValidCachedResponseId(
@@ -354,6 +356,7 @@ class PkmAgent {
       modelConfig: finalModelConfig,
       userId: userId,
       factId: factId,
+      controller: controller,
     );
 
     final pkmOverview = await _getPkmOverview(userId);

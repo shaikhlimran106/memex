@@ -13,11 +13,6 @@ abstract class _OutcomeKeys {
   static const successfulMutation = 'successful_pkm_mutation';
   static const missingRequirements = 'missing_requirements';
 
-  static const writtenFiles =
-      'written_files'; // List<String> rel paths under PKM/
-  static const editedFiles = 'edited_files'; // List<String>
-  static const readFiles = 'read_files'; // List<String> in transcript order
-  static const writeOrder = 'write_order'; // List<String> in transcript order
   static const fileContents = 'file_contents'; // Map<String, String> rel → body
 }
 
@@ -147,11 +142,12 @@ class PkmRoutedCorrectlyGrader implements Grader {
       );
     }
 
-    final written =
-        (s[_OutcomeKeys.writtenFiles] as List?)?.cast<String>() ?? const [];
-    final edited =
-        (s[_OutcomeKeys.editedFiles] as List?)?.cast<String>() ?? const [];
-    final all = {...written, ...edited}.map(_normPath).toList();
+    final diff = outcome.workspaceDiff;
+    final changed = <String>{
+      ...?diff?.created,
+      ...?diff?.modified,
+    }.toList();
+    final all = changed.map(_normPath).toList();
     final expectedFilesNorm = expectedFiles.map(_normPath).toList();
     final expectedBucketsNorm = expectedBuckets.map(_normPath).toList();
 
@@ -197,8 +193,8 @@ class PkmRoutedCorrectlyGrader implements Grader {
       value = 0.0;
       passed = false;
       rationale = all.isEmpty
-          ? 'agent made no writes/edits'
-          : 'wrote/edited $all but none under expected buckets '
+          ? 'workspace diff contains no created/modified PKM files'
+          : 'created/modified $all but none under expected buckets '
               '$expectedBuckets';
     }
 
@@ -209,13 +205,13 @@ class PkmRoutedCorrectlyGrader implements Grader {
       assertions: [
         if (expectedFiles.isNotEmpty)
           Assertion(
-            description: 'wrote/edited one of $expectedFiles',
+            description: 'created/modified one of $expectedFiles',
             passed: specificHit != null,
             actual: '$all',
             expected: 'one of $expectedFiles',
           ),
         Assertion(
-          description: 'wrote/edited under one of $expectedBuckets',
+          description: 'created/modified under one of $expectedBuckets',
           passed: bucketHit != null || specificHit != null,
           actual: '$all',
           expected: 'starts with one of $expectedBuckets',
@@ -263,17 +259,26 @@ class PkmReadBeforeWriteGrader extends CodeGrader {
     required EvalContext context,
     ReferenceSolution? referenceSolution,
   }) async {
-    final s = outcome.environmentState;
-    final reads =
-        (s[_OutcomeKeys.readFiles] as List?)?.cast<String>() ?? const [];
-    final writes =
-        (s[_OutcomeKeys.writeOrder] as List?)?.cast<String>() ?? const [];
-
     bool norm(String a, String b) =>
         _trimSlash(a).toLowerCase() == _trimSlash(b).toLowerCase();
 
-    final readIdx = reads.indexWhere((r) => norm(r, requiredReadPath));
-    final firstWriteIdx = writes.indexWhere((_) => true);
+    final calls = transcript.toolCalls.where((c) => !c.isError).toList();
+    final readIdx = calls.indexWhere(
+      (c) => c.toolName == 'Read' && norm(_toolPath(c), requiredReadPath),
+    );
+    final firstWriteIdx = calls.indexWhere(
+      (c) => c.toolName == 'Write' || c.toolName == 'Edit',
+    );
+    final reads = calls
+        .where((c) => c.toolName == 'Read')
+        .map(_toolPath)
+        .where((p) => p.isNotEmpty)
+        .toList();
+    final writes = calls
+        .where((c) => c.toolName == 'Write' || c.toolName == 'Edit')
+        .map(_toolPath)
+        .where((p) => p.isNotEmpty)
+        .toList();
 
     final readBeforeWrite =
         readIdx >= 0 && (firstWriteIdx < 0 || readIdx <= firstWriteIdx);
@@ -342,17 +347,25 @@ class PkmNoOverwriteGrader extends CodeGrader {
   }
 }
 
-/// Outcome keys produced by the harness for LLM graders. Kept private to
-/// the graders module so the harness contract stays in one place.
+ToolCallRecord? _lastSuccessfulToolCall(
+  Transcript transcript,
+  String toolName,
+) {
+  for (var i = transcript.toolCalls.length - 1; i >= 0; i--) {
+    final call = transcript.toolCalls[i];
+    if (!call.isError && call.toolName == toolName) return call;
+  }
+  return null;
+}
+
+String _toolPath(ToolCallRecord? call) {
+  if (call == null) return '';
+  final value = call.arguments['file_path'] ?? call.arguments['path'];
+  return value is String ? value : '';
+}
+
 abstract class _LlmKeys {
-  static const insightText = 'insight_text';
-  static const fileEdits = 'file_edits'; // List<Map<file_path/old/new>>
-  static const fileWrites = 'file_writes'; // List<Map<file_path/content>>
-  static const fileContents = 'file_contents';
-  static const taskInputContent = 'task_input_content';
   static const skippedPkm = 'skipped_pkm';
-  static const writtenFiles = 'written_files';
-  static const editedFiles = 'edited_files';
 }
 
 /// LLM-as-judge grader for the `update_timeline_card_insight` payload.
@@ -448,20 +461,27 @@ Respond with EXACTLY this JSON shape, no extra prose:
       );
     }
 
-    final insight = (state[_LlmKeys.insightText] as String? ?? '').trim();
+    final insightCall = _lastSuccessfulToolCall(
+      transcript,
+      'update_timeline_card_insight',
+    );
+    final insight =
+        (insightCall?.arguments['insight_text'] as String? ?? '').trim();
     if (insight.isEmpty) {
       return Score(
         graderName: name,
         value: 0.0,
         passed: false,
-        rationale: 'no insight_text captured (insight tool likely not called)',
+        rationale:
+            'no insight_text in transcript (insight tool likely not called)',
       );
     }
 
-    final factText = (state[_LlmKeys.taskInputContent] as String? ?? '').trim();
+    final factText =
+        (context.metadata['task_input_content'] as String? ?? '').trim();
     final targets = <String>{
-      ...((state[_LlmKeys.writtenFiles] as List?)?.cast<String>() ?? const []),
-      ...((state[_LlmKeys.editedFiles] as List?)?.cast<String>() ?? const []),
+      ...?outcome.workspaceDiff?.created,
+      ...?outcome.workspaceDiff?.modified,
     }.toList();
 
     final judge = _resolveJudge(context);
@@ -621,49 +641,23 @@ Respond with EXACTLY this JSON shape, no extra prose:
       );
     }
 
-    // Prefer an Edit (we have explicit before+after). Fall back to a
-    // Write only if there's no Edit (then we evaluate against the
-    // pre-existing file content, if any).
-    final edits = ((state[_LlmKeys.fileEdits] as List?) ?? const [])
-        .cast<Map>()
-        .map((e) => e.cast<String, String>())
-        .toList();
-    final writes = ((state[_LlmKeys.fileWrites] as List?) ?? const [])
-        .cast<Map>()
-        .map((e) => e.cast<String, String>())
-        .toList();
-
-    Map<String, String>? sample;
-    String? originalFile;
-    String? newContent;
-    if (edits.isNotEmpty) {
-      sample = edits.first;
-      // We don't have the file's original content captured at edit time,
-      // but the surviving final contents include the new chunk. The
-      // agent's "old_string" is verbatim what it found in the file at
-      // edit time, so use that as the "original-style sample" for
-      // coherence judging.
-      originalFile = sample['old_string'];
-      newContent = sample['new_string'];
-    } else if (writes.isNotEmpty) {
-      sample = writes.first;
-      // For a Write, we look up whether a file existed under that path
-      // before. If yes (rare for a Write, but possible), use that as
-      // original; otherwise return "unknown".
-      final contents =
-          (state[_LlmKeys.fileContents] as Map?)?.cast<String, String>() ??
-              const {};
-      final fp = sample['file_path'] ?? '';
-      originalFile = contents[_relPathFromAbsolute(fp)] ?? '';
-      newContent = sample['content'];
+    ToolCallRecord? editCall;
+    for (final call in transcript.toolCalls) {
+      if (!call.isError && call.toolName == 'Edit') {
+        editCall = call;
+        break;
+      }
     }
+    final originalFile = editCall?.arguments['old_string'] as String?;
+    final newContent = editCall?.arguments['new_string'] as String?;
 
     if (newContent == null || newContent.isEmpty) {
       return Score(
         graderName: name,
         value: null,
         passed: null,
-        rationale: 'no Edit/Write recorded — coherence rubric does not apply',
+        rationale:
+            'no Edit recorded in transcript — coherence rubric does not apply',
       );
     }
     if ((originalFile ?? '').trim().isEmpty) {
@@ -685,7 +679,8 @@ Respond with EXACTLY this JSON shape, no extra prose:
       );
     }
 
-    final factText = (state[_LlmKeys.taskInputContent] as String? ?? '').trim();
+    final factText =
+        (context.metadata['task_input_content'] as String? ?? '').trim();
     final prompt = '$_rubric\n\nORIGINAL_FILE:\n$originalFile\n\n'
         'NEW_CONTENT:\n$newContent\n\nUSER_FACT:\n$factText';
 
@@ -718,16 +713,10 @@ Respond with EXACTLY this JSON shape, no extra prose:
       rationale: parsed.rationale ?? 'judge did not provide a rationale',
       metadata: {
         'coherence': parsed.coherence,
-        'sample_file': sample?['file_path'],
+        'sample_file': _toolPath(editCall),
         'raw_reply': reply,
       },
     );
-  }
-
-  String _relPathFromAbsolute(String p) {
-    final i = p.indexOf('/PKM/');
-    if (i >= 0) return p.substring(i + '/PKM/'.length);
-    return p.startsWith('/') ? p.substring(1) : p;
   }
 
   JudgeResources? _resolveJudge(EvalContext ctx) {

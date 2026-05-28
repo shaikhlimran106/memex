@@ -139,6 +139,7 @@ class PkmAgentEvalEnvironment implements EvalEnvironment {
       metadata: {
         'user_id': userId,
         'suite_dir': suiteDir.path,
+        'task_input_content': task.input['content'] as String? ?? '',
       },
     );
   }

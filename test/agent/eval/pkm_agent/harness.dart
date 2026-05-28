@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_agent_core/eval.dart';
@@ -14,8 +13,9 @@ import 'package:path/path.dart' as p;
 /// PKM Agent harness factory. One session per trial; each session
 /// 1. copies the task's `fixture_dir` into the per-user workspace
 /// 2. runs the production `PkmAgent.runWithContent` codepath
-/// 3. extracts read/write/edit history + final PKM file contents and
-///    assembles an [Outcome] for the graders to score
+/// 3. snapshots the final PKM state and workspace diff for outcome graders.
+/// Generic execution trajectory (messages, tool calls, token metrics) is
+/// recorded by dart_agent_core's eval runner through [EvalContext.controller].
 class PkmAgentHarnessFactory implements AgentHarnessFactory {
   const PkmAgentHarnessFactory();
 
@@ -74,6 +74,8 @@ class _PkmAgentSession implements AgentHarnessSession {
 
     final factId = task.input['fact_id'] as String;
     final content = task.input['content'] as String;
+    final pkmRoot = Directory(fs.getPkmPath(userId));
+    final beforePkmSnapshot = await _snapshotPkm(pkmRoot);
 
     // 2. Build the same instruction prompt the production handler uses,
     //    then run the agent. We bypass `processWithPkmAgent` because it
@@ -97,6 +99,7 @@ class _PkmAgentSession implements AgentHarnessSession {
         userId: userId,
         factId: factId,
         instruction: instruction,
+        controller: ctx.controller,
       );
     } catch (_) {
       // If the production retry loop gives up, inspect the workspace
@@ -109,40 +112,11 @@ class _PkmAgentSession implements AgentHarnessSession {
       );
     }
 
-    // 3. Walk the agent's tool-call history (via FunctionExecutionResult
-    //    messages stored on the agent state) to recover read/write order.
-    //    We can't easily get the agent state from here without re-loading
-    //    it from disk, so we instead reconstruct everything from the
-    //    workspace + the evidence we already have.
-    final readFiles = <String>[];
-    final writeOrder = <String>[];
-    final writtenFiles = <String>{};
-    final editedFiles = <String>{};
-    final insightPayload = <String, String>{};
-    final fileEdits = <Map<String, String>>[];
-    final fileWrites = <Map<String, String>>[];
-    await _replayToolHistoryFromState(
-      userId: userId,
-      factId: factId,
-      readFiles: readFiles,
-      writeOrder: writeOrder,
-      writtenFiles: writtenFiles,
-      editedFiles: editedFiles,
-      insightPayload: insightPayload,
-      fileEdits: fileEdits,
-      fileWrites: fileWrites,
-    );
-
-    // 4. Snapshot final PKM file contents (relative paths under PKM/).
-    final pkmRoot = Directory(fs.getPkmPath(userId));
-    final fileContents = <String, String>{};
-    if (pkmRoot.existsSync()) {
-      for (final entry in pkmRoot.listSync(recursive: true)) {
-        if (entry is! File) continue;
-        final rel = p.relative(entry.path, from: pkmRoot.path);
-        fileContents[rel] = entry.readAsStringSync();
-      }
-    }
+    // 3. Snapshot final PKM file contents (relative paths under PKM/) and
+    //    compute an outcome-level workspace diff. Tool ordering and payloads
+    //    belong to the transcript and are recorded by the framework.
+    final afterPkmSnapshot = await _snapshotPkm(pkmRoot);
+    final workspaceDiff = _diffSnapshots(beforePkmSnapshot, afterPkmSnapshot);
 
     return (
       transcript: Transcript(
@@ -162,121 +136,64 @@ class _PkmAgentSession implements AgentHarnessSession {
         'successful_pkm_mutation': evidence.successfulPkmMutation,
         'missing_requirements': evidence.missingRequirements,
         'skip_evidence': evidence.skipEvidence,
-        'read_files': readFiles,
-        'write_order': writeOrder,
-        'written_files': writtenFiles.toList(),
-        'edited_files': editedFiles.toList(),
-        'file_contents': fileContents,
-        'insight_summary': insightPayload['summary_text'] ?? '',
-        'insight_text': insightPayload['insight_text'] ?? '',
-        'file_edits': fileEdits,
-        'file_writes': fileWrites,
-        'task_input_content': content,
-      }),
+        'file_contents': afterPkmSnapshot,
+      }, workspaceDiff: workspaceDiff),
     );
   }
 
   @override
   Future<void> dispose() async {}
+}
 
-  /// Pull the agent's state file off disk and replay its tool-call history
-  /// to recover the order of read / write / edit calls. PkmAgent.createAgent
-  /// uses sessionId = `pkm_${userId}_${factIdSafe}` and saves through the
-  /// standard FileStateStorage path.
-  Future<void> _replayToolHistoryFromState({
-    required String userId,
-    required String factId,
-    required List<String> readFiles,
-    required List<String> writeOrder,
-    required Set<String> writtenFiles,
-    required Set<String> editedFiles,
-    required Map<String, String> insightPayload,
-    required List<Map<String, String>> fileEdits,
-    required List<Map<String, String>> fileWrites,
-  }) async {
-    final fs = FileSystemService.instance;
-    final factIdSafe = fs.makeFactIdSafe(factId);
-    final sessionId = 'pkm_${userId}_$factIdSafe';
+Future<Map<String, String>> _snapshotPkm(Directory pkmRoot) async {
+  final fileContents = <String, String>{};
+  if (!await pkmRoot.exists()) return fileContents;
+  await for (final entry in pkmRoot.list(recursive: true)) {
+    if (entry is! File) continue;
+    final rel = p.relative(entry.path, from: pkmRoot.path);
+    fileContents[rel] = await entry.readAsString();
+  }
+  return fileContents;
+}
 
-    // FileStateStorage path: <workspace>/_System/state_dir/<sessionId>.json
-    // (kept in sync with `FileSystemService.getAgentStateDirectory()`).
-    final statePath = p.join(
-      fs.getWorkspacePath(userId),
-      '_System',
-      'state_dir',
-      '$sessionId.json',
-    );
-    final stateFile = File(statePath);
-    if (!stateFile.existsSync()) return;
+WorkspaceDiff _diffSnapshots(
+  Map<String, String> before,
+  Map<String, String> after,
+) {
+  final created = <String>[];
+  final modified = <String>[];
+  final deleted = <String>[];
+  final snippets = <String, String>{};
 
-    Map<String, dynamic> state;
-    try {
-      state =
-          jsonDecode(await stateFile.readAsString()) as Map<String, dynamic>;
-    } catch (_) {
-      return;
-    }
-
-    final history = (state['history'] as Map?)?['messages'] as List?;
-    if (history == null) return;
-
-    for (final raw in history) {
-      if (raw is! Map) continue;
-      final msg = raw.cast<String, dynamic>();
-      if (msg['role'] != 'tool') continue;
-      final results = msg['results'] as List?;
-      if (results == null) continue;
-      for (final r in results) {
-        if (r is! Map) continue;
-        final rec = r.cast<String, dynamic>();
-        if (rec['isError'] == true) continue;
-        final name = rec['name'] as String?;
-        final argsStr = rec['arguments'] as String? ?? '{}';
-        Map<String, dynamic> args;
-        try {
-          args = jsonDecode(argsStr) as Map<String, dynamic>;
-        } catch (_) {
-          continue;
-        }
-        final filePath = args['file_path'] as String?;
-        switch (name) {
-          case 'Read':
-            if (filePath != null) readFiles.add(filePath);
-            break;
-          case 'Write':
-            if (filePath != null) {
-              writtenFiles.add(filePath);
-              writeOrder.add(filePath);
-              fileWrites.add({
-                'file_path': filePath,
-                'content': (args['content'] as String?) ?? '',
-              });
-            }
-            break;
-          case 'Edit':
-            if (filePath != null) {
-              editedFiles.add(filePath);
-              writeOrder.add(filePath);
-              fileEdits.add({
-                'file_path': filePath,
-                'old_string': (args['old_string'] as String?) ?? '',
-                'new_string': (args['new_string'] as String?) ?? '',
-              });
-            }
-            break;
-          case 'update_timeline_card_insight':
-            // Capture the most recent successful insight call. The pkm
-            // agent calls this once per run as the last step, but if it
-            // retries we only want the final payload that "stuck".
-            insightPayload['summary_text'] =
-                (args['summary_text'] as String?) ?? '';
-            insightPayload['insight_text'] =
-                (args['insight_text'] as String?) ?? '';
-            break;
-        }
-      }
+  for (final entry in after.entries) {
+    final old = before[entry.key];
+    if (old == null) {
+      created.add(entry.key);
+      snippets[entry.key] = _snippet(entry.value);
+    } else if (old != entry.value) {
+      modified.add(entry.key);
+      snippets[entry.key] = _snippet(entry.value);
     }
   }
+  for (final path in before.keys) {
+    if (!after.containsKey(path)) deleted.add(path);
+  }
+
+  created.sort();
+  modified.sort();
+  deleted.sort();
+  return WorkspaceDiff(
+    created: created,
+    modified: modified,
+    deleted: deleted,
+    contentSnippets: snippets,
+  );
+}
+
+String _snippet(String content) {
+  const maxChars = 4096;
+  if (content.length <= maxChars) return content;
+  return content.substring(0, maxChars);
 }
 
 /// Recursive `cp -R` for fixture seeding.
