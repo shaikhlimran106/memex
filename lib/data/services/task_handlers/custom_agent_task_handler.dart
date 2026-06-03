@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:memex/agent/memex_skill_host_agent/memex_skill_host_agent.dart';
 import 'package:memex/agent/pure_skill_host_agent/pure_skill_host_agent.dart';
 import 'package:memex/agent/state_util.dart';
+import 'package:memex/data/services/asset_safety_service.dart';
 import 'package:memex/data/services/custom_agent_config_service.dart';
 import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
@@ -115,6 +116,14 @@ Future<List<UserContentPart>> _buildAssetPartsFromXml(
         continue;
       }
 
+      final safety = await AssetSafetyService.instance.inspectFile(absPath);
+      if (!safety.safeForInlineBase64) {
+        _logger.warning(
+          'Skipping unsafe custom-agent inline asset $absPath: ${safety.reason}',
+        );
+        continue;
+      }
+
       final bytes = await file.readAsBytes();
       final b64 = base64Encode(bytes);
 
@@ -128,6 +137,13 @@ Future<List<UserContentPart>> _buildAssetPartsFromXml(
     }
   }
   return parts;
+}
+
+Future<List<UserContentPart>> buildAssetPartsFromXmlForTesting(
+  String userId,
+  String eventXml,
+) {
+  return _buildAssetPartsFromXml(userId, eventXml);
 }
 
 Future<void> _handleCustomAgentTask(
