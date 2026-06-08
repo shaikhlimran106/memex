@@ -5,6 +5,8 @@ import 'package:memex/config/app_config.dart';
 import 'package:memex/routing/routes.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/data/repositories/memex_router.dart';
+import 'package:memex/data/services/sandbox_user_clone_service.dart';
+import 'package:memex/main.dart' show rootScaffoldMessengerKey, rootShellKey;
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/ui/settings/widgets/ai_service_setup_page.dart';
@@ -39,6 +41,7 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
   bool _isReprocessingKnowledgeBase = false;
   bool _isRebuildingSearchIndex = false;
   bool _isClearingFailedAgentContexts = false;
+  bool _isCloningTestUser = false;
   bool _showAuthBadge = false;
   String? _userAvatar;
 
@@ -712,6 +715,74 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
     }
   }
 
+  Future<void> _cloneToTestUser() async {
+    if (_isCloningTestUser) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(UserStorage.l10n.cloneToTestUser),
+        content: Text(UserStorage.l10n.confirmCloneToTestUserMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(UserStorage.l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(UserStorage.l10n.confirm),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isCloningTestUser = true);
+    final sourceUserId = await UserStorage.getUserId();
+    try {
+      _memexRouter.resetForLogout();
+      final result = await SandboxUserCloneService.instance
+          .cloneCurrentUserToLocalTestUser();
+      await UserStorage.saveUser(result.targetUserId);
+      _memexRouter.resetForLogout();
+      await _memexRouter.switchUser(result.targetUserId);
+      await _memexRouter.applyWorkspaceStorageChange();
+
+      if (!mounted) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      rootShellKey.currentState?.resetAndRecheck();
+      ToastHelper.showSuccessWithKey(
+        rootScaffoldMessengerKey,
+        UserStorage.l10n.testUserCloneSuccess(result.targetUserId),
+      );
+    } catch (e, stack) {
+      _logger.severe('Clone to test user failed: $e', e, stack);
+      if (sourceUserId != null && sourceUserId.isNotEmpty) {
+        try {
+          await UserStorage.saveUser(sourceUserId);
+          _memexRouter.resetForLogout();
+          await _memexRouter.switchUser(sourceUserId);
+        } catch (restoreError, restoreStack) {
+          _logger.severe(
+            'Failed to restore source user after clone failure: $restoreError',
+            restoreError,
+            restoreStack,
+          );
+        }
+      }
+      if (!mounted) return;
+      ToastHelper.showErrorWithKey(
+        _scaffoldMessengerKey,
+        UserStorage.l10n.testUserCloneFailed(e),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isCloningTestUser = false);
+      }
+    }
+  }
+
   Future<void> _clearData() async {
     if (_isClearingData) return;
 
@@ -1046,6 +1117,8 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                                     onClearData: () async => _clearData(),
                                     onClearFailedAgentContexts: () async =>
                                         _clearFailedAgentContexts(),
+                                    onCloneToTestUser: () async =>
+                                        _cloneToTestUser(),
                                     onReprocessCards: () async =>
                                         _reprocessCards(),
                                     onReprocessComments: () async =>
@@ -1062,6 +1135,7 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                                         _isReprocessingKnowledgeBase,
                                     isClearingFailedAgentContexts:
                                         _isClearingFailedAgentContexts,
+                                    isCloningTestUser: _isCloningTestUser,
                                     isRebuildingSearchIndex:
                                         _isRebuildingSearchIndex,
                                   ),

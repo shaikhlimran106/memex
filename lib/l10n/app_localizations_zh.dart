@@ -143,6 +143,23 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get cloneToTestUser => '克隆为测试用户';
+
+  @override
+  String get confirmCloneToTestUserMessage =>
+      '将当前工作区复制到一个新的本地测试用户并切换过去。不会复制 Agent 运行态，当前用户数据不会被修改。';
+
+  @override
+  String testUserCloneSuccess(Object userId) {
+    return '已切换到测试用户 $userId';
+  }
+
+  @override
+  String testUserCloneFailed(Object error) {
+    return '克隆测试用户失败: $error';
+  }
+
+  @override
   String get dataClearedSuccess => '数据清除成功';
 
   @override

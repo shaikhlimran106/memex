@@ -62,6 +62,12 @@
   "@failedAgentContextsCleared": { "placeholders": { "count": {} } },
   "clearFailedAgentContextsFailed": "Failed to clear conversation context: {error}",
   "@clearFailedAgentContextsFailed": { "placeholders": { "error": {} } },
+  "cloneToTestUser": "Clone to test user",
+  "confirmCloneToTestUserMessage": "Copy the current workspace into a new local test user and switch to it. Agent runtime state is not copied. Your current user data will not be modified.",
+  "testUserCloneSuccess": "Switched to test user {userId}",
+  "@testUserCloneSuccess": { "placeholders": { "userId": {} } },
+  "testUserCloneFailed": "Failed to clone test user: {error}",
+  "@testUserCloneFailed": { "placeholders": { "error": {} } },
   "dataClearedSuccess": "Data cleared successfully",
   "@clearDataFailed": {
     "placeholders": {

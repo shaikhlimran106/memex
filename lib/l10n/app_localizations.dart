@@ -338,6 +338,30 @@ abstract class AppLocalizations {
   /// **'Failed to clear conversation context: {error}'**
   String clearFailedAgentContextsFailed(Object error);
 
+  /// No description provided for @cloneToTestUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Clone to test user'**
+  String get cloneToTestUser;
+
+  /// No description provided for @confirmCloneToTestUserMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy the current workspace into a new local test user and switch to it. Agent runtime state is not copied. Your current user data will not be modified.'**
+  String get confirmCloneToTestUserMessage;
+
+  /// No description provided for @testUserCloneSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Switched to test user {userId}'**
+  String testUserCloneSuccess(Object userId);
+
+  /// No description provided for @testUserCloneFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to clone test user: {error}'**
+  String testUserCloneFailed(Object error);
+
   /// No description provided for @dataClearedSuccess.
   ///
   /// In en, this message translates to:

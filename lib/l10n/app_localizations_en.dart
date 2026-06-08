@@ -148,6 +148,23 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get cloneToTestUser => 'Clone to test user';
+
+  @override
+  String get confirmCloneToTestUserMessage =>
+      'Copy the current workspace into a new local test user and switch to it. Agent runtime state is not copied. Your current user data will not be modified.';
+
+  @override
+  String testUserCloneSuccess(Object userId) {
+    return 'Switched to test user $userId';
+  }
+
+  @override
+  String testUserCloneFailed(Object error) {
+    return 'Failed to clone test user: $error';
+  }
+
+  @override
   String get dataClearedSuccess => 'Data cleared successfully';
 
   @override
