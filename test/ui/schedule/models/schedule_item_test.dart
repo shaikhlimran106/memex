@@ -276,11 +276,57 @@ void main() {
 
       expect(items, hasLength(2));
       expect(items.map((item) => item.itemId), ['pi_milk', 'pi_dentist']);
-      expect(
-        items.map((item) => item.sourceFactId).toSet(),
-        {'2026/04/26.md#ts_1'},
-      );
+      expect(items.map((item) => item.sourceFactId).toSet(), {
+        '2026/04/26.md#ts_1',
+      });
     });
+
+    test(
+      'does not complete a different pending item from the same source fact',
+      () {
+        final aggregation = ScheduleViewData(
+          id: 'schedule_state',
+          generatedAt: DateTime.parse('2026-04-26T08:00:00+08:00'),
+          timeRange: ScheduleViewTimeRange(
+            from: DateTime(2026, 4, 25),
+            to: DateTime(2026, 4, 26),
+          ),
+          timeline: [
+            ScheduleViewTimelineDay(
+              dayLabel: 'Today',
+              dayDate: DateTime(2026, 4, 26),
+              items: const [
+                ScheduleViewPendingItem(
+                  itemId: 'pi_pending_followup',
+                  cardId: 'facts/demo.md#ts_1',
+                  title: 'Follow up on training plan',
+                  type: 'task',
+                ),
+              ],
+            ),
+          ],
+          completed: [
+            ScheduleViewCompletedItem(
+              itemId: 'pi_completed_event',
+              cardId: 'facts/demo.md#ts_1',
+              title: 'Completed calendar event',
+              completedAt: DateTime.parse('2026-04-25T11:00:00+08:00'),
+            ),
+          ],
+        );
+
+        final items = ScheduleItem.fromViewData(aggregation);
+
+        final followupTodo = items.singleWhere(
+          (item) => item.itemId == 'pi_pending_followup',
+        );
+        final completedEvent = items.singleWhere(
+          (item) => item.itemId == 'pi_completed_event',
+        );
+        expect(followupTodo.status, ScheduleItemStatus.pending);
+        expect(completedEvent.status, ScheduleItemStatus.completed);
+      },
+    );
 
     test('derives task status from subtask progress conservatively', () {
       final pending = ScheduleItem.deriveTodoStatus(const [
