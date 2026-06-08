@@ -143,6 +143,31 @@ void main() {
         expect(find.byTooltip(UserStorage.l10n.close), findsOneWidget);
       },
     );
+
+    testWidgets('super agent entry hides chat controls and uses publish input',
+        (
+      tester,
+    ) async {
+      await _pumpDialog(tester, scene: 'super_agent_home');
+
+      expect(find.byTooltip(UserStorage.l10n.chatHistory), findsNothing);
+      expect(find.text(UserStorage.l10n.chatModeLabel), findsNothing);
+      expect(find.text(UserStorage.l10n.readOnlyMode), findsNothing);
+      expect(find.byIcon(Icons.mic), findsNothing);
+      expect(
+        find.byKey(const ValueKey('super_agent_camera_button')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('super_agent_gallery_button')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('super_agent_publish_button')),
+        findsOneWidget,
+      );
+      expect(find.text(UserStorage.l10n.recordLabel), findsOneWidget);
+    });
   });
 }
 
@@ -150,6 +175,7 @@ Future<void> _pumpDialog(
   WidgetTester tester, {
   Size viewportSize = const Size(390, 800),
   String title = 'Super Agent',
+  String scene = 'assistant_home',
 }) async {
   tester.view.physicalSize = viewportSize;
   tester.view.devicePixelRatio = 1.0;
@@ -165,7 +191,7 @@ Future<void> _pumpDialog(
           agentName: 'memex_agent',
           title: title,
           inputHint: 'Ask Super Agent...',
-          scene: 'assistant_home',
+          scene: scene,
         ),
       ),
     ),

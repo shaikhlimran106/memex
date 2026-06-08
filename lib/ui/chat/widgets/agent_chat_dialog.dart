@@ -1,10 +1,16 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/data/model/chat_events.dart';
+import 'package:memex/data/services/event_bus_service.dart';
+import 'package:memex/data/services/photo_suggestion_service.dart';
+import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/user_storage.dart';
@@ -129,11 +135,16 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   // Whether the user has sent at least one message in normal mode — prevents switching to read-only.
   bool _hasSentInNormalMode = false;
   bool _isFullScreen = false;
+  bool _isSubmittingRecord = false;
+  bool get _isSuperAgentHome => widget.scene == 'super_agent_home';
 
   // Controllers
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _messageFocusNode = FocusNode();
+  final ImagePicker _imagePicker = ImagePicker();
+  final List<XFile> _selectedImages = [];
+  final Map<String, String> _originalFilenames = {};
   StreamSubscription<ChatEvent>? _chatSubscription;
 
   late AnimationController _controller;
@@ -326,6 +337,162 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     );
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      if (source == ImageSource.camera) {
+        final image = await _imagePicker.pickImage(
+          source: source,
+          imageQuality: 85,
+        );
+        if (image != null && mounted) {
+          setState(() => _selectedImages.add(image));
+        }
+        return;
+      }
+
+      if (!mounted) return;
+      final result = await AssetPicker.pickAssets(
+        context,
+        pickerConfig: AssetPickerConfig(
+          maxAssets: 9,
+          requestType: RequestType.image,
+          filterOptions: FilterOptionGroup(
+            containsPathModified: true,
+            createTimeCond: DateTimeCond.def().copyWith(ignore: true),
+            updateTimeCond: DateTimeCond.def().copyWith(ignore: true),
+            videoOption: const FilterOption(
+              durationConstraint: DurationConstraint(
+                min: Duration.zero,
+                max: Duration.zero,
+              ),
+            ),
+          ),
+        ),
+      );
+      if (result == null) return;
+
+      for (final asset in result) {
+        final xFile = await PhotoSuggestionService.assetToXFile(asset);
+        if (xFile == null) continue;
+        final originalName = await asset.titleAsync;
+        _originalFilenames[xFile.path] = originalName;
+        if (mounted) {
+          setState(() => _selectedImages.add(xFile));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ToastHelper.showError(context, e);
+      }
+    }
+  }
+
+  void _removeSelectedImage(int index) {
+    if (index < 0 || index >= _selectedImages.length) return;
+    setState(() {
+      _originalFilenames.remove(_selectedImages[index].path);
+      _selectedImages.removeAt(index);
+    });
+  }
+
+  void _handleSuperAgentSubmit() {
+    if (_selectedImages.isNotEmpty) {
+      unawaited(_submitRecordWithImages());
+      return;
+    }
+    _sendMessage(_messageController.text);
+  }
+
+  Future<void> _submitRecordWithImages() async {
+    final text = _messageController.text.trim();
+    if (_isSubmittingRecord || _isStreaming) return;
+    if (text.isEmpty && _selectedImages.isEmpty) return;
+
+    _messageFocusNode.unfocus();
+    final images = List<XFile>.from(_selectedImages);
+    final displayText = text.isNotEmpty
+        ? text
+        : UserStorage.l10n.localeName.startsWith('zh')
+            ? '发表了 ${images.length} 张图片'
+            : 'Posted ${images.length} image${images.length == 1 ? '' : 's'}';
+
+    setState(() {
+      _items.add(UserMessageItem(displayText));
+      _messageController.clear();
+      _selectedImages.clear();
+      _originalFilenames.clear();
+      _isSubmittingRecord = true;
+    });
+    _scrollToBottom();
+
+    try {
+      final response = await _router.submitInput(
+        text: text.isEmpty ? null : text,
+        images: images,
+      );
+      _emitCardAddedIfPossible(response, rawText: text);
+      if (!mounted) return;
+      setState(() {
+        _items.add(AIMessageItem(UserStorage.l10n.recordSubmittedAiProcessing));
+      });
+      _scrollToBottom();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _items.add(ErrorItem(e.toString()));
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmittingRecord = false);
+      }
+    }
+  }
+
+  void _emitCardAddedIfPossible(
+    Map<String, dynamic> response, {
+    required String rawText,
+  }) {
+    final rawCard = response['card'];
+    if (rawCard is! Map) return;
+
+    try {
+      final card = Map<String, dynamic>.from(rawCard);
+      final uiConfigsRaw = card['ui_configs'];
+      final uiConfigs = <UiConfig>[];
+      if (uiConfigsRaw is List) {
+        for (final item in uiConfigsRaw) {
+          if (item is Map) {
+            uiConfigs.add(UiConfig.fromJson(Map<String, dynamic>.from(item)));
+          }
+        }
+      }
+
+      EventBusService.instance.emitEvent(
+        CardAddedMessage(
+          id: card['id']?.toString() ?? response['fact_id']?.toString() ?? '',
+          html: card['html']?.toString() ?? '',
+          timestamp: (card['timestamp'] as num?)?.toInt() ??
+              DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          tags: (card['tags'] as List<dynamic>?)
+                  ?.map((tag) => tag.toString())
+                  .toList() ??
+              const [],
+          status: card['status']?.toString() ?? 'processing',
+          title: card['title']?.toString(),
+          uiConfigs: uiConfigs,
+          rawText: rawText.isEmpty ? null : rawText,
+          address: card['address']?.toString(),
+        ),
+      );
+    } catch (e, stackTrace) {
+      _logger.warning(
+        'Failed to emit CardAddedMessage for SuperAgent image record',
+        e,
+        stackTrace,
+      );
+    }
+  }
+
   void _handleChatEvent(ChatEvent event) {
     setState(() {
       if (event is ChatAgentStartedEvent) {
@@ -474,15 +641,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                           child: _isLoading
                               ? const Center(child: AgentLogoLoading())
                               : _items.isEmpty
-                                  ? Center(
-                                      child: Text(
-                                        'Start a conversation with ${widget.title}',
-                                        style: TextStyle(
-                                          color: Colors.grey[400],
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    )
+                                  ? _buildEmptyState()
                                   : ListView.builder(
                                       controller: _scrollController,
                                       padding: const EdgeInsets.all(24),
@@ -576,6 +735,38 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     );
   }
 
+  Widget _buildEmptyState() {
+    if (!_isSuperAgentHome) {
+      return Center(
+        child: Text(
+          'Start a conversation with ${widget.title}',
+          style: TextStyle(
+            color: Colors.grey[400],
+            fontSize: 14,
+          ),
+        ),
+      );
+    }
+
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildAgentMark(size: 44),
+          const SizedBox(height: 14),
+          Text(
+            widget.inputHint,
+            style: const TextStyle(
+              color: AppColors.textTertiary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -585,7 +776,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       ),
       child: Row(
         children: [
-          const Icon(Icons.auto_awesome, size: 18, color: AppColors.primary),
+          _buildAgentMark(size: 22),
           const SizedBox(width: 8),
           Flexible(
             child: Text(
@@ -600,30 +791,31 @@ class _AgentChatDialogState extends State<AgentChatDialog>
             ),
           ),
           const SizedBox(width: 8),
-          _buildModeChip(),
+          if (!_isSuperAgentHome) _buildModeChip(),
           const Spacer(),
-          IconButton(
-            tooltip: UserStorage.l10n.chatHistory,
-            icon: const Icon(
-              Icons.history,
-              size: 18,
-              color: AppColors.textTertiary,
+          if (!_isSuperAgentHome)
+            IconButton(
+              tooltip: UserStorage.l10n.chatHistory,
+              icon: const Icon(
+                Icons.history,
+                size: 18,
+                color: AppColors.textTertiary,
+              ),
+              onPressed: () {
+                context.push(
+                  AppRoutes.chatHistory,
+                  extra: {
+                    'agentName': widget.agentName,
+                    'title': widget.title,
+                  },
+                ).then((_) {
+                  if (mounted) {
+                    setState(() {});
+                    _loadSessionHistory();
+                  }
+                });
+              },
             ),
-            onPressed: () {
-              context.push(
-                AppRoutes.chatHistory,
-                extra: {
-                  'agentName': widget.agentName,
-                  'title': widget.title,
-                },
-              ).then((_) {
-                if (mounted) {
-                  setState(() {});
-                  _loadSessionHistory();
-                }
-              });
-            },
-          ),
           IconButton(
             key: const ValueKey('agent_chat_fullscreen_toggle'),
             tooltip: _isFullScreen
@@ -653,6 +845,22 @@ class _AgentChatDialogState extends State<AgentChatDialog>
         ],
       ),
     );
+  }
+
+  Widget _buildAgentMark({double size = 24}) {
+    if (_isSuperAgentHome) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(size * 0.28),
+        child: Image.asset(
+          'assets/icon.png',
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+
+    return const Icon(Icons.auto_awesome, size: 18, color: AppColors.primary);
   }
 
   Widget _buildModeChip() {
@@ -713,6 +921,10 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   }
 
   Widget _buildInput() {
+    if (_isSuperAgentHome) {
+      return _buildSuperAgentInput();
+    }
+
     return Container(
       padding: EdgeInsets.fromLTRB(
         16,
@@ -766,6 +978,185 @@ class _AgentChatDialogState extends State<AgentChatDialog>
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSuperAgentInput() {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final isBusy = _isStreaming || _isSubmittingRecord;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(16, 12, 16, bottomInset + 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFF7F8FA))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_selectedImages.isNotEmpty) ...[
+            SizedBox(
+              height: 72,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _selectedImages.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (context, index) {
+                  return _buildSelectedImageThumb(index);
+                },
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+          Container(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _messageController,
+                  focusNode: _messageFocusNode,
+                  minLines: 1,
+                  maxLines: 5,
+                  textInputAction: TextInputAction.newline,
+                  decoration: InputDecoration(
+                    hintText: widget.inputHint,
+                    hintStyle: const TextStyle(
+                      color: AppColors.textTertiary,
+                      fontSize: 15,
+                    ),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _buildInputIconButton(
+                      key: const ValueKey('super_agent_camera_button'),
+                      icon: Icons.camera_alt,
+                      onTap:
+                          isBusy ? null : () => _pickImage(ImageSource.camera),
+                    ),
+                    const SizedBox(width: 12),
+                    _buildInputIconButton(
+                      key: const ValueKey('super_agent_gallery_button'),
+                      icon: Icons.photo_library,
+                      onTap:
+                          isBusy ? null : () => _pickImage(ImageSource.gallery),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      key: const ValueKey('super_agent_publish_button'),
+                      onTap: isBusy ? null : _handleSuperAgentSubmit,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 160),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 11,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isBusy
+                              ? AppColors.textTertiary
+                              : AppColors.textPrimary,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              UserStorage.l10n.recordLabel,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.arrow_upward,
+                              size: 17,
+                              color: Colors.white,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputIconButton({
+    required Key key,
+    required IconData icon,
+    required VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      key: key,
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F8FA),
+          borderRadius: BorderRadius.circular(21),
+        ),
+        child: Icon(icon, size: 20, color: AppColors.textSecondary),
+      ),
+    );
+  }
+
+  Widget _buildSelectedImageThumb(int index) {
+    final image = _selectedImages[index];
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Image.file(
+            File(image.path),
+            width: 72,
+            height: 72,
+            fit: BoxFit.cover,
+          ),
+        ),
+        Positioned(
+          top: -6,
+          right: -6,
+          child: GestureDetector(
+            onTap: () => _removeSelectedImage(index),
+            child: Container(
+              width: 22,
+              height: 22,
+              decoration: const BoxDecoration(
+                color: Colors.black54,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.close, size: 14, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -852,14 +1243,24 @@ class _AgentChatDialogState extends State<AgentChatDialog>
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const CircleAvatar(
+            CircleAvatar(
               radius: 12,
               backgroundColor: AppColors.iconBgLight,
-              child: Icon(
-                Icons.auto_awesome,
-                size: 12,
-                color: AppColors.primary,
-              ),
+              child: _isSuperAgentHome
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: Image.asset(
+                        'assets/icon.png',
+                        width: 16,
+                        height: 16,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.auto_awesome,
+                      size: 12,
+                      color: AppColors.primary,
+                    ),
             ),
             const SizedBox(width: 8),
             Flexible(
