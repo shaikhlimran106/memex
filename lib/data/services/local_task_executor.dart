@@ -68,6 +68,34 @@ class TaskActivitySnapshot {
 typedef TaskHandler = Future<void> Function(
     String userId, Map<String, dynamic> payload, TaskContext context);
 
+typedef TaskConcurrencyKeyBuilder = String Function(
+  String userId,
+  Map<String, dynamic> payload,
+  TaskContext context,
+);
+
+/// Per-task-type concurrency policy. The executor prefixes the returned key
+/// with the task type, so [byUser] means "one task of this type per user".
+class TaskConcurrencyPolicy {
+  TaskConcurrencyPolicy._(this._keyBuilder);
+
+  final TaskConcurrencyKeyBuilder _keyBuilder;
+
+  factory TaskConcurrencyPolicy.byUser() {
+    return TaskConcurrencyPolicy._(
+      (userId, payload, context) => userId,
+    );
+  }
+
+  String keyFor(
+    String userId,
+    Map<String, dynamic> payload,
+    TaskContext context,
+  ) {
+    return _keyBuilder(userId, payload, context);
+  }
+}
+
 /// Failure handler function type - called when all retries are exhausted
 typedef TaskFailureHandler = Future<void> Function(
     String userId,
@@ -97,6 +125,8 @@ class LocalTaskExecutor {
 
   // Handlers registry
   final Map<String, TaskHandler> _handlers = {};
+  final Map<String, TaskConcurrencyPolicy> _concurrencyPolicies = {};
+  final Set<String> _activeConcurrencyKeys = <String>{};
 
   // Failure handlers registry
   final Map<String, TaskFailureHandler> _failureHandlers = {};
@@ -161,8 +191,17 @@ class LocalTaskExecutor {
     );
   }
 
-  void registerHandler(String taskType, TaskHandler handler) {
+  void registerHandler(
+    String taskType,
+    TaskHandler handler, {
+    TaskConcurrencyPolicy? concurrencyPolicy,
+  }) {
     _handlers[taskType] = handler;
+    if (concurrencyPolicy == null) {
+      _concurrencyPolicies.remove(taskType);
+    } else {
+      _concurrencyPolicies[taskType] = concurrencyPolicy;
+    }
   }
 
   /// Register a failure handler for a task type
@@ -337,14 +376,41 @@ class LocalTaskExecutor {
       // 3. Claim tasks before starting handlers so immediate polling cannot
       // pick the same pending row again while execution starts asynchronously.
       final claimedTasks = <Task>[];
+      final claimedConcurrencyKeys = <String, String?>{};
       for (final task in tasksToRun) {
-        if (await _claimTaskForExecution(task, now)) {
-          claimedTasks.add(task);
+        final concurrencyKey = _concurrencyKeyForTask(task);
+        final acquiredConcurrencyKey = concurrencyKey == null
+            ? false
+            : _activeConcurrencyKeys.add(concurrencyKey);
+        if (concurrencyKey != null && !acquiredConcurrencyKey) {
+          _logger.info(
+            'Deferring task ${task.id} (${task.type}) because $concurrencyKey is already running',
+          );
+          continue;
+        }
+
+        try {
+          if (await _claimTaskForExecution(task, now)) {
+            claimedTasks.add(task);
+            claimedConcurrencyKeys[task.id] = concurrencyKey;
+          } else if (acquiredConcurrencyKey) {
+            _activeConcurrencyKeys.remove(concurrencyKey);
+          }
+        } catch (_) {
+          if (acquiredConcurrencyKey) {
+            _activeConcurrencyKeys.remove(concurrencyKey);
+          }
+          rethrow;
         }
       }
 
       for (final task in claimedTasks) {
-        unawaited(_executeTask(task));
+        unawaited(
+          _executeTask(
+            task,
+            concurrencyKey: claimedConcurrencyKeys[task.id],
+          ),
+        );
       }
 
       // Loop immediately to check for more tasks or completion
@@ -365,6 +431,7 @@ class LocalTaskExecutor {
     required int now,
   }) async {
     final tasksToRun = <Task>[];
+    final reservedConcurrencyKeys = <String>{};
     var offset = 0;
     var scanned = 0;
 
@@ -393,6 +460,14 @@ class LocalTaskExecutor {
       for (final task in candidates) {
         if (tasksToRun.length >= slotsAvailable) break;
         if (await _dependenciesMet(task)) {
+          final concurrencyKey = _concurrencyKeyForTask(task);
+          if (concurrencyKey != null) {
+            if (_activeConcurrencyKeys.contains(concurrencyKey) ||
+                reservedConcurrencyKeys.contains(concurrencyKey)) {
+              continue;
+            }
+            reservedConcurrencyKeys.add(concurrencyKey);
+          }
           tasksToRun.add(task);
         }
       }
@@ -404,6 +479,36 @@ class LocalTaskExecutor {
     }
 
     return tasksToRun;
+  }
+
+  String? _concurrencyKeyForTask(Task task) {
+    final policy = _concurrencyPolicies[task.type];
+    if (policy == null) return null;
+    final currentUserId = _currentUserId;
+    if (currentUserId == null) return null;
+
+    try {
+      final payloadMap = _decodePayload(task);
+      final context = TaskContext(
+        taskId: task.id,
+        taskType: task.type,
+        bizId: task.bizId,
+      );
+      return '${task.type}:${policy.keyFor(currentUserId, payloadMap, context)}';
+    } catch (e, st) {
+      _logger.warning(
+        'Failed to build concurrency key for task ${task.id}',
+        e,
+        st,
+      );
+      return null;
+    }
+  }
+
+  Map<String, dynamic> _decodePayload(Task task) {
+    return task.payload != null
+        ? jsonDecode(task.payload!) as Map<String, dynamic>
+        : <String, dynamic>{};
   }
 
   Future<bool> _dependenciesMet(Task task) async {
@@ -428,16 +533,14 @@ class LocalTaskExecutor {
     }
   }
 
-  Future<void> _executeTask(Task task) async {
+  Future<void> _executeTask(Task task, {String? concurrencyKey}) async {
     try {
       final handler = _handlers[task.type];
       if (handler == null) {
         throw Exception('No handler registered for task type: ${task.type}');
       }
 
-      final payloadMap = task.payload != null
-          ? jsonDecode(task.payload!) as Map<String, dynamic>
-          : <String, dynamic>{};
+      final payloadMap = _decodePayload(task);
 
       final currentUserId = _currentUserId;
       if (currentUserId == null) {
@@ -530,6 +633,9 @@ class LocalTaskExecutor {
       }
     } finally {
       await _clearTaskExecutionMarker(task.id);
+      if (concurrencyKey != null) {
+        _activeConcurrencyKeys.remove(concurrencyKey);
+      }
 
       // Trigger poll to pick up next tasks immediately upon completion of one
       if (_isRunning) {
