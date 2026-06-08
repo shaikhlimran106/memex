@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
+import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/persona_chat_service.dart';
 import 'package:memex/data/services/character_service.dart';
+import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/domain/models/character_model.dart';
 import 'package:memex/db/app_database.dart';
 import 'package:memex/ui/character/widgets/persona_chat_screen.dart';
@@ -23,6 +25,7 @@ class PersonaAvatarButton extends StatefulWidget {
 class _PersonaAvatarButtonState extends State<PersonaAvatarButton> {
   CharacterModel? _character;
   StreamSubscription? _unreadSub;
+  Timer? _retryTimer;
   int _unreadCount = 0;
 
   final Logger _logger = Logger('PersonaAvatarButton');
@@ -30,9 +33,11 @@ class _PersonaAvatarButtonState extends State<PersonaAvatarButton> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(seconds: 2), _load);
-    });
+    EventBusService.instance.addHandler(
+      EventBusMessageType.characterUpdated,
+      _onCharacterUpdated,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   Future<void> _load() async {
@@ -40,9 +45,14 @@ class _PersonaAvatarButtonState extends State<PersonaAvatarButton> {
       final userId = await UserStorage.getUserId();
       _logger.info('PersonaAvatarButton _load: userId=$userId');
       if (userId == null) return;
+      if (!FileSystemService.isInitialized) {
+        _scheduleRetry();
+        return;
+      }
 
-      final primary =
-          await CharacterService.instance.getPrimaryCompanion(userId);
+      final primary = await CharacterService.instance.getPrimaryCompanion(
+        userId,
+      );
       _logger.info('PersonaAvatarButton _load: primary=${primary?.name}');
       if (!mounted || primary == null) return;
 
@@ -50,20 +60,41 @@ class _PersonaAvatarButtonState extends State<PersonaAvatarButton> {
 
       if (AppDatabase.isInitialized) {
         _unreadSub?.cancel();
-        _unreadSub =
-            PersonaChatService.instance.watchTotalUnreadCount().listen((count) {
-          if (mounted) setState(() => _unreadCount = count);
-        });
+        _unreadSub = PersonaChatService.instance.watchTotalUnreadCount().listen(
+          (count) {
+            if (mounted) setState(() => _unreadCount = count);
+          },
+        );
       }
     } catch (e, stack) {
       _logger.warning('PersonaAvatarButton _load failed: $e', e, stack);
     }
   }
 
+  void _scheduleRetry() {
+    if (_retryTimer?.isActive ?? false) return;
+    _retryTimer = Timer(const Duration(milliseconds: 250), () {
+      if (mounted) {
+        _load();
+      }
+    });
+  }
+
   @override
   void dispose() {
+    EventBusService.instance.removeHandler(
+      EventBusMessageType.characterUpdated,
+      _onCharacterUpdated,
+    );
     _unreadSub?.cancel();
+    _retryTimer?.cancel();
     super.dispose();
+  }
+
+  void _onCharacterUpdated(EventBusMessage message) {
+    if (mounted) {
+      _load();
+    }
   }
 
   void _openChat() {
@@ -100,8 +131,10 @@ class _PersonaAvatarButtonState extends State<PersonaAvatarButton> {
                 right: 0,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
-                  constraints:
-                      const BoxConstraints(minWidth: 16, minHeight: 16),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.red,
                     borderRadius: BorderRadius.circular(8),

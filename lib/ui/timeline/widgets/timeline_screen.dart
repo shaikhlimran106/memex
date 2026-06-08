@@ -12,6 +12,7 @@ import 'package:memex/ui/main_screen/widgets/action_center_sheet.dart';
 import 'package:memex/domain/models/system_card_constants.dart';
 import 'package:memex/ui/core/cards/native_card_factory.dart';
 import 'package:memex/data/services/demo_service.dart';
+import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/ui/core/cards/card_action_notification.dart';
 import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/ui/timeline/view_models/timeline_viewmodel.dart';
@@ -128,6 +129,10 @@ class TimelineScreenState extends State<TimelineScreen> {
     super.initState();
     _pageController = PageController();
     _scrollController.addListener(_onScroll);
+    EventBusService.instance.addHandler(
+      EventBusMessageType.profileUpdated,
+      _handleProfileUpdated,
+    );
     _checkPermissionBadge();
     _loadUserAvatar();
     _checkModelConfig();
@@ -198,13 +203,23 @@ class TimelineScreenState extends State<TimelineScreen> {
 
   Future<void> _loadUserAvatar() async {
     final avatar = await MemexRouter().getUserAvatar();
-    if (mounted && avatar != null) {
+    if (mounted) {
       setState(() => _userAvatar = avatar);
+    }
+  }
+
+  void _handleProfileUpdated(EventBusMessage message) {
+    if (mounted) {
+      _loadUserAvatar();
     }
   }
 
   @override
   void dispose() {
+    EventBusService.instance.removeHandler(
+      EventBusMessageType.profileUpdated,
+      _handleProfileUpdated,
+    );
     _pageController.dispose();
     _tagScrollController.dispose();
     _scrollController.dispose();

@@ -11,6 +11,8 @@ enum EventBusMessageType {
   attachmentsChanged('attachments_changed'),
   invalidModelConfig('invalid_model_config'),
   errorNotification('error_notification'),
+  profileUpdated('profile_updated'),
+  characterUpdated('character_updated'),
   personaChatMessageAdded('persona_chat_message_added'),
   unknown('unknown');
 
@@ -57,6 +59,10 @@ abstract class EventBusMessage {
         return InvalidModelConfigMessage.fromJson(json);
       case EventBusMessageType.errorNotification:
         return ErrorNotificationMessage.fromJson(json);
+      case EventBusMessageType.profileUpdated:
+        return ProfileUpdatedMessage.fromJson(json);
+      case EventBusMessageType.characterUpdated:
+        return CharacterUpdatedMessage.fromJson(json);
       case EventBusMessageType.personaChatMessageAdded:
         return PersonaChatMessageAddedMessage.fromJson(json);
       default:
@@ -363,6 +369,50 @@ class AttachmentsChangedMessage extends EventBusMessage {
     final data = json['data'] as Map<String, dynamic>? ?? {};
     return AttachmentsChangedMessage(
       factId: data['fact_id'] as String?,
+    );
+  }
+}
+
+class ProfileUpdatedMessage extends EventBusMessage {
+  final String userId;
+  final String? avatar;
+
+  ProfileUpdatedMessage({required this.userId, this.avatar})
+      : super(
+          type: EventBusMessageType.profileUpdated,
+          data: {
+            'user_id': userId,
+            if (avatar != null) 'avatar': avatar,
+          },
+        );
+
+  factory ProfileUpdatedMessage.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>? ?? {};
+    return ProfileUpdatedMessage(
+      userId: data['user_id'] as String? ?? '',
+      avatar: data['avatar'] as String?,
+    );
+  }
+}
+
+class CharacterUpdatedMessage extends EventBusMessage {
+  final String userId;
+  final String characterId;
+
+  CharacterUpdatedMessage({required this.userId, required this.characterId})
+      : super(
+          type: EventBusMessageType.characterUpdated,
+          data: {
+            'user_id': userId,
+            'character_id': characterId,
+          },
+        );
+
+  factory CharacterUpdatedMessage.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>? ?? {};
+    return CharacterUpdatedMessage(
+      userId: data['user_id'] as String? ?? '',
+      characterId: data['character_id'] as String? ?? '',
     );
   }
 }

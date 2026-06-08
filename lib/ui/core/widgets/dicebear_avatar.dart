@@ -1,45 +1,21 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
-import 'package:crypto/crypto.dart';
-import 'dart:convert';
+import 'package:memex/data/services/avatar_media_service.dart';
 
 /// Builds a DiceBear Notionists avatar URL from a seed string.
-String dicebearUrl(String seed) {
-  final encoded = Uri.encodeComponent(seed);
-  return 'https://api.dicebear.com/7.x/notionists/svg?seed=$encoded';
-}
+String dicebearUrl(String seed) => AvatarMediaService.diceBearUrl(seed);
 
 /// Downloads and caches the avatar SVG for a given seed.
 /// Returns the local file path, or null on failure.
-Future<String?> cacheAvatarSvg(String seed) async {
-  try {
-    final url = dicebearUrl(seed);
-    final response = await http.get(Uri.parse(url)).timeout(
-          const Duration(seconds: 10),
-        );
-    if (response.statusCode == 200) {
-      final file = await _cacheFile(seed);
-      await file.writeAsString(response.body);
-      return file.path;
-    }
-  } catch (_) {}
-  return null;
-}
-
-Future<File> _cacheFile(String seed) async {
-  final dir = await getApplicationSupportDirectory();
-  final hash = md5.convert(utf8.encode(seed)).toString();
-  return File('${dir.path}/avatar_$hash.svg');
-}
+Future<String?> cacheAvatarSvg(String seed) =>
+    AvatarMediaService.cacheDiceBearSvg(seed);
 
 /// Displays a DiceBear Notionists avatar as a circle.
 ///
 /// [seed] is used to generate the avatar. If null, shows a placeholder icon.
-/// Loads from local cache first, falls back to network.
-class DiceBearAvatar extends StatelessWidget {
+/// Loads from local cache first, then fetches and stores the SVG if needed.
+class DiceBearAvatar extends StatefulWidget {
   const DiceBearAvatar({
     super.key,
     required this.seed,
@@ -52,25 +28,56 @@ class DiceBearAvatar extends StatelessWidget {
   final Color? backgroundColor;
 
   @override
+  State<DiceBearAvatar> createState() => _DiceBearAvatarState();
+}
+
+class _DiceBearAvatarState extends State<DiceBearAvatar> {
+  Future<File?>? _avatarFileFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _avatarFileFuture = _futureForSeed(widget.seed);
+  }
+
+  @override
+  void didUpdateWidget(covariant DiceBearAvatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.seed != widget.seed) {
+      _avatarFileFuture = _futureForSeed(widget.seed);
+    }
+  }
+
+  Future<File?>? _futureForSeed(String? seed) {
+    final cleanSeed = seed?.trim();
+    if (cleanSeed == null || cleanSeed.isEmpty) return null;
+    return AvatarMediaService.loadDiceBearSvg(cleanSeed);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (seed == null || seed!.isEmpty) {
+    if (widget.seed == null || widget.seed!.isEmpty) {
       return _placeholder();
     }
 
     return ClipOval(
       child: Container(
-        width: size,
-        height: size,
-        color: backgroundColor ?? const Color(0xFFEEF2FF),
-        child: FutureBuilder<File>(
-          future: _cacheFile(seed!),
+        width: widget.size,
+        height: widget.size,
+        color: widget.backgroundColor ?? const Color(0xFFEEF2FF),
+        child: FutureBuilder<File?>(
+          future: _avatarFileFuture,
           builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return _loadingIndicator();
+            }
+
             if (snapshot.hasData && snapshot.data!.existsSync()) {
               try {
                 return SvgPicture.file(
                   snapshot.data!,
-                  width: size,
-                  height: size,
+                  width: widget.size,
+                  height: widget.size,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => _placeholder(),
                 );
@@ -78,15 +85,7 @@ class DiceBearAvatar extends StatelessWidget {
                 return _placeholder();
               }
             }
-            // Fallback to network with error handling
-            return SvgPicture.network(
-              dicebearUrl(seed!),
-              width: size,
-              height: size,
-              fit: BoxFit.cover,
-              placeholderBuilder: (_) => _loadingIndicator(),
-              errorBuilder: (_, __, ___) => _placeholder(),
-            );
+            return _placeholder();
           },
         ),
       ),
@@ -95,15 +94,15 @@ class DiceBearAvatar extends StatelessWidget {
 
   Widget _placeholder() {
     return Container(
-      width: size,
-      height: size,
+      width: widget.size,
+      height: widget.size,
       decoration: BoxDecoration(
-        color: backgroundColor ?? const Color(0xFFEEF2FF),
+        color: widget.backgroundColor ?? const Color(0xFFEEF2FF),
         shape: BoxShape.circle,
       ),
       child: Icon(
         Icons.person,
-        size: size * 0.5,
+        size: widget.size * 0.5,
         color: const Color(0xFF5B6CFF),
       ),
     );
@@ -111,13 +110,13 @@ class DiceBearAvatar extends StatelessWidget {
 
   Widget _loadingIndicator() {
     return Container(
-      width: size,
-      height: size,
-      color: backgroundColor ?? const Color(0xFFEEF2FF),
+      width: widget.size,
+      height: widget.size,
+      color: widget.backgroundColor ?? const Color(0xFFEEF2FF),
       child: Center(
         child: SizedBox(
-          width: size * 0.3,
-          height: size * 0.3,
+          width: widget.size * 0.3,
+          height: widget.size * 0.3,
           child: const CircularProgressIndicator(
             strokeWidth: 2,
             color: Color(0xFF5B6CFF),
