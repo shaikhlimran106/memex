@@ -85,40 +85,120 @@ class _PersonaAvatarButtonState extends State<PersonaAvatarButton> {
         width: 36,
         height: 36,
         child: Stack(
+          clipBehavior: Clip.none,
           children: [
             Center(
-              child: CharacterAvatar(
-                avatar: _character!.avatar,
-                name: _character!.name,
-                size: 30,
-                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+              child: _CompanionAvatarFrame(
+                character: _character!,
               ),
             ),
-            if (_unreadCount > 0)
-              Positioned(
-                top: 1,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  constraints:
-                      const BoxConstraints(minWidth: 16, minHeight: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Center(
-                    child: Text(
-                      _unreadCount > 99 ? '99+' : '$_unreadCount',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+            if (_unreadCount > 0) _UnreadBadge(count: _unreadCount),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CompanionAvatarFrame extends StatelessWidget {
+  const _CompanionAvatarFrame({required this.character});
+
+  final CharacterModel character;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(13),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.18),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          const Center(
+            child: Icon(
+              Icons.forum_rounded,
+              size: 19,
+              color: Colors.white,
+            ),
+          ),
+          Positioned(
+            left: -3,
+            bottom: -3,
+            child: Container(
+              width: 18,
+              height: 18,
+              padding: const EdgeInsets.all(1.5),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.18),
                 ),
               ),
-          ],
+              child: CharacterAvatar(
+                avatar: character.avatar,
+                name: character.name,
+                size: 15,
+                backgroundColor: AppColors.primary.withValues(alpha: 0.08),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 4,
+            bottom: 4,
+            child: Container(
+              width: 4,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.82),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UnreadBadge extends StatelessWidget {
+  const _UnreadBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: -2,
+      right: -3,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white, width: 1),
+        ),
+        child: Center(
+          child: Text(
+            count > 99 ? '99+' : '$count',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              height: 1,
+            ),
+          ),
         ),
       ),
     );
