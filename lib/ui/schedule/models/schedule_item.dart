@@ -143,10 +143,7 @@ class ScheduleItem {
     for (final completedItem in data.completed) {
       final sourceFactId = completedItem.cardId;
       final completedItemId = completedItem.itemId ?? completedItem.cardId;
-      final existingEntry = itemsByItemId.entries.where((entry) {
-        return entry.value.sourceFactId == sourceFactId;
-      }).firstOrNull;
-      final existing = existingEntry?.value;
+      final existing = itemsByItemId[completedItemId];
       if (existing != null) {
         itemsByItemId[existing.itemId] = existing.copyWith(
           status: ScheduleItemStatus.completed,
