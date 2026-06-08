@@ -148,6 +148,35 @@ void main() {
       final latest = await _latestComment(userId, cardId);
       expect(latest.replyToId, isNull);
     });
+
+    test('SkipComment completes without writing a visible comment', () async {
+      final cardBefore = await FileSystemService.instance.readCardFile(
+        userId,
+        cardId,
+      );
+      expect(cardBefore, isNotNull);
+
+      final tool = CommentToolFactory(
+        userId: userId,
+        cardId: cardId,
+        characterId: characterId,
+      ).buildSkipCommentTool();
+
+      await Function.apply(tool.executable!, [
+        'Outside this character comment policy.',
+      ]);
+
+      final cardAfter = await FileSystemService.instance.readCardFile(
+        userId,
+        cardId,
+      );
+      expect(cardAfter, isNotNull);
+      expect(cardAfter!.comments.length, cardBefore!.comments.length);
+      expect(
+        cardAfter.comments.map((c) => c.content),
+        isNot(contains('Outside this character comment policy.')),
+      );
+    });
   });
 }
 

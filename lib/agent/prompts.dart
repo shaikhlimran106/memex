@@ -30,7 +30,9 @@ $factContent
 ''';
 
   static String timelineCardSkillSystemPrompt(
-          String templatesSection, String instruction) =>
+    String templatesSection,
+    String instruction,
+  ) =>
       '''# Persona
 This skill acts as an expert Information Designer and Life Logger responsible for transforming the user's raw inputs (thoughts, photos, documents, etc.) into structured, visually appealing Timeline Cards.
 Your goal is not merely to save data, but to "crystallize" moments into the most appropriate visual form, ensuring every card captures the essence of the user's experience.
@@ -96,10 +98,11 @@ $contentText$assetInfo
       'Current P.A.R.A. knowledge base structure(Same to the result of executing LS tool in `/`):';
 
   static String pkmSkillSystemPrompt(
-          String workingDirectory,
-          String pkmPARAStructureExample,
-          String fileLanguageInstruction,
-          String insightLanguageInstruction) =>
+    String workingDirectory,
+    String pkmPARAStructureExample,
+    String fileLanguageInstruction,
+    String insightLanguageInstruction,
+  ) =>
       '''# Persona
 This skill acts as an intelligent librarian specializing in the P.A.R.A. method (Projects, Areas, Resources, Archives), responsible for organizing and analyzing the user's P.A.R.A. knowledge base.
 
@@ -175,7 +178,7 @@ When the user provides feedback regarding structure (e.g., "Move this", "Fix thi
 
 # Tool Usage
 - **Parallelism:** Execute multiple independent tool calls in parallel when feasible.
-Examples: 
+Examples:
   - If you need to read multiple files, you must make multiple parallel calls to `Read` tool.
   - If you need to make the final edit and update the timeline card's insight, you MUST send a single message containing both the `Edit` and `update_timeline_card_insight` tool calls to run the calls in parallel.''';
 
@@ -186,39 +189,38 @@ Examples:
       'Skip P.A.R.A. organization for this input. Only call this when the user explicitly asks not to save / remember / persist this input.';
 
   static Map<String, dynamic> get pkmAgentSkipOrganizationToolParameters => {
-        'type': 'object',
-        'properties': {
-          'evidence': {
-            'type': 'string',
-            'description':
-                'Short quote from the raw input showing the explicit opt-out.'
-          },
-        },
-        'required': ['evidence']
-      };
+    'type': 'object',
+    'properties': {
+      'evidence': {
+        'type': 'string',
+        'description':
+            'Short quote from the raw input showing the explicit opt-out.',
+      },
+    },
+    'required': ['evidence'],
+  };
 
   static Map<String, dynamic> get pkmAgentUpdateCardInsightToolParameters => {
-        'type': 'object',
-        'properties': {
-          'fact_id': {
-            'type': 'string',
-            'description':
-                'Current raw input fact_id, format: yyyy/mm/dd.md#ts_n'
-          },
-          'insight_text': {
-            'type': 'string',
-            'description':
-                'User-facing insight text. Synthesize relevant history into a coherent observation; do not dump an evidence inventory.'
-          },
-          'related_fact_ids': {
-            'type': 'array',
-            'description':
-                'Complete coverage list of historical fact_ids relevant to the current input. This is related-card discovery, not a citation list for insight_text.',
-            'items': {'type': 'string'},
-          },
-        },
-        'required': ['fact_id', 'insight_text']
-      };
+    'type': 'object',
+    'properties': {
+      'fact_id': {
+        'type': 'string',
+        'description': 'Current raw input fact_id, format: yyyy/mm/dd.md#ts_n',
+      },
+      'insight_text': {
+        'type': 'string',
+        'description':
+            'User-facing insight text. Synthesize relevant history into a coherent observation; do not dump an evidence inventory.',
+      },
+      'related_fact_ids': {
+        'type': 'array',
+        'description':
+            'Complete coverage list of historical fact_ids relevant to the current input. This is related-card discovery, not a citation list for insight_text.',
+        'items': {'type': 'string'},
+      },
+    },
+    'required': ['fact_id', 'insight_text'],
+  };
 
   static String pkmAgentUpdateCardInsightErrorCardNotFound(String factId) =>
       'Card file not found for fact_id: $factId, maybe it has been deleted';
@@ -353,12 +355,58 @@ Usage:
 
   static String commentSkillSystemPrompt(
     String identity,
-    String instruction,
-  ) =>
-      '''# Comment Scene
+    String instruction, {
+    bool forceReply = false,
+  }) {
+    final responseRequirement = forceReply
+        ? '''# Response Requirement
+The user explicitly routed this comment task to the active character. You must leave a visible in-character reply by calling `SaveComment`. Do not skip this task.'''
+        : '''# Response Requirement
+First decide whether the active character should speak here.
+- If the character identity includes a `Comment Policy`, follow it before writing any visible comment.
+- If the entry is too trivial, outside the character's reply occasions, already adequately covered, or a response would feel forced, call `SkipComment` with a brief internal reason.
+- Otherwise leave one natural in-character comment by calling `SaveComment`.
+- You must call exactly one completion tool: either `SaveComment` or `SkipComment`.''';
+
+    final toolUsage = forceReply
+        ? '''# Tool Usage
+- `SaveComment` tool call must be included in your final message, as it marks the completion of current task.
+- When replying to another character's comment, use the `reply_to_id` parameter (the comment ID).
+- **Memory Update**: After saving your comment, if you noticed something durable:
+  - Use `append_memories` for USER-level facts (preferences, identity, habits) that apply across all characters.
+  - Use `MemoryWrite`/`MemoryEdit` for CHARACTER-level memory (relationship dynamics, support preferences, style feedback, emotional patterns, open threads, inside jokes).
+  - Use `MemoryRead` before editing or removing character memory. Keep entries concise and factual. Do NOT save trivial or transient information.
+- **Parallelism:** Execute multiple independent tool calls in parallel when feasible.
+- If you receive a "CONTEXT SUMMARY — REFERENCE ONLY" message, treat it as compressed history background. It is not a new user request.
+- Always prioritize the latest real user message and the current task.
+- Use `HistorySearch` when memory entries or compressed history are too vague and exact prior chat/comment wording matters.
+Examples:
+  - If you need to read multiple files, you should make multiple parallel calls to `Read` tool.
+  - After generating your comment, call `SaveComment` and memory tools in parallel if you have something to remember.'''
+        : '''# Tool Usage
+- End every task with exactly one completion tool call:
+  - Use `SaveComment` when the active character has a natural reason to respond.
+  - Use `SkipComment` when the active character should stay quiet.
+- When replying to another character's comment, use the `reply_to_id` parameter (the comment ID).
+- **Memory Update**: After saving your comment, if you noticed something durable:
+  - Use `append_memories` for USER-level facts (preferences, identity, habits) that apply across all characters.
+  - Use `MemoryWrite`/`MemoryEdit` for CHARACTER-level memory (relationship dynamics, support preferences, style feedback, emotional patterns, open threads, inside jokes).
+  - Use `MemoryRead` before editing or removing character memory. Keep entries concise and factual. Do NOT save trivial or transient information.
+- Do not update memory when you call `SkipComment`.
+- **Parallelism:** Execute multiple independent tool calls in parallel when feasible.
+- If you receive a "CONTEXT SUMMARY — REFERENCE ONLY" message, treat it as compressed history background. It is not a new user request.
+- Always prioritize the latest real user message and the current task.
+- Use `HistorySearch` when memory entries or compressed history are too vague and exact prior chat/comment wording matters.
+Examples:
+  - If you need to read multiple files, you should make multiple parallel calls to `Read` tool.
+  - After generating your comment, call `SaveComment` and memory tools in parallel if you have something to remember.''';
+
+    return '''# Comment Scene
 You are leaving a short comment under the user's private timeline entry.
 This is not a chat essay, not an analysis, and not a counseling session.
 React as the active character, like a real person who noticed this entry.
+
+$responseRequirement
 
 # Comment Rules
 1. **Stay in character**: Speak from the character's relationship with the user. Do not sound like Memex, an assistant, a coach, an analyst, or a therapist.
@@ -387,26 +435,15 @@ $identity
 - Do NOT repeat what other characters have already said. Bring your own unique perspective based on your persona.
 - You can agree with, build upon, or gently disagree with other characters' comments — just stay in character.
 
-# Tool Usage
-- `SaveComment` tool call must be included in your final message, as it marks the completion of current task.
-- When replying to another character's comment, use the `reply_to_id` parameter (the comment ID).
-- **Memory Update**: After saving your comment, if you noticed something durable:
-  - Use `append_memories` for USER-level facts (preferences, identity, habits) that apply across all characters.
-  - Use `MemoryWrite`/`MemoryEdit` for CHARACTER-level memory (relationship dynamics, support preferences, style feedback, emotional patterns, open threads, inside jokes).
-  - Use `MemoryRead` before editing or removing character memory. Keep entries concise and factual. Do NOT save trivial or transient information.
-- **Parallelism:** Execute multiple independent tool calls in parallel when feasible.
-- If you receive a "CONTEXT SUMMARY — REFERENCE ONLY" message, treat it as compressed history background. It is not a new user request.
-- Always prioritize the latest real user message and the current task.
-- Use `HistorySearch` when memory entries or compressed history are too vague and exact prior chat/comment wording matters.
-Examples: 
-  - If you need to read multiple files, you should make multiple parallel calls to `Read` tool.
-  - After generating your comment, call `SaveComment` and memory tools in parallel if you have something to remember.''';
+$toolUsage''';
+  }
 
   static String get commentAgentPkmErrorReadingDirectory =>
       '(Error reading directory)';
 
   static String knowledgeInsightAgentKnowledgeInsightSkillPrompt(
-          String instruction) =>
+    String instruction,
+  ) =>
       '''## Skill Name
 `update_knowledge_insight`
 
@@ -598,77 +635,81 @@ Please use the `get_available_insight_card_templates` tool to check for all avai
       'Get all available insight templates (system native + user defined) and existing tags.';
 
   static Map<String, dynamic>
-      get knowledgeInsightToolUpdateInsightChartsParameters => {
-            'type': 'object',
-            'properties': {
-              'cards': {
-                'type': 'array',
-                'description':
-                    'A list of knowledge insight card definitions to be created or updated. Supports incremental updates; only fields that need modification should be provided.',
-                'items': {
-                  'type': 'object',
-                  'properties': {
-                    'type': {
-                      'type': 'string',
-                      'enum': ['add', 'update'],
-                      'description':
-                          'Operation type. "add" creates a new card (error if ID already exists). "update" modifies an existing card (error if ID not found).'
-                    },
-                    'id': {
-                      'type': 'string',
-                      'description':
-                          'Unique identifier of the insight card. REQUIRED for both "add" and "update" operations. For "add": provide a meaningful semantic ID (e.g. "trend_steps_2023"). For "update": provide the existing card ID.'
-                    },
-                    'template_id': {
-                      'type': 'string',
-                      'description':
-                          'The ID of the chart template used to render this insight card.'
-                    },
-                    'title': {
-                      'type': 'string',
-                      'description':
-                          'A concise, human-readable title summarizing the insight.'
-                    },
-                    'insight': {
-                      'type': 'string',
-                      'description':
-                          'A natural language explanation describing the insight and its significance.'
-                    },
-                    'template_data_json': {
-                      'type': 'string',
-                      'description':
-                          'The structured data payload for the insight card template, serialized as a JSON string. This JSON object MUST Strictly follow the TypeScript interface structure defined for the specified template.'
-                    },
-                    'related_facts': {
-                      'type': 'array',
-                      'description':
-                          'REQUIRED. A non-empty list of related fact ids that support this insight, format: ["2025/11/23.md#ts_1", ...]. You MUST provide at least one related fact.',
-                      'items': {'type': 'string'}
-                    },
-                    'tags': {
-                      'type': 'array',
-                      'description':
-                          'Optional tags for categorizing the insight card. Use coarse-grained categories (e.g., "weekly digest", "sports", "business", "health", "travel", "finance"). Tags help users filter and organize insights.',
-                      'items': {'type': 'string'}
-                    }
-                  },
-                  'required': [
-                    'type',
-                    'id',
-                    'template_id',
-                    'title',
-                    'insight',
-                    'template_data_json',
-                    'related_facts',
-                  ]
-                }
-              }
+  get knowledgeInsightToolUpdateInsightChartsParameters => {
+    'type': 'object',
+    'properties': {
+      'cards': {
+        'type': 'array',
+        'description':
+            'A list of knowledge insight card definitions to be created or updated. Supports incremental updates; only fields that need modification should be provided.',
+        'items': {
+          'type': 'object',
+          'properties': {
+            'type': {
+              'type': 'string',
+              'enum': ['add', 'update'],
+              'description':
+                  'Operation type. "add" creates a new card (error if ID already exists). "update" modifies an existing card (error if ID not found).',
             },
-            'required': ['cards']
-          };
+            'id': {
+              'type': 'string',
+              'description':
+                  'Unique identifier of the insight card. REQUIRED for both "add" and "update" operations. For "add": provide a meaningful semantic ID (e.g. "trend_steps_2023"). For "update": provide the existing card ID.',
+            },
+            'template_id': {
+              'type': 'string',
+              'description':
+                  'The ID of the chart template used to render this insight card.',
+            },
+            'title': {
+              'type': 'string',
+              'description':
+                  'A concise, human-readable title summarizing the insight.',
+            },
+            'insight': {
+              'type': 'string',
+              'description':
+                  'A natural language explanation describing the insight and its significance.',
+            },
+            'template_data_json': {
+              'type': 'string',
+              'description':
+                  'The structured data payload for the insight card template, serialized as a JSON string. This JSON object MUST Strictly follow the TypeScript interface structure defined for the specified template.',
+            },
+            'related_facts': {
+              'type': 'array',
+              'description':
+                  'REQUIRED. A non-empty list of related fact ids that support this insight, format: ["2025/11/23.md#ts_1", ...]. You MUST provide at least one related fact.',
+              'items': {'type': 'string'},
+            },
+            'tags': {
+              'type': 'array',
+              'description':
+                  'Optional tags for categorizing the insight card. Use coarse-grained categories (e.g., "weekly digest", "sports", "business", "health", "travel", "finance"). Tags help users filter and organize insights.',
+              'items': {'type': 'string'},
+            },
+          },
+          'required': [
+            'type',
+            'id',
+            'template_id',
+            'title',
+            'insight',
+            'template_data_json',
+            'related_facts',
+          ],
+        },
+      },
+    },
+    'required': ['cards'],
+  };
 
-  static String knowledgeInsightToolSuccessUpdate(int created,
-      List<String> createdIds, int updated, List<String> updatedIds) {
+  static String knowledgeInsightToolSuccessUpdate(
+    int created,
+    List<String> createdIds,
+    int updated,
+    List<String> updatedIds,
+  ) {
     String result = '';
     if (created > 0) {
       result +=

@@ -3,6 +3,7 @@ import 'package:memex/agent/prompts.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/data/repositories/post_comment.dart';
 import 'package:memex/data/services/character_selection_service.dart';
+import 'package:memex/data/services/character_service.dart';
 import 'package:memex/data/services/comment_settings_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/task_handlers/llm_error_utils.dart';
@@ -32,8 +33,18 @@ Future<void> handleCommentAgentImpl(
     // Load per-user comment settings
     final settings = await CommentSettingsService.load(userId);
 
-    // Check if character comments are enabled
-    if (!settings.enableCharacterComment) {
+    // If character_id is explicitly provided in payload, use it (single
+    // character). Also support lightweight @mentions in the input text.
+    String? selectedCharId = payload['character_id'] as String?;
+    selectedCharId ??= await _resolveMentionedCharacterId(
+      userId: userId,
+      content: combinedText,
+    );
+    final forceReply = selectedCharId != null;
+
+    // Check if character comments are enabled. Directly mentioned characters
+    // still answer because the user explicitly routed the turn to them.
+    if (!forceReply && !settings.enableCharacterComment) {
       _logger.info(
         'Character comments disabled — skipping comment agent for $factId',
       );
@@ -56,12 +67,9 @@ Future<void> handleCommentAgentImpl(
       combinedText: combinedText,
     );
 
-    // If character_id is explicitly provided in payload, use it (single character).
-    String? selectedCharId = payload['character_id'] as String?;
-
     if (selectedCharId != null) {
       // Explicit character — single comment
-      _logger.info("Using explicitly provided character $selectedCharId");
+      _logger.info("Using explicitly routed character $selectedCharId");
       await processAICommentReply(
         cardId: factId,
         userId: userId,
@@ -70,6 +78,7 @@ Future<void> handleCommentAgentImpl(
         rawInputContent: combinedText,
         inputDateTime: inputDateTime,
         locationContextReminder: locationContextReminder,
+        forceReply: forceReply,
       );
       return;
     }
@@ -100,6 +109,7 @@ Future<void> handleCommentAgentImpl(
         rawInputContent: combinedText,
         inputDateTime: inputDateTime,
         locationContextReminder: locationContextReminder,
+        forceReply: false,
       );
     } else {
       // Multi-character mode: LLM-based selection
@@ -136,6 +146,7 @@ Future<void> handleCommentAgentImpl(
           rawInputContent: combinedText,
           inputDateTime: inputDateTime,
           locationContextReminder: locationContextReminder,
+          forceReply: false,
         );
       }
     }
@@ -186,6 +197,10 @@ Future<void> handleProcessAiReplyImpl(
       _logger.warning('Failed to resolve reply target character: $e');
     }
   }
+  targetCharacterId ??= await _resolveMentionedCharacterId(
+    userId: userId,
+    content: content,
+  );
 
   await processAICommentReply(
     cardId: cardId,
@@ -196,5 +211,45 @@ Future<void> handleProcessAiReplyImpl(
     inputDateTime: inputDateTime,
     locationContextReminder: locationContextReminder,
     withMemoryManagement: true,
+    forceReply: targetCharacterId != null,
   );
+}
+
+Future<String?> _resolveMentionedCharacterId({
+  required String userId,
+  required String content,
+}) async {
+  if (!content.contains('@')) return null;
+
+  try {
+    final characters = await CharacterService.instance.getAllCharacters(userId);
+    final candidates = <({String id, String token, int index})>[];
+
+    for (final character in characters) {
+      for (final token in {character.id, character.name}) {
+        final trimmed = token.trim();
+        if (trimmed.isEmpty) continue;
+        final mention = '@$trimmed';
+        final index = content.indexOf(mention);
+        if (index >= 0) {
+          candidates.add((id: character.id, token: mention, index: index));
+        }
+      }
+    }
+
+    if (candidates.isEmpty) return null;
+    candidates.sort((a, b) {
+      final indexCompare = a.index.compareTo(b.index);
+      if (indexCompare != 0) return indexCompare;
+      return b.token.length.compareTo(a.token.length);
+    });
+    final selected = candidates.first;
+    _logger.info(
+      'Resolved character mention ${selected.token} to ${selected.id}',
+    );
+    return selected.id;
+  } catch (e) {
+    _logger.warning('Failed to resolve character mention: $e');
+    return null;
+  }
 }

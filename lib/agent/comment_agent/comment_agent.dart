@@ -30,6 +30,7 @@ class CommentAgent {
     required String rawInputContent,
     String? forcedReplyToId,
     bool withMemoryManagement = false,
+    bool forceReply = false,
   }) async {
     final fileService = FileSystemService.instance;
     final characterService = CharacterService.instance;
@@ -128,6 +129,7 @@ class CommentAgent {
       userProfile: userProfile,
       characterMemories: characterMemories,
       forcedReplyToId: forcedReplyToId,
+      forceReply: forceReply,
       forceActivate: true,
     );
     final skills = [skill];
@@ -172,6 +174,7 @@ class CommentAgent {
     DateTime? entryTime,
     String? locationContextReminder,
     bool withMemoryManagement = false,
+    bool forceReply = false,
   }) async {
     final effectiveCurrentTime = currentTime ?? DateTime.now();
     final agent = await _createAgent(
@@ -183,6 +186,7 @@ class CommentAgent {
       rawInputContent: rawInputContent,
       forcedReplyToId: forcedReplyToId,
       withMemoryManagement: withMemoryManagement,
+      forceReply: forceReply,
     );
     final state = agent.state;
     pkmContext = await _loadPkmContextIfNeeded(

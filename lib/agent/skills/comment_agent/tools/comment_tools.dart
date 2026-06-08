@@ -137,6 +137,35 @@ class CommentToolFactory {
     );
   }
 
+  Tool buildSkipCommentTool() {
+    return Tool(
+      name: 'SkipComment',
+      description:
+          'Skips leaving a visible comment when the current entry is outside '
+          'the character comment policy or a response would feel forced.',
+      parameters: {
+        'type': 'object',
+        'properties': {
+          'reason': {
+            'type': 'string',
+            'description':
+                'A brief internal reason for skipping the visible comment.',
+          },
+        },
+        'required': ['reason'],
+      },
+      executable: (String reason) async {
+        getLogger('CommentTool').info(
+          'Skipped AI comment for card $cardId, character=$characterId: $reason',
+        );
+        return AgentToolResult(
+          content: TextPart('Comment skipped.'),
+          stopFlag: true,
+        );
+      },
+    );
+  }
+
   static String? _normalizedReplyToId(String? value) {
     final trimmed = value?.trim();
     return trimmed == null || trimmed.isEmpty ? null : trimmed;
