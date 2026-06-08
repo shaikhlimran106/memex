@@ -3,12 +3,15 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_agent_core/dart_agent_core.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:logging/logging.dart';
 import 'package:memex/agent/memex_skill_host_agent/memex_skill_host_agent.dart';
 import 'package:memex/agent/pure_skill_host_agent/pure_skill_host_agent.dart';
 import 'package:memex/agent/super_agent/super_agent.dart';
+import 'package:memex/data/services/asset_safety_service.dart';
 import 'package:memex/data/services/custom_agent_config_service.dart';
 import 'package:memex/data/services/location_context_service.dart';
+import 'package:memex/data/services/media_service.dart';
 import 'package:memex/domain/models/custom_agent_config.dart';
 import 'package:memex/domain/models/location_context_config.dart';
 import 'package:memex/domain/models/llm_config.dart';
@@ -48,6 +51,8 @@ class ChatService {
     String? scene = 'assistant',
     String? sceneId,
     List<Map<String, String>>? refs,
+    List<XFile> images = const [],
+    Map<String, String>? imageOriginalFilenames,
     bool isQuickQuery = false,
   }) async* {
     _logger.info(
@@ -62,6 +67,34 @@ class ChatService {
 
     String finalSessionId = sessionId ?? '';
     final userMessageTime = DateTime.now();
+    final trimmedMessage = message.trim();
+    final preparedImages = <_PreparedChatImage>[];
+
+    try {
+      for (final image in images) {
+        preparedImages.add(
+          await _prepareChatImage(
+            userId: userId,
+            image: image,
+            originalName: imageOriginalFilenames?[image.path],
+          ),
+        );
+      }
+    } catch (e) {
+      _logger.severe('Failed to prepare chat image attachment', e);
+      yield ChatErrorEvent('Failed to prepare image attachment: $e');
+      return;
+    }
+
+    if (trimmedMessage.isEmpty && preparedImages.isEmpty) {
+      yield ChatErrorEvent('Message is empty');
+      return;
+    }
+
+    final sessionContent = _buildSessionUserContent(
+      trimmedMessage,
+      preparedImages,
+    );
 
     // 1. Session Management
     try {
@@ -69,10 +102,10 @@ class ChatService {
         finalSessionId = await _createSession(
           userId,
           agentName,
-          [
-            {'type': 'text', 'text': message},
-          ],
+          sessionContent,
           isQuickQuery: isQuickQuery,
+          scene: scene,
+          sceneId: sceneId,
           createdAt: userMessageTime,
         );
       }
@@ -85,9 +118,7 @@ class ChatService {
         userId,
         finalSessionId,
         'user',
-        [
-          {'type': 'text', 'text': message},
-        ],
+        sessionContent,
         refs: refs,
         isQuickQuery: isQuickQuery,
         timestamp: userMessageTime,
@@ -104,10 +135,11 @@ class ChatService {
             'scene': scene ?? 'assistant',
             'scene_id': sceneId,
             'session_id': finalSessionId,
-            'message': message,
+            'message': trimmedMessage,
             'message_local_time': formatLocalDateTimeWithZone(userMessageTime),
             'message_unix_seconds': unixSecondsFromDateTime(userMessageTime),
             'has_refs': refs != null && refs.isNotEmpty,
+            'has_images': preparedImages.isNotEmpty,
             'is_quick_query': isQuickQuery,
           },
         );
@@ -268,7 +300,7 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     switch (scene) {
       case 'super_agent_home':
         sceneContext =
-            "The user opened you from the central Memex entry point. They may want to record something into the timeline, ask about existing memory, request edits, or configure the app. Decide whether to answer directly, ask a clarification, or use the controlled submit_record skill for durable records.";
+            "The user opened you from the central Memex entry point. They may want to record something into the timeline, ask about existing memory, request edits, or configure the app. Decide whether to answer directly, ask a clarification, or use the controlled submit_record skill for durable records. If the user attaches images, inspect them before deciding. Do not treat attachment upload alone as consent to create a record; if the user's intent is ambiguous, briefly summarize what you see and ask whether to save it. If the user clearly asks to record/save/log/remember the attached images, call submit_record and pass the provided image_paths exactly.";
         break;
       case 'assistant_timeline_card_detail':
         sceneContext =
@@ -295,8 +327,10 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     }
 
     // Build combined system reminder content
+    final attachmentContext = _buildAttachmentContext(preparedImages);
     if (sceneContext.isNotEmpty ||
         locationContextReminder != null ||
+        attachmentContext.isNotEmpty ||
         (refs != null && refs.isNotEmpty)) {
       final StringBuffer reminderContent = StringBuffer();
       reminderContent.write('<system-reminder>\n');
@@ -315,9 +349,19 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
         reminderContent.write('\n');
       }
 
+      if (attachmentContext.isNotEmpty) {
+        if (sceneContext.isNotEmpty || locationContextReminder != null) {
+          reminderContent.write('\n');
+        }
+        reminderContent.write(attachmentContext);
+        reminderContent.write('\n');
+      }
+
       // Add refs context if available
       if (refs != null && refs.isNotEmpty) {
-        if (sceneContext.isNotEmpty || locationContextReminder != null) {
+        if (sceneContext.isNotEmpty ||
+            locationContextReminder != null ||
+            attachmentContext.isNotEmpty) {
           reminderContent.write('\n');
         }
         final refsString = refs
@@ -344,13 +388,22 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
       ]);
     }
 
-    userMessages.add(
-      UserMessage([
-        TextPart(buildCurrentTimeReminder(userMessageTime)),
-        TextPart(buildMessageTimePrefix(userMessageTime)),
-        TextPart(message),
-      ]),
-    );
+    final userContentParts = <UserContentPart>[
+      TextPart(buildCurrentTimeReminder(userMessageTime)),
+      TextPart(buildMessageTimePrefix(userMessageTime)),
+      TextPart(
+        trimmedMessage.isEmpty
+            ? 'User sent ${preparedImages.length} image attachment(s).'
+            : trimmedMessage,
+      ),
+    ];
+    for (final image in preparedImages) {
+      if (image.base64Data != null) {
+        userContentParts.add(ImagePart(image.base64Data!, image.mimeType));
+      }
+    }
+
+    userMessages.add(UserMessage(userContentParts));
 
     // We don't await the result here, we rely on AgentStoppedEvent to handle completion
     agent.run(userMessages).whenComplete(() async {
@@ -374,6 +427,95 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     });
 
     yield* streamController.stream;
+  }
+
+  Future<_PreparedChatImage> _prepareChatImage({
+    required String userId,
+    required XFile image,
+    required String? originalName,
+  }) async {
+    final imported = await MediaService.instance.importImage(
+      userId: userId,
+      sourcePath: image.path,
+    );
+    final mimeType = _mimeTypeForImagePath(imported.absolutePath);
+
+    String? base64Data;
+    try {
+      final safety =
+          await AssetSafetyService.instance.inspectFile(imported.absolutePath);
+      if (safety.safeForInlineBase64) {
+        base64Data =
+            base64Encode(await File(imported.absolutePath).readAsBytes());
+      } else {
+        _logger.warning(
+          'Skipping inline chat image ${imported.relativePath}: ${safety.reason}',
+        );
+      }
+    } catch (e) {
+      _logger
+          .warning('Failed to inline chat image ${imported.relativePath}: $e');
+    }
+
+    return _PreparedChatImage(
+      relativePath: imported.relativePath,
+      mimeType: mimeType,
+      originalName: originalName,
+      base64Data: base64Data,
+    );
+  }
+
+  List<Map<String, dynamic>> _buildSessionUserContent(
+    String message,
+    List<_PreparedChatImage> images,
+  ) {
+    return [
+      if (message.isNotEmpty) {'type': 'text', 'text': message},
+      for (final image in images)
+        {
+          'type': 'image_url',
+          'image_url': {'filePath': image.relativePath},
+          'mime_type': image.mimeType,
+          if (image.originalName != null && image.originalName!.isNotEmpty)
+            'name': image.originalName,
+        },
+    ];
+  }
+
+  String _buildAttachmentContext(List<_PreparedChatImage> images) {
+    if (images.isEmpty) return '';
+
+    final buffer = StringBuffer()
+      ..writeln('The user attached ${images.length} image(s).')
+      ..writeln(
+        'If the user wants these saved as a record, call submit_record with image_paths exactly as listed below.',
+      );
+    for (var i = 0; i < images.length; i++) {
+      final image = images[i];
+      buffer.writeln(
+        '${i + 1}. image_path: ${image.relativePath}'
+        '${image.originalName == null ? '' : ', original_name: ${image.originalName}'}'
+        ', mime_type: ${image.mimeType}'
+        '${image.base64Data == null ? ', inline_preview: unavailable' : ''}',
+      );
+    }
+    return buffer.toString().trimRight();
+  }
+
+  String _mimeTypeForImagePath(String filePath) {
+    final ext = p.extension(filePath).toLowerCase();
+    switch (ext) {
+      case '.jpg':
+      case '.jpeg':
+        return 'image/jpeg';
+      case '.webp':
+        return 'image/webp';
+      case '.gif':
+        return 'image/gif';
+      case '.png':
+      default:
+        return 'image/png';
+    }
   }
 
   void _setupControllerListeners(
@@ -624,6 +766,8 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     String? agentName,
     List<Map<String, dynamic>> initialContent, {
     bool isQuickQuery = false,
+    String? scene,
+    String? sceneId,
     DateTime? createdAt,
   }) async {
     final uuidStr = _uuid.v4();
@@ -633,17 +777,23 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     final now = createdAt ?? DateTime.now();
 
     String? title;
+    var imageCount = 0;
     for (final item in initialContent) {
       if (item['type'] == 'text' && item['text'] != null) {
         final text = item['text'] as String;
         title = text.length > 50 ? text.substring(0, 50) : text;
         break;
+      } else if (item['type'] == 'image_url') {
+        imageCount += 1;
       }
     }
+    title ??= imageCount > 0 ? 'Image conversation ($imageCount)' : null;
 
     final sessionData = {
       'session_id': sessionId,
       'agent_name': agentName,
+      'scene': scene,
+      'scene_id': sceneId,
       'title': title ?? 'New Chat',
       'created_at': now.toIso8601String(),
       'created_at_local': formatLocalDateTimeWithZone(now),
@@ -783,4 +933,18 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
           message['unix_seconds'] ?? unixSecondsFromDateTime(parsed),
     };
   }
+}
+
+class _PreparedChatImage {
+  final String relativePath;
+  final String mimeType;
+  final String? originalName;
+  final String? base64Data;
+
+  const _PreparedChatImage({
+    required this.relativePath,
+    required this.mimeType,
+    required this.originalName,
+    required this.base64Data,
+  });
 }

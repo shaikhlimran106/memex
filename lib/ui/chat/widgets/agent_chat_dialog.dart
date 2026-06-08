@@ -8,9 +8,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/data/model/chat_events.dart';
-import 'package:memex/data/services/event_bus_service.dart';
+import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/photo_suggestion_service.dart';
-import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/user_storage.dart';
@@ -27,7 +26,12 @@ abstract class ChatDisplayItem {}
 class UserMessageItem extends ChatDisplayItem {
   final String text;
   final List<Map<String, String>>? refs;
-  UserMessageItem(this.text, {this.refs});
+  final List<String> imagePaths;
+  UserMessageItem(
+    this.text, {
+    this.refs,
+    this.imagePaths = const [],
+  });
 }
 
 class AIMessageItem extends ChatDisplayItem {
@@ -135,7 +139,6 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   // Whether the user has sent at least one message in normal mode — prevents switching to read-only.
   bool _hasSentInNormalMode = false;
   bool _isFullScreen = false;
-  bool _isSubmittingRecord = false;
   bool get _isSuperAgentHome => widget.scene == 'super_agent_home';
 
   // Controllers
@@ -205,13 +208,25 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       for (var msg in messagesData) {
         final role = msg['role'] as String? ?? 'user';
         final contentList = msg['content'] as List<dynamic>? ?? [];
+        final imagePaths = <String>[];
         final textParts = contentList
-            .where((item) => item['type'] == 'text')
+            .where((item) {
+              if (item is Map && item['type'] == 'image_url') {
+                final imageUrl = item['image_url'];
+                if (imageUrl is Map) {
+                  final filePath = imageUrl['filePath']?.toString();
+                  if (filePath != null && filePath.isNotEmpty) {
+                    imagePaths.add(_resolveDisplayImagePath(filePath));
+                  }
+                }
+              }
+              return item is Map && item['type'] == 'text';
+            })
             .map((item) => item['text'] as String? ?? '')
             .where((text) => text.isNotEmpty);
         final text = textParts.join(' ');
 
-        if (text.isNotEmpty) {
+        if (text.isNotEmpty || imagePaths.isNotEmpty) {
           if (role == 'user') {
             List<Map<String, String>>? refs;
             if (msg['refs'] != null) {
@@ -219,7 +234,17 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                   .map((e) => Map<String, String>.from(e as Map))
                   .toList();
             }
-            historyItems.add(UserMessageItem(text, refs: refs));
+            historyItems.add(
+              UserMessageItem(
+                text.isNotEmpty
+                    ? text
+                    : UserStorage.l10n.attachedImagesMessage(
+                        imagePaths.length,
+                      ),
+                refs: refs,
+                imagePaths: imagePaths,
+              ),
+            );
           } else {
             historyItems.add(AIMessageItem(text));
           }
@@ -279,11 +304,25 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     }
   }
 
-  void _sendMessage(String message) {
-    if (message.trim().isEmpty || _isStreaming) return;
+  String _resolveDisplayImagePath(String filePath) {
+    if (filePath.startsWith('/')) {
+      return filePath;
+    }
+    return FileSystemService.instance.toAbsolutePath(filePath);
+  }
+
+  void _sendMessage(
+    String message, {
+    List<XFile> images = const [],
+    Map<String, String>? imageOriginalFilenames,
+  }) {
+    if ((message.trim().isEmpty && images.isEmpty) || _isStreaming) return;
 
     _messageFocusNode.unfocus();
     String finalMessage = message.trim();
+    final displayText = finalMessage.isNotEmpty
+        ? finalMessage
+        : UserStorage.l10n.attachedImagesMessage(images.length);
     List<Map<String, String>>? refs;
     if (widget.initialRefs != null && !_contextSent) {
       refs = widget.initialRefs;
@@ -296,9 +335,19 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     }
 
     setState(() {
-      _items.add(UserMessageItem(finalMessage, refs: refs));
+      _items.add(
+        UserMessageItem(
+          displayText,
+          refs: refs,
+          imagePaths: images.map((image) => image.path).toList(),
+        ),
+      );
       _isStreaming = true;
       _messageController.clear();
+      if (images.isNotEmpty) {
+        _selectedImages.clear();
+        _originalFilenames.clear();
+      }
     });
     _scrollToBottom();
 
@@ -312,6 +361,8 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       scene: widget.scene,
       sceneId: widget.sceneId,
       refs: refs,
+      images: images,
+      imageOriginalFilenames: imageOriginalFilenames,
       isQuickQuery: _isReadOnly,
     )
         .listen(
@@ -396,101 +447,11 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   }
 
   void _handleSuperAgentSubmit() {
-    if (_selectedImages.isNotEmpty) {
-      unawaited(_submitRecordWithImages());
-      return;
-    }
-    _sendMessage(_messageController.text);
-  }
-
-  Future<void> _submitRecordWithImages() async {
-    final text = _messageController.text.trim();
-    if (_isSubmittingRecord || _isStreaming) return;
-    if (text.isEmpty && _selectedImages.isEmpty) return;
-
-    _messageFocusNode.unfocus();
-    final images = List<XFile>.from(_selectedImages);
-    final displayText = text.isNotEmpty
-        ? text
-        : UserStorage.l10n.localeName.startsWith('zh')
-            ? '发表了 ${images.length} 张图片'
-            : 'Posted ${images.length} image${images.length == 1 ? '' : 's'}';
-
-    setState(() {
-      _items.add(UserMessageItem(displayText));
-      _messageController.clear();
-      _selectedImages.clear();
-      _originalFilenames.clear();
-      _isSubmittingRecord = true;
-    });
-    _scrollToBottom();
-
-    try {
-      final response = await _router.submitInput(
-        text: text.isEmpty ? null : text,
-        images: images,
-      );
-      _emitCardAddedIfPossible(response, rawText: text);
-      if (!mounted) return;
-      setState(() {
-        _items.add(AIMessageItem(UserStorage.l10n.recordSubmittedAiProcessing));
-      });
-      _scrollToBottom();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _items.add(ErrorItem(e.toString()));
-      });
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmittingRecord = false);
-      }
-    }
-  }
-
-  void _emitCardAddedIfPossible(
-    Map<String, dynamic> response, {
-    required String rawText,
-  }) {
-    final rawCard = response['card'];
-    if (rawCard is! Map) return;
-
-    try {
-      final card = Map<String, dynamic>.from(rawCard);
-      final uiConfigsRaw = card['ui_configs'];
-      final uiConfigs = <UiConfig>[];
-      if (uiConfigsRaw is List) {
-        for (final item in uiConfigsRaw) {
-          if (item is Map) {
-            uiConfigs.add(UiConfig.fromJson(Map<String, dynamic>.from(item)));
-          }
-        }
-      }
-
-      EventBusService.instance.emitEvent(
-        CardAddedMessage(
-          id: card['id']?.toString() ?? response['fact_id']?.toString() ?? '',
-          html: card['html']?.toString() ?? '',
-          timestamp: (card['timestamp'] as num?)?.toInt() ??
-              DateTime.now().millisecondsSinceEpoch ~/ 1000,
-          tags: (card['tags'] as List<dynamic>?)
-                  ?.map((tag) => tag.toString())
-                  .toList() ??
-              const [],
-          status: card['status']?.toString() ?? 'processing',
-          title: card['title']?.toString(),
-          uiConfigs: uiConfigs,
-          rawText: rawText.isEmpty ? null : rawText,
-          address: card['address']?.toString(),
-        ),
-      );
-    } catch (e, stackTrace) {
-      _logger.warning(
-        'Failed to emit CardAddedMessage for SuperAgent image record',
-        e,
-        stackTrace,
-      );
-    }
+    _sendMessage(
+      _messageController.text,
+      images: List<XFile>.from(_selectedImages),
+      imageOriginalFilenames: Map<String, String>.from(_originalFilenames),
+    );
   }
 
   void _handleChatEvent(ChatEvent event) {
@@ -983,7 +944,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
 
   Widget _buildSuperAgentInput() {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final isBusy = _isStreaming || _isSubmittingRecord;
+    final isBusy = _isStreaming;
 
     return Container(
       padding: EdgeInsets.fromLTRB(16, 12, 16, bottomInset + 16),
@@ -1079,7 +1040,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              UserStorage.l10n.recordLabel,
+                              UserStorage.l10n.sendLabel,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,
@@ -1160,6 +1121,34 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     );
   }
 
+  Widget _buildMessageImageGrid(List<String> imagePaths) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: imagePaths.map((imagePath) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Image.file(
+            File(imagePath),
+            width: 88,
+            height: 88,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              width: 88,
+              height: 88,
+              color: Colors.white.withValues(alpha: 0.18),
+              child: const Icon(
+                Icons.broken_image_outlined,
+                color: Colors.white70,
+                size: 22,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   Widget _buildItem(ChatDisplayItem item) {
     if (item is UserMessageItem) {
       return Padding(
@@ -1223,6 +1212,10 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                         }).toList(),
                       ),
                     ),
+                  if (item.imagePaths.isNotEmpty) ...[
+                    _buildMessageImageGrid(item.imagePaths),
+                    const SizedBox(height: 8),
+                  ],
                   SelectableText(
                     item.text,
                     style: const TextStyle(

@@ -49,6 +49,7 @@ import 'package:workmanager/workmanager.dart';
 import 'package:health/health.dart';
 import 'package:memex/domain/models/timeline_card_model.dart';
 import 'package:memex/utils/logger.dart';
+import 'package:memex/utils/result.dart';
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/ui/agent_activity/widgets/agent_activity_widget.dart';
 import 'package:memex/ui/main_screen/widgets/ai_core_button.dart';
@@ -789,6 +790,28 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     _openSuperAgentDialog();
   }
 
+  Future<String?> _latestSuperAgentSessionId() async {
+    try {
+      final result = await MemexRouter().fetchChatSessions(
+        agentName: 'memex_agent',
+        limit: 30,
+      );
+      return result.when(
+        onOk: (sessions) {
+          for (final session in sessions) {
+            if (session['scene'] == 'super_agent_home') {
+              return session['session_id']?.toString();
+            }
+          }
+          return null;
+        },
+        onError: (_, __) => null,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
   void _openSuperAgentDialog() {
     showGeneralDialog(
       context: context,
@@ -797,11 +820,18 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 500),
       pageBuilder: (context, animation, secondaryAnimation) {
-        return AgentChatDialog(
-          agentName: 'memex_agent',
-          title: 'Memex',
-          inputHint: UserStorage.l10n.aiInputHint,
-          scene: 'super_agent_home',
+        return FutureBuilder<String?>(
+          future: _latestSuperAgentSessionId(),
+          builder: (context, snapshot) {
+            return AgentChatDialog(
+              key: ValueKey(snapshot.data ?? 'super_agent_new_session'),
+              agentName: 'memex_agent',
+              title: 'Memex',
+              initialSessionId: snapshot.data,
+              inputHint: UserStorage.l10n.aiInputHint,
+              scene: 'super_agent_home',
+            );
+          },
         );
       },
     );

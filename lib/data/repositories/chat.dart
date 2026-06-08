@@ -92,23 +92,31 @@ Future<List<Map<String, dynamic>>> fetchChatSessionsEndpoint({
           final lastMsg = messages.last as Map<String, dynamic>;
           final contentList = lastMsg['content'] as List<dynamic>? ?? [];
           final textParts = <String>[];
+          var imageCount = 0;
           for (final item in contentList) {
             if (item is Map<String, dynamic> &&
                 item['type'] == 'text' &&
                 item['text'] != null) {
               textParts.add(item['text'] as String);
+            } else if (item is Map<String, dynamic> &&
+                item['type'] == 'image_url') {
+              imageCount += 1;
             }
           }
           if (textParts.isNotEmpty) {
             final preview = textParts.join(' ');
             lastMessagePreview =
                 preview.length > 100 ? preview.substring(0, 100) : preview;
+          } else if (imageCount > 0) {
+            lastMessagePreview = 'Sent $imageCount image(s)';
           }
         }
 
         sessions.add({
           'session_id': sessionId,
           'agent_name': sessionAgentName,
+          'scene': sessionData['scene'] as String?,
+          'scene_id': sessionData['scene_id'] as String?,
           'title': sessionData['title'] as String? ?? 'New chat',
           'created_at': sessionData['created_at'] as String? ??
               DateTime.now().toIso8601String(),
@@ -180,6 +188,8 @@ Future<Map<String, dynamic>> fetchChatSessionDetailEndpoint(
     return {
       'session_id': sessionId,
       'agent_name': sessionData['agent_name'],
+      'scene': sessionData['scene'] as String?,
+      'scene_id': sessionData['scene_id'] as String?,
       'title': sessionData['title'] as String? ?? 'New chat',
       'created_at': sessionData['created_at'] as String? ??
           DateTime.now().toIso8601String(),

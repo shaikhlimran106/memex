@@ -144,8 +144,7 @@ void main() {
       },
     );
 
-    testWidgets('super agent entry hides chat controls and uses publish input',
-        (
+    testWidgets('super agent entry hides chat controls and uses send input', (
       tester,
     ) async {
       await _pumpDialog(tester, scene: 'super_agent_home');
@@ -166,7 +165,7 @@ void main() {
         find.byKey(const ValueKey('super_agent_publish_button')),
         findsOneWidget,
       );
-      expect(find.text(UserStorage.l10n.recordLabel), findsOneWidget);
+      expect(find.text(UserStorage.l10n.sendLabel), findsOneWidget);
     });
   });
 }

@@ -241,7 +241,7 @@ class MemexRouter {
   }
 
   String?
-  _targetUserIdForInit; // Track the user ID we are currently initializing for
+      _targetUserIdForInit; // Track the user ID we are currently initializing for
 
   void _registerEventSubscriptions() {
     final eventBus = GlobalEventBus.instance;
@@ -1051,8 +1051,8 @@ class MemexRouter {
             id,
           );
           if (cardData != null) {
-            final currentSortOrder = (cardData['sort_order'] as num? ?? 0)
-                .toInt();
+            final currentSortOrder =
+                (cardData['sort_order'] as num? ?? 0).toInt();
             if (currentSortOrder != i) {
               cardData['sort_order'] = i;
               await fileSystemService.writeKnowledgeInsightCard(
@@ -1154,23 +1154,24 @@ class MemexRouter {
     required String itemId,
     required String subtaskTitle,
     required bool completed,
-  }) => runResultVoid(() async {
-    await _ensureInitialized();
-    final userId = await UserStorage.getUserId();
-    if (userId == null) {
-      throw Exception('User not logged in');
-    }
+  }) =>
+      runResultVoid(() async {
+        await _ensureInitialized();
+        final userId = await UserStorage.getUserId();
+        if (userId == null) {
+          throw Exception('User not logged in');
+        }
 
-    await ScheduleStateService.instance.setSubtaskCompletion(
-      userId: userId,
-      pendingId: itemId,
-      subtaskTitle: subtaskTitle,
-      completed: completed,
-    );
-    EventBusService.instance.emitEvent(
-      ScheduleAggregationUpdatedMessage(aggregationId: 'schedule_state'),
-    );
-  });
+        await ScheduleStateService.instance.setSubtaskCompletion(
+          userId: userId,
+          pendingId: itemId,
+          subtaskTitle: subtaskTitle,
+          completed: completed,
+        );
+        EventBusService.instance.emitEvent(
+          ScheduleAggregationUpdatedMessage(aggregationId: 'schedule_state'),
+        );
+      });
 
   Future<bool> updateCardTime(String cardId, int timestamp) async {
     await _ensureInitialized();
@@ -1354,6 +1355,8 @@ class MemexRouter {
     String? scene = 'assistant',
     String? sceneId,
     List<Map<String, String>>? refs,
+    List<XFile> images = const [],
+    Map<String, String>? imageOriginalFilenames,
     bool isQuickQuery = false,
   }) {
     return ChatService.instance.sendMessage(
@@ -1363,6 +1366,8 @@ class MemexRouter {
       scene: scene,
       sceneId: sceneId,
       refs: refs,
+      images: images,
+      imageOriginalFilenames: imageOriginalFilenames,
       isQuickQuery: isQuickQuery,
     );
   }
@@ -1605,8 +1610,7 @@ class MemexRouter {
     }
 
     final lower = avatar.toLowerCase();
-    final isRelativeImagePath =
-        !avatar.startsWith('/') &&
+    final isRelativeImagePath = !avatar.startsWith('/') &&
         (lower.endsWith('.png') ||
             lower.endsWith('.jpg') ||
             lower.endsWith('.jpeg') ||
@@ -1669,38 +1673,38 @@ class MemexRouter {
   Future<void> resetAllAgentConfigs() => UserStorage.resetAllAgentConfigs();
 
   Future<Result<void>> updateKnowledgeInsights() => runResultVoid(() async {
-    await _ensureInitialized();
-    final userId = await UserStorage.getUserId();
-    if (userId == null) {
-      throw Exception('User not logged in');
-    }
+        await _ensureInitialized();
+        final userId = await UserStorage.getUserId();
+        if (userId == null) {
+          throw Exception('User not logged in');
+        }
 
-    await GlobalEventBus.instance.publish(
-      userId: userId,
-      event: SystemEvent(
-        type: SystemEventTypes.knowledgeInsightRefreshRequested,
-        source: 'memex_router.updateKnowledgeInsights',
-        payload: const {},
-      ),
-    );
-  });
+        await GlobalEventBus.instance.publish(
+          userId: userId,
+          event: SystemEvent(
+            type: SystemEventTypes.knowledgeInsightRefreshRequested,
+            source: 'memex_router.updateKnowledgeInsights',
+            payload: const {},
+          ),
+        );
+      });
 
   Future<Result<void>> refreshScheduleAggregation() => runResultVoid(() async {
-    await _ensureInitialized();
-    final userId = await UserStorage.getUserId();
-    if (userId == null) {
-      throw Exception('User not logged in');
-    }
+        await _ensureInitialized();
+        final userId = await UserStorage.getUserId();
+        if (userId == null) {
+          throw Exception('User not logged in');
+        }
 
-    await GlobalEventBus.instance.publish(
-      userId: userId,
-      event: SystemEvent(
-        type: SystemEventTypes.scheduleAggregationRequested,
-        source: 'memex_router.refreshScheduleAggregation',
-        payload: const {},
-      ),
-    );
-  });
+        await GlobalEventBus.instance.publish(
+          userId: userId,
+          event: SystemEvent(
+            type: SystemEventTypes.scheduleAggregationRequested,
+            source: 'memex_router.refreshScheduleAggregation',
+            payload: const {},
+          ),
+        );
+      });
 
   Future<List<Task>> getTasks({int limit = 10, int offset = 0}) =>
       LocalTaskExecutor.instance.getTasks(limit: limit, offset: offset);

@@ -253,6 +253,9 @@
   "playing": "播放中...",
   "recordedAudio": "已录制音频",
   "recordLabel": "记录",
+  "sendLabel": "发送",
+  "attachedImagesMessage": "发送了 {count} 张图片",
+  "@attachedImagesMessage": { "placeholders": { "count": {} } },
   "smartSuggesting": "智能建议中...",
   "noTaskData": "暂无任务数据",
   "@createdAtDate": {

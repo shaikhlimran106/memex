@@ -560,6 +560,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get recordLabel => '记录';
 
   @override
+  String get sendLabel => '发送';
+
+  @override
+  String attachedImagesMessage(Object count) {
+    return '发送了 $count 张图片';
+  }
+
+  @override
   String get smartSuggesting => '智能建议中...';
 
   @override

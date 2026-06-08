@@ -576,6 +576,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recordLabel => 'Record';
 
   @override
+  String get sendLabel => 'Send';
+
+  @override
+  String attachedImagesMessage(Object count) {
+    return 'Sent $count image(s)';
+  }
+
+  @override
   String get smartSuggesting => 'Smart suggesting...';
 
   @override

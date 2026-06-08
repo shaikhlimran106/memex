@@ -1118,6 +1118,18 @@ abstract class AppLocalizations {
   /// **'Record'**
   String get recordLabel;
 
+  /// No description provided for @sendLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get sendLabel;
+
+  /// No description provided for @attachedImagesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent {count} image(s)'**
+  String attachedImagesMessage(Object count);
+
   /// No description provided for @smartSuggesting.
   ///
   /// In en, this message translates to:

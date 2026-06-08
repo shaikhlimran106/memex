@@ -253,6 +253,9 @@
   "playing": "Playing...",
   "recordedAudio": "Recorded audio",
   "recordLabel": "Record",
+  "sendLabel": "Send",
+  "attachedImagesMessage": "Sent {count} image(s)",
+  "@attachedImagesMessage": { "placeholders": { "count": {} } },
   "smartSuggesting": "Smart suggesting...",
   "noTaskData": "No task data",
   "@createdAtDate": {

@@ -4,12 +4,14 @@ import 'package:memex/agent/super_agent/prompts.dart';
 
 void main() {
   group('SubmitRecordSkill', () {
-    test('exposes a single text submit tool', () {
+    test('exposes a single multimodal submit tool', () {
       final skill = SubmitRecordSkill();
 
       expect(skill.name, 'submit_record');
       expect(skill.systemPrompt, contains('controlled path'));
-      expect(skill.systemPrompt, contains('text records only'));
+      expect(skill.systemPrompt, contains('image_paths'));
+      expect(
+          skill.systemPrompt, contains('ask whether they should be recorded'));
 
       final tools = skill.tools ?? const [];
       expect(tools, hasLength(1));
@@ -18,7 +20,10 @@ void main() {
         tools.single.description,
         contains('normal Facts/Card/PKM pipeline'),
       );
-      expect(tools.single.parameters['required'], contains('content'));
+      final properties =
+          tools.single.parameters['properties'] as Map<String, dynamic>;
+      expect(properties.keys, containsAll(['content', 'image_paths']));
+      expect(tools.single.parameters['required'], isEmpty);
     });
   });
 
