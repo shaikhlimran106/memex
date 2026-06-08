@@ -63,6 +63,7 @@ import 'package:memex/data/services/demo_service.dart';
 import 'package:memex/ui/core/widgets/demo_overlay.dart';
 import 'package:memex/ui/main_screen/widgets/share_intent_handler.dart';
 import 'package:memex/ui/settings/widgets/backup_restore_confirm_dialog.dart';
+import 'package:memex/ui/chat/widgets/agent_chat_dialog.dart';
 import 'package:quick_actions/quick_actions.dart';
 import 'package:memex/data/services/quick_action_service.dart';
 import 'package:memex/data/services/speech_transcription_service.dart';
@@ -773,19 +774,37 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _handleAICoreButtonTap() async {
-    // No LLM config check — users can submit records without AI configured.
+    if (!mounted) return;
 
-    if (mounted) {
-      // Prefill text during demo
-      if (DemoService.instance.currentStep == DemoStep.tapSend) {
-        setState(() {
-          _sharedDraft = InputData(text: DemoService.instance.prefillText);
-          _isInputOpen = true;
-        });
-      } else {
-        setState(() => _isInputOpen = true);
-      }
+    // Keep the onboarding demo on the legacy publish sheet because it depends
+    // on a prefilled draft and a deterministic tapSend step.
+    if (DemoService.instance.currentStep == DemoStep.tapSend) {
+      setState(() {
+        _sharedDraft = InputData(text: DemoService.instance.prefillText);
+        _isInputOpen = true;
+      });
+      return;
     }
+
+    _openSuperAgentDialog();
+  }
+
+  void _openSuperAgentDialog() {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '',
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 500),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return AgentChatDialog(
+          agentName: 'memex_agent',
+          title: 'Memex',
+          inputHint: UserStorage.l10n.aiInputHint,
+          scene: 'super_agent_home',
+        );
+      },
+    );
   }
 
   void _handleAICoreButtonLongPressStart() {

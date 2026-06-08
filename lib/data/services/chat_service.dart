@@ -266,6 +266,10 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     // Build scene context reminder
     String sceneContext = "";
     switch (scene) {
+      case 'super_agent_home':
+        sceneContext =
+            "The user opened you from the central Memex entry point. They may want to record something into the timeline, ask about existing memory, request edits, or configure the app. Decide whether to answer directly, ask a clarification, or use the controlled submit_record skill for durable records.";
+        break;
       case 'assistant_timeline_card_detail':
         sceneContext =
             "The user is currently viewing a **Timeline Card Detail Page**. They may want to edit, analyze, or discuss this specific card.";

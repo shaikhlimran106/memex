@@ -10,6 +10,7 @@ import 'package:memex/agent/skills/manage_timeline_card/timeline_card_skill.dart
 import 'package:memex/agent/skills/manage_system_action/system_action_skill.dart';
 import 'package:memex/agent/skills/knowledge_insight/knowledge_insight_skill.dart';
 import 'package:memex/agent/skills/ask_clarification/ask_clarification_skill.dart';
+import 'package:memex/agent/skills/submit_record/submit_record_skill.dart';
 import 'package:memex/agent/common_tools.dart';
 import 'package:memex/agent/state_util.dart';
 import 'package:memex/agent/super_agent/prompts.dart';
@@ -31,6 +32,7 @@ const _readOnlyToolNames = {
 
 /// Skills excluded in Quick Query mode (those that create/modify data).
 const _quickQueryExcludedSkills = {
+  'submit_record',
   'manage_timeline_card',
   'ask_clarification',
 };
@@ -108,6 +110,7 @@ class SuperAgent {
     state.systemReminders["user_memory"] = userMemory;
 
     var skills = [
+      SubmitRecordSkill(),
       KnowledgeInsightSkill(),
       TimelineCardSkill(),
       PkmSkill(workingDirectory: '/PKM'),
