@@ -20,8 +20,6 @@ class AgentBackgroundTaskChannelHandler: NSObject {
     private var foregroundBackgroundTaskId = UIBackgroundTaskIdentifier.invalid
     private var activeSnapshot: [String: Any] = [:]
     private var bgProcessingTask: BGProcessingTask?
-    private var progressPulseTimer: Timer?
-    private var syntheticProgress: Int64 = 1
     private var submittedContinuedIdentifier: String?
     private var processingTaskRegistered = false
     private var continuedProcessingRegistered = false
@@ -142,9 +140,9 @@ class AgentBackgroundTaskChannelHandler: NSObject {
             beginForegroundBackgroundTaskIfNeeded(reason: snapshot["reason"] as? String ?? "active_tasks")
             scheduleProcessingTask()
             submitContinuedProcessingIfSupported(snapshot: snapshot)
-            updateContinuedProgress(snapshot: snapshot, completed: nil)
+            updateContinuedProgress(snapshot: snapshot)
         } else {
-            updateContinuedProgress(snapshot: snapshot, completed: 100)
+            updateContinuedProgress(snapshot: snapshot)
             cancelScheduledProcessing()
             completeBackgroundRuns(success: true)
             endForegroundBackgroundTask()
@@ -218,7 +216,7 @@ class AgentBackgroundTaskChannelHandler: NSObject {
             self.channel.invokeMethod("backgroundTaskExpired", arguments: ["reason": reason])
 
             self.scheduleProcessingTask()
-            self.completeBackgroundRuns(success: false)
+            self.completeExpiredBackgroundRuns(reason: reason)
             self.endForegroundBackgroundTask()
         }
 
@@ -234,23 +232,15 @@ class AgentBackgroundTaskChannelHandler: NSObject {
         bgProcessingTask = nil
 
         completeContinuedProcessingIfSupported(success: success)
-        stopProgressPulse()
     }
 
-    private func startProgressPulse() {
-        guard progressPulseTimer == nil else { return }
-        syntheticProgress = max(1, syntheticProgress)
-        progressPulseTimer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            self.syntheticProgress = min(95, self.syntheticProgress + 1)
-            self.updateContinuedProgress(snapshot: self.activeSnapshot, completed: self.syntheticProgress)
-        }
-    }
+    private func completeExpiredBackgroundRuns(reason: String) {
+        NSLog("Memex: iOS background task expired (%@); agent queue will resume later", reason)
 
-    private func stopProgressPulse() {
-        progressPulseTimer?.invalidate()
-        progressPulseTimer = nil
-        syntheticProgress = 1
+        bgProcessingTask?.setTaskCompleted(success: false)
+        bgProcessingTask = nil
+
+        completeContinuedProcessingAfterExpiration()
     }
 
     private func registerContinuedProcessingHandlerIfSupported() {
@@ -262,14 +252,12 @@ class AgentBackgroundTaskChannelHandler: NSObject {
     @available(iOS 26.0, *)
     private func handleContinuedProcessingTask(_ task: BGContinuedProcessingTask) {
         continuedProcessingTask = task
-        task.progress.totalUnitCount = 100
-        task.progress.completedUnitCount = max(1, syntheticProgress)
+        updateContinuedProgress(snapshot: activeSnapshot)
 
         task.expirationHandler = { [weak self] in
             self?.handleExpiration(reason: "continued_processing_expired")
         }
 
-        startProgressPulse()
         invokeRunPendingTasks(reason: "continued_processing_launch")
     }
 
@@ -293,7 +281,6 @@ class AgentBackgroundTaskChannelHandler: NSObject {
             do {
                 try BGTaskScheduler.shared.submit(request)
                 submittedContinuedIdentifier = identifier
-                startProgressPulse()
             } catch {
                 NSLog("Memex: BGContinuedProcessingTask submit failed: %@", String(describing: error))
             }
@@ -326,15 +313,13 @@ class AgentBackgroundTaskChannelHandler: NSObject {
         return registered
     }
 
-    private func updateContinuedProgress(snapshot: [String: Any], completed: Int64?) {
+    private func updateContinuedProgress(snapshot: [String: Any]) {
         if #available(iOS 26.0, *) {
             guard let task = continuedProcessingTask else { return }
-            task.progress.totalUnitCount = 100
-            if let completed = completed {
-                task.progress.completedUnitCount = min(100, max(task.progress.completedUnitCount, completed))
-            } else {
-                task.progress.completedUnitCount = min(95, max(task.progress.completedUnitCount, syntheticProgress))
-            }
+            let total = max(1, int64Value(snapshot["progressTotal"]) ?? 1)
+            let completed = min(total, max(0, int64Value(snapshot["progressCompleted"]) ?? 0))
+            task.progress.totalUnitCount = total
+            task.progress.completedUnitCount = completed
             task.updateTitle(task.title, subtitle: subtitle(for: snapshot))
         }
     }
@@ -350,11 +335,35 @@ class AgentBackgroundTaskChannelHandler: NSObject {
         }
     }
 
+    private func completeContinuedProcessingAfterExpiration() {
+        if #available(iOS 26.0, *) {
+            if let task = continuedProcessingTask {
+                task.updateTitle(task.title, subtitle: "Paused. Memex will continue later.")
+                task.setTaskCompleted(success: false)
+            }
+            continuedProcessingTask = nil
+            submittedContinuedIdentifier = nil
+        }
+    }
+
     private func subtitle(for snapshot: [String: Any]) -> String {
         let total = snapshot["total"] as? Int ?? 0
         if total <= 0 {
             return "Finishing current work"
         }
         return "Processing \(total) queued task\(total == 1 ? "" : "s")"
+    }
+
+    private func int64Value(_ value: Any?) -> Int64? {
+        if let value = value as? Int64 {
+            return value
+        }
+        if let value = value as? Int {
+            return Int64(value)
+        }
+        if let value = value as? NSNumber {
+            return value.int64Value
+        }
+        return nil
     }
 }

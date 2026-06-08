@@ -28,6 +28,9 @@ class AgentBackgroundTaskService {
   bool _executorReady = false;
   bool _pendingNativeRun = false;
   bool _nativeBackgroundRunOpen = false;
+  Set<String>? _progressActiveTaskIds;
+  int _progressCompleted = 0;
+  int _progressTotal = 0;
 
   Future<void> initializeNativeBridge() async {
     if (!Platform.isIOS || _bridgeInitialized) return;
@@ -82,6 +85,7 @@ class AgentBackgroundTaskService {
 
     _executorReady = false;
     _pendingNativeRun = false;
+    _resetProgressSession();
     _backgroundCompletionPoller?.cancel();
     _backgroundCompletionPoller = null;
     await _taskSubscription?.cancel();
@@ -129,7 +133,13 @@ class AgentBackgroundTaskService {
         final reason = args?['reason']?.toString() ?? 'native_expired';
         await LocalTaskExecutor.instance
             .recordGracefulShutdown(reason: 'ios_$reason');
-        await _completeNativeBackgroundRun(success: false, reason: reason);
+        _backgroundCompletionPoller?.cancel();
+        _backgroundCompletionPoller = null;
+        _nativeBackgroundRunOpen = false;
+        _resetProgressSession();
+        _logger.info(
+          'iOS background task expired ($reason); agent queue will resume later',
+        );
         return true;
       default:
         throw MissingPluginException('Unknown native method ${call.method}');
@@ -185,12 +195,16 @@ class AgentBackgroundTaskService {
   }) async {
     if (!Platform.isIOS || !_bridgeInitialized) return;
 
+    final progress = _progressFor(snapshot);
+
     try {
       await _channel.invokeMethod<void>('setTaskActivity', {
         'pending': snapshot.pending,
         'processing': snapshot.processing,
         'retrying': snapshot.retrying,
         'total': snapshot.total,
+        'progressCompleted': progress.completed,
+        'progressTotal': progress.total,
         'hasActiveTasks': snapshot.hasActiveTasks,
         'reason': reason,
       });
@@ -200,6 +214,7 @@ class AgentBackgroundTaskService {
           success: true,
           reason: 'snapshot_empty',
         );
+        _resetProgressSession();
       }
     } catch (e, stack) {
       _logger.warning('Failed to sync task activity to iOS', e, stack);
@@ -221,8 +236,65 @@ class AgentBackgroundTaskService {
         'success': success,
         'reason': reason,
       });
+      _resetProgressSession();
     } catch (e, stack) {
       _logger.warning('Failed to complete native iOS background run', e, stack);
     }
   }
+
+  _TaskProgress _progressFor(TaskActivitySnapshot snapshot) {
+    final activeTaskIds = snapshot.activeTaskIds;
+    final previousTaskIds = _progressActiveTaskIds;
+
+    if (!snapshot.hasActiveTasks) {
+      if (previousTaskIds != null && previousTaskIds.isNotEmpty) {
+        _progressCompleted += previousTaskIds.length;
+      }
+      _progressTotal = _progressTotal < _progressCompleted
+          ? _progressCompleted
+          : _progressTotal;
+      _progressActiveTaskIds = const <String>{};
+      return _TaskProgress(
+        completed: _progressTotal,
+        total: _progressTotal,
+      );
+    }
+
+    if (previousTaskIds == null) {
+      _progressCompleted = 0;
+      _progressTotal = activeTaskIds.length;
+    } else {
+      final finishedTaskCount =
+          previousTaskIds.difference(activeTaskIds).length;
+      final newTaskCount = activeTaskIds.difference(previousTaskIds).length;
+      _progressCompleted += finishedTaskCount;
+      _progressTotal += newTaskCount;
+    }
+
+    _progressActiveTaskIds = Set.unmodifiable(activeTaskIds);
+    if (_progressTotal < activeTaskIds.length + _progressCompleted) {
+      _progressTotal = activeTaskIds.length + _progressCompleted;
+    }
+
+    return _TaskProgress(
+      completed: _progressCompleted,
+      total: _progressTotal,
+    );
+  }
+
+  void _resetProgressSession() {
+    _progressActiveTaskIds = null;
+    _progressCompleted = 0;
+    _progressTotal = 0;
+  }
+}
+
+class _TaskProgress {
+  final int completed;
+  final int total;
+
+  const _TaskProgress({
+    required this.completed,
+    required this.total,
+  });
 }

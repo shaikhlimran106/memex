@@ -190,6 +190,11 @@ void main() {
           pending: 1,
           processing: 1,
           retrying: 1,
+          activeTaskIds: {
+            'pending-task',
+            'processing-task',
+            'retrying-task',
+          },
         ),
       );
       expect(snapshot.total, 3);
