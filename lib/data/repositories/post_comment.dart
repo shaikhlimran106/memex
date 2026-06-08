@@ -177,6 +177,7 @@ Future<void> processAICommentReply({
   bool sendEventBus = true,
   DateTime? inputDateTime,
   bool withMemoryManagement = false,
+  bool forceReply = false,
 }) async {
   _logger.info(
     'PostCommentEndpoint: processAICommentReply called: cardId=$cardId, userId=$userId',
@@ -281,6 +282,7 @@ Future<void> processAICommentReply({
         entryTime: entryDateTime,
         locationContextReminder: locationContextReminder,
         withMemoryManagement: withMemoryManagement,
+        forceReply: forceReply,
       );
     } catch (e) {
       _logger.severe('Error running comment agent: $e');

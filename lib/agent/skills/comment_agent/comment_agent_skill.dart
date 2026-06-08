@@ -16,6 +16,7 @@ class CommentAgentSkill extends Skill {
     String userProfile = '',
     String characterMemories = '',
     String? forcedReplyToId,
+    bool forceReply = false,
     super.forceActivate,
   }) : super(
           name: "persona_comment",
@@ -25,6 +26,7 @@ class CommentAgentSkill extends Skill {
             userName: userName,
             userProfile: userProfile,
             characterMemories: characterMemories,
+            forceReply: forceReply,
           ),
           tools: _buildTools(
             userId: userId,
@@ -32,6 +34,7 @@ class CommentAgentSkill extends Skill {
             factId: factId,
             characterId: character?.id,
             forcedReplyToId: forcedReplyToId,
+            forceReply: forceReply,
           ),
         );
 
@@ -40,6 +43,7 @@ class CommentAgentSkill extends Skill {
     required String userName,
     required String userProfile,
     required String characterMemories,
+    required bool forceReply,
   }) {
     StringBuffer personaBuffer = StringBuffer();
     if (character != null) {
@@ -55,6 +59,7 @@ class CommentAgentSkill extends Skill {
     final systemPrompt = Prompts.commentSkillSystemPrompt(
       persona,
       UserStorage.l10n.commentLanguageInstruction,
+      forceReply: forceReply,
     );
 
     final b = StringBuffer();
@@ -112,6 +117,7 @@ class CommentAgentSkill extends Skill {
     required String factId,
     String? characterId,
     String? forcedReplyToId,
+    required bool forceReply,
   }) {
     return CharacterToolsFactory.buildCommentTools(
       userId: userId,
@@ -119,6 +125,7 @@ class CommentAgentSkill extends Skill {
       factId: factId,
       characterId: characterId,
       forcedReplyToId: forcedReplyToId,
+      includeSkipCommentTool: !forceReply,
     );
   }
 }

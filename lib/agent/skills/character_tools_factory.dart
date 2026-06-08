@@ -34,6 +34,7 @@ class CharacterToolsFactory {
     String? characterId,
     String? forcedReplyToId,
     bool includeSaveCommentTool = true,
+    bool includeSkipCommentTool = true,
     bool includeFileTools = true,
   }) {
     final tools = <Tool>[];
@@ -58,6 +59,9 @@ class CharacterToolsFactory {
         forcedReplyToId: forcedReplyToId,
       );
       tools.add(commentFactory.buildSaveCommentTool());
+      if (includeSkipCommentTool) {
+        tools.add(commentFactory.buildSkipCommentTool());
+      }
     }
 
     if (characterId != null) {

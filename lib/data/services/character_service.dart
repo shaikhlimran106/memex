@@ -15,7 +15,7 @@ class CharacterService {
 
   /// Bump this whenever new default characters need to be seeded to existing users.
   /// New users get all characters from l10n.defaultCharacters at once.
-  static const int _currentSeedVersion = 2;
+  static const int _currentSeedVersion = 3;
   static const String _seedVersionFile = '.characters_seed_version';
 
   /// Migrations: version -> list of character IDs to seed for existing users.
@@ -173,9 +173,9 @@ class CharacterService {
   ) async {
     final allDefaults = UserStorage.l10n.defaultCharacters;
     final charData = allDefaults.cast<Map<String, dynamic>?>().firstWhere(
-          (c) => c!['id'] == charId,
-          orElse: () => null,
-        );
+      (c) => c!['id'] == charId,
+      orElse: () => null,
+    );
     if (charData == null) return;
     await _seedCharacterFromData(userId, charsPath, charId, charData);
   }
@@ -213,7 +213,7 @@ class CharacterService {
           await _seedCharacterById(userId, charsPath, charId);
         }
       }
-      if (v == 2) {
+      if (v == 2 || v == 3) {
         await _refreshLegacyDefaultCharacters(userId, charsPath);
       }
     }
@@ -242,8 +242,9 @@ class CharacterService {
         final doc = loadYaml(content);
         final charData = jsonDecode(jsonEncode(doc)) as Map<String, dynamic>;
         final persona = charData['persona']?.toString() ?? '';
-        final looksLikeOldDefault =
-            entry.value.any((marker) => persona.contains(marker));
+        final looksLikeOldDefault = entry.value.any(
+          (marker) => persona.contains(marker),
+        );
         if (!looksLikeOldDefault) continue;
 
         final refreshed = _buildDefaultCharacterYaml(defaultData);
@@ -301,11 +302,19 @@ class CharacterService {
   }
 
   /// Get specific character
-  Future<CharacterModel?> getCharacter(String userId, String characterId,
-      {bool returnPlaceholder = true}) async {
+  Future<CharacterModel?> getCharacter(
+    String userId,
+    String characterId, {
+    bool returnPlaceholder = true,
+  }) async {
     if (characterId == "0") {
       return CharacterModel(
-          id: "0", name: "memex", tags: [], persona: "", enabled: true);
+        id: "0",
+        name: "memex",
+        tags: [],
+        persona: "",
+        enabled: true,
+      );
     }
 
     final charsPath = await _ensureCharactersDirectory(userId);
@@ -517,7 +526,8 @@ class CharacterService {
       return CharacterModel.fromJson(charData);
     } catch (e) {
       _logger.severe(
-          "Failed to update character $characterId for user $userId: $e");
+        "Failed to update character $characterId for user $userId: $e",
+      );
       rethrow;
     }
   }
@@ -533,8 +543,9 @@ class CharacterService {
 
     try {
       await charFile.delete();
-      _logger
-          .info("Physically deleted character $characterId for user $userId");
+      _logger.info(
+        "Physically deleted character $characterId for user $userId",
+      );
       return true;
     } catch (e) {
       _logger.severe("Failed to delete character $characterId: $e");
@@ -544,7 +555,10 @@ class CharacterService {
 
   /// Set character enabled status
   Future<bool> setCharacterEnabled(
-      String userId, String characterId, bool enabled) async {
+    String userId,
+    String characterId,
+    bool enabled,
+  ) async {
     final result = await updateCharacter(
       userId: userId,
       characterId: characterId,
