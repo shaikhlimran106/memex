@@ -27,17 +27,20 @@ class TaskActivitySnapshot {
   final int pending;
   final int processing;
   final int retrying;
+  final Set<String> activeTaskIds;
 
   const TaskActivitySnapshot({
     required this.pending,
     required this.processing,
     required this.retrying,
+    this.activeTaskIds = const <String>{},
   });
 
   const TaskActivitySnapshot.empty()
       : pending = 0,
         processing = 0,
-        retrying = 0;
+        retrying = 0,
+        activeTaskIds = const <String>{};
 
   int get total => pending + processing + retrying;
 
@@ -48,11 +51,17 @@ class TaskActivitySnapshot {
     return other is TaskActivitySnapshot &&
         other.pending == pending &&
         other.processing == processing &&
-        other.retrying == retrying;
+        other.retrying == retrying &&
+        setEquals(other.activeTaskIds, activeTaskIds);
   }
 
   @override
-  int get hashCode => Object.hash(pending, processing, retrying);
+  int get hashCode => Object.hash(
+        pending,
+        processing,
+        retrying,
+        Object.hashAllUnordered(activeTaskIds),
+      );
 }
 
 /// Handler function type
@@ -148,6 +157,7 @@ class LocalTaskExecutor {
       pending: pending,
       processing: processing,
       retrying: retrying,
+      activeTaskIds: tasks.map((task) => task.id).toSet(),
     );
   }
 
