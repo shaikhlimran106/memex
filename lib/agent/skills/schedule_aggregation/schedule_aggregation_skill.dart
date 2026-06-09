@@ -7,6 +7,52 @@ import 'package:memex/domain/models/schedule_state.dart';
 
 import '../../../utils/user_storage.dart';
 
+const Map<String, dynamic> _scheduleSubtaskParameterSchema = {
+  'type': 'object',
+  'properties': {
+    'title': {'type': 'string'},
+    'completed': {'type': 'boolean'},
+    'closed_by_fact_id': {'type': 'string'},
+  },
+};
+
+const Map<String, dynamic> _presentationHeroParameterSchema = {
+  'type': 'object',
+  'properties': {
+    'item_id': {'type': 'string'},
+    'title': {'type': 'string'},
+    'description': {'type': 'string'},
+  },
+};
+
+const Map<String, dynamic> _quoteBlockParameterSchema = {
+  'type': 'object',
+  'properties': {
+    'title': {'type': 'string'},
+    'content': {'type': 'string'},
+    'priority': {
+      'type': 'string',
+      'enum': ['low', 'normal', 'high'],
+    },
+    'item_id': {'type': 'string'},
+  },
+};
+
+const Map<String, dynamic> _timelineDayParameterSchema = {
+  'type': 'object',
+  'properties': {
+    'day_label': {'type': 'string'},
+    'day_date': {
+      'type': 'string',
+      'description': 'Calendar day in YYYY-MM-DD format.',
+    },
+    'item_ids': {
+      'type': 'array',
+      'items': {'type': 'string'},
+    },
+  },
+};
+
 class ScheduleAggregationSkill extends Skill {
   ScheduleAggregationSkill({
     super.forceActivate,
@@ -87,7 +133,8 @@ Tool buildAddPendingItemTool() {
         'priority': {'type': 'number'},
         'subtasks': {
           'type': 'array',
-          'description': 'Todo-only explicit subtasks.'
+          'description': 'Todo-only explicit subtasks.',
+          'items': _scheduleSubtaskParameterSchema,
         },
         'sync_device_action': {
           'type': 'boolean',
@@ -172,7 +219,8 @@ Tool buildUpdatePendingItemTool() {
         'priority': {'type': 'number'},
         'subtasks': {
           'type': 'array',
-          'description': 'Todo-only explicit subtasks.'
+          'description': 'Todo-only explicit subtasks.',
+          'items': _scheduleSubtaskParameterSchema,
         },
         'sync_device_action': {
           'type': 'boolean',
@@ -301,10 +349,16 @@ Tool buildSetPresentationTool({bool stopAfterSetPresentation = false}) {
     parameters: {
       'type': 'object',
       'properties': {
-        'hero': {'type': 'object'},
+        'hero': _presentationHeroParameterSchema,
         'editorial_intro': {'type': 'string'},
-        'quote_blocks': {'type': 'array'},
-        'timeline': {'type': 'array'},
+        'quote_blocks': {
+          'type': 'array',
+          'items': _quoteBlockParameterSchema,
+        },
+        'timeline': {
+          'type': 'array',
+          'items': _timelineDayParameterSchema,
+        },
       },
       'required': ['editorial_intro', 'timeline'],
     },
