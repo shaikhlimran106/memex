@@ -79,6 +79,7 @@ import 'package:memex/data/repositories/get_knowledge_insight_detail.dart';
 import 'package:memex/data/repositories/chat.dart' as chat_endpoint;
 import 'package:memex/data/services/llm_call_record_service.dart';
 import 'package:memex/data/services/agent_activity_service.dart';
+import 'package:memex/data/services/avatar_media_service.dart';
 import 'package:memex/agent/state_util.dart';
 import 'package:memex/agent/skills/knowledge_insight/native_widgets.dart';
 import 'package:memex/utils/result.dart';
@@ -152,6 +153,7 @@ class MemexRouter {
       LocalTaskExecutor.instance.registerHandler(
         'reprocess_cards_task',
         handleReprocessCardsImpl,
+        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
       );
       LocalTaskExecutor.instance.registerHandler(
         'comment_agent_task',
@@ -160,10 +162,12 @@ class MemexRouter {
       LocalTaskExecutor.instance.registerHandler(
         'reprocess_comments_task',
         handleReprocessCommentsImpl,
+        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
       );
       LocalTaskExecutor.instance.registerHandler(
         'reprocess_knowledge_base_task',
         handleReprocessKnowledgeBaseImpl,
+        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
       );
       LocalTaskExecutor.instance.registerHandler(
         'process_ai_reply',
@@ -172,10 +176,12 @@ class MemexRouter {
       LocalTaskExecutor.instance.registerHandler(
         'knowledge_insight_task',
         handleKnowledgeInsight,
+        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
       );
       LocalTaskExecutor.instance.registerHandler(
         'schedule_aggregator_task',
         handleScheduleAggregation,
+        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
       );
       LocalTaskExecutor.instance.registerHandler(
         'post_card_router_task',
@@ -1604,18 +1610,10 @@ class MemexRouter {
       return null;
     }
 
-    final lower = avatar.toLowerCase();
-    final isRelativeImagePath =
-        !avatar.startsWith('/') &&
-        (lower.endsWith('.png') ||
-            lower.endsWith('.jpg') ||
-            lower.endsWith('.jpeg') ||
-            lower.endsWith('.webp'));
-
-    if (isRelativeImagePath) {
-      return fileSystemService.toAbsolutePath(avatar);
-    }
-    return avatar;
+    return AvatarMediaService.resolveAvatarPath(
+      avatar,
+      fileSystemService: fileSystemService,
+    );
   }
 
   Future<void> updateUserAvatar(String avatar) async {
@@ -1628,6 +1626,10 @@ class MemexRouter {
     final meta = await fileSystemService.readProfileMeta(userId);
     meta['avatar'] = avatar;
     await fileSystemService.writeProfileMeta(userId, meta);
+    AvatarMediaService.precacheDiceBearAvatar(avatar);
+    EventBusService.instance.emitEvent(
+      ProfileUpdatedMessage(userId: userId, avatar: avatar),
+    );
   }
 
   Future<void> saveLLMConfigs(List<LLMConfig> configs) async {

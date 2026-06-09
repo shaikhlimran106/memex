@@ -13,7 +13,6 @@
 
 <p align="center">
   <a href="https://github.com/memex-lab/memex/releases"><img src="https://img.shields.io/github/v/release/memex-lab/memex?style=flat-square&label=release" alt="Release"></a>
-  <a href="https://discord.gg/TJGpXwn85F"><img src="https://img.shields.io/badge/discord-join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License"></a>
   <a href="https://github.com/memex-lab/memex/stargazers"><img src="https://img.shields.io/github/stars/memex-lab/memex?style=flat-square&color=f5a623" alt="Stars"></a>
 </p>
@@ -21,7 +20,8 @@
 <p align="center">
   <a href="https://www.memexlab.ai/">官网</a> ·
   <a href="https://apps.apple.com/app/memexai/id6760325170">App Store</a> ·
-  <a href="https://play.google.com/store/apps/details?id=com.memexlab.memex">Google Play</a>
+  <a href="https://play.google.com/store/apps/details?id=com.memexlab.memex">Google Play</a> ·
+  <a href="https://discord.gg/TJGpXwn85F">Discord</a>
 </p>
 
 

@@ -132,7 +132,11 @@ class LLMConfig {
   }
 
   /// Models that require a ChatGPT Pro/Plus subscription (OpenAI OAuth only).
-  static const Set<String> chatgptProOnlyModels = {'gpt-5.4', 'gpt-5.3-codex'};
+  static const Set<String> chatgptProOnlyModels = {
+    'gpt-5.5',
+    'gpt-5.4',
+    'gpt-5.3-codex',
+  };
 
   /// Whether [modelId] requires a ChatGPT Pro/Plus subscription.
   static bool isChatgptProModel(String modelId) =>
@@ -143,19 +147,26 @@ class LLMConfig {
     switch (type) {
       case typeChatCompletion:
       case typeResponses:
-        return const {'gpt-5.4', 'o3', 'o1', 'gpt-5.2'};
+        return const {'gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini', 'o3'};
       case typeOpenAiOauth:
-        return const {'gpt-5.4', 'gpt-5.2'};
+        return const {'gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini'};
       case typeClaude:
-        return const {'claude-opus-4-6', 'claude-sonnet-4-6'};
+        return const {
+          'claude-opus-4-8',
+          'claude-opus-4-7',
+          'claude-opus-4-6',
+          'claude-sonnet-4-6',
+        };
       case typeBedrockClaude:
         return const {
+          'anthropic.claude-opus-4-8',
+          'anthropic.claude-opus-4-7',
           'us.anthropic.claude-opus-4-6-v1',
           'us.anthropic.claude-sonnet-4-6',
         };
       case typeGemini:
       case typeGeminiOauth:
-        return const {'gemini-3.1-pro-preview', 'gemini-3-flash-preview'};
+        return const {'gemini-3.5-flash', 'gemini-3.1-pro-preview'};
       case typeKimi:
         return const {'kimi-k2.5'};
       case typeQwen:
@@ -170,11 +181,14 @@ class LLMConfig {
         return const {'mimo-v2-pro'};
       case typeOpenRouter:
         return const {
+          'openai/gpt-5.5',
+          'anthropic/claude-opus-4.8',
+          'anthropic/claude-opus-4.7',
+          'google/gemini-3.5-flash',
           'anthropic/claude-opus-4.6',
           'anthropic/claude-sonnet-4.6',
           'google/gemini-3.1-pro-preview',
           'openai/gpt-5.4',
-          'openai/gpt-5.2',
           'openai/o3',
           'qwen/qwen-plus',
           'qwen/qwen-max',
@@ -193,49 +207,45 @@ class LLMConfig {
       case typeGemini:
       case typeGeminiOauth:
         return const [
+          'gemini-3.5-flash',
           'gemini-3.1-pro-preview',
           'gemini-3-flash-preview',
           'gemini-3.1-flash-lite-preview',
-          'gemini-2.5-flash',
-          'gemini-2.5-pro',
         ];
       case typeChatCompletion:
       case typeResponses:
         return const [
+          'gpt-5.5',
           'gpt-5.4',
+          'gpt-5.4-mini',
+          'gpt-5.4-nano',
           'o3',
-          'o1',
           'gpt-5.4-pro',
-          'gpt-5-mini',
-          'o1-mini',
-          'o3-pro',
-          'o3-mini',
-          'gpt-5.2',
-          'gpt-5.2-codex',
-          'gpt-5.1-codex-max',
-          'gpt-5.1-codex-mini',
           'gpt-5.3-codex',
-          'gpt-5.1-codex',
-          'gpt-4.1',
         ];
       case typeOpenAiOauth:
         return const [
-          'gpt-5.2',
-          'gpt-5.1-codex-max',
-          'gpt-5.1-codex-mini',
-          'gpt-5.2-codex',
-          'gpt-5.3-codex',
-          'gpt-5.1-codex',
+          'gpt-5.5',
           'gpt-5.4',
+          'gpt-5.4-mini',
+          'gpt-5.3-codex',
         ];
       case typeClaude:
         return const [
+          'claude-opus-4-8',
+          'claude-opus-4-7',
           'claude-opus-4-6',
           'claude-sonnet-4-6',
           'claude-haiku-4-5-20251001',
         ];
       case typeBedrockClaude:
         return const [
+          'anthropic.claude-opus-4-8',
+          'global.anthropic.claude-opus-4-8',
+          'us.anthropic.claude-opus-4-8',
+          'anthropic.claude-opus-4-7',
+          'global.anthropic.claude-opus-4-7',
+          'us.anthropic.claude-opus-4-7',
           'us.anthropic.claude-opus-4-6-v1',
           'global.anthropic.claude-opus-4-6-v1',
           'us.anthropic.claude-sonnet-4-6',
@@ -268,10 +278,13 @@ class LLMConfig {
         return const ['MiniMax-M2.5', 'MiniMax-M1'];
       case typeOpenRouter:
         return const [
+          'openai/gpt-5.5',
+          'anthropic/claude-opus-4.8',
+          'anthropic/claude-opus-4.7',
+          'google/gemini-3.5-flash',
           'anthropic/claude-opus-4.6',
           'anthropic/claude-sonnet-4.6',
           'openai/gpt-5.4',
-          'google/gemini-2.5-flash',
         ];
       case typeOllama:
         return const ['qwen2.5:7b', 'llama3.1:8b', 'gemma3:12b'];
