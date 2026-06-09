@@ -18,6 +18,7 @@ import 'package:memex/data/services/table_change_notifier.dart';
 import 'package:memex/data/services/card_attachment_service.dart';
 import 'package:memex/data/services/card_detail_notifier.dart';
 import 'package:memex/data/services/clarification_request_service.dart';
+import 'package:memex/data/services/agent_background_coordinator.dart';
 import 'package:memex/data/services/agent_background_task_service.dart';
 import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/app_update_service.dart';
@@ -132,95 +133,7 @@ class MemexRouter {
       // Register clarification request table watcher (creates timeline cards for global Ask)
       ClarificationRequestService.instance.init();
 
-      // Register Task Handlers - idempotent registration or check if registered?
-      // LocalTaskExecutor handles this map, re-registering overwrites which is fine.
-      LocalTaskExecutor.instance.registerHandler(
-        'handle_analyze_assets',
-        handleAnalyzeAssetsImpl,
-      );
-      LocalTaskExecutor.instance.registerHandler(
-        'card_agent_task',
-        handleCardAgentImpl,
-      );
-      LocalTaskExecutor.instance.registerHandler(
-        'pkm_agent_task',
-        handlePkmAgentImpl,
-      );
-      LocalTaskExecutor.instance.registerHandler(
-        'fts_index_update',
-        handleFtsIndexUpdateImpl,
-      );
-      LocalTaskExecutor.instance.registerHandler(
-        'reprocess_cards_task',
-        handleReprocessCardsImpl,
-        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
-      );
-      LocalTaskExecutor.instance.registerHandler(
-        'comment_agent_task',
-        handleCommentAgentImpl,
-      );
-      LocalTaskExecutor.instance.registerHandler(
-        'reprocess_comments_task',
-        handleReprocessCommentsImpl,
-        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
-      );
-      LocalTaskExecutor.instance.registerHandler(
-        'reprocess_knowledge_base_task',
-        handleReprocessKnowledgeBaseImpl,
-        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
-      );
-      LocalTaskExecutor.instance.registerHandler(
-        'process_ai_reply',
-        handleProcessAiReplyImpl,
-      );
-      LocalTaskExecutor.instance.registerHandler(
-        'knowledge_insight_task',
-        handleKnowledgeInsight,
-        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
-      );
-      LocalTaskExecutor.instance.registerHandler(
-        'schedule_aggregator_task',
-        handleScheduleAggregation,
-        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
-      );
-      LocalTaskExecutor.instance.registerHandler(
-        'post_card_router_task',
-        handlePostCardRouter,
-      );
-      LocalTaskExecutor.instance.registerHandler(
-        'ask_clarification_task',
-        handleAskClarificationTask,
-      );
-      LocalTaskExecutor.instance.registerHandler(
-        'clarification_resolution_task',
-        handleClarificationResolution,
-      );
-
-      // Register Failure Handlers
-      LocalTaskExecutor.instance.registerFailureHandler(
-        'card_agent_task',
-        handleCardAgentFailureImpl,
-      );
-      // Generic failure handler for all other agent tasks — emits ErrorNotificationMessage
-      for (final taskType in [
-        'pkm_agent_task',
-        'comment_agent_task',
-        'knowledge_insight_task',
-        'schedule_aggregator_task',
-        'post_card_router_task',
-        'ask_clarification_task',
-        'clarification_resolution_task',
-        'reprocess_cards_task',
-        'reprocess_comments_task',
-        'reprocess_knowledge_base_task',
-        'process_ai_reply',
-        'handle_analyze_assets',
-      ]) {
-        LocalTaskExecutor.instance.registerFailureHandler(
-          taskType,
-          handleGenericAgentFailure,
-        );
-      }
+      _registerTaskHandlers(LocalTaskExecutor.instance);
 
       // Register event subscriptions after task handlers are ready.
       _registerEventSubscriptions();
@@ -230,6 +143,10 @@ class MemexRouter {
       registerBuiltInEventSerializers();
       await CustomAgentConfigService.instance.registerAll(userId);
       await AgentBackgroundTaskService.instance.startMonitoring();
+      AgentBackgroundCoordinator.instance.start(
+        executor: LocalTaskExecutor.instance,
+        activityService: LocalAgentActivityService.instance,
+      );
 
       // Register file change callback and FTS event subscriptions.
       // Also triggers a one-time full rebuild when FTS tables were just created
@@ -247,7 +164,7 @@ class MemexRouter {
   }
 
   String?
-  _targetUserIdForInit; // Track the user ID we are currently initializing for
+      _targetUserIdForInit; // Track the user ID we are currently initializing for
 
   void _registerEventSubscriptions() {
     final eventBus = GlobalEventBus.instance;
@@ -440,6 +357,120 @@ class MemexRouter {
     return _initFuture!;
   }
 
+  Future<void> ensureInitialized() => _ensureInitialized();
+
+  /// Initializes only the task queue pieces needed from a WorkManager callback
+  /// isolate.
+  ///
+  /// Keep this as a background-only entry point. It deliberately avoids
+  /// front-end observers, UI notifiers, event subscriptions, search startup, and
+  /// platform background surfaces that are already owned by the foreground
+  /// isolate.
+  static Future<void> ensureTaskQueueInitializedForBackgroundTask(
+    String userId, {
+    LocalTaskExecutor? executor,
+  }) async {
+    final dataRoot = await UserStorage.resolveDataRoot(userId);
+    await FileSystemService.init(dataRoot);
+    await AppDatabase.init(userId);
+
+    final taskExecutor = executor ?? LocalTaskExecutor.instance;
+    AgentActivityService.setInstance(LocalAgentActivityService.instance);
+    _registerTaskHandlers(taskExecutor);
+    initCustomAgentHandler();
+    registerBuiltInEventSerializers();
+    await CustomAgentConfigService.instance.registerAll(userId);
+  }
+
+  static void _registerTaskHandlers(LocalTaskExecutor executor) {
+    // LocalTaskExecutor handles this map; re-registering overwrites which is fine.
+    executor.registerHandler(
+      'handle_analyze_assets',
+      handleAnalyzeAssetsImpl,
+    );
+    executor.registerHandler(
+      'card_agent_task',
+      handleCardAgentImpl,
+    );
+    executor.registerHandler(
+      'pkm_agent_task',
+      handlePkmAgentImpl,
+    );
+    executor.registerHandler(
+      'fts_index_update',
+      handleFtsIndexUpdateImpl,
+    );
+    executor.registerHandler(
+      'reprocess_cards_task',
+      handleReprocessCardsImpl,
+      concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
+    );
+    executor.registerHandler(
+      'comment_agent_task',
+      handleCommentAgentImpl,
+    );
+    executor.registerHandler(
+      'reprocess_comments_task',
+      handleReprocessCommentsImpl,
+      concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
+    );
+    executor.registerHandler(
+      'reprocess_knowledge_base_task',
+      handleReprocessKnowledgeBaseImpl,
+      concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
+    );
+    executor.registerHandler(
+      'process_ai_reply',
+      handleProcessAiReplyImpl,
+    );
+    executor.registerHandler(
+      'knowledge_insight_task',
+      handleKnowledgeInsight,
+      concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
+    );
+    executor.registerHandler(
+      'schedule_aggregator_task',
+      handleScheduleAggregation,
+      concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
+    );
+    executor.registerHandler(
+      'post_card_router_task',
+      handlePostCardRouter,
+    );
+    executor.registerHandler(
+      'ask_clarification_task',
+      handleAskClarificationTask,
+    );
+    executor.registerHandler(
+      'clarification_resolution_task',
+      handleClarificationResolution,
+    );
+
+    executor.registerFailureHandler(
+      'card_agent_task',
+      handleCardAgentFailureImpl,
+    );
+    for (final taskType in [
+      'pkm_agent_task',
+      'comment_agent_task',
+      'knowledge_insight_task',
+      'schedule_aggregator_task',
+      'post_card_router_task',
+      'ask_clarification_task',
+      'clarification_resolution_task',
+      'reprocess_cards_task',
+      'reprocess_comments_task',
+      'reprocess_knowledge_base_task',
+      'process_ai_reply',
+      'handle_analyze_assets',
+    ]) {
+      executor.registerFailureHandler(
+        taskType,
+        handleGenericAgentFailure,
+      );
+    }
+  }
+
   /// External hook to force switch user (e.g. on login)
   Future<void> switchUser(String userId) async {
     _logger.info('Switching user to $userId');
@@ -488,6 +519,7 @@ class MemexRouter {
     _logger.info('Resetting MemexRouter for logout');
     _targetUserIdForInit = null;
     _initFuture = null;
+    unawaited(AgentBackgroundCoordinator.instance.stop());
     unawaited(AgentBackgroundTaskService.instance.stopMonitoring(
       reason: 'logout',
     ));
@@ -496,6 +528,7 @@ class MemexRouter {
   }
 
   void dispose() {
+    unawaited(AgentBackgroundCoordinator.instance.stop());
     unawaited(AgentBackgroundTaskService.instance.stopMonitoring(
       reason: 'router_dispose',
     ));
@@ -1057,8 +1090,8 @@ class MemexRouter {
             id,
           );
           if (cardData != null) {
-            final currentSortOrder = (cardData['sort_order'] as num? ?? 0)
-                .toInt();
+            final currentSortOrder =
+                (cardData['sort_order'] as num? ?? 0).toInt();
             if (currentSortOrder != i) {
               cardData['sort_order'] = i;
               await fileSystemService.writeKnowledgeInsightCard(
@@ -1160,23 +1193,24 @@ class MemexRouter {
     required String itemId,
     required String subtaskTitle,
     required bool completed,
-  }) => runResultVoid(() async {
-    await _ensureInitialized();
-    final userId = await UserStorage.getUserId();
-    if (userId == null) {
-      throw Exception('User not logged in');
-    }
+  }) =>
+      runResultVoid(() async {
+        await _ensureInitialized();
+        final userId = await UserStorage.getUserId();
+        if (userId == null) {
+          throw Exception('User not logged in');
+        }
 
-    await ScheduleStateService.instance.setSubtaskCompletion(
-      userId: userId,
-      pendingId: itemId,
-      subtaskTitle: subtaskTitle,
-      completed: completed,
-    );
-    EventBusService.instance.emitEvent(
-      ScheduleAggregationUpdatedMessage(aggregationId: 'schedule_state'),
-    );
-  });
+        await ScheduleStateService.instance.setSubtaskCompletion(
+          userId: userId,
+          pendingId: itemId,
+          subtaskTitle: subtaskTitle,
+          completed: completed,
+        );
+        EventBusService.instance.emitEvent(
+          ScheduleAggregationUpdatedMessage(aggregationId: 'schedule_state'),
+        );
+      });
 
   Future<bool> updateCardTime(String cardId, int timestamp) async {
     await _ensureInitialized();
@@ -1671,38 +1705,38 @@ class MemexRouter {
   Future<void> resetAllAgentConfigs() => UserStorage.resetAllAgentConfigs();
 
   Future<Result<void>> updateKnowledgeInsights() => runResultVoid(() async {
-    await _ensureInitialized();
-    final userId = await UserStorage.getUserId();
-    if (userId == null) {
-      throw Exception('User not logged in');
-    }
+        await _ensureInitialized();
+        final userId = await UserStorage.getUserId();
+        if (userId == null) {
+          throw Exception('User not logged in');
+        }
 
-    await GlobalEventBus.instance.publish(
-      userId: userId,
-      event: SystemEvent(
-        type: SystemEventTypes.knowledgeInsightRefreshRequested,
-        source: 'memex_router.updateKnowledgeInsights',
-        payload: const {},
-      ),
-    );
-  });
+        await GlobalEventBus.instance.publish(
+          userId: userId,
+          event: SystemEvent(
+            type: SystemEventTypes.knowledgeInsightRefreshRequested,
+            source: 'memex_router.updateKnowledgeInsights',
+            payload: const {},
+          ),
+        );
+      });
 
   Future<Result<void>> refreshScheduleAggregation() => runResultVoid(() async {
-    await _ensureInitialized();
-    final userId = await UserStorage.getUserId();
-    if (userId == null) {
-      throw Exception('User not logged in');
-    }
+        await _ensureInitialized();
+        final userId = await UserStorage.getUserId();
+        if (userId == null) {
+          throw Exception('User not logged in');
+        }
 
-    await GlobalEventBus.instance.publish(
-      userId: userId,
-      event: SystemEvent(
-        type: SystemEventTypes.scheduleAggregationRequested,
-        source: 'memex_router.refreshScheduleAggregation',
-        payload: const {},
-      ),
-    );
-  });
+        await GlobalEventBus.instance.publish(
+          userId: userId,
+          event: SystemEvent(
+            type: SystemEventTypes.scheduleAggregationRequested,
+            source: 'memex_router.refreshScheduleAggregation',
+            payload: const {},
+          ),
+        );
+      });
 
   Future<List<Task>> getTasks({int limit = 10, int offset = 0}) =>
       LocalTaskExecutor.instance.getTasks(limit: limit, offset: offset);
