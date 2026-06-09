@@ -36,8 +36,13 @@ Closes #
 
 ## Test plan
 
-<!-- List the exact commands and manual checks you ran. -->
+<!-- List the exact commands and manual checks you ran. For behavior changes,
+unit/widget test evidence is expected in this PR. If a box is not applicable,
+write the concrete reason next to it. -->
 
+- [ ] Added/updated unit tests for changed non-UI behavior, or explained why not:
+- [ ] Added/updated widget tests for UI/user interaction changes, or explained why not:
+- [ ] Exact test files:
 - [ ] `flutter test`
 - [ ] `flutter analyze`
 - [ ] Manual iOS check
@@ -51,4 +56,3 @@ Closes #
 - [ ] I did not edit generated `*.g.dart` files manually.
 - [ ] I did not add telemetry, hidden network calls, secrets, or signing keys.
 - [ ] I updated docs or localization when needed.
-

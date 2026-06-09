@@ -1,5 +1,21 @@
 # Memex — Project Context for Claude Code
 
+## Authoritative Agent Rules
+
+`AGENTS.md` is the canonical instruction file for coding agents in this repo.
+Read it before editing code, and follow its architecture, data-access,
+localization, logging, and testing requirements. If this file conflicts with
+`AGENTS.md`, `AGENTS.md` wins.
+
+For testing, behavior changes require tests in the same PR:
+
+- Unit tests for changed domain, utility, repository, service, task, agent,
+  routing, database, or non-UI ViewModel behavior.
+- Widget tests for changed UI rendering, state, navigation, dialogs/sheets,
+  buttons, gestures, error/empty/loading states, localization, or interactions.
+- Integration/full-chain tests for cross-layer golden-path changes such as
+  capture, card generation, timeline refresh, backup/restore, and LLM config.
+
 ## Product
 
 Memex is a local-first, AI-native personal knowledge management app built with Flutter. Users capture text, photos, and voice recordings. A multi-agent system automatically organizes records into structured timeline cards, extracts knowledge, and generates cross-record insights.

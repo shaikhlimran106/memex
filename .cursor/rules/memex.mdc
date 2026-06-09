@@ -1,0 +1,20 @@
+---
+description: Memex coding and testing rules
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+`AGENTS.md` is the canonical instruction file for this repository. Read it
+before editing code and follow its architecture, data-access, localization,
+logging, and testing requirements.
+
+Behavior changes require test evidence in the same PR:
+
+- Unit tests for changed non-UI behavior.
+- Widget tests for changed UI rendering, state, navigation, dialogs/sheets,
+  buttons, gestures, error/empty/loading states, localization, or interactions.
+- Integration or full-chain tests for cross-layer golden-path changes.
+
+If tests are not added or not run, the PR test plan must explain the concrete
+reason.

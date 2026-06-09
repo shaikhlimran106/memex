@@ -111,6 +111,23 @@ AI 必须检查：
 - 短 UI 字符串是否走 ARB，中长文案是否走 `AppLocalizationsExt`。
 - agent 是否使用明确文件权限、正确 LLM resource 获取和状态持久化。
 
+## 测试缺口检查
+
+AI 必须把测试证据当作语义 review 的一部分，而不是只看 CI 是否跑过：
+
+- 改动 `lib/data/**`、`lib/domain/**`、`lib/utils/**`、`lib/agent/**`、
+  `lib/db/**`、`lib/routing/**` 或非 UI ViewModel 行为时，应有对应 unit
+  test，或者 PR test plan 给出具体豁免理由。
+- 改动 `lib/ui/**` 的渲染、状态、导航、弹窗/底 sheet、按钮、手势、错误/空态/加载态、
+  localization 或用户交互时，应有 widget test 覆盖可见行为，或者 PR test plan 给出
+  具体豁免理由。
+- 改动跨越 repository、service、router、event、task 或 agent 边界，或影响记录输入、
+  card 生成、timeline 刷新、备份恢复、LLM 配置等黄金链路时，应有 integration、
+  full-chain 或明确的端到端验证说明。
+- PR 只写 `Not run`、`未运行` 或泛泛说“手动测试过”，不能算充分测试证据。
+- 非文档行为改动缺少足够测试时，应写入 `test_gaps`；如果影响范围不小或触及黄金链路，
+  通常应提升到 `high` 或更高风险。
+
 ## 输出要求
 
 AI 必须输出符合 `.github/claude/pr-ai-review.schema.json` 的 JSON。输出应包含：

@@ -22,6 +22,31 @@ cd ios && pod install && cd ..
 
 Never edit `*.g.dart` files — always regenerate.
 
+## Testing Requirements
+
+Behavior changes must include tests in the same PR. Documentation, comments, or
+pure repository configuration changes may skip app tests only when the PR test
+plan explains why.
+
+- Add or update **unit tests** for changed domain models, utilities,
+  repositories, services, task handlers, agents, routing decisions, database
+  behavior, or non-UI ViewModel logic. Mirror the `lib/` path under `test/`
+  whenever a clear home exists.
+- Add or update **widget tests** for any UI rendering, state, navigation,
+  dialog/sheet, button, gesture, error/empty/loading state, localization, or
+  user interaction change. The test should assert the visible behavior a user
+  relies on.
+- Add an integration or full-chain regression test when a change crosses
+  repository/service/router/event/task/agent boundaries or fixes a golden-path
+  flow such as capture, card generation, timeline refresh, backup/restore, or
+  LLM configuration.
+- Do not delete, weaken, or rewrite tests just to make a change pass. If a test
+  expectation changes, preserve the old behavior in a new assertion when it is
+  still supported, or explain the behavior change in the PR.
+- Run the smallest meaningful targeted tests while iterating, then run
+  `flutter test` and `flutter analyze` before publishing when feasible. If a
+  command is not run, the PR test plan must state the exact reason.
+
 ## Architecture
 
 **MVVM + Provider** following [Flutter app architecture guide](https://docs.flutter.dev/app-architecture/guide).
