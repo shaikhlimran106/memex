@@ -131,6 +131,28 @@ AI must check whether:
 - Agents use explicit file permissions, correct LLM resource lookup, and state
   persistence.
 
+## Test Gap Checks
+
+AI must treat test evidence as part of semantic review, not only check whether
+CI ran:
+
+- Changes to `lib/data/**`, `lib/domain/**`, `lib/utils/**`, `lib/agent/**`,
+  `lib/db/**`, `lib/routing/**`, or non-UI ViewModel behavior should include
+  matching unit tests, or a concrete exemption in the PR test plan.
+- Changes to `lib/ui/**` rendering, state, navigation, dialogs/sheets, buttons,
+  gestures, error/empty/loading states, localization, or user interactions
+  should include widget tests for the visible behavior, or a concrete exemption
+  in the PR test plan.
+- Changes that cross repository, service, router, event, task, or agent
+  boundaries, or affect golden paths such as capture, card generation, timeline
+  refresh, backup/restore, or LLM configuration, should include integration,
+  full-chain, or explicit end-to-end validation evidence.
+- A PR that only says `Not run`, `未运行`, or generally claims "manual testing"
+  does not provide sufficient test evidence.
+- Missing test evidence for non-documentation behavior changes must be listed
+  in `test_gaps`; if the affected scope is meaningful or touches a golden path,
+  risk should usually rise to `high` or above.
+
 ## Output
 
 AI must return JSON matching `.github/claude/pr-ai-review.schema.json`. The
