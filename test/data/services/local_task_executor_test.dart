@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:drift/drift.dart' hide isNull;
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/data/services/local_task_executor.dart';
@@ -257,6 +257,327 @@ void main() {
       expect(snapshot.total, 3);
       expect(snapshot.hasActiveTasks, isTrue);
     });
+
+    test('does not double-claim a task under repeated immediate polls',
+        () async {
+      final release = Completer<void>();
+      var runCount = 0;
+      executor.registerHandler('single_claim_task', (_, __, ___) async {
+        runCount++;
+        await release.future;
+      });
+
+      await _insertTask(
+        db,
+        id: 'single-claim',
+        type: 'single_claim_task',
+        status: 'pending',
+        payload: {'value': 1},
+      );
+
+      await executor.start(userId: 'user-a');
+      await _waitForTaskStatus(db, 'single-claim', 'processing');
+
+      for (var i = 0; i < 5; i++) {
+        await executor.drainAvailableTasks(
+          userId: 'user-a',
+          maxDuration: const Duration(milliseconds: 50),
+          pollInterval: const Duration(milliseconds: 10),
+        );
+      }
+
+      expect(runCount, 1);
+
+      release.complete();
+      await _waitForTaskStatus(db, 'single-claim', 'completed');
+    });
+
+    test('background drain runs available tasks and leaves future retries',
+        () async {
+      final completedTaskIds = <String>[];
+      executor.registerHandler('drain_task', (_, __, context) async {
+        completedTaskIds.add(context.taskId);
+      });
+
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      await _insertTask(
+        db,
+        id: 'available-drain',
+        type: 'drain_task',
+        status: 'pending',
+        payload: {'value': 1},
+      );
+      await _insertTask(
+        db,
+        id: 'future-retry',
+        type: 'drain_task',
+        status: 'retrying',
+        payload: {'value': 2},
+        scheduledAt: now + 3600,
+      );
+
+      final result = await executor.drainAvailableTasks(
+        userId: 'user-a',
+        maxDuration: const Duration(seconds: 3),
+        pollInterval: const Duration(milliseconds: 25),
+      );
+
+      final available = await _getTask(db, 'available-drain');
+      final futureRetry = await _getTask(db, 'future-retry');
+
+      expect(completedTaskIds, ['available-drain']);
+      expect(available.status, 'completed');
+      expect(futureRetry.status, 'retrying');
+      expect(result.timedOut, isFalse);
+      expect(result.snapshot.retrying, 1);
+      expect(result.nextRunnableDelay, isNotNull);
+    });
+
+    test('background drain waits for claimed task handlers before returning',
+        () async {
+      final started = Completer<void>();
+      final release = Completer<void>();
+      var drainCompleted = false;
+      executor.registerHandler('slow_drain_task', (_, __, context) async {
+        if (!started.isCompleted) started.complete();
+        await release.future;
+      });
+
+      await _insertTask(
+        db,
+        id: 'slow-drain',
+        type: 'slow_drain_task',
+        status: 'pending',
+        payload: {'value': 1},
+      );
+
+      final drainFuture = executor
+          .drainAvailableTasks(
+        userId: 'user-a',
+        maxDuration: const Duration(milliseconds: 100),
+        pollInterval: const Duration(milliseconds: 20),
+      )
+          .then((result) {
+        drainCompleted = true;
+        return result;
+      });
+
+      await started.future.timeout(const Duration(seconds: 3));
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+
+      expect(drainCompleted, isFalse);
+      expect((await _getTask(db, 'slow-drain')).status, 'processing');
+
+      release.complete();
+      final result = await drainFuture.timeout(const Duration(seconds: 3));
+
+      expect(result.timedOut, isFalse);
+      expect((await _getTask(db, 'slow-drain')).status, 'completed');
+    });
+
+    test('background drain does not reset already processing tasks', () async {
+      await _insertTask(
+        db,
+        id: 'foreground-processing',
+        type: 'long_task',
+        status: 'processing',
+        payload: {'value': 1},
+      );
+
+      final result = await executor.drainAvailableTasks(
+        userId: 'user-a',
+        maxDuration: const Duration(milliseconds: 100),
+        pollInterval: const Duration(milliseconds: 20),
+      );
+
+      final task = await _getTask(db, 'foreground-processing');
+
+      expect(result.timedOut, isTrue);
+      expect(task.status, 'processing');
+    });
+
+    test('background drain requeues orphan processing tasks', () async {
+      final completedTaskIds = <String>[];
+      executor.registerHandler('orphan_task', (_, __, context) async {
+        completedTaskIds.add(context.taskId);
+      });
+      final task = await _insertTask(
+        db,
+        id: 'orphan-processing',
+        type: 'orphan_task',
+        status: 'processing',
+        payload: {'value': 1},
+      );
+      await executor.markTaskExecutionStartedForTesting(task);
+
+      final result = await executor.drainAvailableTasks(
+        userId: 'user-a',
+        maxDuration: const Duration(seconds: 3),
+        pollInterval: const Duration(milliseconds: 25),
+        minimumStaleTaskAge: Duration.zero,
+      );
+
+      final updated = await _getTask(db, 'orphan-processing');
+
+      expect(result.timedOut, isFalse);
+      expect(completedTaskIds, ['orphan-processing']);
+      expect(updated.status, 'completed');
+      expect(await executor.getTaskExecutionMarkerForTesting(task.id), isNull);
+    });
+
+    test('background drain can stop an already running executor', () async {
+      final completedTaskIds = <String>[];
+      executor.registerHandler('drain_task', (_, __, context) async {
+        completedTaskIds.add(context.taskId);
+      });
+
+      await executor.start(userId: 'user-a');
+      await _insertTask(
+        db,
+        id: 'available-drain',
+        type: 'drain_task',
+        status: 'pending',
+        payload: {'value': 1},
+      );
+
+      final result = await executor.drainAvailableTasks(
+        userId: 'user-a',
+        maxDuration: const Duration(seconds: 3),
+        pollInterval: const Duration(milliseconds: 25),
+        stopWhenDone: true,
+      );
+
+      await _insertTask(
+        db,
+        id: 'after-drain',
+        type: 'drain_task',
+        status: 'pending',
+        payload: {'value': 2},
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      final afterDrain = await _getTask(db, 'after-drain');
+
+      expect(result.timedOut, isFalse);
+      expect(completedTaskIds, ['available-drain']);
+      expect(afterDrain.status, 'pending');
+    });
+
+    test('background drain respects user-level concurrency policy', () async {
+      final firstStarted = Completer<void>();
+      final releaseFirst = Completer<void>();
+      final secondStarted = Completer<void>();
+      final completedTaskIds = <String>[];
+
+      executor.registerHandler(
+        'serial_drain_task',
+        (_, __, context) async {
+          if (context.taskId == 'serial-1') {
+            if (!firstStarted.isCompleted) firstStarted.complete();
+            await releaseFirst.future;
+          } else {
+            if (!secondStarted.isCompleted) secondStarted.complete();
+          }
+          completedTaskIds.add(context.taskId);
+        },
+        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
+      );
+
+      await _insertTask(
+        db,
+        id: 'serial-1',
+        type: 'serial_drain_task',
+        status: 'pending',
+        payload: {'value': 1},
+      );
+      await _insertTask(
+        db,
+        id: 'serial-2',
+        type: 'serial_drain_task',
+        status: 'pending',
+        payload: {'value': 2},
+      );
+
+      await executor.start(userId: 'user-a');
+      await firstStarted.future.timeout(const Duration(seconds: 3));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      expect((await _getTask(db, 'serial-2')).status, 'pending');
+      expect(secondStarted.isCompleted, isFalse);
+
+      releaseFirst.complete();
+      await secondStarted.future.timeout(const Duration(seconds: 3));
+      final result = await executor.drainAvailableTasks(
+        userId: 'user-a',
+        maxDuration: const Duration(seconds: 3),
+        pollInterval: const Duration(milliseconds: 25),
+      );
+
+      expect(result.timedOut, isFalse);
+      expect(completedTaskIds, ['serial-1', 'serial-2']);
+    });
+
+    test('background drain respects user-level concurrency across executors',
+        () async {
+      final foregroundExecutor = executor;
+      final backgroundExecutor = LocalTaskExecutor.forTesting();
+      final foregroundStarted = Completer<void>();
+      final releaseForeground = Completer<void>();
+      final backgroundStarted = Completer<void>();
+
+      foregroundExecutor.registerHandler(
+        'serial_cross_task',
+        (_, __, context) async {
+          if (context.taskId == 'serial-cross-1' &&
+              !foregroundStarted.isCompleted) {
+            foregroundStarted.complete();
+            await releaseForeground.future;
+          }
+        },
+        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
+      );
+      backgroundExecutor.registerHandler(
+        'serial_cross_task',
+        (_, __, context) async {
+          if (!backgroundStarted.isCompleted) {
+            backgroundStarted.complete();
+          }
+        },
+        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
+      );
+
+      await _insertTask(
+        db,
+        id: 'serial-cross-1',
+        type: 'serial_cross_task',
+        status: 'pending',
+        payload: {'value': 1},
+      );
+      await _insertTask(
+        db,
+        id: 'serial-cross-2',
+        type: 'serial_cross_task',
+        status: 'pending',
+        payload: {'value': 2},
+      );
+
+      await foregroundExecutor.start(userId: 'user-a');
+      await foregroundStarted.future.timeout(const Duration(seconds: 3));
+
+      final result = await backgroundExecutor.drainAvailableTasks(
+        userId: 'user-a',
+        maxDuration: const Duration(milliseconds: 120),
+        pollInterval: const Duration(milliseconds: 20),
+      );
+
+      foregroundExecutor.stop();
+      releaseForeground.complete();
+      await _waitForTaskStatus(db, 'serial-cross-1', 'completed');
+      backgroundExecutor.stop();
+
+      expect(result.timedOut, isTrue);
+      expect((await _getTask(db, 'serial-cross-2')).status, 'pending');
+      expect(backgroundStarted.isCompleted, isFalse);
+    });
   });
 
   group('LocalTaskExecutor crash loop guard', () {
@@ -500,6 +821,7 @@ Future<Task> _insertTask(
   required String status,
   required Map<String, dynamic> payload,
   String? dependencies,
+  int? scheduledAt,
 }) async {
   final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
   await db.into(db.tasks).insert(
@@ -511,6 +833,7 @@ Future<Task> _insertTask(
           createdAt: Value(now),
           updatedAt: Value(now),
           maxRetries: const Value(5),
+          scheduledAt: Value(scheduledAt),
           dependencies: Value(dependencies),
         ),
       );

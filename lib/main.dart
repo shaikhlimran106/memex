@@ -94,10 +94,11 @@ void main() async {
     isInDebugMode: false,
   );
 
-  // Cancel any previously registered pedometer background tasks on iOS
-  // (iOS now uses HealthKit only, not CMPedometer)
+  // Cancel legacy pedometer background tasks on iOS without wiping newer
+  // background registrations such as agent queue processing.
   if (Platform.isIOS) {
-    await Workmanager().cancelAll();
+    await Workmanager().cancelByUniqueName('workmanager.background.task');
+    await Workmanager().cancelByUniqueName('dailyStepSnapshotTask');
   }
   await AgentBackgroundTaskService.instance.initializeNativeBridge();
 

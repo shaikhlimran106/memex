@@ -3,6 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/data/services/agent_activity_service.dart';
+import 'package:memex/data/services/agent_background_coordinator.dart';
+import 'package:memex/data/services/agent_background_platform.dart';
+import 'package:memex/data/services/agent_background_status.dart';
+import 'package:memex/data/services/agent_queue_drain_scheduler.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/l10n/app_localizations.dart';
 import 'package:memex/ui/agent_activity/widgets/agent_activity_widget.dart';
@@ -16,6 +20,10 @@ void main() {
     SharedPreferences.setMockInitialValues({'user_id': 'agent-activity-test'});
     await UserStorage.initL10n();
     AgentActivityService.setInstance(LocalAgentActivityService.instance);
+  });
+
+  tearDown(() {
+    resetAgentBackgroundCoordinatorForTesting();
   });
 
   Widget buildHost({
@@ -53,6 +61,8 @@ void main() {
     expect(find.text('Activity Detail'), findsOneWidget);
     expect(find.text('Processing...'), findsOneWidget);
 
+    Navigator.of(tester.element(find.text('Activity Detail'))).pop();
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
@@ -81,7 +91,71 @@ void main() {
       findsWidgets,
     );
 
+    Navigator.of(tester.element(find.text('Activity Detail'))).pop();
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
+
+  testWidgets('opens detail sheet from a buffered notification action', (
+    tester,
+  ) async {
+    final platform = _FakePlatform();
+    final coordinator = AgentBackgroundCoordinator(
+      platform: platform,
+      scheduler: _NoopScheduler(),
+    );
+    setAgentBackgroundCoordinatorForTesting(coordinator);
+
+    await tester.pumpWidget(buildHost());
+    emitAgentBackgroundOpenActivityForTesting();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.text('Activity Detail'), findsOneWidget);
+    expect(find.text('No agent activity yet'), findsOneWidget);
+
+    Navigator.of(tester.element(find.text('Activity Detail'))).pop();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    platform.dispose();
+  });
+}
+
+class _FakePlatform implements AgentBackgroundPlatform {
+  String? initialAction;
+  final _actions = StreamController<String>.broadcast();
+
+  @override
+  bool get isSupported => true;
+
+  @override
+  Stream<String> get actionStream => _actions.stream;
+
+  @override
+  Future<String?> consumeInitialAction() async => initialAction;
+
+  @override
+  Future<void> finishStatus(AgentBackgroundStatus status) async {}
+
+  @override
+  Future<void> stopStatus() async {}
+
+  @override
+  Future<void> updateStatus(AgentBackgroundStatus status) async {}
+
+  void dispose() {
+    unawaited(_actions.close());
+  }
+}
+
+class _NoopScheduler implements AgentQueueDrainScheduler {
+  @override
+  Future<void> cancel() async {}
+
+  @override
+  Future<void> schedule({
+    Duration? initialDelay,
+    bool expedited = false,
+  }) async {}
 }

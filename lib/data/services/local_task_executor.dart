@@ -64,6 +64,18 @@ class TaskActivitySnapshot {
       );
 }
 
+class TaskQueueDrainResult {
+  const TaskQueueDrainResult({
+    required this.snapshot,
+    required this.timedOut,
+    this.nextRunnableDelay,
+  });
+
+  final TaskActivitySnapshot snapshot;
+  final bool timedOut;
+  final Duration? nextRunnableDelay;
+}
+
 /// Handler function type
 typedef TaskHandler = Future<void> Function(
     String userId, Map<String, dynamic> payload, TaskContext context);
@@ -77,13 +89,18 @@ typedef TaskConcurrencyKeyBuilder = String Function(
 /// Per-task-type concurrency policy. The executor prefixes the returned key
 /// with the task type, so [byUser] means "one task of this type per user".
 class TaskConcurrencyPolicy {
-  TaskConcurrencyPolicy._(this._keyBuilder);
+  TaskConcurrencyPolicy._(
+    this._keyBuilder, {
+    required this.guardsProcessingTasksOfSameType,
+  });
 
   final TaskConcurrencyKeyBuilder _keyBuilder;
+  final bool guardsProcessingTasksOfSameType;
 
   factory TaskConcurrencyPolicy.byUser() {
     return TaskConcurrencyPolicy._(
       (userId, payload, context) => userId,
+      guardsProcessingTasksOfSameType: true,
     );
   }
 
@@ -127,6 +144,7 @@ class LocalTaskExecutor {
   final Map<String, TaskHandler> _handlers = {};
   final Map<String, TaskConcurrencyPolicy> _concurrencyPolicies = {};
   final Set<String> _activeConcurrencyKeys = <String>{};
+  final Map<String, Timer> _taskHeartbeatTimers = {};
 
   // Failure handlers registry
   final Map<String, TaskFailureHandler> _failureHandlers = {};
@@ -135,6 +153,7 @@ class LocalTaskExecutor {
   bool _isRunning = false;
   Timer? _pollTimer;
   bool _isProcessing = false;
+  bool _autoPollEnabled = true;
 
   // Polling interval
   static const Duration _pollInterval = Duration(seconds: 1);
@@ -143,6 +162,8 @@ class LocalTaskExecutor {
   static const String _gracefulExitMarkerKey = 'graceful_exit_marker';
   static const int crashLoopFailureThreshold = 2;
   static const Duration crashLikeExitWindow = Duration(minutes: 10);
+  static const Duration _taskHeartbeatInterval = Duration(seconds: 10);
+  static const Duration _backgroundStaleTaskAge = Duration(seconds: 30);
 
   /// Stream that emits true if there are any active (pending, processing, retrying) tasks in the DB.
   /// Useful for global UI loading indicators.
@@ -164,6 +185,59 @@ class LocalTaskExecutor {
     final query = _db.select(_db.tasks)
       ..where((t) => t.status.isIn(['pending', 'processing', 'retrying']));
     return _snapshotFromTasks(await query.get());
+  }
+
+  Future<TaskQueueDrainResult> drainAvailableTasks({
+    required String userId,
+    Duration maxDuration = const Duration(seconds: 25),
+    Duration pollInterval = const Duration(milliseconds: 200),
+    bool stopWhenDone = false,
+    Duration minimumStaleTaskAge = _backgroundStaleTaskAge,
+  }) async {
+    final wasRunning = _isRunning;
+    if (!wasRunning) {
+      await start(
+        userId: userId,
+        recoverStaleTasks: true,
+        autoPoll: false,
+        minimumStaleTaskAge: minimumStaleTaskAge,
+      );
+    } else {
+      _currentUserId ??= userId;
+    }
+
+    final deadline = DateTime.now().add(maxDuration);
+    var timedOut = false;
+    try {
+      while (true) {
+        await _workerLoop(
+          scheduleNextPoll: false,
+          rethrowErrors: true,
+          awaitClaimedTasks: true,
+        );
+        final hasProcessing = await _hasProcessingTasks();
+        final hasRunnable = await _hasRunnableTasks();
+        if (!hasProcessing && !hasRunnable) {
+          break;
+        }
+        if (DateTime.now().isAfter(deadline)) {
+          timedOut = true;
+          break;
+        }
+        _scheduleNextPoll(immediate: true);
+        await Future<void>.delayed(pollInterval);
+      }
+
+      return TaskQueueDrainResult(
+        snapshot: await getTaskActivitySnapshot(),
+        timedOut: timedOut,
+        nextRunnableDelay: await _nextRunnableDelay(),
+      );
+    } finally {
+      if (stopWhenDone || !wasRunning) {
+        stop();
+      }
+    }
   }
 
   TaskActivitySnapshot _snapshotFromTasks(List<Task> tasks) {
@@ -211,31 +285,62 @@ class LocalTaskExecutor {
   }
 
   /// Start the worker loop
-  Future<void> start({String? userId}) async {
+  Future<void> start({
+    String? userId,
+    bool recoverStaleTasks = true,
+    bool autoPoll = true,
+    Duration? minimumStaleTaskAge,
+  }) async {
     if (_isRunning) return;
     _currentUserId = userId; // Store for use in worker loop
+    _autoPollEnabled = autoPoll;
 
-    // Detect whether the previous process exited while a task was running.
-    // This must happen before resetting stale tasks, otherwise we lose the only
-    // durable signal that a crash-like exit happened during task execution.
-    await _handlePreviousExecutionMarkers();
+    if (recoverStaleTasks) {
+      // Detect whether the previous process exited while a task was running.
+      // This must happen before resetting stale tasks, otherwise we lose the only
+      // durable signal that a crash-like exit happened during task execution.
+      await _handlePreviousExecutionMarkers(
+        minimumStaleTaskAge: minimumStaleTaskAge,
+      );
 
-    // Reset any stale 'processing' tasks that might have been left over from a crash
-    await _resetStaleTasks();
+      // Reset any stale 'processing' tasks that might have been left over from a crash
+      await _resetStaleTasks(minimumStaleTaskAge: minimumStaleTaskAge);
+    }
 
     _isRunning = true;
     _logger.info('LocalTaskExecutor started for user $_currentUserId');
-    _scheduleNextPoll();
+    if (_autoPollEnabled) {
+      _scheduleNextPoll();
+    }
   }
 
   /// Reset tasks that are stuck in 'processing' state to 'pending'
-  Future<void> _resetStaleTasks() async {
+  Future<void> _resetStaleTasks({Duration? minimumStaleTaskAge}) async {
     try {
-      final count = await (_db.update(_db.tasks)
-            ..where((t) => t.status.equals('processing')))
-          .write(TasksCompanion(
+      final now = DateTime.now();
+      final update = _db.update(_db.tasks)
+        ..where((t) => t.status.equals('processing'));
+
+      if (minimumStaleTaskAge != null) {
+        final cutoff =
+            now.subtract(minimumStaleTaskAge).millisecondsSinceEpoch ~/ 1000;
+        final freshMarkerTaskIds = (await _loadTaskExecutionMarkers())
+            .where((marker) => !marker.isStale(now, minimumStaleTaskAge))
+            .map((marker) => marker.taskId)
+            .toList();
+
+        update.where(
+          (t) =>
+              t.updatedAt.isNull() | t.updatedAt.isSmallerOrEqualValue(cutoff),
+        );
+        if (freshMarkerTaskIds.isNotEmpty) {
+          update.where((t) => t.id.isNotIn(freshMarkerTaskIds));
+        }
+      }
+
+      final count = await update.write(TasksCompanion(
         status: const Value('pending'),
-        updatedAt: Value(DateTime.now().millisecondsSinceEpoch ~/ 1000),
+        updatedAt: Value(now.millisecondsSinceEpoch ~/ 1000),
       ));
 
       if (count > 0) {
@@ -249,7 +354,12 @@ class LocalTaskExecutor {
   /// Stop the worker loop
   void stop() {
     _isRunning = false;
+    _autoPollEnabled = true;
     _pollTimer?.cancel();
+    for (final timer in _taskHeartbeatTimers.values) {
+      timer.cancel();
+    }
+    _taskHeartbeatTimers.clear();
     _logger.info('LocalTaskExecutor stopped');
   }
 
@@ -330,7 +440,7 @@ class LocalTaskExecutor {
 
   void _scheduleNextPoll({bool immediate = false}) {
     _pollTimer?.cancel();
-    if (!_isRunning) return;
+    if (!_isRunning || !_autoPollEnabled) return;
 
     if (immediate) {
       _pollTimer = Timer(Duration.zero, _workerLoop);
@@ -339,7 +449,11 @@ class LocalTaskExecutor {
     }
   }
 
-  Future<void> _workerLoop() async {
+  Future<void> _workerLoop({
+    bool scheduleNextPoll = true,
+    bool rethrowErrors = false,
+    bool awaitClaimedTasks = false,
+  }) async {
     if (_isProcessing) return;
     _isProcessing = true;
 
@@ -353,7 +467,9 @@ class LocalTaskExecutor {
 
       if (activeTasks.length >= _maxConcurrency) {
         _isProcessing = false;
-        _scheduleNextPoll(); // Wait for next slot
+        if (scheduleNextPoll) {
+          _scheduleNextPoll(); // Wait for next slot
+        }
         return;
       }
 
@@ -369,7 +485,9 @@ class LocalTaskExecutor {
       if (tasksToRun.isEmpty) {
         // No runnable tasks found in top candidates
         _isProcessing = false;
-        _scheduleNextPoll();
+        if (scheduleNextPoll) {
+          _scheduleNextPoll();
+        }
         return;
       }
 
@@ -390,7 +508,11 @@ class LocalTaskExecutor {
         }
 
         try {
-          if (await _claimTaskForExecution(task, now)) {
+          if (await _claimTaskForExecution(
+            task,
+            now,
+            concurrencyKey: concurrencyKey,
+          )) {
             claimedTasks.add(task);
             claimedConcurrencyKeys[task.id] = concurrencyKey;
           } else if (acquiredConcurrencyKey) {
@@ -404,13 +526,21 @@ class LocalTaskExecutor {
         }
       }
 
+      final executionFutures = <Future<void>>[];
       for (final task in claimedTasks) {
-        unawaited(
-          _executeTask(
-            task,
-            concurrencyKey: claimedConcurrencyKeys[task.id],
-          ),
+        final executionFuture = _executeTask(
+          task,
+          concurrencyKey: claimedConcurrencyKeys[task.id],
         );
+        if (awaitClaimedTasks) {
+          executionFutures.add(executionFuture);
+        } else {
+          unawaited(executionFuture);
+        }
+      }
+
+      if (executionFutures.isNotEmpty) {
+        await Future.wait(executionFutures);
       }
 
       // Loop immediately to check for more tasks or completion
@@ -418,11 +548,18 @@ class LocalTaskExecutor {
 
       // If we filled all slots, wait. If we didn't, maybe check again soon.
       // Easiest is to just schedule next poll.
-      _scheduleNextPoll(immediate: true);
-    } catch (e) {
-      _logger.severe('Error in worker loop, $e', e);
+      if (scheduleNextPoll) {
+        _scheduleNextPoll(immediate: true);
+      }
+    } catch (e, stackTrace) {
       _isProcessing = false;
-      _scheduleNextPoll();
+      if (rethrowErrors) {
+        Error.throwWithStackTrace(e, stackTrace);
+      }
+      _logger.severe('Error in worker loop, $e', e, stackTrace);
+      if (scheduleNextPoll) {
+        _scheduleNextPoll();
+      }
     }
   }
 
@@ -463,7 +600,11 @@ class LocalTaskExecutor {
           final concurrencyKey = _concurrencyKeyForTask(task);
           if (concurrencyKey != null) {
             if (_activeConcurrencyKeys.contains(concurrencyKey) ||
-                reservedConcurrencyKeys.contains(concurrencyKey)) {
+                reservedConcurrencyKeys.contains(concurrencyKey) ||
+                await _hasProcessingConcurrencyConflict(
+                  task,
+                  concurrencyKey,
+                )) {
               continue;
             }
             reservedConcurrencyKeys.add(concurrencyKey);
@@ -479,6 +620,34 @@ class LocalTaskExecutor {
     }
 
     return tasksToRun;
+  }
+
+  Future<bool> _hasProcessingTasks() async {
+    final query = _db.selectOnly(_db.tasks)
+      ..addColumns([_db.tasks.id.count()])
+      ..where(_db.tasks.status.equals('processing'));
+    final row = await query.getSingle();
+    return (row.read(_db.tasks.id.count()) ?? 0) > 0;
+  }
+
+  Future<bool> _hasRunnableTasks() async {
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    return (await _findRunnableTasks(slotsAvailable: 1, now: now)).isNotEmpty;
+  }
+
+  Future<Duration?> _nextRunnableDelay() async {
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final query = _db.select(_db.tasks)
+      ..where((t) => t.status.isIn(['pending', 'retrying']))
+      ..where((t) => t.scheduledAt.isBiggerThanValue(now))
+      ..orderBy([
+        (t) => OrderingTerm(expression: t.scheduledAt, mode: OrderingMode.asc),
+      ])
+      ..limit(1);
+    final task = await query.getSingleOrNull();
+    if (task?.scheduledAt == null) return null;
+    final seconds = task!.scheduledAt! - now;
+    return Duration(seconds: seconds < 30 ? 30 : seconds);
   }
 
   String? _concurrencyKeyForTask(Task task) {
@@ -503,6 +672,31 @@ class LocalTaskExecutor {
       );
       return null;
     }
+  }
+
+  Future<bool> _hasProcessingConcurrencyConflict(
+    Task task,
+    String concurrencyKey,
+  ) async {
+    if (!_usesSameTypeDatabaseConcurrencyGuard(task, concurrencyKey)) {
+      return false;
+    }
+
+    final query = _db.selectOnly(_db.tasks)
+      ..addColumns([_db.tasks.id.count()])
+      ..where(_db.tasks.status.equals('processing'))
+      ..where(_db.tasks.type.equals(task.type));
+    final row = await query.getSingle();
+    return (row.read(_db.tasks.id.count()) ?? 0) > 0;
+  }
+
+  bool _usesSameTypeDatabaseConcurrencyGuard(
+    Task task,
+    String? concurrencyKey,
+  ) {
+    return concurrencyKey != null &&
+        (_concurrencyPolicies[task.type]?.guardsProcessingTasksOfSameType ??
+            false);
   }
 
   Map<String, dynamic> _decodePayload(Task task) {
@@ -632,6 +826,7 @@ class LocalTaskExecutor {
         _logger.severe('Task ${task.id} permanently failed');
       }
     } finally {
+      _stopTaskHeartbeat(task.id);
       await _clearTaskExecutionMarker(task.id);
       if (concurrencyKey != null) {
         _activeConcurrencyKeys.remove(concurrencyKey);
@@ -644,30 +839,68 @@ class LocalTaskExecutor {
     }
   }
 
-  Future<bool> _claimTaskForExecution(Task task, int now) async {
-    final updated = await (_db.update(_db.tasks)
-          ..where((t) => t.id.equals(task.id))
-          ..where((t) => t.status.isIn(['pending', 'retrying'])))
-        .write(
-      TasksCompanion(
-        status: const Value('processing'),
-        updatedAt: Value(now),
-      ),
+  Future<bool> _claimTaskForExecution(
+    Task task,
+    int now, {
+    String? concurrencyKey,
+  }) async {
+    final guardSameType =
+        _usesSameTypeDatabaseConcurrencyGuard(task, concurrencyKey);
+    final sql = StringBuffer(
+      'UPDATE tasks '
+      'SET status = ?, updated_at = ? '
+      'WHERE id = ? '
+      'AND status IN (?, ?) '
+      'AND (SELECT COUNT(*) FROM tasks WHERE status = ?) < ?',
+    );
+    final variables = <Variable>[
+      const Variable<String>('processing'),
+      Variable<int>(now),
+      Variable<String>(task.id),
+      const Variable<String>('pending'),
+      const Variable<String>('retrying'),
+      const Variable<String>('processing'),
+      const Variable<int>(_maxConcurrency),
+    ];
+
+    if (guardSameType) {
+      sql.write(
+        ' AND NOT EXISTS ('
+        'SELECT 1 FROM tasks '
+        'WHERE status = ? AND type = ?'
+        ')',
+      );
+      variables.addAll([
+        const Variable<String>('processing'),
+        Variable<String>(task.type),
+      ]);
+    }
+
+    final updated = await _db.customUpdate(
+      sql.toString(),
+      variables: variables,
+      updates: {_db.tasks},
     );
     if (updated == 0) return false;
 
-    await _markTaskExecutionStarted(task);
+    await _markTaskExecutionStarted(task, startHeartbeat: true);
     return true;
   }
 
-  Future<void> _handlePreviousExecutionMarkers() async {
+  Future<void> _handlePreviousExecutionMarkers({
+    Duration? minimumStaleTaskAge,
+  }) async {
     try {
       final markers = await _loadTaskExecutionMarkers();
       if (markers.isEmpty) return;
       final gracefulExitMarker = await _loadGracefulExitMarker();
 
       for (final marker in markers) {
-        await _handlePreviousExecutionMarker(marker, gracefulExitMarker);
+        await _handlePreviousExecutionMarker(
+          marker,
+          gracefulExitMarker,
+          minimumStaleTaskAge: minimumStaleTaskAge,
+        );
       }
       await _deleteGracefulExitMarker();
     } catch (e, stack) {
@@ -680,9 +913,8 @@ class LocalTaskExecutor {
   }
 
   Future<void> _handlePreviousExecutionMarker(
-    _TaskExecutionMarker marker,
-    _GracefulExitMarker? gracefulExitMarker,
-  ) async {
+      _TaskExecutionMarker marker, _GracefulExitMarker? gracefulExitMarker,
+      {Duration? minimumStaleTaskAge}) async {
     final task = await (_db.select(
       _db.tasks,
     )..where((t) => t.id.equals(marker.taskId)))
@@ -710,6 +942,11 @@ class LocalTaskExecutor {
     }
 
     final now = DateTime.now();
+    if (minimumStaleTaskAge != null &&
+        !marker.isStale(now, minimumStaleTaskAge)) {
+      return;
+    }
+
     if (now.difference(marker.startedAt) > crashLikeExitWindow) {
       _logger.info(
         'Ignoring old crash guard marker for task ${marker.taskId}; previous process likely stopped outside crash window',
@@ -738,7 +975,10 @@ class LocalTaskExecutor {
     );
   }
 
-  Future<void> _markTaskExecutionStarted(Task task) async {
+  Future<void> _markTaskExecutionStarted(
+    Task task, {
+    bool startHeartbeat = false,
+  }) async {
     await clearGracefulShutdownMarker();
     final existing = await _loadTaskExecutionMarker(task.id);
     final marker = _TaskExecutionMarker.fromTask(
@@ -748,6 +988,29 @@ class LocalTaskExecutor {
           : 0,
     );
     await _saveTaskExecutionMarker(marker);
+    if (startHeartbeat) {
+      _startTaskHeartbeat(task.id);
+    }
+  }
+
+  void _startTaskHeartbeat(String taskId) {
+    _taskHeartbeatTimers[taskId]?.cancel();
+    _taskHeartbeatTimers[taskId] = Timer.periodic(
+      _taskHeartbeatInterval,
+      (_) => unawaited(_touchTaskExecutionMarker(taskId)),
+    );
+  }
+
+  void _stopTaskHeartbeat(String taskId) {
+    _taskHeartbeatTimers.remove(taskId)?.cancel();
+  }
+
+  Future<void> _touchTaskExecutionMarker(String taskId) async {
+    final marker = await _loadTaskExecutionMarker(taskId);
+    if (marker == null) return;
+    await _saveTaskExecutionMarker(
+      marker.copyWith(heartbeatAt: DateTime.now()),
+    );
   }
 
   Future<_TaskExecutionMarker?> _loadTaskExecutionMarker(String taskId) async {
@@ -1019,6 +1282,7 @@ class _TaskExecutionMarker {
     required this.taskType,
     required this.payloadHash,
     required this.startedAt,
+    required this.heartbeatAt,
     required this.crashCount,
     this.bizId,
   });
@@ -1028,27 +1292,34 @@ class _TaskExecutionMarker {
   final String? bizId;
   final String payloadHash;
   final DateTime startedAt;
+  final DateTime heartbeatAt;
   final int crashCount;
 
   factory _TaskExecutionMarker.fromTask(Task task, {required int crashCount}) {
+    final now = DateTime.now();
     return _TaskExecutionMarker(
       taskId: task.id,
       taskType: task.type,
       bizId: task.bizId,
       payloadHash: _payloadHashFor(task.payload),
-      startedAt: DateTime.now(),
+      startedAt: now,
+      heartbeatAt: now,
       crashCount: crashCount,
     );
   }
 
   factory _TaskExecutionMarker.fromJson(Map<String, dynamic> json) {
+    final startedAt = DateTime.fromMillisecondsSinceEpoch(
+      json['started_at_ms'] as int,
+    );
     return _TaskExecutionMarker(
       taskId: json['task_id'] as String,
       taskType: json['task_type'] as String,
       bizId: json['biz_id'] as String?,
       payloadHash: json['payload_hash'] as String,
-      startedAt: DateTime.fromMillisecondsSinceEpoch(
-        json['started_at_ms'] as int,
+      startedAt: startedAt,
+      heartbeatAt: DateTime.fromMillisecondsSinceEpoch(
+        json['heartbeat_at_ms'] as int? ?? startedAt.millisecondsSinceEpoch,
       ),
       crashCount: json['crash_count'] as int,
     );
@@ -1061,19 +1332,29 @@ class _TaskExecutionMarker {
       'biz_id': bizId,
       'payload_hash': payloadHash,
       'started_at_ms': startedAt.millisecondsSinceEpoch,
+      'heartbeat_at_ms': heartbeatAt.millisecondsSinceEpoch,
       'crash_count': crashCount,
     };
   }
 
-  _TaskExecutionMarker copyWith({int? crashCount}) {
+  _TaskExecutionMarker copyWith({
+    int? crashCount,
+    DateTime? heartbeatAt,
+  }) {
     return _TaskExecutionMarker(
       taskId: taskId,
       taskType: taskType,
       bizId: bizId,
       payloadHash: payloadHash,
       startedAt: startedAt,
+      heartbeatAt: heartbeatAt ?? this.heartbeatAt,
       crashCount: crashCount ?? this.crashCount,
     );
+  }
+
+  bool isStale(DateTime now, Duration minimumStaleTaskAge) {
+    return !now.difference(heartbeatAt).isNegative &&
+        now.difference(heartbeatAt) >= minimumStaleTaskAge;
   }
 
   bool matchesTask(Task task) {
