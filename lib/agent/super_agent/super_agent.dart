@@ -1,4 +1,5 @@
 import 'package:dart_agent_core/dart_agent_core.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:memex/agent/agent_system_prompt_helper.dart';
 import 'package:memex/agent/agent_controller.util.dart';
 import 'package:memex/agent/built_in_tools/file_tools.dart';
@@ -60,6 +61,34 @@ For Timeline/card/image/UI issues:
 class SuperAgent {
   static final Logger _logger = getLogger('SuperAgent');
 
+  /// File-tool permission rules for the SuperAgent workspace.
+  ///
+  /// The whole workspace is writable (read-only in Quick Query), with one
+  /// carve-out the system prompt has always declared but never enforced:
+  /// `Facts/` holds the user's immutable raw records and is never writable
+  /// through generic file tools — records are created via the submit_record
+  /// pipeline, which writes through FileSystemService directly and is not
+  /// affected by these rules. `Facts/assets/` stays writable because derived
+  /// analysis sidecars (`.analysis.txt`, `.ocr.txt`) live there and the
+  /// correction flow must be able to update them.
+  @visibleForTesting
+  static List<PermissionRule> buildPermissionRules({
+    required String workspacePath,
+    required String factsPath,
+    required String factsAssetsPath,
+    required bool quickQuery,
+  }) {
+    return [
+      PermissionRule(
+          rootPath: workspacePath,
+          access: quickQuery ? FileAccessType.read : FileAccessType.write),
+      PermissionRule(rootPath: factsPath, access: FileAccessType.read),
+      PermissionRule(
+          rootPath: factsAssetsPath,
+          access: quickQuery ? FileAccessType.read : FileAccessType.write),
+    ];
+  }
+
   /// Whether this agent operates in read-only Quick Query mode.
   static Future<StatefulAgent> createAgent(
       {required LLMClient client,
@@ -80,12 +109,15 @@ class SuperAgent {
 
     final workingDirectory = fileService.getWorkspacePath(userId);
 
-    // SuperAgent has full access to the workspace (read-only in Quick Query)
-    final permissionManager = FilePermissionManager(userId, [
-      PermissionRule(
-          rootPath: fileService.getWorkspacePath(userId),
-          access: quickQuery ? FileAccessType.read : FileAccessType.write),
-    ]);
+    final permissionManager = FilePermissionManager(
+      userId,
+      buildPermissionRules(
+        workspacePath: fileService.getWorkspacePath(userId),
+        factsPath: fileService.getFactsPath(userId),
+        factsAssetsPath: fileService.getAssetsPath(userId),
+        quickQuery: quickQuery,
+      ),
+    );
 
     final fileToolFactory = FileToolFactory(
       permissionManager: permissionManager,
