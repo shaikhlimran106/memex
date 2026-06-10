@@ -237,6 +237,9 @@
   "discardDraftTitle": "Discard this draft?",
   "discardDraftMessage": "The draft content will be cleared.",
   "discardDraftTooltip": "Discard draft",
+  "clipboardPreviewTitle": "New clipboard",
+  "clipboardPreviewUnprocessed": "Not pasted yet",
+  "clipboardPreviewPasteToInput": "Paste to input",
   "tellAiWhatHappened": "Tell AI what happened...",
   "@recordingWithDuration": {
     "placeholders": {
