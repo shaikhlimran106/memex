@@ -339,7 +339,10 @@ class AgentBackgroundTaskChannelHandler: NSObject {
         if #available(iOS 26.0, *) {
             if let task = continuedProcessingTask {
                 task.updateTitle(task.title, subtitle: "Paused. Memex will continue later.")
-                task.setTaskCompleted(success: false)
+                // The agent queue is durable and will resume from LocalTaskExecutor.
+                // Expiration means the current iOS visibility window ended, not that
+                // the Memex task failed.
+                task.setTaskCompleted(success: true)
             }
             continuedProcessingTask = nil
             submittedContinuedIdentifier = nil
