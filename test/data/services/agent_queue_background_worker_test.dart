@@ -2,6 +2,8 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/data/services/agent_activity_service.dart';
+import 'package:memex/data/services/agent_background_platform.dart';
+import 'package:memex/data/services/agent_background_status.dart';
 import 'package:memex/data/services/agent_queue_background_worker.dart';
 import 'package:memex/data/services/agent_queue_drain_scheduler.dart';
 import 'package:memex/data/services/local_task_executor.dart';
@@ -75,6 +77,7 @@ void main() {
     test('does not initialize task queue when no user is active', () async {
       SharedPreferences.setMockInitialValues({});
       var initialized = false;
+      final platform = _FakeBackgroundPlatform();
 
       final completed = await AgentQueueBackgroundWorker.run(
         initializeTaskQueue: (_) async {
@@ -82,15 +85,18 @@ void main() {
         },
         executor: executor,
         scheduler: scheduler,
+        backgroundPlatform: platform,
       );
 
       expect(completed, isTrue);
       expect(initialized, isFalse);
       expect(scheduler.scheduleCalls, 0);
+      expect(platform.stopCalls, 1);
     });
 
     test('retries a transient database lock before draining queue', () async {
       var attempts = 0;
+      final platform = _FakeBackgroundPlatform();
 
       final completed = await AgentQueueBackgroundWorker.run(
         initializeTaskQueue: (_) async {
@@ -101,12 +107,14 @@ void main() {
         },
         executor: executor,
         scheduler: scheduler,
+        backgroundPlatform: platform,
         databaseRetryDelay: Duration.zero,
       );
 
       expect(completed, isTrue);
       expect(attempts, 2);
       expect(scheduler.scheduleCalls, 0);
+      expect(platform.stopCalls, 1);
     });
 
     test('does not retry non-database initialization failures', () async {
@@ -138,11 +146,13 @@ void main() {
               scheduledAt: Value(now + 600),
             ),
           );
+      final platform = _FakeBackgroundPlatform();
 
       final completed = await AgentQueueBackgroundWorker.run(
         initializeTaskQueue: (_) async {},
         executor: executor,
         scheduler: scheduler,
+        backgroundPlatform: platform,
         databaseRetryDelay: Duration.zero,
       );
 
@@ -153,11 +163,17 @@ void main() {
         scheduler.initialDelays.single!.inSeconds,
         inInclusiveRange(590, 600),
       );
+      expect(platform.updates.single.state, AgentBackgroundRunState.active);
+      expect(platform.updateBackgroundFlags.single, isTrue);
+      expect(platform.stopCalls, 0);
     });
 
     test('drains handlers that publish agent activity after init', () async {
-      executor.registerHandler('activity_task',
-          (userId, payload, context) async {
+      executor.registerHandler('activity_task', (
+        userId,
+        payload,
+        context,
+      ) async {
         await AgentActivityService.instance.pushMessage(
           type: AgentActivityType.info,
           title: 'Background activity',
@@ -177,6 +193,7 @@ void main() {
               createdAt: Value(now),
             ),
           );
+      final platform = _FakeBackgroundPlatform();
 
       final completed = await AgentQueueBackgroundWorker.run(
         initializeTaskQueue: (_) async {
@@ -184,11 +201,13 @@ void main() {
         },
         executor: executor,
         scheduler: scheduler,
+        backgroundPlatform: platform,
         databaseRetryDelay: Duration.zero,
       );
 
-      final task = await (db.select(db.tasks)
-            ..where((t) => t.id.equals('activity-task')))
+      final task = await (db.select(
+        db.tasks,
+      )..where((t) => t.id.equals('activity-task')))
           .getSingle();
       final messages = await LocalAgentActivityService.instance.getHistory(
         limit: 1,
@@ -198,8 +217,47 @@ void main() {
       expect(task.status, 'completed');
       expect(messages.single.title, 'Background activity');
       expect(scheduler.scheduleCalls, 0);
+      expect(platform.stopCalls, 1);
     });
   });
+}
+
+class _FakeBackgroundPlatform implements AgentBackgroundPlatform {
+  final updates = <AgentBackgroundStatus>[];
+  final updateBackgroundFlags = <bool>[];
+  var finishCalls = 0;
+  var stopCalls = 0;
+
+  @override
+  bool get isSupported => true;
+
+  @override
+  Stream<String> get actionStream => const Stream<String>.empty();
+
+  @override
+  Future<String?> consumeInitialAction() async => null;
+
+  @override
+  Future<void> finishStatus(
+    AgentBackgroundStatus status, {
+    bool isInBackground = false,
+  }) async {
+    finishCalls++;
+  }
+
+  @override
+  Future<void> stopStatus() async {
+    stopCalls++;
+  }
+
+  @override
+  Future<void> updateStatus(
+    AgentBackgroundStatus status, {
+    bool isInBackground = false,
+  }) async {
+    updates.add(status);
+    updateBackgroundFlags.add(isInBackground);
+  }
 }
 
 class _FakeDrainScheduler implements AgentQueueDrainScheduler {
@@ -215,8 +273,10 @@ class _FakeDrainScheduler implements AgentQueueDrainScheduler {
   }
 
   @override
-  Future<void> schedule(
-      {Duration? initialDelay, bool expedited = false}) async {
+  Future<void> schedule({
+    Duration? initialDelay,
+    bool expedited = false,
+  }) async {
     initialDelays.add(initialDelay);
     expeditedValues.add(expedited);
   }

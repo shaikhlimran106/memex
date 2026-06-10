@@ -13,23 +13,46 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.Observer
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import com.memexlab.memex.channels.AgentBackgroundChannelHandler
 
 class AgentBackgroundService : Service() {
     companion object {
         const val ACTION_UPDATE = "com.memexlab.memex.agent_background.UPDATE"
         const val ACTION_STOP = "com.memexlab.memex.agent_background.STOP"
+        const val EXTRA_WATCH_BACKGROUND_WORK = "watchBackgroundWork"
 
         private const val CHANNEL_ID = "agent_background"
-        private const val CHANNEL_NAME = "Agent processing"
-        private const val NOTIFICATION_ID = 188
+        private const val CHANNEL_NAME = "Memex Agent"
+        private const val BACKGROUND_WORK_UNIQUE_NAME = "agent_queue_drain"
+        private const val WORK_MONITOR_DELAY_MS = 2_000L
+        private const val WORK_MONITOR_GRACE_MS = 10_000L
+        const val NOTIFICATION_ID = 188
+
+        fun clear(context: Context) {
+            val intent = Intent(context, AgentBackgroundService::class.java).apply {
+                action = ACTION_STOP
+            }
+            context.stopService(intent)
+            val manager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.cancel(NOTIFICATION_ID)
+        }
     }
 
     private val handler = Handler(Looper.getMainLooper())
     private val stopRunnable = Runnable {
-        stopForegroundCompat(removeNotification = true)
+        stopForegroundCompat(removeNotification = false)
         stopSelf()
     }
+    private val workMonitorRunnable = Runnable { checkBackgroundDrainWork() }
+    private var watchBackgroundWork = false
+    private var workMonitorStartedAtMs = 0L
+    private var workInfosLiveData: LiveData<List<WorkInfo>>? = null
+    private var workInfoObserver: Observer<List<WorkInfo>>? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -37,41 +60,58 @@ class AgentBackgroundService : Service() {
         createNotificationChannel()
 
         if (intent == null) {
-            stopSelf(startId)
+            clearAndStop(startId)
             return START_NOT_STICKY
         }
 
         if (intent.action == ACTION_STOP) {
-            stopForegroundCompat(removeNotification = true)
-            stopSelf(startId)
+            clearAndStop(startId)
             return START_NOT_STICKY
         }
 
         val state = intent.getStringExtra("state") ?: "active"
+        if (state == "completed" || state == "idle") {
+            clearAndStop(startId)
+            return START_NOT_STICKY
+        }
+
+        watchBackgroundWork =
+            state == "active" && intent.getBooleanExtra(EXTRA_WATCH_BACKGROUND_WORK, false)
+        if (watchBackgroundWork && workMonitorStartedAtMs == 0L) {
+            workMonitorStartedAtMs = System.currentTimeMillis()
+        }
+
         val notification = buildNotification(intent, state)
         startForegroundCompat(notification)
 
         handler.removeCallbacks(stopRunnable)
-        if (state == "completed" || state == "failed" || state == "idle") {
+        if (state == "failed") {
             handler.postDelayed(stopRunnable, 5000)
         }
+        scheduleOrCancelWorkMonitor()
 
         return START_NOT_STICKY
     }
 
     override fun onDestroy() {
         handler.removeCallbacks(stopRunnable)
+        handler.removeCallbacks(workMonitorRunnable)
+        removeWorkInfoObserver()
         super.onDestroy()
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        if (!watchBackgroundWork) {
+            clearAndStop()
+        }
+        super.onTaskRemoved(rootIntent)
+    }
+
     private fun buildNotification(intent: Intent?, state: String): Notification {
-        val title = intent?.getStringExtra("title") ?: "Memex is processing"
+        val title = intent?.getStringExtra("title") ?: "Memex Agent"
         val stage = intent?.getStringExtra("stage") ?: "Processing"
         val detail = intent?.getStringExtra("detail") ?: ""
         val remainingTasks = intent?.getIntExtra("remainingTasks", 0) ?: 0
-        val pending = intent?.getIntExtra("pending", 0) ?: 0
-        val processing = intent?.getIntExtra("processing", 0) ?: 0
-        val retrying = intent?.getIntExtra("retrying", 0) ?: 0
 
         val openIntent = Intent(this, MainActivity::class.java).apply {
             action = AgentBackgroundChannelHandler.ACTION_OPEN_AGENT_ACTIVITY
@@ -86,14 +126,19 @@ class AgentBackgroundService : Service() {
         )
 
         val subText = when (state) {
-            "completed" -> "All tasks finished"
-            "failed" -> "Tap to review"
-            else -> "$remainingTasks remaining"
+            "failed" -> "Needs attention"
+            else -> {
+                val taskLabel = if (remainingTasks == 1) "task" else "tasks"
+                if (remainingTasks > 0) {
+                    "Processing $remainingTasks queued $taskLabel"
+                } else {
+                    "Processing"
+                }
+            }
         }
         val body = listOf(
             stage,
             detail,
-            "running $processing - waiting $pending - retrying $retrying",
         ).filter { it.isNotBlank() }.joinToString("\n")
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
@@ -129,6 +174,75 @@ class AgentBackgroundService : Service() {
             setShowBadge(false)
         }
         manager.createNotificationChannel(channel)
+    }
+
+    private fun scheduleOrCancelWorkMonitor() {
+        handler.removeCallbacks(workMonitorRunnable)
+        if (watchBackgroundWork) {
+            handler.postDelayed(workMonitorRunnable, WORK_MONITOR_DELAY_MS)
+        } else {
+            workMonitorStartedAtMs = 0L
+        }
+    }
+
+    private fun checkBackgroundDrainWork() {
+        if (!watchBackgroundWork) return
+
+        removeWorkInfoObserver()
+        val liveData =
+            WorkManager.getInstance(applicationContext)
+                .getWorkInfosForUniqueWorkLiveData(BACKGROUND_WORK_UNIQUE_NAME)
+        val observer =
+            object : Observer<List<WorkInfo>> {
+                override fun onChanged(infos: List<WorkInfo>) {
+                    removeWorkInfoObserver()
+                    val hasLiveWork = infos.any { info ->
+                        info.state == WorkInfo.State.ENQUEUED ||
+                            info.state == WorkInfo.State.RUNNING ||
+                            info.state == WorkInfo.State.BLOCKED
+                    }
+                    if (hasLiveWork) {
+                        scheduleOrCancelWorkMonitor()
+                        return
+                    }
+
+                    val waitedLongEnough =
+                        System.currentTimeMillis() - workMonitorStartedAtMs >=
+                            WORK_MONITOR_GRACE_MS
+                    if (waitedLongEnough) {
+                        clearAndStop()
+                    } else {
+                        scheduleOrCancelWorkMonitor()
+                    }
+                }
+            }
+        workInfosLiveData = liveData
+        workInfoObserver = observer
+        liveData.observeForever(observer)
+    }
+
+    private fun clearAndStop(startId: Int? = null) {
+        watchBackgroundWork = false
+        workMonitorStartedAtMs = 0L
+        handler.removeCallbacks(stopRunnable)
+        handler.removeCallbacks(workMonitorRunnable)
+        removeWorkInfoObserver()
+        stopForegroundCompat(removeNotification = true)
+        val manager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.cancel(NOTIFICATION_ID)
+        if (startId == null) {
+            stopSelf()
+        } else {
+            stopSelf(startId)
+        }
+    }
+
+    private fun removeWorkInfoObserver() {
+        val observer = workInfoObserver ?: return
+        workInfosLiveData?.removeObserver(observer)
+        workInfoObserver = null
+        workInfosLiveData = null
     }
 
     private fun startForegroundCompat(notification: Notification) {

@@ -30,6 +30,7 @@ void main() {
     bool forceVisible = false,
     TaskActivitySnapshot initialTaskSnapshot =
         const TaskActivitySnapshot.empty(),
+    Stream<TaskActivitySnapshot>? taskActivitySnapshotStream,
   }) {
     return MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -40,6 +41,7 @@ void main() {
             forceVisible: forceVisible,
             initialTaskSnapshot: initialTaskSnapshot,
             taskActivitySnapshotStream:
+                taskActivitySnapshotStream ??
                 const Stream<TaskActivitySnapshot>.empty(),
           ),
         ),
@@ -67,6 +69,47 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('updates background task count while detail sheet is open', (
+    tester,
+  ) async {
+    final taskSnapshots = StreamController<TaskActivitySnapshot>.broadcast();
+    const initialSnapshot = TaskActivitySnapshot(
+      pending: 1,
+      processing: 0,
+      retrying: 0,
+    );
+
+    await tester.pumpWidget(
+      buildHost(
+        initialTaskSnapshot: initialSnapshot,
+        taskActivitySnapshotStream: taskSnapshots.stream,
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 350));
+
+    final oneTaskMessage = UserStorage.l10n.insightProcessingBacklogMessage(1);
+    final twoTaskMessage = UserStorage.l10n.insightProcessingBacklogMessage(2);
+    expect(find.text(oneTaskMessage), findsOneWidget);
+
+    await tester.tap(find.text('AI is processing...'));
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.text(oneTaskMessage), findsWidgets);
+
+    taskSnapshots.add(
+      const TaskActivitySnapshot(pending: 1, processing: 1, retrying: 0),
+    );
+    await tester.pump();
+
+    expect(find.text(twoTaskMessage), findsWidgets);
+
+    Navigator.of(tester.element(find.text('Activity Detail'))).pop();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await taskSnapshots.close();
+  });
+
   testWidgets('shows background task count before agent tool messages', (
     tester,
   ) async {
@@ -86,10 +129,7 @@ void main() {
     await tester.tap(find.text('AI is processing...'));
     await tester.pump(const Duration(milliseconds: 350));
 
-    expect(
-      find.text('1 background tasks are still processing.'),
-      findsWidgets,
-    );
+    expect(find.text('1 background tasks are still processing.'), findsWidgets);
 
     Navigator.of(tester.element(find.text('Activity Detail'))).pop();
     await tester.pump(const Duration(milliseconds: 350));
@@ -136,13 +176,19 @@ class _FakePlatform implements AgentBackgroundPlatform {
   Future<String?> consumeInitialAction() async => initialAction;
 
   @override
-  Future<void> finishStatus(AgentBackgroundStatus status) async {}
+  Future<void> finishStatus(
+    AgentBackgroundStatus status, {
+    bool isInBackground = false,
+  }) async {}
 
   @override
   Future<void> stopStatus() async {}
 
   @override
-  Future<void> updateStatus(AgentBackgroundStatus status) async {}
+  Future<void> updateStatus(
+    AgentBackgroundStatus status, {
+    bool isInBackground = false,
+  }) async {}
 
   void dispose() {
     unawaited(_actions.close());

@@ -29,9 +29,16 @@ void main() {
 
       expect(status.state, AgentBackgroundRunState.active);
       expect(status.remainingTasks, 4);
-      expect(status.title, 'Memex is processing');
-      expect(status.detail, '4 remaining: 1 running, 2 waiting, 1 retrying');
-      expect(status.toPlatformMap()['remainingTasks'], 4);
+      expect(status.title, 'Memex Agent');
+      expect(status.detail, 'Processing 4 queued tasks');
+      expect(
+        status.toPlatformMap(isInBackground: true),
+        containsPair('remainingTasks', 4),
+      );
+      expect(
+        status.toPlatformMap(isInBackground: true),
+        containsPair('isInBackground', true),
+      );
     });
 
     test('keeps retryable error visible as active while tasks remain', () {
@@ -85,6 +92,7 @@ void main() {
 
       expect(stillRunning.state, AgentBackgroundRunState.active);
       expect(completed.state, AgentBackgroundRunState.completed);
+      expect(completed.shouldShowSystemSurface, isFalse);
       expect(completed.detail, 'All background tasks finished.');
     });
 
