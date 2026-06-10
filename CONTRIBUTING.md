@@ -70,10 +70,30 @@ Community demand matters, but maintainers also consider strategic fit, implement
    - `MemexRouter` as the central facade.
    - `Result<T>` and `Command` for explicit async state and errors.
    - No manual edits to generated `*.g.dart` files.
-4. Add or update tests when changing behavior.
+4. Add or update the required tests when changing behavior.
 5. Fill in the PR template, including screenshots or screen recordings for UI changes.
 
 Maintainers may close PRs that are out of scope, too broad, or conflict with the local-first product direction. We will try to say that early so contributors do not spend unnecessary time.
+
+## Testing Expectations
+
+Behavior changes should include test evidence in the same PR. A clear test plan
+is part of the change, not a follow-up.
+
+- Add or update unit tests for changed domain models, utilities, repositories,
+  services, task handlers, agents, routing decisions, database behavior, or
+  non-UI ViewModel logic.
+- Add or update widget tests for UI rendering, state, navigation, dialogs or
+  sheets, buttons, gestures, error/empty/loading states, localization, or user
+  interactions.
+- Add integration or full-chain regression coverage when a change crosses
+  repository, service, router, event, task, or agent boundaries, or when it
+  fixes a core flow such as capture, card generation, timeline refresh,
+  backup/restore, or LLM configuration.
+- Do not remove or weaken existing tests to make a PR pass. If behavior changes,
+  update the assertions and explain the new expectation in the PR.
+- If tests are not added or not run, explain why in the PR test plan. "Not run"
+  without a concrete reason is not enough for behavior changes.
 
 ## Development Setup
 
@@ -105,7 +125,14 @@ cd ios && pod install && cd ..
 
 ## Using Coding Agents
 
-If you use an AI coding agent (Cursor, Codex, Claude Code, Kiro, etc.) to work on this codebase, make sure the agent reads `AGENTS.md` before it starts writing code. Most agents already look for this file automatically, but if yours doesn't, include it in the agent's context or prompt it to read the file first. `AGENTS.md` contains architecture rules, layer boundaries, naming conventions, and data-access patterns that are easy to violate without context.
+If you use an AI coding agent (Cursor, Codex, Claude Code, GitHub Copilot,
+Gemini, Windsurf, Kiro, etc.) to work on this codebase, make sure the agent
+reads `AGENTS.md` before it starts writing code. Most agents already look for
+this file automatically, but if yours doesn't, include it in the agent's context
+or prompt it to read the file first. `AGENTS.md` contains the canonical
+architecture rules, layer boundaries, naming conventions, data-access patterns,
+and required unit/widget test expectations that are easy to violate without
+context.
 
 ## Security and Privacy
 

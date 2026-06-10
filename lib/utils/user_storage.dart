@@ -19,7 +19,7 @@ import 'package:memex/data/services/gemini_auth_service.dart';
 import 'package:memex/domain/models/task_exceptions.dart';
 import 'package:memex/llm_client/codex_responses_client.dart';
 import 'package:memex/llm_client/gemini_oauth_client.dart';
-import 'package:memex/ui/core/widgets/dicebear_avatar.dart';
+import 'package:memex/data/services/avatar_media_service.dart';
 
 /// Agent cache data structure
 class AgentCacheData {
@@ -755,7 +755,7 @@ class UserStorage {
         final seed =
             (userId != null && userId.isNotEmpty) ? userId : defaultAvatarSeed;
         await prefs.setString(_keyUserAvatar, seed);
-        cacheAvatarSvg(seed); // Cache in background after migration
+        AvatarMediaService.precacheDiceBearAvatar(seed);
         return seed;
       }
       return avatar;
@@ -776,8 +776,7 @@ class UserStorage {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_keyUserAvatar, avatar);
-      // Cache SVG in background — don't block save
-      cacheAvatarSvg(avatar);
+      AvatarMediaService.precacheDiceBearAvatar(avatar);
     } catch (e) {
       // ignore error
     }

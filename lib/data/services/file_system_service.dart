@@ -61,6 +61,8 @@ class FileSystemService {
   static DateTime? _lastServerCheckTime;
   static FileSystemService? _instance;
 
+  static bool get isInitialized => _instance != null;
+
   static FileSystemService get instance {
     if (_instance == null) {
       throw StateError('FileSystemService not initialized. Call init() first.');

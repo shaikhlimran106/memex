@@ -73,6 +73,28 @@ enabled: true
     expect(character.postHistoryInstructions, isNotNull);
   });
 
+  test('resolves imported HEIC avatar paths when loading characters', () async {
+    final userId = 'heic_user_${DateTime.now().microsecondsSinceEpoch}';
+    final charsPath = CharacterService.instance.getCharactersPath(userId);
+    await Directory(charsPath).create(recursive: true);
+    const relativeAvatar = 'workspace/_heic_user/_System/media/avatar.heic';
+    await File(p.join(charsPath, 'custom.yaml')).writeAsString(
+      '''
+name: Custom
+tags: []
+persona: ""
+avatar: "$relativeAvatar"
+enabled: true
+''',
+    );
+
+    final character =
+        await CharacterService.instance.getCharacter(userId, 'custom');
+
+    expect(character, isNotNull);
+    expect(character!.avatar, p.join(tempRoot.path, relativeAvatar));
+  });
+
   test('multi-character routing nudges multiple voices without forcing fill',
       () async {
     final userId = 'selection_user_${DateTime.now().microsecondsSinceEpoch}';

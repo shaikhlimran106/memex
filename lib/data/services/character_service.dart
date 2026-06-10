@@ -4,6 +4,8 @@ import 'package:logging/logging.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 import 'package:memex/domain/models/character_model.dart';
+import 'package:memex/data/services/avatar_media_service.dart';
+import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/utils/user_storage.dart';
 
@@ -45,11 +47,17 @@ class CharacterService {
     final bg = character.chatBackground;
     var resolved = character;
     if (avatar != null && avatar.isNotEmpty && isRelativeAvatarPath(avatar)) {
-      final absolute = _fileSystem.toAbsolutePath(avatar);
+      final absolute = AvatarMediaService.resolveAvatarPath(
+        avatar,
+        fileSystemService: _fileSystem,
+      );
       resolved = resolved.copyWith(avatar: absolute);
     }
     if (bg != null && bg.isNotEmpty && _isRelativeMediaPath(bg)) {
-      final absolute = _fileSystem.toAbsolutePath(bg);
+      final absolute = AvatarMediaService.resolveAvatarPath(
+        bg,
+        fileSystemService: _fileSystem,
+      );
       resolved = resolved.copyWith(chatBackground: absolute);
     }
     return resolved;
@@ -57,23 +65,13 @@ class CharacterService {
 
   /// Returns true if the path looks like a relative file path (image/media).
   static bool _isRelativeMediaPath(String path) {
-    if (path.startsWith('/')) return false;
-    final lower = path.toLowerCase();
-    return lower.endsWith('.png') ||
-        lower.endsWith('.jpg') ||
-        lower.endsWith('.jpeg') ||
-        lower.endsWith('.webp');
+    return AvatarMediaService.isRelativeImagePath(path);
   }
 
   /// Returns true if the avatar value looks like a relative file path
   /// (not a DiceBear seed, not already absolute).
   static bool isRelativeAvatarPath(String avatar) {
-    if (avatar.startsWith('/')) return false; // already absolute
-    final lower = avatar.toLowerCase();
-    return lower.endsWith('.png') ||
-        lower.endsWith('.jpg') ||
-        lower.endsWith('.jpeg') ||
-        lower.endsWith('.webp');
+    return AvatarMediaService.isRelativeImagePath(avatar);
   }
 
   /// Get the Characters directory path for a user
@@ -426,7 +424,11 @@ class CharacterService {
       _logger.info("Created character $newId for user $userId");
 
       charDict['id'] = newId;
-      return CharacterModel.fromJson(charDict);
+      AvatarMediaService.precacheDiceBearAvatar(charDict['avatar'] as String?);
+      EventBusService.instance.emitEvent(
+        CharacterUpdatedMessage(userId: userId, characterId: newId),
+      );
+      return _resolveMediaPaths(CharacterModel.fromJson(charDict));
     } catch (e) {
       _logger.severe("Failed to create character for user $userId: $e");
       rethrow;
@@ -523,7 +525,11 @@ class CharacterService {
 
       _logger.info("Updated character $characterId for user $userId");
       charData['id'] = characterId;
-      return CharacterModel.fromJson(charData);
+      AvatarMediaService.precacheDiceBearAvatar(charData['avatar'] as String?);
+      EventBusService.instance.emitEvent(
+        CharacterUpdatedMessage(userId: userId, characterId: characterId),
+      );
+      return _resolveMediaPaths(CharacterModel.fromJson(charData));
     } catch (e) {
       _logger.severe(
         "Failed to update character $characterId for user $userId: $e",

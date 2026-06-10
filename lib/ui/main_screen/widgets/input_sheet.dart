@@ -19,10 +19,12 @@ import 'package:memex/data/services/whisper_service.dart';
 import 'package:memex/data/services/streaming_transcriber.dart';
 import 'package:memex/data/services/speech_transcription_service.dart';
 import 'package:memex/data/services/input_draft_service.dart';
+import 'package:memex/data/services/clipboard_preview_service.dart';
 import 'package:memex/config/app_flavor.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
 import 'package:memex/ui/core/widgets/local_image.dart';
 import 'package:memex/data/services/demo_service.dart';
+import 'package:memex/ui/main_screen/widgets/clipboard_preview_card.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -79,6 +81,7 @@ class _InputSheetState extends State<InputSheet>
   late AnimationController _pulseController;
 
   final TextEditingController _textController = TextEditingController();
+  final FocusNode _textFocusNode = FocusNode();
   final ScrollController _textScrollController = ScrollController();
 
   void _scrollTextToBottom() {
@@ -97,6 +100,8 @@ class _InputSheetState extends State<InputSheet>
 
   final Logger _logger = getLogger('InputSheet');
   final InputDraftService _draftService = InputDraftService.instance;
+  final ClipboardPreviewService _clipboardPreviewService =
+      ClipboardPreviewService.instance;
 
   StreamingTranscriber? _streamingTranscriber;
   StreamSubscription<Uint8List>? _audioStreamSub;
@@ -120,6 +125,8 @@ class _InputSheetState extends State<InputSheet>
   bool _isApplyingDraft = false;
   bool _isRestoredDraft = false;
   bool _isSubmitting = false;
+  bool _isCheckingClipboard = false;
+  ClipboardPreviewCandidate? _clipboardCandidate;
   final Map<String, AssetEntity> _assetsMap = {}; // path -> AssetEntity
 
   @override
@@ -152,6 +159,7 @@ class _InputSheetState extends State<InputSheet>
     );
 
     _textController.addListener(_onTextChanged);
+    _textFocusNode.addListener(_onTextFocusChanged);
 
     _audioPlayer.onPlayerComplete.listen((event) {
       if (!mounted) return;
@@ -196,6 +204,8 @@ class _InputSheetState extends State<InputSheet>
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
       _flushDraft();
+    } else if (state == AppLifecycleState.resumed && widget.isOpen) {
+      unawaited(_checkClipboardPreview());
     }
   }
 
@@ -208,6 +218,7 @@ class _InputSheetState extends State<InputSheet>
       await _restoreDraft();
     }
     if (!mounted || !widget.isOpen) return;
+    unawaited(_checkClipboardPreview());
     _fetchAutoClusters();
   }
 
@@ -243,8 +254,11 @@ class _InputSheetState extends State<InputSheet>
     _audioPlayer.stop();
 
     final regex = RegExp(r'#([^\s#]+)');
-    final tags =
-        regex.allMatches(text).map((m) => m.group(1)!).toSet().toList();
+    final tags = regex
+        .allMatches(text)
+        .map((m) => m.group(1)!)
+        .toSet()
+        .toList();
 
     setState(() {
       _selectedImages = List<XFile>.from(data.images);
@@ -257,6 +271,7 @@ class _InputSheetState extends State<InputSheet>
       _detectedTags = tags;
       _autoClusters = null;
       _isLoadingAuto = false;
+      _clipboardCandidate = null;
     });
     _setRestoredDraft(false);
 
@@ -282,6 +297,7 @@ class _InputSheetState extends State<InputSheet>
       _isLoadingAuto = false;
       _isRestoredDraft = false;
       _isSubmitting = false;
+      _clipboardCandidate = null;
     });
   }
 
@@ -347,6 +363,67 @@ class _InputSheetState extends State<InputSheet>
     if (!_isApplyingDraft) {
       _scheduleDraftSave();
     }
+  }
+
+  void _onTextFocusChanged() {
+    if (_textFocusNode.hasFocus && widget.isOpen) {
+      unawaited(_checkClipboardPreview());
+    }
+  }
+
+  Future<void> _checkClipboardPreview() async {
+    if (_isCheckingClipboard || !widget.isOpen) return;
+
+    _isCheckingClipboard = true;
+    final candidate = await _clipboardPreviewService.fetchUnhandledText(
+      currentText: _textController.text,
+    );
+    _isCheckingClipboard = false;
+
+    if (!mounted || !widget.isOpen) return;
+    setState(() => _clipboardCandidate = candidate);
+  }
+
+  Future<void> _pasteClipboardCandidate() async {
+    final candidate = _clipboardCandidate;
+    if (candidate == null) return;
+
+    final currentText = _textController.text;
+    final selection = _textController.selection;
+    final start = selection.isValid
+        ? selection.start.clamp(0, currentText.length)
+        : currentText.length;
+    final end = selection.isValid
+        ? selection.end.clamp(0, currentText.length)
+        : currentText.length;
+    final normalizedStart = start <= end ? start : end;
+    final normalizedEnd = start <= end ? end : start;
+    final updatedText = currentText.replaceRange(
+      normalizedStart,
+      normalizedEnd,
+      candidate.text,
+    );
+    final cursorOffset = normalizedStart + candidate.text.length;
+
+    _textController.value = TextEditingValue(
+      text: updatedText,
+      selection: TextSelection.collapsed(offset: cursorOffset),
+    );
+
+    await _clipboardPreviewService.markHandled(candidate);
+    if (!mounted) return;
+    setState(() => _clipboardCandidate = null);
+    _textFocusNode.requestFocus();
+    _scrollTextToBottom();
+  }
+
+  Future<void> _dismissClipboardCandidate() async {
+    final candidate = _clipboardCandidate;
+    if (candidate == null) return;
+
+    await _clipboardPreviewService.markHandled(candidate);
+    if (!mounted) return;
+    setState(() => _clipboardCandidate = null);
   }
 
   void _updateDetectedTags(String text) {
@@ -439,6 +516,8 @@ class _InputSheetState extends State<InputSheet>
     _pcmBuffer.clear();
     _pulseController.dispose();
     _textScrollController.dispose();
+    _textFocusNode.removeListener(_onTextFocusChanged);
+    _textFocusNode.dispose();
     _controller.dispose();
     _textController.dispose();
     _audioRecorder.dispose();
@@ -532,8 +611,8 @@ class _InputSheetState extends State<InputSheet>
             if (mounted) {
               final separator =
                   _preRecordingText.isNotEmpty && fullText.isNotEmpty
-                      ? ' '
-                      : '';
+                  ? ' '
+                  : '';
               setState(() {
                 _textController.text = '$_preRecordingText$separator$fullText';
                 _textController.selection = TextSelection.collapsed(
@@ -608,8 +687,8 @@ class _InputSheetState extends State<InputSheet>
 
   Future<void> _stopRecording() async {
     try {
-      final useLocal =
-          await SpeechTranscriptionService.instance.isUsingLocalModel();
+      final useLocal = await SpeechTranscriptionService.instance
+          .isUsingLocalModel();
 
       await _audioStreamSub?.cancel();
       _audioStreamSub = null;
@@ -1282,7 +1361,8 @@ class _InputSheetState extends State<InputSheet>
     // Calculate available height excluding keyboard
     final availableHeight = screenHeight - viewInsets.bottom;
     // Account for AutoRow (~84px) and card margins
-    final cardMaxHeight = availableHeight - 110;
+    final clipboardPreviewHeight = _clipboardCandidate == null ? 0.0 : 142.0;
+    final cardMaxHeight = availableHeight - 110 - clipboardPreviewHeight;
 
     return Stack(
       children: [
@@ -1314,6 +1394,22 @@ class _InputSheetState extends State<InputSheet>
                   children: [
                     // AUTO row above input area, single row
                     _buildAutoRow(),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 180),
+                      switchInCurve: Curves.easeOut,
+                      switchOutCurve: Curves.easeIn,
+                      child: _clipboardCandidate == null
+                          ? const SizedBox.shrink()
+                          : Padding(
+                              key: ValueKey(_clipboardCandidate!.hash),
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: ClipboardPreviewCard(
+                                candidate: _clipboardCandidate!,
+                                onPaste: _pasteClipboardCandidate,
+                                onDismiss: _dismissClipboardCandidate,
+                              ),
+                            ),
+                    ),
                     Flexible(
                       child: GestureDetector(
                         onTap: () {},
@@ -1361,13 +1457,15 @@ class _InputSheetState extends State<InputSheet>
                                       children: [
                                         TextField(
                                           controller: _textController,
+                                          focusNode: _textFocusNode,
                                           scrollController:
                                               _textScrollController,
                                           autofocus: false,
                                           maxLines: 5,
                                           decoration: InputDecoration(
                                             hintText: UserStorage
-                                                .l10n.tellAiWhatHappened,
+                                                .l10n
+                                                .tellAiWhatHappened,
                                             hintStyle: const TextStyle(
                                               color: AppColors.textTertiary,
                                               fontSize: 18,
@@ -1390,9 +1488,9 @@ class _InputSheetState extends State<InputSheet>
                                               return Container(
                                                 padding:
                                                     const EdgeInsets.symmetric(
-                                                  horizontal: 12,
-                                                  vertical: 6,
-                                                ),
+                                                      horizontal: 12,
+                                                      vertical: 6,
+                                                    ),
                                                 decoration: BoxDecoration(
                                                   color: AppColors.iconBgLight,
                                                   borderRadius:
@@ -1445,28 +1543,28 @@ class _InputSheetState extends State<InputSheet>
                                                 return Padding(
                                                   padding:
                                                       const EdgeInsets.only(
-                                                    right: 8,
-                                                  ),
+                                                        right: 8,
+                                                      ),
                                                   child: Stack(
                                                     children: [
                                                       ClipRRect(
                                                         borderRadius:
-                                                            BorderRadius
-                                                                .circular(
-                                                          12,
-                                                        ),
+                                                            BorderRadius.circular(
+                                                              12,
+                                                            ),
                                                         child: GestureDetector(
                                                           onTap: () =>
                                                               _showImagePreview(
-                                                            index,
-                                                          ),
+                                                                index,
+                                                              ),
                                                           child:
                                                               _buildSelectedImagePreview(
-                                                            index: index,
-                                                            width: 100,
-                                                            height: 100,
-                                                            fit: BoxFit.cover,
-                                                          ),
+                                                                index: index,
+                                                                width: 100,
+                                                                height: 100,
+                                                                fit: BoxFit
+                                                                    .cover,
+                                                              ),
                                                         ),
                                                       ),
                                                       Positioned(
@@ -1475,20 +1573,20 @@ class _InputSheetState extends State<InputSheet>
                                                         child: GestureDetector(
                                                           onTap: () =>
                                                               _removeImage(
-                                                                  index),
+                                                                index,
+                                                              ),
                                                           child: Container(
                                                             padding:
-                                                                const EdgeInsets
-                                                                    .all(
-                                                              4,
-                                                            ),
+                                                                const EdgeInsets.all(
+                                                                  4,
+                                                                ),
                                                             decoration:
                                                                 const BoxDecoration(
-                                                              color: Colors
-                                                                  .black54,
-                                                              shape: BoxShape
-                                                                  .circle,
-                                                            ),
+                                                                  color: Colors
+                                                                      .black54,
+                                                                  shape: BoxShape
+                                                                      .circle,
+                                                                ),
                                                             child: const Icon(
                                                               Icons.close,
                                                               size: 16,
@@ -1513,9 +1611,7 @@ class _InputSheetState extends State<InputSheet>
                                             decoration: BoxDecoration(
                                               color: const Color(0xFFF8FAFC),
                                               borderRadius:
-                                                  BorderRadius.circular(
-                                                12,
-                                              ),
+                                                  BorderRadius.circular(12),
                                             ),
                                             child: Row(
                                               children: [
@@ -1528,8 +1624,8 @@ class _InputSheetState extends State<InputSheet>
                                                       color: Colors.white,
                                                       borderRadius:
                                                           BorderRadius.circular(
-                                                        18,
-                                                      ),
+                                                            18,
+                                                          ),
                                                     ),
                                                     child: Icon(
                                                       _isPlaying
@@ -1550,7 +1646,8 @@ class _InputSheetState extends State<InputSheet>
                                                     children: [
                                                       Text(
                                                         UserStorage
-                                                            .l10n.recordedAudio,
+                                                            .l10n
+                                                            .recordedAudio,
                                                         style: const TextStyle(
                                                           fontSize: 14,
                                                           fontWeight:
@@ -1563,7 +1660,8 @@ class _InputSheetState extends State<InputSheet>
                                                       Text(
                                                         _isPlaying
                                                             ? UserStorage
-                                                                .l10n.playing
+                                                                  .l10n
+                                                                  .playing
                                                             : _formatDuration(
                                                                 _audioDuration,
                                                               ),
@@ -1580,14 +1678,13 @@ class _InputSheetState extends State<InputSheet>
                                                   onTap: _removeAudio,
                                                   child: Container(
                                                     padding:
-                                                        const EdgeInsets.all(
-                                                      4,
-                                                    ),
+                                                        const EdgeInsets.all(4),
                                                     decoration:
                                                         const BoxDecoration(
-                                                      color: Colors.white,
-                                                      shape: BoxShape.circle,
-                                                    ),
+                                                          color: Colors.white,
+                                                          shape:
+                                                              BoxShape.circle,
+                                                        ),
                                                     child: const Icon(
                                                       Icons.close,
                                                       size: 16,
@@ -1607,9 +1704,10 @@ class _InputSheetState extends State<InputSheet>
                                               onTap: _isTranscribing
                                                   ? null
                                                   : (_isRecording
-                                                      ? _stopRecording
-                                                      : _startRecording),
-                                              onLongPress: (_isRecording ||
+                                                        ? _stopRecording
+                                                        : _startRecording),
+                                              onLongPress:
+                                                  (_isRecording ||
                                                       _isTranscribing)
                                                   ? null
                                                   : _pickAudioFile,
@@ -1644,26 +1742,24 @@ class _InputSheetState extends State<InputSheet>
                                                         Container(
                                                           width: 48,
                                                           height: 48,
-                                                          decoration:
-                                                              BoxDecoration(
+                                                          decoration: BoxDecoration(
                                                             color: _isRecording
                                                                 ? AppColors
-                                                                    .primary
+                                                                      .primary
                                                                 : _isTranscribing
-                                                                    ? AppColors
-                                                                        .primary
-                                                                        .withValues(
+                                                                ? AppColors
+                                                                      .primary
+                                                                      .withValues(
                                                                         alpha:
                                                                             0.08,
                                                                       )
-                                                                    : const Color(
-                                                                        0xFFF7F8FA,
-                                                                      ),
+                                                                : const Color(
+                                                                    0xFFF7F8FA,
+                                                                  ),
                                                             borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                              24,
-                                                            ),
+                                                                BorderRadius.circular(
+                                                                  24,
+                                                                ),
                                                           ),
                                                           child: Stack(
                                                             alignment: Alignment
@@ -1672,18 +1768,21 @@ class _InputSheetState extends State<InputSheet>
                                                               Icon(
                                                                 Icons.mic,
                                                                 size: 22,
-                                                                color: _isRecording
-                                                                    ? Colors.white
+                                                                color:
+                                                                    _isRecording
+                                                                    ? Colors
+                                                                          .white
                                                                     : _isTranscribing
-                                                                        ? AppColors.primary
-                                                                        : AppColors.textSecondary,
+                                                                    ? AppColors
+                                                                          .primary
+                                                                    : AppColors
+                                                                          .textSecondary,
                                                               ),
                                                               if (_isTranscribing)
                                                                 const SizedBox(
                                                                   width: 36,
                                                                   height: 36,
-                                                                  child:
-                                                                      CircularProgressIndicator(
+                                                                  child: CircularProgressIndicator(
                                                                     strokeWidth:
                                                                         2,
                                                                     color: AppColors
@@ -1708,8 +1807,9 @@ class _InputSheetState extends State<InputSheet>
                                                 width: 48,
                                                 height: 48,
                                                 decoration: BoxDecoration(
-                                                  color:
-                                                      const Color(0xFFF7F8FA),
+                                                  color: const Color(
+                                                    0xFFF7F8FA,
+                                                  ),
                                                   borderRadius:
                                                       BorderRadius.circular(24),
                                                 ),
@@ -1730,8 +1830,9 @@ class _InputSheetState extends State<InputSheet>
                                                 width: 48,
                                                 height: 48,
                                                 decoration: BoxDecoration(
-                                                  color:
-                                                      const Color(0xFFF7F8FA),
+                                                  color: const Color(
+                                                    0xFFF7F8FA,
+                                                  ),
                                                   borderRadius:
                                                       BorderRadius.circular(24),
                                                 ),
@@ -1747,7 +1848,8 @@ class _InputSheetState extends State<InputSheet>
                                             GestureDetector(
                                               key: DemoService.instance.isActive
                                                   ? DemoService
-                                                      .instance.sendButtonKey
+                                                        .instance
+                                                        .sendButtonKey
                                                   : const ValueKey(
                                                       'input_sheet_submit_button',
                                                     ),
@@ -1755,9 +1857,9 @@ class _InputSheetState extends State<InputSheet>
                                               child: Container(
                                                 padding:
                                                     const EdgeInsets.symmetric(
-                                                  horizontal: 24,
-                                                  vertical: 12,
-                                                ),
+                                                      horizontal: 24,
+                                                      vertical: 12,
+                                                    ),
                                                 decoration: BoxDecoration(
                                                   color: Colors.black,
                                                   borderRadius:
@@ -1767,7 +1869,8 @@ class _InputSheetState extends State<InputSheet>
                                                   children: [
                                                     Text(
                                                       UserStorage
-                                                          .l10n.recordLabel,
+                                                          .l10n
+                                                          .recordLabel,
                                                       style: const TextStyle(
                                                         color: Colors.white,
                                                         fontSize: 16,
@@ -1926,8 +2029,9 @@ class _InputSheetState extends State<InputSheet>
             Icon(
               isAllSelected ? Icons.check_circle : Icons.add_circle_outline,
               size: 20,
-              color:
-                  isAllSelected ? AppColors.primary : const Color(0xFFCBD5E1),
+              color: isAllSelected
+                  ? AppColors.primary
+                  : const Color(0xFFCBD5E1),
             ),
           ],
         ),

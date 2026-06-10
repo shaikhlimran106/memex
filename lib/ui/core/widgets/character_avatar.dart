@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:memex/data/services/avatar_media_service.dart';
 import 'package:memex/ui/core/widgets/dicebear_avatar.dart';
 import 'package:memex/ui/core/widgets/local_image.dart';
 
 /// Returns true if the avatar string represents a local image file path
 /// (as opposed to a DiceBear seed string).
 bool isImageAvatar(String? avatar) {
-  if (avatar == null || avatar.isEmpty) return false;
-  final lower = avatar.toLowerCase();
-  return lower.endsWith('.png') ||
-      lower.endsWith('.jpg') ||
-      lower.endsWith('.jpeg') ||
-      lower.endsWith('.webp') ||
-      lower.contains('/');
+  return AvatarMediaService.isImageAvatar(avatar);
 }
 
 /// A unified character avatar widget that handles both DiceBear seed avatars

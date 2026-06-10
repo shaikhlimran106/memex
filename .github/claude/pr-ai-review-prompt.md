@@ -33,5 +33,8 @@ Your job:
 5. Cite evidence as concise file/path references or short diff references.
 6. If the diff is too incomplete to assess a relevant area, raise risk instead of
    pretending confidence is high.
+7. Apply the unit/widget/integration test expectations from `AGENTS.md` and
+   `docs/pr-ai-review.*.md`; missing test evidence for behavior changes must be
+   reported in `test_gaps`.
 
 Return the structured JSON only.
