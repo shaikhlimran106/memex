@@ -155,6 +155,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Copy the current workspace into a new local test user and switch to it. Agent runtime state is not copied. Your current user data will not be modified.';
 
   @override
+  String get testUserIdLabel => 'Test user ID';
+
+  @override
+  String get testUserIdHelper => 'Use letters, numbers, hyphen, or underscore.';
+
+  @override
+  String get testUserIdInvalid =>
+      'Use only letters, numbers, hyphen, or underscore.';
+
+  @override
+  String get overwriteExistingTestUser =>
+      'Replace existing test user with the same ID';
+
+  @override
   String testUserCloneSuccess(Object userId) {
     return 'Switched to test user $userId';
   }

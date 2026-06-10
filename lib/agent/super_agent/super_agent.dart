@@ -6,11 +6,13 @@ import 'package:memex/agent/built_in_tools/search_event_logs_tool.dart';
 import 'package:memex/agent/memory/memory_management.dart';
 import 'package:memex/agent/skills/manage_pkm/pkm_skill.dart';
 import 'package:memex/agent/security/file_permission_manager.dart';
+import 'package:memex/agent/skills/dynamic_timeline_ui/dynamic_timeline_ui_skill.dart';
 import 'package:memex/agent/skills/manage_timeline_card/timeline_card_skill.dart';
 import 'package:memex/agent/skills/manage_system_action/system_action_skill.dart';
 import 'package:memex/agent/skills/knowledge_insight/knowledge_insight_skill.dart';
 import 'package:memex/agent/skills/ask_clarification/ask_clarification_skill.dart';
 import 'package:memex/agent/skills/submit_record/submit_record_skill.dart';
+import 'package:memex/agent/skills/timeline_diagnostics/timeline_diagnostics_skill.dart';
 import 'package:memex/agent/common_tools.dart';
 import 'package:memex/agent/state_util.dart';
 import 'package:memex/agent/super_agent/prompts.dart';
@@ -34,8 +36,25 @@ const _readOnlyToolNames = {
 const _quickQueryExcludedSkills = {
   'submit_record',
   'manage_timeline_card',
+  'dynamic_timeline_ui',
+  'timeline_diagnostics',
   'ask_clarification',
 };
+
+const _loopBudgetWarningTurns = 6;
+const _loopBudgetToolCutoffTurns = 10;
+
+const _loopBudgetReminder = '''
+## Current Turn Tool Budget
+You have already used several tool rounds in this single user turn.
+
+Stop broad exploration now and answer the user with the best current conclusion. Do not call more tools unless the next tool is a clearly required write/retry action that directly completes the user's requested task.
+
+For Timeline/card/image/UI issues:
+- Do not continue with generic Grep, Glob, Read, BatchRead, or LS after timeline_diagnostics has already inspected the target.
+- Report what was checked, what is known from local data/render-path diagnostics, what remains unverified visually, and one concrete next step.
+- If the target is still unclear, ask for the screenshot or exact card id instead of searching unrelated Cards, PKM, or _UserSettings files.
+''';
 
 class SuperAgent {
   static final Logger _logger = getLogger('SuperAgent');
@@ -113,6 +132,8 @@ class SuperAgent {
       SubmitRecordSkill(),
       KnowledgeInsightSkill(),
       TimelineCardSkill(),
+      DynamicTimelineUiSkill(),
+      TimelineDiagnosticsSkill(),
       PkmSkill(workingDirectory: '/PKM'),
       SystemActionSkill(),
       AskClarificationSkill(),
@@ -165,10 +186,48 @@ class SuperAgent {
         autoSaveStateFunc: (state) async {
           await saveAgentState(state);
         },
-        systemCallback: createSystemCallback(userId));
+        systemCallback: _createSuperAgentSystemCallback(userId));
 
     _logger.info(
         'SuperAgent created, userId: $userId, sessionId: ${state.sessionId}');
     return agent;
+  }
+
+  static SystemCallback _createSuperAgentSystemCallback(String userId) {
+    final baseCallback = createSystemCallback(userId);
+    return (
+      StatefulAgent agent,
+      SystemMessage? systemMessage,
+      List<Tool> tools,
+      List<LLMMessage> requestMessages,
+    ) async {
+      final result = await baseCallback(
+        agent,
+        systemMessage,
+        tools,
+        requestMessages,
+      );
+
+      var nextSystemMessage = result.systemMessage;
+      var nextTools = result.tools;
+      if (agent.state.currentLoopCount >= _loopBudgetWarningTurns) {
+        nextSystemMessage = SystemMessage(
+          [
+            if (nextSystemMessage != null) nextSystemMessage.content,
+            _loopBudgetReminder,
+          ].join('\n\n'),
+        );
+      }
+
+      if (agent.state.currentLoopCount >= _loopBudgetToolCutoffTurns) {
+        nextTools = const [];
+      }
+
+      return SystemCallbackResult(
+        systemMessage: nextSystemMessage,
+        tools: nextTools,
+        requestMessages: result.requestMessages,
+      );
+    };
   }
 }

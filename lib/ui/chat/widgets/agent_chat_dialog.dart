@@ -50,9 +50,11 @@ class ThinkingItem extends ChatDisplayItem {
 class ToolCallItem extends ChatDisplayItem {
   final String toolName;
   final String args;
+  final DateTime startedAt;
   String? result;
   bool isError;
   bool isExpanded;
+  DateTime? completedAt;
 
   ToolCallItem(
     this.toolName,
@@ -60,7 +62,15 @@ class ToolCallItem extends ChatDisplayItem {
     this.result,
     this.isError = false,
     this.isExpanded = false,
-  });
+  }) : startedAt = DateTime.now();
+
+  bool get isRunning => result == null;
+
+  Duration? get duration {
+    final finishedAt = completedAt;
+    if (finishedAt == null) return null;
+    return finishedAt.difference(startedAt);
+  }
 }
 
 class ErrorItem extends ChatDisplayItem {
@@ -72,7 +82,17 @@ class ProcessItem extends ChatDisplayItem {
   final List<ChatDisplayItem> children = [];
   bool isExpanded;
   bool isFinished;
-  ProcessItem({this.isExpanded = true, this.isFinished = false});
+  ProcessItem({this.isExpanded = false, this.isFinished = false});
+
+  List<ToolCallItem> get toolCalls =>
+      children.whereType<ToolCallItem>().toList();
+
+  List<ThinkingItem> get thinkingItems =>
+      children.whereType<ThinkingItem>().toList();
+
+  bool get hasRunningTool => toolCalls.any((tool) => tool.isRunning);
+
+  bool get hasToolError => toolCalls.any((tool) => tool.isError);
 }
 
 const double _agentChatSheetHeightFactor = 0.75;
@@ -503,6 +523,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                 item.result == null) {
               item.result = event.result;
               item.isError = event.isError;
+              item.completedAt = DateTime.now();
               break;
             }
           }
@@ -1341,69 +1362,112 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       return Padding(
         padding: const EdgeInsets.only(bottom: 16),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(width: 32), // Indent
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF7F8FA),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFE6EAF2)),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x0A0F172A),
+                      blurRadius: 14,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     InkWell(
+                      borderRadius: BorderRadius.circular(18),
                       onTap: () {
                         setState(() {
                           item.isExpanded = !item.isExpanded;
                         });
                       },
                       child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
+                        padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              item.isFinished
-                                  ? Icons.check_circle_outline
-                                  : Icons.sync,
-                              size: 14,
-                              color: AppColors.textTertiary,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                item.isFinished
-                                    ? 'Process Completed'
-                                    : 'Processing...',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textTertiary,
-                                  fontWeight: FontWeight.w500,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                _buildProcessStatusGlyph(item),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _processTitle(item),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFF0F172A),
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _processSubtitle(item),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors.textTertiary,
+                                          height: 1.25,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
+                                _buildProcessStatePill(item),
+                                const SizedBox(width: 6),
+                                Icon(
+                                  item.isExpanded
+                                      ? Icons.keyboard_arrow_up_rounded
+                                      : Icons.keyboard_arrow_down_rounded,
+                                  size: 20,
+                                  color: AppColors.textTertiary,
+                                ),
+                              ],
                             ),
-                            Icon(
-                              item.isExpanded
-                                  ? Icons.keyboard_arrow_up
-                                  : Icons.keyboard_arrow_down,
-                              size: 16,
-                              color: AppColors.textTertiary,
-                            ),
+                            if (item.toolCalls.isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              _buildToolSummaryChips(item),
+                            ],
                           ],
                         ),
                       ),
                     ),
                     if (item.isExpanded)
-                      Column(
-                        children: item.children.map((child) {
-                          if (child is ThinkingItem) {
-                            return _buildThinkingItem(child);
-                          } else if (child is ToolCallItem) {
-                            return _buildToolCallItem(child);
-                          }
-                          return const SizedBox.shrink();
-                        }).toList(),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            top: BorderSide(color: Color(0xFFF1F5F9)),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (item.thinkingItems.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              ...item.thinkingItems.map(_buildThinkingItem),
+                            ],
+                            if (item.toolCalls.isNotEmpty)
+                              _buildToolTraceList(item.toolCalls),
+                          ],
+                        ),
                       ),
                   ],
                 ),
@@ -1457,19 +1521,307 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     );
   }
 
+  Widget _buildProcessStatusGlyph(ProcessItem item) {
+    final color = item.hasToolError
+        ? const Color(0xFFEF4444)
+        : item.hasRunningTool || !item.isFinished
+            ? AppColors.primary
+            : const Color(0xFF10B981);
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: item.hasRunningTool || !item.isFinished
+            ? const SizedBox(
+                width: 13,
+                height: 13,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.8,
+                  color: AppColors.primary,
+                ),
+              )
+            : Icon(
+                item.hasToolError
+                    ? Icons.error_outline_rounded
+                    : Icons.check_rounded,
+                size: 16,
+                color: color,
+              ),
+      ),
+    );
+  }
+
+  Widget _buildProcessStatePill(ProcessItem item) {
+    final label = item.hasToolError
+        ? _label(en: 'Issue', zh: '需处理')
+        : item.hasRunningTool || !item.isFinished
+            ? _label(en: 'Running', zh: '执行中')
+            : _label(en: 'Done', zh: '完成');
+    final color = item.hasToolError
+        ? const Color(0xFFEF4444)
+        : item.hasRunningTool || !item.isFinished
+            ? AppColors.primary
+            : const Color(0xFF10B981);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          color: color,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0,
+        ),
+      ),
+    );
+  }
+
+  String _processTitle(ProcessItem item) {
+    final toolCount = item.toolCalls.length;
+    if (toolCount == 0) {
+      return item.isFinished
+          ? _label(en: 'Reasoning complete', zh: '思考完成')
+          : _label(en: 'Thinking through request', zh: '正在理解需求');
+    }
+    if (item.hasToolError) {
+      return _label(en: 'Action needs attention', zh: '有动作需要处理');
+    }
+    if (item.hasRunningTool || !item.isFinished) {
+      return _label(
+        en: 'Working through ${_pluralizeAction(toolCount)}',
+        zh: '正在执行 $toolCount 个动作',
+      );
+    }
+    return _label(
+      en: 'Completed ${_pluralizeAction(toolCount)}',
+      zh: '已完成 $toolCount 个动作',
+    );
+  }
+
+  String _processSubtitle(ProcessItem item) {
+    final toolCounts = _toolCounts(item.toolCalls);
+    if (toolCounts.isEmpty) {
+      return item.isFinished
+          ? _label(en: 'Internal reasoning finished', zh: '内部推理已完成')
+          : _label(en: 'Planning next step', zh: '正在规划下一步');
+    }
+    return toolCounts.entries
+        .take(4)
+        .map((entry) => '${_toolDisplayName(entry.key)} x${entry.value}')
+        .join(' · ');
+  }
+
+  String _pluralizeAction(int count) =>
+      count == 1 ? '1 action' : '$count actions';
+
+  Widget _buildToolSummaryChips(ProcessItem item) {
+    final entries = _toolCounts(item.toolCalls).entries.toList();
+    final visibleEntries = entries.take(4).toList();
+    final hiddenCount =
+        entries.skip(4).fold<int>(0, (sum, entry) => sum + entry.value);
+
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final entry in visibleEntries)
+          _buildToolChip(
+            icon: _toolIcon(entry.key),
+            label: entry.value == 1
+                ? _toolDisplayName(entry.key)
+                : '${_toolDisplayName(entry.key)} ${entry.value}',
+          ),
+        if (hiddenCount > 0)
+          _buildToolChip(
+            icon: Icons.more_horiz_rounded,
+            label: '+$hiddenCount',
+          ),
+      ],
+    );
+  }
+
+  Widget _buildToolChip({required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: AppColors.textSecondary),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToolTraceList(List<ToolCallItem> tools) {
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBFCFE),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE6EAF2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+            child: Text(
+              _label(en: 'Tool activity', zh: '工具活动'),
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.textTertiary,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0,
+              ),
+            ),
+          ),
+          for (var index = 0; index < tools.length; index++) ...[
+            if (index > 0)
+              const Divider(height: 1, thickness: 1, color: Color(0xFFF1F5F9)),
+            _buildToolCallItem(tools[index]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Map<String, int> _toolCounts(List<ToolCallItem> tools) {
+    final counts = <String, int>{};
+    for (final tool in tools) {
+      counts[tool.toolName] = (counts[tool.toolName] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  IconData _toolIcon(String toolName) {
+    switch (toolName.toLowerCase()) {
+      case 'grep':
+        return Icons.search_rounded;
+      case 'glob':
+        return Icons.travel_explore_rounded;
+      case 'read':
+      case 'batchread':
+        return Icons.article_outlined;
+      case 'write':
+        return Icons.note_add_outlined;
+      case 'edit':
+        return Icons.edit_note_rounded;
+      case 'ls':
+        return Icons.folder_open_outlined;
+      case 'move':
+        return Icons.drive_file_move_outline;
+      case 'remove':
+        return Icons.delete_outline_rounded;
+      case 'submit_record':
+        return Icons.bookmark_add_outlined;
+      case 'create_dynamic_timeline_card':
+      case 'update_dynamic_timeline_card':
+        return Icons.auto_awesome_mosaic_outlined;
+      case 'recommend_dynamic_timeline_design_patterns':
+      case 'get_dynamic_timeline_design_pattern':
+      case 'list_dynamic_timeline_design_patterns':
+        return Icons.palette_outlined;
+      default:
+        return Icons.extension_outlined;
+    }
+  }
+
+  String _toolDisplayName(String toolName) {
+    switch (toolName.toLowerCase()) {
+      case 'grep':
+        return _label(en: 'Search', zh: '搜索');
+      case 'glob':
+        return _label(en: 'Find files', zh: '找文件');
+      case 'read':
+        return _label(en: 'Read', zh: '读取');
+      case 'batchread':
+        return _label(en: 'Read batch', zh: '批量读取');
+      case 'write':
+        return _label(en: 'Write', zh: '写入');
+      case 'edit':
+        return _label(en: 'Edit', zh: '编辑');
+      case 'ls':
+        return _label(en: 'List', zh: '列表');
+      case 'move':
+        return _label(en: 'Move', zh: '移动');
+      case 'remove':
+        return _label(en: 'Delete', zh: '删除');
+      case 'submit_record':
+        return _label(en: 'Record', zh: '记录');
+      case 'create_dynamic_timeline_card':
+        return _label(en: 'Create UI', zh: '生成 UI');
+      case 'update_dynamic_timeline_card':
+        return _label(en: 'Update UI', zh: '更新 UI');
+      case 'recommend_dynamic_timeline_design_patterns':
+        return _label(en: 'Find styles', zh: '找样式');
+      case 'get_dynamic_timeline_design_pattern':
+        return _label(en: 'Read style', zh: '读样式');
+      case 'list_dynamic_timeline_design_patterns':
+        return _label(en: 'Style library', zh: '样式库');
+      default:
+        return toolName;
+    }
+  }
+
+  String _toolStatusLabel(ToolCallItem item) {
+    if (item.isRunning) return _label(en: 'Running', zh: '执行中');
+    if (item.isError) return _label(en: 'Failed', zh: '失败');
+    final duration = item.duration;
+    if (duration == null) return _label(en: 'Done', zh: '完成');
+    final milliseconds = duration.inMilliseconds;
+    if (milliseconds < 1000) return '${milliseconds}ms';
+    return '${(milliseconds / 1000).toStringAsFixed(1)}s';
+  }
+
+  bool get _isZhLocale =>
+      Localizations.maybeLocaleOf(context)?.languageCode == 'zh';
+
+  String _label({required String en, required String zh}) {
+    return _isZhLocale ? zh : en;
+  }
+
+  String _compactPreview(String value, {int maxLength = 96}) {
+    final compact = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (compact.length <= maxLength) return compact;
+    return '${compact.substring(0, maxLength)}...';
+  }
+
   Widget _buildThinkingItem(ThinkingItem item) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.psychology, size: 12, color: Color(0xFFCBD5E1)),
-              SizedBox(width: 6),
+              const Icon(Icons.psychology, size: 12, color: Color(0xFFCBD5E1)),
+              const SizedBox(width: 6),
               Text(
-                'Thinking...',
-                style: TextStyle(
+                _label(en: 'Thinking...', zh: '思考中...'),
+                style: const TextStyle(
                   fontSize: 11,
                   color: AppColors.textTertiary,
                   fontWeight: FontWeight.w500,
@@ -1495,113 +1847,147 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   }
 
   Widget _buildToolCallItem(ToolCallItem item) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: () {
-              setState(() {
-                item.isExpanded = !item.isExpanded;
-              });
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                children: [
-                  Icon(
-                    item.isError
-                        ? Icons.error_outline
-                        : Icons.build_circle_outlined,
-                    size: 14,
-                    color: item.isError ? Colors.red : AppColors.primary,
+    final statusColor = item.isError
+        ? const Color(0xFFEF4444)
+        : item.isRunning
+            ? AppColors.primary
+            : const Color(0xFF10B981);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () {
+            setState(() {
+              item.isExpanded = !item.isExpanded;
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.09),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Used tool: ${item.toolName}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF334155),
+                  child: Icon(
+                    _toolIcon(item.toolName),
+                    size: 15,
+                    color: statusColor,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _toolDisplayName(item.toolName),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF334155),
+                          letterSpacing: 0,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _compactPreview(item.args),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppColors.textTertiary,
+                          height: 1.2,
+                        ),
+                      ),
+                    ],
                   ),
-                  if (item.result == null)
-                    const SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: CircularProgressIndicator(strokeWidth: 1.5),
-                    )
-                  else
-                    Icon(
-                      item.isExpanded ? Icons.expand_less : Icons.expand_more,
-                      size: 16,
-                      color: AppColors.textTertiary,
-                    ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _toolStatusLabel(item),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: statusColor,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  item.isExpanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  size: 18,
+                  color: AppColors.textTertiary,
+                ),
+              ],
             ),
           ),
-          if (item.isExpanded)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: Color(0xFFF7F8FA))),
-                color: Color(0xFFF7F8FA),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Arguments:',
-                    style: TextStyle(
+        ),
+        if (item.isExpanded)
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _label(en: 'Arguments', zh: '参数'),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                SelectableText(
+                  item.args,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontFamily: 'monospace',
+                    color: Color(0xFF334155),
+                    height: 1.35,
+                  ),
+                ),
+                if (item.result != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    _label(en: 'Result', zh: '结果'),
+                    style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    item.args,
+                  SelectableText(
+                    item.result!,
                     style: const TextStyle(
                       fontSize: 11,
                       fontFamily: 'monospace',
                       color: Color(0xFF334155),
+                      height: 1.35,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  if (item.result != null) ...[
-                    const Text(
-                      'Result:',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item.result!,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontFamily: 'monospace',
-                        color: Color(0xFF334155),
-                      ),
-                    ),
-                  ],
                 ],
-              ),
+              ],
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 } // End of _AgentChatDialogState

@@ -718,32 +718,18 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
   Future<void> _cloneToTestUser() async {
     if (_isCloningTestUser) return;
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(UserStorage.l10n.cloneToTestUser),
-        content: Text(UserStorage.l10n.confirmCloneToTestUserMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(UserStorage.l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(UserStorage.l10n.confirm),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
+    final request = await _showCloneToTestUserDialog();
+    if (request == null) return;
 
     setState(() => _isCloningTestUser = true);
     final sourceUserId = await UserStorage.getUserId();
     try {
       _memexRouter.resetForLogout();
       final result = await SandboxUserCloneService.instance
-          .cloneCurrentUserToLocalTestUser();
+          .cloneCurrentUserToLocalTestUser(
+        targetUserId: request.targetUserId,
+        overwriteTarget: request.overwriteTarget,
+      );
       await UserStorage.saveUser(result.targetUserId);
       _memexRouter.resetForLogout();
       await _memexRouter.switchUser(result.targetUserId);
@@ -780,6 +766,86 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
       if (mounted) {
         setState(() => _isCloningTestUser = false);
       }
+    }
+  }
+
+  Future<_CloneToTestUserRequest?> _showCloneToTestUserDialog() async {
+    final controller = TextEditingController(text: 'test');
+    final validUserId = RegExp(r'^[A-Za-z0-9_-]+$');
+    var overwriteTarget = false;
+    var touched = false;
+
+    try {
+      return await showDialog<_CloneToTestUserRequest>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            final targetUserId = controller.text.trim();
+            final isValid = validUserId.hasMatch(targetUserId);
+
+            void submit() {
+              if (!isValid) {
+                setDialogState(() => touched = true);
+                return;
+              }
+              Navigator.of(dialogContext).pop(
+                _CloneToTestUserRequest(
+                  targetUserId: targetUserId,
+                  overwriteTarget: overwriteTarget,
+                ),
+              );
+            }
+
+            return AlertDialog(
+              title: Text(UserStorage.l10n.cloneToTestUser),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(UserStorage.l10n.confirmCloneToTestUserMessage),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    textInputAction: TextInputAction.done,
+                    decoration: InputDecoration(
+                      labelText: UserStorage.l10n.testUserIdLabel,
+                      helperText: UserStorage.l10n.testUserIdHelper,
+                      errorText: touched && !isValid
+                          ? UserStorage.l10n.testUserIdInvalid
+                          : null,
+                    ),
+                    onChanged: (_) => setDialogState(() => touched = true),
+                    onSubmitted: (_) => submit(),
+                  ),
+                  const SizedBox(height: 8),
+                  CheckboxListTile(
+                    value: overwriteTarget,
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: Text(UserStorage.l10n.overwriteExistingTestUser),
+                    onChanged: (value) {
+                      setDialogState(() => overwriteTarget = value ?? false);
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: Text(UserStorage.l10n.cancel),
+                ),
+                TextButton(
+                  onPressed: isValid ? submit : null,
+                  child: Text(UserStorage.l10n.confirm),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+    } finally {
+      controller.dispose();
     }
   }
 
@@ -1232,4 +1298,14 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
       ),
     );
   }
+}
+
+class _CloneToTestUserRequest {
+  final String targetUserId;
+  final bool overwriteTarget;
+
+  const _CloneToTestUserRequest({
+    required this.targetUserId,
+    required this.overwriteTarget,
+  });
 }

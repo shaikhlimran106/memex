@@ -39,6 +39,7 @@ class SandboxUserCloneService {
 
   Future<SandboxUserCloneResult> cloneCurrentUserToLocalTestUser({
     String? targetUserId,
+    bool overwriteTarget = false,
   }) async {
     final sourceUserId = await UserStorage.getUserId();
     if (sourceUserId == null || sourceUserId.isEmpty) {
@@ -68,21 +69,41 @@ class SandboxUserCloneService {
     final targetWorkspace = Directory(targetWorkspacePath);
 
     if (await targetWorkspace.exists()) {
-      throw FileSystemException(
-        'Target workspace already exists.',
-        targetWorkspacePath,
-      );
+      if (!overwriteTarget) {
+        throw FileSystemException(
+          'Target workspace already exists.',
+          targetWorkspacePath,
+        );
+      }
+    }
+
+    final copyTargetWorkspace = overwriteTarget
+        ? Directory(
+            p.join(
+              targetWorkspace.parent.path,
+              '_${resolvedTargetUserId}_importing',
+            ),
+          )
+        : targetWorkspace;
+    if (await copyTargetWorkspace.exists()) {
+      await copyTargetWorkspace.delete(recursive: true);
     }
 
     final copyStats = _CopyStats();
     try {
       await _copyDirectory(
         source: sourceWorkspace,
-        target: targetWorkspace,
+        target: copyTargetWorkspace,
         root: sourceWorkspace,
         stats: copyStats,
         excludedWorkspacePaths: _defaultExcludedWorkspacePaths,
       );
+      if (overwriteTarget) {
+        if (await targetWorkspace.exists()) {
+          await targetWorkspace.delete(recursive: true);
+        }
+        await copyTargetWorkspace.rename(targetWorkspacePath);
+      }
       await UserStorage.setWorkspaceStorageToApp(resolvedTargetUserId);
       _logger.info(
         'Cloned workspace from $sourceUserId to $resolvedTargetUserId. '
@@ -98,8 +119,8 @@ class SandboxUserCloneService {
         skippedPaths: List.unmodifiable(copyStats.skippedPaths),
       );
     } catch (e) {
-      if (await targetWorkspace.exists()) {
-        await targetWorkspace.delete(recursive: true);
+      if (await copyTargetWorkspace.exists()) {
+        await copyTargetWorkspace.delete(recursive: true);
       }
       rethrow;
     }
@@ -114,16 +135,13 @@ class SandboxUserCloneService {
       return _sanitizeUserId(requestedTargetUserId);
     }
 
-    final now = DateTime.now();
-    final stamp = _timestampForUserId(now);
-    final sourcePart = _sanitizeUserId(sourceUserId);
-    final base = 'test_${sourcePart}_$stamp';
+    const base = 'test';
     var candidate = base;
     var suffix = 2;
     while (await Directory(
       p.join(targetDataRoot, 'workspace', '_$candidate'),
     ).exists()) {
-      candidate = '${base}_$suffix';
+      candidate = '$base$suffix';
       suffix += 1;
     }
     return candidate;
@@ -136,12 +154,6 @@ class SandboxUserCloneService {
         .replaceAll(RegExp(r'_+'), '_')
         .replaceAll(RegExp(r'^_+|_+$'), '');
     return sanitized.isEmpty ? 'test_user' : sanitized;
-  }
-
-  static String _timestampForUserId(DateTime value) {
-    String two(int n) => n.toString().padLeft(2, '0');
-    return '${value.year}${two(value.month)}${two(value.day)}_'
-        '${two(value.hour)}${two(value.minute)}${two(value.second)}';
   }
 
   @visibleForTesting

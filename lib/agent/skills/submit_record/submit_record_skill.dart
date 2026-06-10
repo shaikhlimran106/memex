@@ -35,18 +35,20 @@ Use this skill to turn the user's current message into a Memex record. This is t
 - The user clearly asks to record, publish, remember, log, save, or add something to Memex.
 - The user shares a life event, work update, thought, observation, plan, note, receipt-like detail, or knowledge snippet that is likely intended as a timeline/knowledge record.
 - The user speaks in a capture-first way, for example "记一下...", "今天...", "刚刚...", "帮我记录...".
+- The user sends photos, screenshots, documents, receipts, or other media from the central direct-entry flow without an explicit question or edit request. Treat this as likely capture intent.
 
 ## When Not to Use
 - The user is only asking a question, chatting casually, or requesting a search/summarization over existing records.
 - The user asks to edit an existing card/PKM/setting; use the relevant editing skill instead.
-- The user's intent is ambiguous and recording it would be risky. Ask a short clarification first.
+- Recording would be risky or misleading because the user is asking a question about the content, comparing options, testing the agent, editing existing data, or explicitly saying not to save it.
 
 ## Rules
 1. Submit only the actual record content. Do not include your own explanation, tool plan, or hidden reasoning in the record body.
 2. Preserve the user's language and tone. Do not translate or rewrite unless the user asks you to polish.
 3. After submitting, briefly tell the user that the record was added and that card/PKM processing is continuing asynchronously.
 4. If the current chat turn includes attached images and the user wants to save them, pass the provided `image_paths` exactly. Do not invent image paths.
-5. If the user only attached images and did not clearly ask to save them, inspect the images and ask whether they should be recorded before calling this tool.
+5. If the user only attached images in the central direct-entry flow, inspect them and record them unless the surrounding message indicates a question, edit request, test, or "do not save" intent. Do not ask for confirmation for routine image capture.
+6. Ask for confirmation before destructive, external, billing/account, broad settings, or hard-to-undo actions. Routine capture is low risk.
 ''';
   }
 

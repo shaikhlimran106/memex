@@ -150,6 +150,18 @@ class AppLocalizationsZh extends AppLocalizations {
       '将当前工作区复制到一个新的本地测试用户并切换过去。不会复制 Agent 运行态，当前用户数据不会被修改。';
 
   @override
+  String get testUserIdLabel => '测试用户名';
+
+  @override
+  String get testUserIdHelper => '只能使用英文、数字、中划线或下划线。';
+
+  @override
+  String get testUserIdInvalid => '只能使用英文、数字、中划线或下划线。';
+
+  @override
+  String get overwriteExistingTestUser => '覆盖同名测试用户';
+
+  @override
   String testUserCloneSuccess(Object userId) {
     return '已切换到测试用户 $userId';
   }

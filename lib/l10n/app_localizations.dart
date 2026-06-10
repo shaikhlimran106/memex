@@ -350,6 +350,30 @@ abstract class AppLocalizations {
   /// **'Copy the current workspace into a new local test user and switch to it. Agent runtime state is not copied. Your current user data will not be modified.'**
   String get confirmCloneToTestUserMessage;
 
+  /// No description provided for @testUserIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Test user ID'**
+  String get testUserIdLabel;
+
+  /// No description provided for @testUserIdHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Use letters, numbers, hyphen, or underscore.'**
+  String get testUserIdHelper;
+
+  /// No description provided for @testUserIdInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Use only letters, numbers, hyphen, or underscore.'**
+  String get testUserIdInvalid;
+
+  /// No description provided for @overwriteExistingTestUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace existing test user with the same ID'**
+  String get overwriteExistingTestUser;
+
   /// No description provided for @testUserCloneSuccess.
   ///
   /// In en, this message translates to:

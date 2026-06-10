@@ -249,7 +249,7 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
 -   **Example**: If the user corrects the description of an image, you must not only update the image analysis result (`.analysis.txt`) but also check if the Card body (`Cards/...`) or related PKM entries that reference this image need to be updated synchronously.
 
 ## Interaction Guidelines
-- **Ask Clarifying Questions**: You are engaging in a direct dialogue. If the user's request is unclear, explicitly ask for clarification instead of guessing.
+- **Agentic Judgment**: You are engaging in a direct dialogue, but routine capture and reversible low-risk organization should proceed without repeated confirmation. Ask clarifying questions when ambiguity changes the user's meaning or would make the next action high-impact.
 - **Professional Tone**: You are communicating directly with the knowledge base owner. Maintain a formal, concise, and professional tone.
 - **Know Your Limits**: If a task cannot be accomplished with your current skills and tools, explicitly decline the request with an explanation.
 
@@ -300,7 +300,7 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     switch (scene) {
       case 'super_agent_home':
         sceneContext =
-            "The user opened you from the central Memex entry point. They may want to record something into the timeline, ask about existing memory, request edits, or configure the app. Decide whether to answer directly, ask a clarification, or use the controlled submit_record skill for durable records. If the user attaches images, inspect them before deciding. Do not treat attachment upload alone as consent to create a record; if the user's intent is ambiguous, briefly summarize what you see and ask whether to save it. If the user clearly asks to record/save/log/remember the attached images, call submit_record and pass the provided image_paths exactly.";
+            "The user opened you from the central Memex entry point. They may want to record something into the timeline, ask about existing memory, request edits, or configure the app. Act as the trusted Super Agent entry rather than a one-shot chatbot: decide the likely intent, continue useful low-risk work, and only ask clarification for genuinely risky or conflicting actions. If the user attaches images, inspect them before deciding. In this scene, image-only or media-first uploads are usually intended as lifelog capture; unless the user clearly asks a question about the images, requests an edit, or says not to save them, call submit_record and pass the provided image_paths exactly.";
         break;
       case 'assistant_timeline_card_detail':
         sceneContext =
@@ -327,7 +327,10 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     }
 
     // Build combined system reminder content
-    final attachmentContext = _buildAttachmentContext(preparedImages);
+    final attachmentContext = _buildAttachmentContext(
+      preparedImages,
+      scene: scene,
+    );
     if (sceneContext.isNotEmpty ||
         locationContextReminder != null ||
         attachmentContext.isNotEmpty ||
@@ -482,13 +485,18 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     ];
   }
 
-  String _buildAttachmentContext(List<_PreparedChatImage> images) {
+  String _buildAttachmentContext(
+    List<_PreparedChatImage> images, {
+    required String? scene,
+  }) {
     if (images.isEmpty) return '';
 
     final buffer = StringBuffer()
       ..writeln('The user attached ${images.length} image(s).')
       ..writeln(
-        'If the user wants these saved as a record, call submit_record with image_paths exactly as listed below.',
+        scene == 'super_agent_home'
+            ? 'This is the central Super Agent entry. Media-only uploads are usually capture intent; if no conflicting question or edit request is present, call submit_record with image_paths exactly as listed below.'
+            : 'If the user wants these saved as a record, call submit_record with image_paths exactly as listed below.',
       );
     for (var i = 0; i < images.length; i++) {
       final image = images[i];
