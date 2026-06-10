@@ -29,7 +29,7 @@
 
 Memex is an open-source, local-first AI journal for iOS and Android. It takes a different approach from traditional journaling apps — instead of asking you to sit down and write polished entries, Memex lets you capture life in fragments (text, photos, voice) and uses a multi-agent AI system to organize them into structured cards, builds your knowledge base, discovers insights, and provides companionship through AI characters.
 
-**What "local-first" means here:** Your records, cards, and knowledge all stay on your device. There is no Memex account and no Memex server storing your journal. You bring your own LLM provider (OpenAI, Claude, Gemini, etc.), and your prompts go directly from your phone to that provider — we never see your data.
+**What "local-first" means here:** Your records, cards, and knowledge all stay on your device. There is no Memex account and no Memex server storing your journal. You bring your own LLM provider (OpenAI, Claude, Gemini, DeepSeek, etc.), and your prompts go directly from your phone to that provider — we never see your data.
 
 <div align="center">
   <img src="https://github.com/user-attachments/assets/e5fb3ab6-ff99-4397-9018-386c9f90f5ee" width="300" />
@@ -106,6 +106,7 @@ https://github.com/user-attachments/assets/5048a9b1-47b2-462a-99f3-6a178e183861
 | Aliyun (Qwen) | OpenAI-compatible | qwen3.5-plus, qwen-max, etc. |
 | Volcengine (Doubao) | OpenAI-compatible | doubao-seed-1-8, doubao-1.5-pro, etc. |
 | Zhipu GLM | OpenAI-compatible | GLM-4.7, GLM-4-Plus |
+| DeepSeek | OpenAI-compatible | deepseek-v4-flash, deepseek-v4-pro |
 | MiniMax | Anthropic-compatible | MiniMax-M2.5, MiniMax-M1 |
 | Xiaomi MIMO | Anthropic-compatible | MiMo-7B-RL |
 | OpenRouter | OpenAI-compatible | Access multiple providers via one API |
@@ -123,7 +124,7 @@ https://github.com/user-attachments/assets/5048a9b1-47b2-462a-99f3-6a178e183861
 Memex requires an LLM API key to power its AI features. On first launch:
 
 1. Tap the avatar icon → Model Configuration
-2. Select your provider (Gemini / OpenAI / Claude / etc.)
+2. Select your provider (Gemini / OpenAI / Claude / DeepSeek / etc.)
 3. Enter your API key and base URL
 4. Each agent can be configured with a different model independently
 
@@ -235,7 +236,7 @@ For Android local development, prefer `globalDev` / `cnDev`; they use isolated p
 | Platforms | iOS, Android |
 | Database | Drift (SQLite) |
 | State Management | Provider + MVVM |
-| LLM Providers | Gemini, OpenAI, Claude, Bedrock, Kimi, Qwen, Doubao, GLM, MiniMax, MIMO, OpenRouter, Ollama |
+| LLM Providers | Gemini, OpenAI, Claude, Bedrock, Kimi, Qwen, Doubao, GLM, DeepSeek, MiniMax, MIMO, OpenRouter, Ollama |
 | Agent Framework | dart_agent_core |
 
 ### Project Structure
