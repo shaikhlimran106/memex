@@ -39,7 +39,12 @@ AI 审查必须参考：
 - `docs/pr-policy-preflight.zh.md`
 - `docs/pr-ai-review.zh.md`
 - PR title、body、changed files 和 diff
-- 已生成的 policy preflight / Flutter quality artifact（如果可用）
+- `pr-ai-review-input/` 中准备好的 policy preflight 文件
+- 已生成的 Flutter quality artifact（如果可用）
+
+Policy Preflight 只报告治理面和信任边界的确定性硬规则。AI Review 负责结合上下文判断：
+测试证据、架构敏感关键词、本地化或 UI 行为、大范围 diff、PR 描述过少，以及 generated
+file 和源文件一起变化时是否符合预期 codegen 链路。
 
 ## 风险等级
 

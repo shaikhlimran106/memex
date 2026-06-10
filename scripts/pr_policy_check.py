@@ -15,7 +15,6 @@ import json
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
-import sys
 from typing import Iterable
 
 
@@ -92,36 +91,12 @@ HIGH_RISK_PATH_RULES: list[tuple[str, list[str], int, str, str]] = [
     ("review-policy", POLICY_CONTROL_PATTERNS, 35, "Review policy, preflight script, or control file changed.", "Review policy、preflight 脚本或控制文件发生变化。"),
 ]
 
-HIGH_RISK_KEYWORDS: list[tuple[str, int, str, str]] = [
-    (r"\bUserStorage\b", 10, "UserStorage reference changed.", "UserStorage 引用发生变化。"),
-    (r"\bFilePermissionManager\b", 15, "Agent file permission boundary reference changed.", "Agent 文件权限边界引用发生变化。"),
-    (r"\bPermissionRule\b", 15, "Agent permission rule reference changed.", "Agent 权限规则引用发生变化。"),
-    (r"\bGlobalEventBus\b", 12, "Global event bus reference changed.", "全局事件总线引用发生变化。"),
-    (r"\bLocalTaskExecutor\b", 12, "Persistent task executor reference changed.", "持久任务执行器引用发生变化。"),
-    (r"\bBackupService\b", 12, "Backup service reference changed.", "备份服务引用发生变化。"),
-    (r"\bgetCardsPath\b|\bgetFactsPath\b|\bgetWorkspace", 12, "Workspace path reference changed.", "Workspace 路径引用发生变化。"),
-    (r"\b(apiKey|accessToken|secret|password|credential)s?\b", 15, "Credential-like identifier changed.", "疑似凭证标识符发生变化。"),
-    (r"\bhttp\b|\bdio\b|\bWebSocket\b|\brequest\(", 10, "Network-related code changed.", "网络相关代码发生变化。"),
-    (r"\bdeleteSync\b|\bunlinkSync\b|\bdelete\(|\brm\s+-rf\b", 12, "Deletion or destructive file operation changed.", "删除或破坏性文件操作发生变化。"),
-]
-
 WORKFLOW_REJECT_PATTERNS: list[tuple[str, str, str]] = [
     (r"permissions:\s*write-all", "Workflow grants write-all permissions.", "Workflow 授予 write-all 权限。"),
     (r"/var/run/docker\.sock", "Workflow mounts the host Docker socket.", "Workflow 挂载宿主机 Docker socket。"),
     (r"privileged:\s*true", "Workflow requests privileged container execution.", "Workflow 请求 privileged container 执行。"),
     (r"curl\b.*\|\s*(bash|sh)", "Workflow pipes downloaded content into a shell.", "Workflow 将下载内容直接 pipe 到 shell 执行。"),
     (r"wget\b.*\|\s*(bash|sh)", "Workflow pipes downloaded content into a shell.", "Workflow 将下载内容直接 pipe 到 shell 执行。"),
-]
-
-SENSITIVE_KEYWORD_SCAN_PATTERNS = [
-    ".github/**",
-    "android/**",
-    "ios/**",
-    "lib/**",
-    "pubspec.yaml",
-    "pubspec.lock",
-    "analysis_options.yaml",
-    "scripts/**",
 ]
 
 
@@ -247,13 +222,6 @@ def added_lines_by_path(diff: str) -> dict[str, list[str]]:
     return result
 
 
-def has_test_plan(pr_body: str) -> bool:
-    body = pr_body.lower()
-    if "test plan" in body or "测试" in body or "验证" in body:
-        return "not run" not in body and "未运行" not in body
-    return False
-
-
 def evaluate_policy(
     *,
     base_ref: str,
@@ -264,11 +232,6 @@ def evaluate_policy(
     diff: str,
     diff_truncated: bool,
     diff_bytes: int,
-    pr_title: str,
-    pr_body: str,
-    max_files_low_risk: int,
-    max_lines_low_risk: int,
-    max_single_file_lines_low_risk: int,
 ) -> PreflightResult:
     findings: list[Finding] = []
     paths = {file.path for file in changed_files}
@@ -325,15 +288,6 @@ def evaluate_policy(
                     file.path,
                     100,
                 )
-            else:
-                add(
-                    "warn",
-                    "generated-file",
-                    "Generated Dart file changed with its matching source file.",
-                    "Generated Dart 文件和对应源文件一起发生变化。",
-                    file.path,
-                    30,
-                )
 
         for rule_id, patterns, score, message, message_zh in HIGH_RISK_PATH_RULES:
             if path_matches(file.path, patterns):
@@ -349,53 +303,7 @@ def evaluate_policy(
                 25,
             )
 
-        single_file_lines = file.additions + file.deletions
-        if single_file_lines > max_single_file_lines_low_risk:
-            add(
-                "warn",
-                "large-single-file-change",
-                f"Single file changed {single_file_lines} lines, above the review-attention threshold {max_single_file_lines_low_risk}.",
-                f"单个文件变更 {single_file_lines} 行，超过 review 关注阈值 {max_single_file_lines_low_risk}。",
-                file.path,
-                25,
-            )
-
-    if "lib/l10n/app_en.arb" in paths and "lib/l10n/app_zh.arb" not in paths:
-        add(
-            "warn",
-            "l10n-pair-mismatch",
-            "English ARB changed without matching Chinese ARB update.",
-            "英文 ARB 发生变化，但中文 ARB 没有同步变化。",
-            "lib/l10n",
-            25,
-        )
-    if "lib/l10n/app_zh.arb" in paths and "lib/l10n/app_en.arb" not in paths:
-        add(
-            "warn",
-            "l10n-pair-mismatch",
-            "Chinese ARB changed without matching English ARB update.",
-            "中文 ARB 发生变化，但英文 ARB 没有同步变化。",
-            "lib/l10n",
-            25,
-        )
-
     total_lines = sum(file.additions + file.deletions for file in changed_files)
-    if len(changed_files) > max_files_low_risk:
-        add(
-            "warn",
-            "too-many-files",
-            f"PR changes {len(changed_files)} files, above the review-attention threshold {max_files_low_risk}.",
-            f"PR 修改了 {len(changed_files)} 个文件，超过 review 关注阈值 {max_files_low_risk}。",
-            score=20,
-        )
-    if total_lines > max_lines_low_risk:
-        add(
-            "warn",
-            "too-many-lines",
-            f"PR changes {total_lines} lines, above the review-attention threshold {max_lines_low_risk}.",
-            f"PR 修改了 {total_lines} 行，超过 review 关注阈值 {max_lines_low_risk}。",
-            score=20,
-        )
     if diff_truncated:
         add(
             "high",
@@ -405,32 +313,12 @@ def evaluate_policy(
             score=30,
         )
 
-    lib_changed = any(path.startswith("lib/") for path in paths)
-    test_changed = any(is_test_path(path) for path in paths)
-    if lib_changed and not test_changed and not has_test_plan(pr_body):
-        add(
-            "warn",
-            "missing-test-signal",
-            "Production Dart files changed without test file changes or a clear test plan in the PR body.",
-            "Production Dart 文件发生变化，但没有测试文件变化，也没有清晰的 PR test plan。",
-            score=10,
-        )
-
-    if not pr_title.strip():
-        add("warn", "missing-pr-title", "PR title is empty.", "PR 标题为空。", score=5)
-    if not pr_body.strip():
-        add("warn", "missing-pr-body", "PR body is empty.", "PR 正文为空。", score=5)
-
     for path, added_lines in added_by_path.items():
         added_text = "\n".join(added_lines)
         if path_matches(path, [".github/workflows/**"]):
             for pattern, message, message_zh in WORKFLOW_REJECT_PATTERNS:
                 if re.search(pattern, added_text, flags=re.IGNORECASE):
                     add("reject", "unsafe-workflow-pattern", message, message_zh, path, 100)
-        if path_matches(path, SENSITIVE_KEYWORD_SCAN_PATTERNS):
-            for pattern, score, message, message_zh in HIGH_RISK_KEYWORDS:
-                if re.search(pattern, added_text, flags=re.IGNORECASE):
-                    add("warn", "sensitive-keyword", message, message_zh, path, score)
 
     reject = any(finding.severity == "reject" for finding in findings)
     high = any(finding.severity == "high" for finding in findings)
@@ -489,7 +377,6 @@ def severity_label_zh(severity: str) -> str:
     return {
         "reject": "打回",
         "high": "高风险",
-        "warn": "警告",
     }.get(severity, severity)
 
 
@@ -547,12 +434,6 @@ def write_text(path: Path | None, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def read_optional_file(path: Path | None) -> str:
-    if path is None:
-        return ""
-    return path.read_text(encoding="utf-8", errors="replace")
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run deterministic PR policy preflight.")
     parser.add_argument("--repo-path", type=Path, default=Path.cwd())
@@ -565,9 +446,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--max-diff-bytes", type=int, default=240_000)
-    parser.add_argument("--max-files-low-risk", type=int, default=20)
-    parser.add_argument("--max-lines-low-risk", type=int, default=800)
-    parser.add_argument("--max-single-file-lines-low-risk", type=int, default=400)
     parser.add_argument("--no-fail-on-decision", action="store_true")
     return parser
 
@@ -575,8 +453,6 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     repo_path = args.repo_path.resolve()
-    pr_title = read_optional_file(args.pr_title_file) if args.pr_title_file else args.pr_title
-    pr_body = read_optional_file(args.pr_body_file) if args.pr_body_file else args.pr_body
 
     try:
         merge_base, head_sha, changed_files = collect_changed_files(repo_path, args.base, args.head)
@@ -590,11 +466,6 @@ def main(argv: list[str] | None = None) -> int:
             diff=diff,
             diff_truncated=diff_truncated,
             diff_bytes=diff_bytes,
-            pr_title=pr_title,
-            pr_body=pr_body,
-            max_files_low_risk=args.max_files_low_risk,
-            max_lines_low_risk=args.max_lines_low_risk,
-            max_single_file_lines_low_risk=args.max_single_file_lines_low_risk,
         )
     except Exception as exc:  # noqa: BLE001 - CLI boundary should report any failure.
         fallback = {

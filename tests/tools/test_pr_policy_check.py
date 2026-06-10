@@ -11,7 +11,7 @@ from scripts.pr_policy_check import (
 )
 
 
-def run_policy(changed_files, diff="", pr_body="Test plan: not needed for docs."):
+def run_policy(changed_files, diff=""):
     return evaluate_policy(
         base_ref="origin/main",
         head_ref="HEAD",
@@ -21,11 +21,6 @@ def run_policy(changed_files, diff="", pr_body="Test plan: not needed for docs."
         diff=diff,
         diff_truncated=False,
         diff_bytes=len(diff.encode()),
-        pr_title="Test PR",
-        pr_body=pr_body,
-        max_files_low_risk=20,
-        max_lines_low_risk=800,
-        max_single_file_lines_low_risk=400,
     )
 
 
@@ -42,7 +37,7 @@ class PolicyPreflightTest(unittest.TestCase):
 
         self.assertEqual(result.decision, DECISION_REJECT)
 
-    def test_generated_file_with_source_warns_only(self):
+    def test_generated_file_with_source_is_low_risk(self):
         result = run_policy(
             [
                 ChangedFile(status="M", path="lib/db/app_database.dart"),
@@ -52,6 +47,7 @@ class PolicyPreflightTest(unittest.TestCase):
 
         self.assertEqual(result.decision, DECISION_LOW_RISK)
         self.assertTrue(result.compliant)
+        self.assertEqual(result.findings, [])
 
     def test_docs_only_is_low_risk(self):
         result = run_policy([ChangedFile(status="M", path="docs/readme.md", additions=10)])
@@ -74,28 +70,34 @@ class PolicyPreflightTest(unittest.TestCase):
 
         self.assertEqual(result.decision, DECISION_REJECT)
 
-    def test_single_l10n_file_warns_only(self):
+    def test_single_l10n_file_is_left_to_ai_review(self):
         result = run_policy([ChangedFile(status="M", path="lib/l10n/app_en.arb")])
 
         self.assertEqual(result.decision, DECISION_LOW_RISK)
-        self.assertTrue(any(finding.rule_id == "l10n-pair-mismatch" for finding in result.findings))
+        self.assertEqual(result.findings, [])
 
     def test_app_code_path_is_not_high_risk_by_directory(self):
-        result = run_policy(
-            [ChangedFile(status="M", path="lib/main.dart", additions=4)],
-            pr_body="Test plan: flutter analyze && flutter test",
-        )
+        result = run_policy([ChangedFile(status="M", path="lib/main.dart", additions=4)])
 
         self.assertEqual(result.decision, DECISION_LOW_RISK)
+        self.assertEqual(result.findings, [])
 
-    def test_production_change_without_test_signal_warns_only(self):
-        result = run_policy(
-            [ChangedFile(status="M", path="lib/ui/example_widget.dart", additions=8)],
-            pr_body="",
-        )
+    def test_production_change_without_test_signal_is_left_to_ai_review(self):
+        result = run_policy([ChangedFile(status="M", path="lib/ui/example_widget.dart", additions=8)])
 
         self.assertEqual(result.decision, DECISION_LOW_RISK)
-        self.assertTrue(any(finding.rule_id == "missing-test-signal" for finding in result.findings))
+        self.assertEqual(result.findings, [])
+
+    def test_sensitive_keyword_is_left_to_ai_review(self):
+        diff = (
+            "diff --git a/lib/example.dart b/lib/example.dart\n"
+            "+++ b/lib/example.dart\n"
+            "+final value = UserStorage.currentUserId;\n"
+        )
+        result = run_policy([ChangedFile(status="M", path="lib/example.dart", additions=1)], diff=diff)
+
+        self.assertEqual(result.decision, DECISION_LOW_RISK)
+        self.assertEqual(result.findings, [])
 
     def test_outputs_include_bilingual_labels(self):
         result = run_policy([ChangedFile(status="M", path=".github/workflows/build.yml")])

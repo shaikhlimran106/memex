@@ -45,9 +45,7 @@ class PreflightSummaryCommentTest(unittest.TestCase):
                 "preflight.json": """
                 {
                   "decision": "low_risk",
-                  "findings": [
-                    {"severity": "warn", "rule_id": "missing-test-signal"}
-                  ]
+                  "findings": []
                 }
                 """,
                 "preflight.md": "policy details",
@@ -73,9 +71,9 @@ class PreflightSummaryCommentTest(unittest.TestCase):
 
         comment = build_comment(policy=policy, flutter=flutter)
 
-        self.assertIn("Policy preflight：`低风险`。未命中打回或高风险规则，仅有 1 条警告供 review 参考。", comment)
+        self.assertIn("Policy preflight：`低风险`。未命中打回或高风险规则。", comment)
         self.assertIn("Flutter quality：`通过`。Analyzer 和 test baseline 均未发现新增问题。", comment)
-        self.assertIn("Policy preflight: `LOW RISK`. No blocking or high-risk policy signal; 1 warning(s) remain", comment)
+        self.assertIn("Policy preflight: `LOW RISK`. No blocking or high-risk policy signal was found.", comment)
         self.assertIn("Flutter quality: `PASS`. Analyzer and test baselines found no newly introduced issue.", comment)
 
 

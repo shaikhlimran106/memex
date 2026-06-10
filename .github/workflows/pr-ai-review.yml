@@ -124,6 +124,16 @@ jobs:
           source.unlink(missing_ok=True)
           PY
 
+          python3 scripts/pr_policy_check.py \
+            --repo-path . \
+            --base "refs/remotes/origin/${PR_BASE_REF}" \
+            --head "refs/remotes/origin/pr-head" \
+            --pr-title-file pr-ai-review-input/pr-title.txt \
+            --pr-body-file pr-ai-review-input/pr-body.txt \
+            --output pr-ai-review-input/pr-policy-preflight.json \
+            --markdown-output pr-ai-review-input/pr-policy-preflight.md \
+            --no-fail-on-decision
+
       - name: Run Claude AI review
         id: claude-ai-review
         if: env.HAS_ANTHROPIC_API_KEY == 'true'
@@ -279,6 +289,8 @@ jobs:
           path: |
             pr-ai-review-input/pr-context.json
             pr-ai-review-input/pr-files.txt
+            pr-ai-review-input/pr-policy-preflight.json
+            pr-ai-review-input/pr-policy-preflight.md
             ai-review-raw.json
             ai-review.json
             ai-review.md
