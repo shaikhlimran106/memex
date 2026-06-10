@@ -4,10 +4,10 @@ import 'package:dart_agent_core/dart_agent_core.dart';
 ///
 /// Wraps the core [LLMBasedContextCompressor] (Claude Code-style fixed-quota
 /// compaction: summarize old messages into a snapshot once the prompt exceeds
-/// [totalTokenThreshold], keep the most recent messages verbatim) and adds one
-/// Memex-specific cleanup: once messages are archived into episodic memory,
-/// their inline image base64 payloads are replaced with `fs://` path
-/// placeholders.
+/// the quota, keep the most recent messages verbatim — quota unchanged from
+/// the core default) and adds one Memex-specific cleanup: once messages are
+/// archived into episodic memory, their inline image base64 payloads are
+/// replaced with `fs://` path placeholders.
 ///
 /// Rationale: `retrieve_memory` can only return archived messages as text, so
 /// archived image bytes are dead weight — they can never reach the model again
@@ -18,7 +18,7 @@ class SuperAgentContextCompressor implements ContextCompressor {
   SuperAgentContextCompressor({
     required LLMClient client,
     required ModelConfig modelConfig,
-    int totalTokenThreshold = 32000,
+    int totalTokenThreshold = 64000,
     int keepRecentMessageSize = 10,
   }) : _inner = LLMBasedContextCompressor(
           client: client,

@@ -171,13 +171,13 @@ class SuperAgent {
         client: client,
         modelConfig: modelConfig,
         state: state,
-        // Claude Code-style fixed-quota compaction. 32k (down from 64k)
-        // bounds the steady-state per-turn prompt cost for BYO-key users
-        // while keeping recent images fully visible to the model.
+        // Claude Code-style fixed-quota compaction. Same quota as the core
+        // default; the wrapper only strips image bytes from already-archived
+        // episodic messages (retrieve_memory can only return text anyway).
         compressor: SuperAgentContextCompressor(
           client: client,
           modelConfig: modelConfig,
-          totalTokenThreshold: 32000,
+          totalTokenThreshold: 64000,
           keepRecentMessageSize: 10,
         ),
         tools: tools,
