@@ -41,10 +41,10 @@ class AgentBackgroundStatus {
     };
 
     final title = switch (state) {
-      AgentBackgroundRunState.failed => 'Memex task needs attention',
-      AgentBackgroundRunState.completed => 'Memex task complete',
-      AgentBackgroundRunState.active => 'Memex is processing',
-      AgentBackgroundRunState.idle => 'Memex is idle',
+      AgentBackgroundRunState.failed => 'Memex Agent needs attention',
+      AgentBackgroundRunState.completed => 'Memex Agent',
+      AgentBackgroundRunState.active => 'Memex Agent',
+      AgentBackgroundRunState.idle => 'Memex Agent',
     };
 
     final stage =
@@ -90,10 +90,9 @@ class AgentBackgroundStatus {
 
   bool get shouldShowSystemSurface =>
       state == AgentBackgroundRunState.active ||
-      state == AgentBackgroundRunState.completed ||
       state == AgentBackgroundRunState.failed;
 
-  Map<String, dynamic> toPlatformMap() {
+  Map<String, dynamic> toPlatformMap({bool isInBackground = false}) {
     return {
       'state': state.name,
       'pending': pending,
@@ -107,6 +106,7 @@ class AgentBackgroundStatus {
       'scene': scene,
       'sceneId': sceneId,
       'updatedAtMs': updatedAt.millisecondsSinceEpoch,
+      'isInBackground': isInBackground,
     };
   }
 
@@ -149,17 +149,8 @@ String _detailFor({
   if (messageContent != null) return messageContent;
 
   if (taskSnapshot.hasActiveTasks) {
-    final parts = <String>[];
-    if (taskSnapshot.processing > 0) {
-      parts.add('${taskSnapshot.processing} running');
-    }
-    if (taskSnapshot.pending > 0) {
-      parts.add('${taskSnapshot.pending} waiting');
-    }
-    if (taskSnapshot.retrying > 0) {
-      parts.add('${taskSnapshot.retrying} retrying');
-    }
-    return '${taskSnapshot.total} remaining: ${parts.join(', ')}';
+    final taskLabel = taskSnapshot.total == 1 ? 'task' : 'tasks';
+    return 'Processing ${taskSnapshot.total} queued $taskLabel';
   }
 
   return switch (state) {

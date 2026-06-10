@@ -4,6 +4,8 @@ import 'dart:math';
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
 import 'package:memex/data/repositories/memex_router.dart';
+import 'package:memex/data/services/agent_background_platform.dart';
+import 'package:memex/data/services/agent_background_status.dart';
 import 'package:memex/data/services/agent_queue_drain_scheduler.dart';
 import 'package:memex/data/services/file_logger_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
@@ -24,6 +26,7 @@ class AgentQueueBackgroundWorker {
     Future<void> Function(String userId)? initializeTaskQueue,
     LocalTaskExecutor? executor,
     AgentQueueDrainScheduler? scheduler,
+    AgentBackgroundPlatform? backgroundPlatform,
     Duration maxRunDuration = _maxRunDuration,
     Duration databaseRetryDelay = const Duration(milliseconds: 300),
   }) async {
@@ -34,8 +37,11 @@ class AgentQueueBackgroundWorker {
     try {
       await UserStorage.initL10n();
       final userId = await UserStorage.getUserId();
+      final surfacePlatform =
+          backgroundPlatform ?? MethodChannelAgentBackgroundPlatform();
       if (userId == null || userId.isEmpty) {
         logger.info('Skipping agent queue drain: no active user.');
+        await _stopBackgroundSurface(logger, surfacePlatform);
         return true;
       }
 
@@ -68,6 +74,11 @@ class AgentQueueBackgroundWorker {
           expedited: false,
         );
       }
+      await _syncBackgroundSurfaceAfterDrain(
+        logger,
+        surfacePlatform,
+        result.snapshot,
+      );
 
       logger.info(
         'Agent queue drain finished. '
@@ -87,6 +98,49 @@ class AgentQueueBackgroundWorker {
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final seconds = max(30, scheduledAtSeconds - now);
     return Duration(seconds: seconds);
+  }
+
+  static Future<void> _syncBackgroundSurfaceAfterDrain(
+    Logger logger,
+    AgentBackgroundPlatform platform,
+    TaskActivitySnapshot snapshot,
+  ) async {
+    if (!platform.isSupported) return;
+
+    if (!snapshot.hasActiveTasks) {
+      await _stopBackgroundSurface(logger, platform);
+      return;
+    }
+
+    try {
+      await platform.updateStatus(
+        AgentBackgroundStatus.fromActivity(taskSnapshot: snapshot),
+        isInBackground: true,
+      );
+    } catch (e, stackTrace) {
+      logger.warning(
+        'Failed to refresh Android agent background surface after drain',
+        e,
+        stackTrace,
+      );
+    }
+  }
+
+  static Future<void> _stopBackgroundSurface(
+    Logger logger,
+    AgentBackgroundPlatform platform,
+  ) async {
+    if (!platform.isSupported) return;
+
+    try {
+      await platform.stopStatus();
+    } catch (e, stackTrace) {
+      logger.warning(
+        'Failed to stop Android agent background surface after drain',
+        e,
+        stackTrace,
+      );
+    }
   }
 
   static Future<T> _withDatabaseLockRetry<T>(

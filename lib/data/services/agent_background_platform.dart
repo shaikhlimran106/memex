@@ -9,9 +9,15 @@ abstract class AgentBackgroundPlatform {
 
   Stream<String> get actionStream;
 
-  Future<void> updateStatus(AgentBackgroundStatus status);
+  Future<void> updateStatus(
+    AgentBackgroundStatus status, {
+    bool isInBackground = false,
+  });
 
-  Future<void> finishStatus(AgentBackgroundStatus status);
+  Future<void> finishStatus(
+    AgentBackgroundStatus status, {
+    bool isInBackground = false,
+  });
 
   Future<void> stopStatus();
 
@@ -36,20 +42,26 @@ class MethodChannelAgentBackgroundPlatform implements AgentBackgroundPlatform {
   Stream<String> get actionStream => _actionController.stream;
 
   @override
-  Future<void> updateStatus(AgentBackgroundStatus status) {
+  Future<void> updateStatus(
+    AgentBackgroundStatus status, {
+    bool isInBackground = false,
+  }) {
     if (!isSupported) return Future<void>.value();
     return _channel.invokeMethod<void>(
       'updateAgentStatus',
-      status.toPlatformMap(),
+      status.toPlatformMap(isInBackground: isInBackground),
     );
   }
 
   @override
-  Future<void> finishStatus(AgentBackgroundStatus status) {
+  Future<void> finishStatus(
+    AgentBackgroundStatus status, {
+    bool isInBackground = false,
+  }) {
     if (!isSupported) return Future<void>.value();
     return _channel.invokeMethod<void>(
       'finishAgentStatus',
-      status.toPlatformMap(),
+      status.toPlatformMap(isInBackground: isInBackground),
     );
   }
 

@@ -27,11 +27,11 @@ object AgentBackgroundChannelHandler {
                     result.success(null)
                 }
                 "finishAgentStatus" -> {
-                    startOrUpdateService(activity, call)
+                    finishService(activity, call)
                     result.success(null)
                 }
                 "stopAgentStatus" -> {
-                    stopService(activity)
+                    AgentBackgroundService.clear(activity)
                     result.success(null)
                 }
                 "consumeInitialAgentAction" -> {
@@ -67,21 +67,26 @@ object AgentBackgroundChannelHandler {
         val intent = Intent(context, AgentBackgroundService::class.java).apply {
             action = AgentBackgroundService.ACTION_UPDATE
             putExtra("state", args["state"] as? String ?: "active")
-            putExtra("title", args["title"] as? String ?: "Memex is processing")
+            putExtra("title", args["title"] as? String ?: "Memex Agent")
             putExtra("stage", args["stage"] as? String ?: "Processing")
             putExtra("detail", args["detail"] as? String ?: "")
             putExtra("remainingTasks", (args["remainingTasks"] as? Number)?.toInt() ?: 0)
             putExtra("pending", (args["pending"] as? Number)?.toInt() ?: 0)
             putExtra("processing", (args["processing"] as? Number)?.toInt() ?: 0)
             putExtra("retrying", (args["retrying"] as? Number)?.toInt() ?: 0)
+            putExtra(
+                AgentBackgroundService.EXTRA_WATCH_BACKGROUND_WORK,
+                args["isInBackground"] as? Boolean ?: false,
+            )
         }
         ContextCompat.startForegroundService(context, intent)
     }
 
-    private fun stopService(context: Context) {
-        val intent = Intent(context, AgentBackgroundService::class.java).apply {
-            action = AgentBackgroundService.ACTION_STOP
+    private fun finishService(context: Context, call: MethodCall) {
+        val args = call.arguments as? Map<*, *> ?: emptyMap<String, Any?>()
+        when (args["state"] as? String) {
+            "completed", "idle" -> AgentBackgroundService.clear(context)
+            else -> startOrUpdateService(context, call)
         }
-        context.stopService(intent)
     }
 }

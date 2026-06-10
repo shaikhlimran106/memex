@@ -51,6 +51,7 @@ void main() {
 
     expect(platform.updates.single.state, AgentBackgroundRunState.active);
     expect(platform.updates.single.remainingTasks, 1);
+    expect(platform.updateBackgroundFlags.single, isTrue);
     expect(scheduler.scheduleCount, 1);
 
     activityService.emit(
@@ -83,20 +84,24 @@ void main() {
     await _waitUntil(() => platform.updates.isNotEmpty);
 
     expect(platform.updates.single.state, AgentBackgroundRunState.active);
+    expect(platform.updateBackgroundFlags.single, isFalse);
     expect(scheduler.scheduleCount, 0);
 
     coordinator.didChangeAppLifecycleState(AppLifecycleState.paused);
     await _waitUntil(() => scheduler.scheduleCount == 1);
+    await _waitUntil(() => platform.updates.length == 2);
 
+    expect(platform.updateBackgroundFlags.last, isTrue);
     expect(scheduler.events.last, 'schedule:true:0');
   });
 
   test(
-    'finishes terminal status and cancels drain when queue empties',
+    'clears completed status and cancels drain when queue empties',
     () async {
       coordinator.start(executor: executor, activityService: activityService);
       await _insertTask(db, id: 'pending-a', status: 'pending');
       await _waitUntil(() => platform.updates.isNotEmpty);
+      final stopCountBeforeCompletion = platform.stopCount;
 
       activityService.emit(
         AgentActivityMessageModel(
@@ -115,9 +120,9 @@ void main() {
         ),
       );
 
-      await _waitUntil(() => platform.finished.isNotEmpty);
+      await _waitUntil(() => platform.stopCount > stopCountBeforeCompletion);
 
-      expect(platform.finished.last.state, AgentBackgroundRunState.completed);
+      expect(platform.finished, isEmpty);
       expect(scheduler.cancelCount, greaterThanOrEqualTo(1));
     },
   );
@@ -212,6 +217,7 @@ void main() {
 
     await _insertTask(db, id: 'pending-a', status: 'pending');
     await _waitUntil(() => platform.updateAttempts == 1);
+    final stopCountBeforeTerminal = platform.stopCount;
     platform.events.clear();
     scheduler.events.clear();
 
@@ -234,18 +240,21 @@ void main() {
 
     await Future<void>.delayed(const Duration(milliseconds: 50));
     expect(platform.finished, isEmpty);
+    expect(platform.stopCount, stopCountBeforeTerminal);
 
     platform.updateGate!.complete();
-    await _waitUntil(() => platform.finished.isNotEmpty);
+    await _waitUntil(() => platform.stopCount > stopCountBeforeTerminal);
 
-    expect(platform.events, ['update:active', 'finish:completed']);
+    expect(platform.events, ['update:active:bg=true', 'stop']);
     expect(scheduler.events, ['cancel']);
   });
 }
 
 class _FakePlatform implements AgentBackgroundPlatform {
   final updates = <AgentBackgroundStatus>[];
+  final updateBackgroundFlags = <bool>[];
   final finished = <AgentBackgroundStatus>[];
+  final finishBackgroundFlags = <bool>[];
   final events = <String>[];
   final initialActionConsumed = Completer<void>();
   var stopCount = 0;
@@ -270,26 +279,35 @@ class _FakePlatform implements AgentBackgroundPlatform {
   }
 
   @override
-  Future<void> finishStatus(AgentBackgroundStatus status) async {
-    events.add('finish:${status.state.name}');
+  Future<void> finishStatus(
+    AgentBackgroundStatus status, {
+    bool isInBackground = false,
+  }) async {
+    events.add('finish:${status.state.name}:bg=$isInBackground');
     finished.add(status);
+    finishBackgroundFlags.add(isInBackground);
   }
 
   @override
   Future<void> stopStatus() async {
+    events.add('stop');
     stopCount++;
   }
 
   @override
-  Future<void> updateStatus(AgentBackgroundStatus status) async {
+  Future<void> updateStatus(
+    AgentBackgroundStatus status, {
+    bool isInBackground = false,
+  }) async {
     updateAttempts++;
     await updateGate?.future;
     if (failNextUpdate) {
       failNextUpdate = false;
       throw StateError('platform temporarily unavailable');
     }
-    events.add('update:${status.state.name}');
+    events.add('update:${status.state.name}:bg=$isInBackground');
     updates.add(status);
+    updateBackgroundFlags.add(isInBackground);
   }
 
   void emitAction(String action) {
@@ -373,9 +391,7 @@ Future<void> _insertTask(
   required String status,
 }) async {
   final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-  await db
-      .into(db.tasks)
-      .insert(
+  await db.into(db.tasks).insert(
         TasksCompanion.insert(
           id: id,
           type: 'agent_task',
