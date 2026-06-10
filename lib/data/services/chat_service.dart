@@ -6,6 +6,7 @@ import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:logging/logging.dart';
 import 'package:memex/agent/memex_skill_host_agent/memex_skill_host_agent.dart';
+import 'package:memex/agent/run_mode/agent_run_mode.dart';
 import 'package:memex/agent/pure_skill_host_agent/pure_skill_host_agent.dart';
 import 'package:memex/agent/super_agent/super_agent.dart';
 import 'package:memex/data/services/asset_safety_service.dart';
@@ -54,6 +55,7 @@ class ChatService {
     List<XFile> images = const [],
     Map<String, String>? imageOriginalFilenames,
     bool isQuickQuery = false,
+    String runMode = 'auto',
   }) async* {
     _logger.info(
       'sendMessage: sessionId=$sessionId, message=$message, refs=${refs?.length}',
@@ -141,6 +143,7 @@ class ChatService {
             'has_refs': refs != null && refs.isNotEmpty,
             'has_images': preparedImages.isNotEmpty,
             'is_quick_query': isQuickQuery,
+            'run_mode': runMode,
           },
         );
       } catch (e) {
@@ -191,6 +194,8 @@ class ChatService {
         'scene': scene,
         'sceneId': sceneId,
       });
+      // Refresh per-turn: the user can switch run modes between messages.
+      state.metadata[AgentRunMode.metadataKey] = runMode;
 
       controller = AgentController();
 
@@ -313,6 +318,18 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
         break;
       default:
         sceneContext = "";
+    }
+
+    if (runMode == AgentRunMode.confirm.wireName) {
+      final modeContext =
+          "Run mode: ASK-FIRST. Every mutating tool call (records, cards, "
+          "PKM/file writes, reminders, deletions) pauses for explicit in-app "
+          "user approval before executing. Propose actions normally and do "
+          "NOT additionally ask for permission in text — the approval card is "
+          "the confirmation. If a tool result says the user declined, do not "
+          "retry the same call; acknowledge and adjust.";
+      sceneContext =
+          sceneContext.isEmpty ? modeContext : "$sceneContext\n\n$modeContext";
     }
 
     List<LLMMessage> userMessages = [];
@@ -747,6 +764,7 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
           event.result.name,
           resultPreview,
           isError: event.result.isError,
+          metadata: event.result.metadata,
         ),
       );
     });

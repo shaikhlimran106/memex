@@ -1,5 +1,6 @@
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:memex/agent/prompts.dart';
+import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
 import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/event_bus_service.dart';
@@ -53,6 +54,17 @@ class PkmSkill extends Skill {
           }
           final userId = context.state.metadata['userId'] as String;
           final fileService = FileSystemService.instance;
+
+          final denied = await gateMutatingToolCall(
+            toolName: 'update_timeline_card_insight',
+            summary: fact_id,
+            details: {
+              'insight': insight_text.length > 120
+                  ? '${insight_text.substring(0, 120)}…'
+                  : insight_text,
+            },
+          );
+          if (denied != null) return denied;
 
           final factInfo =
               await fileService.extractFactContentFromFile(userId, fact_id);

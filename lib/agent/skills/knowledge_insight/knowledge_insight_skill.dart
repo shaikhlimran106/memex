@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:memex/agent/prompts.dart';
+import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
 import 'package:memex/agent/skills/knowledge_insight/native_widgets.dart';
 
 import 'package:memex/data/services/file_system_service.dart';
@@ -132,6 +133,12 @@ Tool buildDeleteKnowledgeInsightCardTool() {
       final fileSystem = FileSystemService.instance;
       final userId = AgentCallToolContext.current!.state.metadata['userId'];
 
+      final denied = await gateMutatingToolCall(
+        toolName: 'delete_knowledge_insight_card',
+        summary: cardId,
+      );
+      if (denied != null) return denied;
+
       try {
         final success =
             await fileSystem.deleteKnowledgeInsightCard(userId, cardId);
@@ -169,6 +176,12 @@ Tool buildDeleteKnowledgeInsightTagsTool() {
       final fileSystem = FileSystemService.instance;
       final userId = AgentCallToolContext.current!.state.metadata['userId'];
 
+      final denied = await gateMutatingToolCall(
+        toolName: 'delete_knowledge_insight_tags',
+        summary: tags.map((tag) => tag.toString()).join(', '),
+      );
+      if (denied != null) return denied;
+
       try {
         final tagList = tags.cast<String>();
         await fileSystem.deleteInsightTags(userId, tagList);
@@ -190,6 +203,12 @@ Tool buildSaveKnowledgeInsightCardsTool() {
       final logger = getLogger('KnowledgeInsightSkill');
       final fileSystem = FileSystemService.instance;
       final userId = AgentCallToolContext.current!.state.metadata['userId'];
+
+      final denied = await gateMutatingToolCall(
+        toolName: 'save_knowledge_insight_cards',
+        summary: '${cards.length} insight card(s)',
+      );
+      if (denied != null) return denied;
 
       // Convert dicts to ChartData objects
       final chartObjects = cards.map((c) {

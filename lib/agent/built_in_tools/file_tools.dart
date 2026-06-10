@@ -1,5 +1,6 @@
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:memex/agent/prompts.dart';
+import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
 import 'package:memex/agent/security/file_permission_manager.dart';
 import 'package:memex/data/services/file_operation_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
@@ -191,11 +192,20 @@ class FileToolFactory {
       executable: (String file_path, String content) async {
         file_path = _resolvePath(file_path);
         permissionManager.checkPermission(file_path, FileAccessType.write);
+        final denied = await gateMutatingToolCall(
+          toolName: 'Write',
+          summary: file_path,
+          details: {'size': '${content.length} chars'},
+        );
+        if (denied != null) return denied;
         final result = await _fileOpService.writeFile(
           filePath: file_path,
           workingDirectory: workingDirectory,
           content: content,
         );
+
+        String? artifactPath;
+        var artifactIsUpdate = false;
 
         // Log event
         try {
@@ -207,6 +217,8 @@ class FileToolFactory {
             final relativePath =
                 _fileSystem.toRelativePath(file_path, rootPath: workspacePath);
             final isCreate = result.contains('File created successfully');
+            artifactPath = relativePath;
+            artifactIsUpdate = !isCreate;
             if (isCreate) {
               await _fileSystem.eventLogService.logFileCreated(
                 userId: userId,
@@ -225,7 +237,20 @@ class FileToolFactory {
           // Event logging failure should not break tool
         }
 
-        return result;
+        if (artifactPath == null) return result;
+        return AgentToolResult(
+          content: TextPart(result),
+          metadata: {
+            'artifact': {
+              'type': 'file',
+              'path': artifactPath,
+              'updated': artifactIsUpdate,
+              'snippet': content.length > 160
+                  ? '${content.substring(0, 160)}…'
+                  : content,
+            },
+          },
+        );
       },
     );
   }
@@ -263,6 +288,11 @@ class FileToolFactory {
           bool? replace_all) async {
         file_path = _resolvePath(file_path);
         permissionManager.checkPermission(file_path, FileAccessType.write);
+        final denied = await gateMutatingToolCall(
+          toolName: 'Edit',
+          summary: file_path,
+        );
+        if (denied != null) return denied;
         final result = await _fileOpService.editFile(
           filePath: file_path,
           workingDirectory: workingDirectory,
@@ -270,6 +300,8 @@ class FileToolFactory {
           newString: new_string,
           replaceAll: replace_all ?? false,
         );
+
+        String? artifactPath;
 
         // Log event
         try {
@@ -279,6 +311,7 @@ class FileToolFactory {
             final workspacePath = _fileSystem.getWorkspacePath(userId);
             final relativePath =
                 _fileSystem.toRelativePath(file_path, rootPath: workspacePath);
+            artifactPath = relativePath;
             await _fileSystem.eventLogService.logFileModified(
               userId: userId,
               filePath: relativePath,
@@ -289,7 +322,20 @@ class FileToolFactory {
           // Event logging failure should not break tool
         }
 
-        return result;
+        if (artifactPath == null) return result;
+        return AgentToolResult(
+          content: TextPart(result),
+          metadata: {
+            'artifact': {
+              'type': 'file',
+              'path': artifactPath,
+              'updated': true,
+              'snippet': new_string.length > 160
+                  ? '${new_string.substring(0, 160)}…'
+                  : new_string,
+            },
+          },
+        );
       },
     );
   }
@@ -318,13 +364,18 @@ class FileToolFactory {
         'required': ['source_path', 'destination_path']
       },
       executable:
-          (String source_path, String destination_path, bool? overwrite) {
+          (String source_path, String destination_path, bool? overwrite) async {
         // Must have Write Access to BOTH source (to delete it) and destination (to create it)
         source_path = _resolvePath(source_path);
         destination_path = _resolvePath(destination_path);
         permissionManager.checkPermission(source_path, FileAccessType.write);
         permissionManager.checkPermission(
             destination_path, FileAccessType.write);
+        final denied = await gateMutatingToolCall(
+          toolName: 'Move',
+          summary: '$source_path → $destination_path',
+        );
+        if (denied != null) return denied;
 
         return _fileOpService.moveFile(
           sourcePath: source_path,
@@ -358,6 +409,11 @@ class FileToolFactory {
       executable: (String path, bool confirm) async {
         path = _resolvePath(path);
         permissionManager.checkPermission(path, FileAccessType.write);
+        final denied = await gateMutatingToolCall(
+          toolName: 'Remove',
+          summary: path,
+        );
+        if (denied != null) return denied;
         final result = await _fileOpService.removeFile(
           filePath: path,
           workingDirectory: workingDirectory,

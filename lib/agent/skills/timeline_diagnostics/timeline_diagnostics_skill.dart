@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_agent_core/dart_agent_core.dart';
+import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
 import 'package:memex/data/repositories/retry_failed_cards.dart'
     as retry_failed_cards_endpoint;
 import 'package:memex/data/services/file_system_service.dart';
@@ -169,6 +170,11 @@ How to report results:
         },
         executable: (Map<String, dynamic> args) async {
           final cardId = _requiredString(args, 'card_id');
+          final denied = await gateMutatingToolCall(
+            toolName: 'retry_failed_timeline_card',
+            summary: cardId,
+          );
+          if (denied != null) return denied;
           final retried =
               await retry_failed_cards_endpoint.retryFailedCardGeneration(
             cardId,

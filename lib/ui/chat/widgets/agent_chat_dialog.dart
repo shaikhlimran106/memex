@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,9 +7,14 @@ import 'package:logging/logging.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
+import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
+import 'package:memex/agent/run_mode/agent_run_mode.dart';
 import 'package:memex/data/repositories/memex_router.dart';
+import 'package:memex/data/model/chat_artifact.dart';
 import 'package:memex/data/model/chat_events.dart';
 import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/ui/core/widgets/html_webview_card.dart';
+import 'package:memex/ui/timeline/widgets/timeline_card_detail_screen.dart';
 import 'package:memex/data/services/photo_suggestion_service.dart';
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/utils/logger.dart';
@@ -55,6 +61,7 @@ class ToolCallItem extends ChatDisplayItem {
   bool isError;
   bool isExpanded;
   DateTime? completedAt;
+  Map<String, dynamic>? metadata;
 
   ToolCallItem(
     this.toolName,
@@ -76,6 +83,24 @@ class ToolCallItem extends ChatDisplayItem {
 class ErrorItem extends ChatDisplayItem {
   final String error;
   ErrorItem(this.error);
+}
+
+/// Inline preview of something the agent produced (record, card, document).
+class ArtifactItem extends ChatDisplayItem {
+  final ChatArtifact artifact;
+
+  /// Raw HTML captured from the producing tool call args, for mini previews
+  /// of dynamic HTML cards.
+  final String? html;
+
+  ArtifactItem(this.artifact, {this.html});
+}
+
+/// Inline ask-first approval card for one pending mutating tool call.
+class ApprovalRequestItem extends ChatDisplayItem {
+  final AgentActionApprovalRequest request;
+  String status; // 'pending' | 'approved' | 'denied'
+  ApprovalRequestItem(this.request) : status = 'pending';
 }
 
 class ProcessItem extends ChatDisplayItem {
@@ -159,6 +184,8 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   // Whether the user has sent at least one message in normal mode — prevents switching to read-only.
   bool _hasSentInNormalMode = false;
   bool _isFullScreen = false;
+  AgentRunMode _runMode = AgentRunMode.auto;
+  StreamSubscription<AgentActionApprovalRequest>? _approvalSubscription;
   bool get _isSuperAgentHome => widget.scene == 'super_agent_home';
 
   // Controllers
@@ -195,6 +222,21 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
     _controller.forward();
 
+    if (_isSuperAgentHome) {
+      UserStorage.getSuperAgentRunMode().then((value) {
+        if (mounted) {
+          setState(() => _runMode = AgentRunMode.fromWire(value));
+        }
+      });
+    }
+
+    final sessionId = _currentSessionId;
+    if (sessionId != null) {
+      AgentActionApprovalService.instance.attachSession(sessionId);
+    }
+    _approvalSubscription = AgentActionApprovalService.instance.requests
+        .listen(_handleApprovalRequest);
+
     if (_currentSessionId != null) {
       _loadSessionHistory();
     }
@@ -203,11 +245,23 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   @override
   void dispose() {
     _chatSubscription?.cancel();
+    _approvalSubscription?.cancel();
+    final sessionId = _currentSessionId;
+    if (sessionId != null) {
+      // Denies anything still pending so a gated tool call never hangs.
+      AgentActionApprovalService.instance.detachSession(sessionId);
+    }
     _controller.dispose();
     _messageController.dispose();
     _scrollController.dispose();
     _messageFocusNode.dispose();
     super.dispose();
+  }
+
+  void _handleApprovalRequest(AgentActionApprovalRequest request) {
+    if (!mounted || request.sessionId != _currentSessionId) return;
+    setState(() => _items.add(ApprovalRequestItem(request)));
+    _scrollToBottom();
   }
 
   // --- Logic ---
@@ -350,7 +404,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     }
 
     // Lock read-only toggle once user sends in normal mode
-    if (!_isReadOnly) {
+    if (!_isSuperAgentHome && !_isReadOnly) {
       _hasSentInNormalMode = true;
     }
 
@@ -383,7 +437,10 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       refs: refs,
       images: images,
       imageOriginalFilenames: imageOriginalFilenames,
-      isQuickQuery: _isReadOnly,
+      isQuickQuery: _isSuperAgentHome
+          ? _runMode == AgentRunMode.readOnly
+          : _isReadOnly,
+      runMode: _isSuperAgentHome ? _runMode.wireName : AgentRunMode.auto.wireName,
     )
         .listen(
       (event) {
@@ -490,6 +547,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       }
       if (event is ChatSessionCreatedEvent) {
         _currentSessionId = event.sessionId;
+        AgentActionApprovalService.instance.attachSession(event.sessionId);
         return;
       }
 
@@ -497,13 +555,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       if (event is ChatThoughtChunkEvent ||
           event is ChatToolCallEvent ||
           event is ChatToolResultEvent) {
-        ProcessItem processItem;
-        if (_items.isNotEmpty && _items.last is ProcessItem) {
-          processItem = _items.last as ProcessItem;
-        } else {
-          processItem = ProcessItem();
-          _items.add(processItem);
-        }
+        final processItem = _ensureProcessItem();
 
         if (event is ChatThoughtChunkEvent) {
           if (processItem.children.isNotEmpty &&
@@ -516,6 +568,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
           processItem.children.add(ToolCallItem(event.toolName, event.args));
         } else if (event is ChatToolResultEvent) {
           // Find matching tool in current process item
+          ToolCallItem? matchedTool;
           for (int i = processItem.children.length - 1; i >= 0; i--) {
             final item = processItem.children[i];
             if (item is ToolCallItem &&
@@ -524,7 +577,23 @@ class _AgentChatDialogState extends State<AgentChatDialog>
               item.result = event.result;
               item.isError = event.isError;
               item.completedAt = DateTime.now();
+              item.metadata = event.metadata;
+              matchedTool = item;
               break;
+            }
+          }
+
+          if (!event.isError) {
+            final artifact = ChatArtifact.fromToolMetadata(event.metadata);
+            if (artifact != null) {
+              _items.add(
+                ArtifactItem(
+                  artifact,
+                  html: artifact.type == ChatArtifact.typeHtmlCard
+                      ? _htmlFromToolArgs(matchedTool)
+                      : null,
+                ),
+              );
             }
           }
         }
@@ -533,15 +602,14 @@ class _AgentChatDialogState extends State<AgentChatDialog>
 
       // Handle Response (Finish Progress)
       if (event is ChatResponseChunkEvent) {
-        if (_items.isNotEmpty && _items.last is ProcessItem) {
-          final process = _items.last as ProcessItem;
-          process.isFinished = true;
-          process.isExpanded = false; // Collapse when answer starts
+        final primary = _lastPrimaryItem();
+        if (primary is ProcessItem) {
+          primary.isFinished = true;
+          primary.isExpanded = false; // Collapse when answer starts
         }
 
-        if (_items.isNotEmpty && _items.last is AIMessageItem) {
-          final aiMsg = _items.last as AIMessageItem;
-          aiMsg.text += event.text;
+        if (primary is AIMessageItem) {
+          primary.text += event.text;
         } else {
           _items.add(AIMessageItem(event.text, isStreaming: !event.isDone));
         }
@@ -550,6 +618,42 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       }
     });
     _scrollToBottom();
+  }
+
+  /// Auxiliary items (artifacts, approval cards) interleave with the process
+  /// stream; grouping logic must look past them.
+  bool _isAuxiliaryItem(ChatDisplayItem item) =>
+      item is ArtifactItem || item is ApprovalRequestItem;
+
+  ChatDisplayItem? _lastPrimaryItem() {
+    for (var i = _items.length - 1; i >= 0; i--) {
+      final item = _items[i];
+      if (_isAuxiliaryItem(item)) continue;
+      return item;
+    }
+    return null;
+  }
+
+  ProcessItem _ensureProcessItem() {
+    final primary = _lastPrimaryItem();
+    if (primary is ProcessItem) return primary;
+    final processItem = ProcessItem();
+    _items.add(processItem);
+    return processItem;
+  }
+
+  String? _htmlFromToolArgs(ToolCallItem? tool) {
+    if (tool == null) return null;
+    try {
+      final decoded = jsonDecode(tool.args);
+      if (decoded is Map && decoded['html'] is String) {
+        final html = (decoded['html'] as String).trim();
+        return html.isEmpty ? null : html;
+      }
+    } catch (_) {
+      // Args are not guaranteed to be valid JSON.
+    }
+    return null;
   }
 
   void _scrollToBottom() {
@@ -1041,7 +1145,14 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                       onTap:
                           isBusy ? null : () => _pickImage(ImageSource.gallery),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: _buildRunModeChip(),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
                     GestureDetector(
                       key: const ValueKey('super_agent_publish_button'),
                       onTap: isBusy ? null : _handleSuperAgentSubmit,
@@ -1085,6 +1196,205 @@ class _AgentChatDialogState extends State<AgentChatDialog>
           ),
         ],
       ),
+    );
+  }
+
+  // --- Run mode selector (super agent home) ---
+
+  String _runModeLabel(AgentRunMode mode) {
+    switch (mode) {
+      case AgentRunMode.auto:
+        return _label(en: 'Auto', zh: '自动');
+      case AgentRunMode.confirm:
+        return _label(en: 'Ask first', zh: '先询问');
+      case AgentRunMode.readOnly:
+        return _label(en: 'Read-only', zh: '只读');
+    }
+  }
+
+  String _runModeDescription(AgentRunMode mode) {
+    switch (mode) {
+      case AgentRunMode.auto:
+        return _label(
+          en: 'Records, cards and documents update directly.',
+          zh: '记录、卡片、文档等会直接更新。',
+        );
+      case AgentRunMode.confirm:
+        return _label(
+          en: 'Each change waits for your approval before running.',
+          zh: '每个修改动作都先经你批准再执行。',
+        );
+      case AgentRunMode.readOnly:
+        return _label(
+          en: 'Answers questions only, never modifies data.',
+          zh: '只查询和回答,不修改任何数据。',
+        );
+    }
+  }
+
+  IconData _runModeIcon(AgentRunMode mode) {
+    switch (mode) {
+      case AgentRunMode.auto:
+        return Icons.bolt_rounded;
+      case AgentRunMode.confirm:
+        return Icons.verified_user_outlined;
+      case AgentRunMode.readOnly:
+        return Icons.visibility_outlined;
+    }
+  }
+
+  void _selectRunMode(AgentRunMode mode) {
+    setState(() => _runMode = mode);
+    UserStorage.setSuperAgentRunMode(mode.wireName);
+  }
+
+  Widget _buildRunModeChip() {
+    return GestureDetector(
+      key: const ValueKey('super_agent_run_mode_chip'),
+      onTap: _showRunModePicker,
+      child: Container(
+        height: 42,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F8FA),
+          borderRadius: BorderRadius.circular(21),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _runModeIcon(_runMode),
+              size: 15,
+              color: _runMode == AgentRunMode.auto
+                  ? AppColors.textSecondary
+                  : AppColors.primary,
+            ),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                _runModeLabel(_runMode),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: _runMode == AgentRunMode.auto
+                      ? AppColors.textSecondary
+                      : AppColors.primary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 2),
+            const Icon(
+              Icons.unfold_more,
+              size: 13,
+              color: AppColors.textTertiary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showRunModePicker() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _label(en: 'Run mode', zh: '运行方式'),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                for (final mode in AgentRunMode.values)
+                  InkWell(
+                    key: ValueKey('run_mode_option_${mode.wireName}'),
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () {
+                      Navigator.of(sheetContext).pop();
+                      _selectRunMode(mode);
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 11,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _runMode == mode
+                            ? const Color(0xFFF0F4FF)
+                            : const Color(0xFFF9FAFB),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: _runMode == mode
+                              ? AppColors.primary
+                              : const Color(0xFFEFF2F6),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _runModeIcon(mode),
+                            size: 18,
+                            color: _runMode == mode
+                                ? AppColors.primary
+                                : AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _runModeLabel(mode),
+                                  style: const TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  _runModeDescription(mode),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (_runMode == mode)
+                            const Icon(
+                              Icons.check_rounded,
+                              size: 18,
+                              color: AppColors.primary,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1486,8 +1796,455 @@ class _AgentChatDialogState extends State<AgentChatDialog>
           ),
         ),
       );
+    } else if (item is ApprovalRequestItem) {
+      return _buildApprovalRequestItem(item);
+    } else if (item is ArtifactItem) {
+      return _buildArtifactItem(item);
     }
     return const SizedBox.shrink();
+  }
+
+  // --- Ask-first approval card ---
+
+  void _resolveApproval(ApprovalRequestItem item, {required bool approved}) {
+    AgentActionApprovalService.instance.resolve(
+      item.request.id,
+      approved: approved,
+    );
+    setState(() => item.status = approved ? 'approved' : 'denied');
+  }
+
+  Widget _buildApprovalRequestItem(ApprovalRequestItem item) {
+    final isPending = item.status == 'pending';
+    final isApproved = item.status == 'approved';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(width: 32),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+              decoration: BoxDecoration(
+                color: isPending ? const Color(0xFFFFFBEB) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isPending
+                      ? const Color(0xFFFDE68A)
+                      : const Color(0xFFE6EAF2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.verified_user_outlined,
+                        size: 16,
+                        color: isPending
+                            ? const Color(0xFFB45309)
+                            : AppColors.textTertiary,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          isPending
+                              ? _label(
+                                  en:
+                                      'Approve: ${_toolDisplayName(item.request.toolName)}?',
+                                  zh:
+                                      '是否执行:${_toolDisplayName(item.request.toolName)}?',
+                                )
+                              : isApproved
+                                  ? _label(en: 'Approved', zh: '已允许')
+                                  : _label(en: 'Denied', zh: '已拒绝'),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isPending
+                                ? const Color(0xFF92400E)
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      if (!isPending)
+                        Icon(
+                          isApproved
+                              ? Icons.check_circle_outline
+                              : Icons.cancel_outlined,
+                          size: 16,
+                          color: isApproved
+                              ? const Color(0xFF16A34A)
+                              : AppColors.textTertiary,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    item.request.summary,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                  for (final entry in item.request.details.entries)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '${entry.key}: ${entry.value}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          color: AppColors.textTertiary,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  if (isPending) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            key: ValueKey(
+                              'approval_deny_${item.request.id}',
+                            ),
+                            onPressed: () =>
+                                _resolveApproval(item, approved: false),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.textSecondary,
+                              side:
+                                  const BorderSide(color: Color(0xFFE2E8F0)),
+                              padding: const EdgeInsets.symmetric(vertical: 9),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              _label(en: 'Deny', zh: '拒绝'),
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: FilledButton(
+                            key: ValueKey(
+                              'approval_allow_${item.request.id}',
+                            ),
+                            onPressed: () =>
+                                _resolveApproval(item, approved: true),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.textPrimary,
+                              padding: const EdgeInsets.symmetric(vertical: 9),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              _label(en: 'Allow', zh: '允许'),
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Artifact previews ---
+
+  String _artifactHeading(ChatArtifact artifact) {
+    switch (artifact.type) {
+      case ChatArtifact.typeRecord:
+        return _label(en: 'Record saved', zh: '已记录到时间线');
+      case ChatArtifact.typeHtmlCard:
+        return artifact.updated
+            ? _label(en: 'Card updated', zh: '卡片已更新')
+            : _label(en: 'Card created', zh: '卡片已生成');
+      case ChatArtifact.typeCard:
+        return _label(en: 'Card saved', zh: '卡片已保存');
+      case ChatArtifact.typeFile:
+        return artifact.updated
+            ? _label(en: 'Document updated', zh: '文档已更新')
+            : _label(en: 'Document created', zh: '文档已创建');
+      case ChatArtifact.typeSystemAction:
+        return artifact.kind == 'calendar'
+            ? _label(en: 'Calendar event created', zh: '日历事件已创建')
+            : _label(en: 'Reminder created', zh: '提醒已创建');
+      case ChatArtifact.typeInsight:
+        return _label(en: 'Insight saved', zh: '洞察已保存');
+      default:
+        return _label(en: 'Done', zh: '已完成');
+    }
+  }
+
+  IconData _artifactIcon(ChatArtifact artifact) {
+    switch (artifact.type) {
+      case ChatArtifact.typeRecord:
+        return Icons.bookmark_added_outlined;
+      case ChatArtifact.typeHtmlCard:
+      case ChatArtifact.typeCard:
+        return Icons.auto_awesome_mosaic_outlined;
+      case ChatArtifact.typeFile:
+        return Icons.description_outlined;
+      case ChatArtifact.typeSystemAction:
+        return Icons.notifications_active_outlined;
+      case ChatArtifact.typeInsight:
+        return Icons.insights_outlined;
+      default:
+        return Icons.check_circle_outline;
+    }
+  }
+
+  void _openArtifact(ChatArtifact artifact) {
+    final cardId = artifact.id;
+    if (cardId == null || cardId.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TimelineCardDetailScreen(cardId: cardId),
+      ),
+    );
+  }
+
+  bool _artifactIsTappable(ChatArtifact artifact) {
+    switch (artifact.type) {
+      case ChatArtifact.typeRecord:
+      case ChatArtifact.typeHtmlCard:
+      case ChatArtifact.typeCard:
+        return artifact.id != null && artifact.id!.isNotEmpty;
+      default:
+        return false;
+    }
+  }
+
+  /// Only the most recent HTML artifacts keep a live WebView preview; older
+  /// ones degrade to a flat tile to bound WebView count in long sessions.
+  static const int _maxLiveHtmlPreviews = 2;
+
+  Set<ArtifactItem> _liveHtmlPreviewItems() {
+    final allowed = <ArtifactItem>{};
+    for (var i = _items.length - 1;
+        i >= 0 && allowed.length < _maxLiveHtmlPreviews;
+        i--) {
+      final item = _items[i];
+      if (item is ArtifactItem &&
+          item.artifact.type == ChatArtifact.typeHtmlCard &&
+          item.html != null) {
+        allowed.add(item);
+      }
+    }
+    return allowed;
+  }
+
+  Widget _buildArtifactItem(ArtifactItem item) {
+    final artifact = item.artifact;
+    final tappable = _artifactIsTappable(artifact);
+    final showHtmlPreview =
+        item.html != null && _liveHtmlPreviewItems().contains(item);
+
+    final content = Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE6EAF2)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A0F172A),
+            blurRadius: 14,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _artifactIcon(artifact),
+                size: 15,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  _artifactHeading(artifact),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              if (tappable)
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: AppColors.textTertiary,
+                ),
+            ],
+          ),
+          if (artifact.title != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              artifact.title!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+                height: 1.3,
+              ),
+            ),
+          ],
+          if (artifact.path != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              artifact.path!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ],
+          if (artifact.snippet != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              artifact.snippet!,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: AppColors.textSecondary,
+                height: 1.45,
+              ),
+            ),
+          ],
+          if (artifact.tags.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: artifact.tags
+                  .map(
+                    (tag) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7F8FA),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        tag,
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+          if (artifact.imagePaths.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 64,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: artifact.imagePaths.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final path =
+                      _resolveDisplayImagePath(artifact.imagePaths[index]);
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.file(
+                      File(path),
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        width: 64,
+                        height: 64,
+                        color: const Color(0xFFF7F8FA),
+                        child: const Icon(
+                          Icons.broken_image_outlined,
+                          size: 18,
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+          if (showHtmlPreview) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: AbsorbPointer(
+                child: HtmlWebViewCard(
+                  html: item.html!,
+                  config: const HtmlWebViewConfig(
+                    initialHeight: 140,
+                    minHeightThreshold: 40,
+                    maxHeight: 240,
+                    heightPadding: 0,
+                    showContainerDecoration: true,
+                    borderRadius: 14,
+                    borderColor: Color(0xFFF1F5F9),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(width: 32),
+          Expanded(
+            child: tappable
+                ? GestureDetector(
+                    onTap: () => _openArtifact(artifact),
+                    child: content,
+                  )
+                : content,
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildTokenUsageDisplay() {
@@ -1781,6 +2538,24 @@ class _AgentChatDialogState extends State<AgentChatDialog>
         return _label(en: 'Read style', zh: '读样式');
       case 'list_dynamic_timeline_design_patterns':
         return _label(en: 'Style library', zh: '样式库');
+      case 'save_timeline_card':
+        return _label(en: 'Save card', zh: '保存卡片');
+      case 'create_calendar_event':
+        return _label(en: 'Create event', zh: '创建日历事件');
+      case 'create_reminder':
+        return _label(en: 'Create reminder', zh: '创建提醒');
+      case 'cancel_action':
+        return _label(en: 'Cancel reminder/event', zh: '取消提醒/日程');
+      case 'retry_failed_timeline_card':
+        return _label(en: 'Retry card', zh: '重试卡片');
+      case 'update_timeline_card_insight':
+        return _label(en: 'Update insight', zh: '更新洞察');
+      case 'save_knowledge_insight_cards':
+        return _label(en: 'Save insights', zh: '保存洞察卡片');
+      case 'delete_knowledge_insight_card':
+        return _label(en: 'Delete insight card', zh: '删除洞察卡片');
+      case 'delete_knowledge_insight_tags':
+        return _label(en: 'Delete insight tags', zh: '删除洞察标签');
       default:
         return toolName;
     }

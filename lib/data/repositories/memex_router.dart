@@ -1358,6 +1358,7 @@ class MemexRouter {
     List<XFile> images = const [],
     Map<String, String>? imageOriginalFilenames,
     bool isQuickQuery = false,
+    String runMode = 'auto',
   }) {
     return ChatService.instance.sendMessage(
       message,
@@ -1369,6 +1370,7 @@ class MemexRouter {
       images: images,
       imageOriginalFilenames: imageOriginalFilenames,
       isQuickQuery: isQuickQuery,
+      runMode: runMode,
     );
   }
 

@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:logging/logging.dart';
+import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
 import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/domain/models/card_model.dart';
@@ -277,6 +278,12 @@ Use `update_dynamic_timeline_card` when the user asks to revise a specific exist
     String? designPatternId,
     String? designNotes,
   }) async {
+    final denied = await gateMutatingToolCall(
+      toolName: 'create_dynamic_timeline_card',
+      summary: title,
+    );
+    if (denied != null) return denied;
+
     final cardData = await createDynamicTimelineCardForUser(
       userId: _currentUserId(),
       title: title,
@@ -292,6 +299,15 @@ Use `update_dynamic_timeline_card` when the user asks to revise a specific exist
       content: TextPart(
         'Created dynamic Timeline card "${cardData.title}" with id ${cardData.factId}.',
       ),
+      metadata: {
+        'artifact': {
+          'type': 'html_card',
+          'id': cardData.factId,
+          'title': cardData.title,
+          'tags': cardData.tags,
+          'updated': false,
+        },
+      },
     );
   }
 
@@ -368,6 +384,14 @@ Use `update_dynamic_timeline_card` when the user asks to revise a specific exist
       throw ArgumentError('card_id is required');
     }
 
+    final denied = await gateMutatingToolCall(
+      toolName: 'update_dynamic_timeline_card',
+      summary: title?.trim().isNotEmpty == true
+          ? '${title!.trim()} ($cleanCardId)'
+          : cleanCardId,
+    );
+    if (denied != null) return denied;
+
     final cleanTitle =
         title == null || title.trim().isEmpty ? null : _validateTitle(title);
     final cleanHtml = html == null || html.trim().isEmpty
@@ -420,6 +444,15 @@ Use `update_dynamic_timeline_card` when the user asks to revise a specific exist
 
     return AgentToolResult(
       content: TextPart('Updated dynamic Timeline card $cleanCardId.'),
+      metadata: {
+        'artifact': {
+          'type': 'html_card',
+          'id': cleanCardId,
+          'title': updatedCard.title,
+          'tags': updatedCard.tags,
+          'updated': true,
+        },
+      },
     );
   }
 

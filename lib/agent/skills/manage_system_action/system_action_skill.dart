@@ -1,5 +1,6 @@
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:logging/logging.dart';
+import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
 import 'package:memex/data/services/system_action_service.dart';
 import 'package:uuid/uuid.dart';
 
@@ -89,6 +90,12 @@ The current time is provided dynamically in your agent's state/reminders. Always
             final factId = context.state.metadata['factId'];
             final actionId = const Uuid().v4();
 
+            final denied = await gateMutatingToolCall(
+              toolName: 'create_calendar_event',
+              summary: '$title · $startTime',
+            );
+            if (denied != null) return denied;
+
             final actionData = {
               "title": title,
               "start_time": startTime,
@@ -108,6 +115,14 @@ The current time is provided dynamically in your agent's state/reminders. Always
             return AgentToolResult(
               content: TextPart(
                   "Successfully created calendar event '$title' (Action ID: $actionId)."),
+              metadata: {
+                'artifact': {
+                  'type': 'system_action',
+                  'kind': 'calendar',
+                  'title': title,
+                  'snippet': startTime,
+                },
+              },
             );
           } catch (e, st) {
             _logger.severe("Failed to create_calendar_event", e, st);
@@ -147,6 +162,12 @@ The current time is provided dynamically in your agent's state/reminders. Always
             final factId = context.state.metadata['factId'];
             final actionId = const Uuid().v4();
 
+            final denied = await gateMutatingToolCall(
+              toolName: 'create_reminder',
+              summary: dueDate == null ? title : '$title · $dueDate',
+            );
+            if (denied != null) return denied;
+
             final actionData = {
               "title": title,
               "due_date": dueDate,
@@ -163,6 +184,14 @@ The current time is provided dynamically in your agent's state/reminders. Always
             return AgentToolResult(
               content: TextPart(
                   "Successfully created reminder '$title' (Action ID: $actionId)."),
+              metadata: {
+                'artifact': {
+                  'type': 'system_action',
+                  'kind': 'reminder',
+                  'title': title,
+                  if (dueDate != null) 'snippet': dueDate,
+                },
+              },
             );
           } catch (e, st) {
             _logger.severe("Failed to create_reminder", e, st);
@@ -213,6 +242,12 @@ The current time is provided dynamically in your agent's state/reminders. Always
         },
         executable: (String actionId) async {
           try {
+            final denied = await gateMutatingToolCall(
+              toolName: 'cancel_action',
+              summary: actionId,
+            );
+            if (denied != null) return denied;
+
             final success =
                 await SystemActionService.instance.cancelAction(actionId);
 

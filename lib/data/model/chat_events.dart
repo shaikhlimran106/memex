@@ -21,7 +21,17 @@ class ChatToolResultEvent extends ChatEvent {
   final String toolName;
   final String result;
   final bool isError;
-  ChatToolResultEvent(this.toolName, this.result, {this.isError = false});
+
+  /// Structured metadata returned by the tool (e.g. an `artifact` entry
+  /// describing a created record/card/document for UI previews).
+  final Map<String, dynamic>? metadata;
+
+  ChatToolResultEvent(
+    this.toolName,
+    this.result, {
+    this.isError = false,
+    this.metadata,
+  });
 }
 
 class ChatErrorEvent extends ChatEvent {

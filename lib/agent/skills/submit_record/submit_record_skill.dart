@@ -1,5 +1,6 @@
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:logging/logging.dart';
+import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
 import 'package:memex/data/repositories/submit_input.dart'
     as submit_input_endpoint;
 import 'package:memex/data/services/event_bus_service.dart';
@@ -100,6 +101,19 @@ Use this skill to turn the user's current message into a Memex record. This is t
             throw StateError('User not logged in, cannot submit record.');
           }
 
+          final denied = await gateMutatingToolCall(
+            toolName: 'submit_record',
+            summary: trimmed.isNotEmpty
+                ? (trimmed.length > 120
+                    ? '${trimmed.substring(0, 120)}…'
+                    : trimmed)
+                : '${imagePaths.length} image(s)',
+            details: {
+              if (imagePaths.isNotEmpty) 'images': '${imagePaths.length}',
+            },
+          );
+          if (denied != null) return denied;
+
           _logger.info(
             'Submitting SuperAgent record for user=$userId, images=${imagePaths.length}, reason=${reason ?? '-'}',
           );
@@ -132,6 +146,16 @@ Use this skill to turn the user's current message into a Memex record. This is t
               'Saved ${imagePaths.length} image attachment(s). '
               'The timeline card, PKM organization, and follow-up agents will continue asynchronously.',
             ),
+            metadata: {
+              'artifact': {
+                'type': 'record',
+                'id': factId,
+                'snippet': trimmed.length > 200
+                    ? '${trimmed.substring(0, 200)}…'
+                    : trimmed,
+                'image_paths': imagePaths,
+              },
+            },
           );
         },
       ),

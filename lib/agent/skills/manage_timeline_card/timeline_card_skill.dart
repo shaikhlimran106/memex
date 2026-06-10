@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:logging/logging.dart';
 import 'package:memex/agent/prompts.dart';
+import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
 import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/agent/skills/manage_timeline_card/timeline_templates.dart';
@@ -177,6 +178,12 @@ class TimelineCardSkill extends Skill {
           logger.info("Saving card for fact: $fact_id");
 
           final userId = AgentCallToolContext.current!.state.metadata['userId'];
+
+          final denied = await gateMutatingToolCall(
+            toolName: 'save_timeline_card',
+            summary: '$title ($fact_id)',
+          );
+          if (denied != null) return denied;
 
           try {
             // 1. Validate required fields
@@ -381,6 +388,15 @@ class TimelineCardSkill extends Skill {
               content: TextPart(
                   "Successfully saved timeline card for Fact $fact_id"),
               stopFlag: stopAfterSuccessSaveCard,
+              metadata: {
+                'artifact': {
+                  'type': 'card',
+                  'id': fact_id,
+                  'title': title,
+                  'tags': tagNames,
+                  'updated': true,
+                },
+              },
             );
           } catch (e, stack) {
             logger.severe("SaveTimelineCard failed", e, stack);

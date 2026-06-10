@@ -345,6 +345,27 @@ class UserStorage {
 
   static const String _keyAgentConfigs = 'agent_configs';
   static const String _keyUseLocalSpeechToText = 'use_local_speech_to_text';
+  static const String _keySuperAgentRunMode = 'super_agent_run_mode';
+
+  /// Persisted run mode for the SuperAgent home entry ('auto' | 'confirm' |
+  /// 'read_only'). Defaults to 'auto'.
+  static Future<String> getSuperAgentRunMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_keySuperAgentRunMode) ?? 'auto';
+    } catch (e) {
+      return 'auto';
+    }
+  }
+
+  static Future<void> setSuperAgentRunMode(String value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keySuperAgentRunMode, value);
+    } catch (e) {
+      // Non-fatal: mode falls back to in-memory state for this session.
+    }
+  }
 
   /// Get specified agent config
   static Future<AgentConfig> getAgentConfig(String agentId) async {
