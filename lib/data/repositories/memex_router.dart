@@ -1413,6 +1413,16 @@ class MemexRouter {
     );
   }
 
+  /// Whether the session has an agent reply currently executing (the run
+  /// survives the chat dialog being closed).
+  bool hasActiveChatRun(String? sessionId) =>
+      ChatService.instance.hasActiveRun(sessionId);
+
+  /// Re-attaches to an in-flight chat run: replays missed events, then
+  /// continues live.
+  Stream<ChatEvent> attachToChatRun(String sessionId) =>
+      ChatService.instance.attachToActiveRun(sessionId);
+
   Future<bool> reportDailyHealthSummary(
     Map<String, Map<String, dynamic>> dailySummary,
   ) async {

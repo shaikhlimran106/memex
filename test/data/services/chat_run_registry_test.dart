@@ -1,0 +1,64 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:memex/data/model/chat_events.dart';
+import 'package:memex/data/services/chat_run_registry.dart';
+
+void main() {
+  group('ActiveChatRun.attach', () {
+    test('replays missed events then continues live, no duplicates',
+        () async {
+      final registry = ChatRunRegistry();
+      final run = registry.start('s1');
+
+      run.add(ChatResponseChunkEvent('a'));
+      run.add(ChatResponseChunkEvent('b'));
+
+      final received = <String>[];
+      final sub = run.attach().listen((event) {
+        received.add((event as ChatResponseChunkEvent).text);
+      });
+
+      run.add(ChatResponseChunkEvent('c'));
+      run.close();
+      await sub.asFuture<void>();
+
+      expect(received, ['a', 'b', 'c']);
+    });
+
+    test('attach after close replays buffer and completes', () async {
+      final registry = ChatRunRegistry();
+      final run = registry.start('s2');
+      run.add(ChatResponseChunkEvent('x'));
+      run.close();
+
+      final events = await run.attach().toList();
+      expect(events, hasLength(1));
+      expect((events.single as ChatResponseChunkEvent).text, 'x');
+    });
+
+    test('registry tracks and removes runs on close', () {
+      final registry = ChatRunRegistry();
+      final run = registry.start('s3');
+      expect(registry.isActive('s3'), isTrue);
+
+      run.close();
+      expect(registry.isActive('s3'), isFalse);
+      // Closing twice is safe and add() after close is ignored.
+      run.close();
+      run.add(ChatResponseChunkEvent('ignored'));
+    });
+
+    test('multiple attachments receive the same events', () async {
+      final registry = ChatRunRegistry();
+      final run = registry.start('s4');
+      run.add(ChatResponseChunkEvent('1'));
+
+      final first = run.attach().toList();
+      final second = run.attach().toList();
+      run.add(ChatResponseChunkEvent('2'));
+      run.close();
+
+      expect((await first).length, 2);
+      expect((await second).length, 2);
+    });
+  });
+}

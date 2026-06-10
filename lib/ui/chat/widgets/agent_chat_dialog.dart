@@ -376,6 +376,9 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       setState(() => _isLoading = false);
       if (mounted) ToastHelper.showError(context, 'Failed to load history: $e');
     }
+    // After history is on screen, resume following an in-flight run if the
+    // dialog was closed mid-reply.
+    _maybeReattachToActiveRun();
   }
 
   String _resolveDisplayImagePath(String filePath) {
@@ -425,10 +428,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     });
     _scrollToBottom();
 
-    _chatSubscription?.cancel();
-
-    _chatSubscription = _router
-        .sendMessage(
+    _listenToChatStream(_router.sendMessage(
       finalMessage,
       sessionId: _currentSessionId,
       agentName: widget.agentName,
@@ -441,8 +441,14 @@ class _AgentChatDialogState extends State<AgentChatDialog>
           ? _runMode == AgentRunMode.readOnly
           : _isReadOnly,
       runMode: _isSuperAgentHome ? _runMode.wireName : AgentRunMode.auto.wireName,
-    )
-        .listen(
+    ));
+  }
+
+  /// Subscribes the dialog to a chat event stream — either a freshly started
+  /// send or a re-attached in-flight run.
+  void _listenToChatStream(Stream<ChatEvent> stream) {
+    _chatSubscription?.cancel();
+    _chatSubscription = stream.listen(
       (event) {
         _handleChatEvent(event);
       },
@@ -463,6 +469,19 @@ class _AgentChatDialogState extends State<AgentChatDialog>
         });
       },
     );
+  }
+
+  /// If this session has a run still executing (the dialog was closed while
+  /// the agent worked), restore the streaming UI and replay missed events.
+  void _maybeReattachToActiveRun() {
+    final sessionId = _currentSessionId;
+    if (!mounted || sessionId == null) return;
+    if (!_router.hasActiveChatRun(sessionId)) return;
+
+    AgentActionApprovalService.instance.attachSession(sessionId);
+    setState(() => _isStreaming = true);
+    _listenToChatStream(_router.attachToChatRun(sessionId));
+    _scrollToBottom();
   }
 
   Future<void> _pickImage(ImageSource source) async {

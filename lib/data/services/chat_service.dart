@@ -10,6 +10,7 @@ import 'package:memex/agent/run_mode/agent_run_mode.dart';
 import 'package:memex/agent/pure_skill_host_agent/pure_skill_host_agent.dart';
 import 'package:memex/agent/super_agent/super_agent.dart';
 import 'package:memex/data/services/asset_safety_service.dart';
+import 'package:memex/data/services/chat_run_registry.dart';
 import 'package:memex/data/services/custom_agent_config_service.dart';
 import 'package:memex/data/services/llm_image_codec.dart';
 import 'package:memex/data/services/location_context_service.dart';
@@ -42,6 +43,20 @@ class ChatService {
   FileSystemService get _fileService => FileSystemService.instance;
   final Uuid _uuid = const Uuid();
 
+  /// In-flight runs keyed by session id. Runs are owned by the service so a
+  /// closed chat dialog does not interrupt them; a reopened dialog can
+  /// re-attach and replay what it missed.
+  final ChatRunRegistry _runRegistry = ChatRunRegistry();
+
+  /// Whether [sessionId] has an agent turn currently executing.
+  bool hasActiveRun(String? sessionId) =>
+      sessionId != null && _runRegistry.isActive(sessionId);
+
+  /// Replays everything the in-flight run emitted so far, then continues
+  /// live. Returns an empty stream when no run is active.
+  Stream<ChatEvent> attachToActiveRun(String sessionId) =>
+      _runRegistry[sessionId]?.attach() ?? const Stream<ChatEvent>.empty();
+
   /// Send a message and get a stream of events.
   ///
   /// When [isQuickQuery] is true, the agent operates in read-only mode
@@ -69,6 +84,12 @@ class ChatService {
     }
 
     String finalSessionId = sessionId ?? '';
+    if (finalSessionId.isNotEmpty && _runRegistry.isActive(finalSessionId)) {
+      yield ChatErrorEvent(
+        'A reply is already in progress for this conversation.',
+      );
+      return;
+    }
     final userMessageTime = DateTime.now();
     final trimmedMessage = message.trim();
     final preparedImages = <_PreparedChatImage>[];
@@ -309,12 +330,15 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     }
 
     // 3. Setup Listeners & Run
-    final streamController = StreamController<ChatEvent>();
+    // Service-owned run channel: closing the chat dialog only detaches the
+    // UI; the run keeps executing and a reopened dialog re-attaches via
+    // [attachToActiveRun] (replay + live).
+    final run = _runRegistry.start(finalSessionId);
 
-    // Forward events from agent controller to stream
+    // Forward events from agent controller to the run channel
     _setupControllerListeners(
       controller,
-      streamController,
+      run,
       userId,
       finalSessionId,
     );
@@ -467,14 +491,14 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
       // This catchError is for synchronous errors during startup or unhandled async errors
       // causing the run future to fail before AgentStoppedEvent might be emitted (though AgentStoppedEvent is in finally block)
       _logger.severe('Agent run failed (catchError)', e);
-      if (!streamController.isClosed) {
-        streamController.add(ChatErrorEvent(e.toString()));
-        streamController.close();
+      if (!run.isClosed) {
+        run.add(ChatErrorEvent(e.toString()));
+        run.close();
       }
       return <LLMMessage>[];
     });
 
-    yield* streamController.stream;
+    yield* run.attach();
   }
 
   Future<_PreparedChatImage> _prepareChatImage({
@@ -600,7 +624,7 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
 
   void _setupControllerListeners(
     AgentController controller,
-    StreamController<ChatEvent> stream,
+    ActiveChatRun stream,
     String userId,
     String sessionId,
   ) {
