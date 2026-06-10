@@ -874,7 +874,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.only(left: 24, right: 12, top: 16, bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.8),
         border: const Border(bottom: BorderSide(color: Color(0xFFF7F8FA))),
@@ -895,17 +895,15 @@ class _AgentChatDialogState extends State<AgentChatDialog>
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          if (!_isSuperAgentHome) _buildModeChip(),
+          if (!_isSuperAgentHome) ...[
+            const SizedBox(width: 8),
+            _buildModeChip(),
+          ],
           const Spacer(),
           if (!_isSuperAgentHome)
-            IconButton(
+            _buildHeaderIconButton(
               tooltip: UserStorage.l10n.chatHistory,
-              icon: const Icon(
-                Icons.history,
-                size: 18,
-                color: AppColors.textTertiary,
-              ),
+              icon: Icons.history,
               onPressed: () {
                 context.push(
                   AppRoutes.chatHistory,
@@ -921,16 +919,12 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                 });
               },
             ),
-          IconButton(
+          _buildHeaderIconButton(
             key: const ValueKey('agent_chat_fullscreen_toggle'),
             tooltip: _isFullScreen
                 ? UserStorage.l10n.exitFullScreenTooltip
                 : UserStorage.l10n.enterFullScreenTooltip,
-            icon: Icon(
-              _isFullScreen ? Icons.close_fullscreen : Icons.open_in_full,
-              size: 18,
-              color: AppColors.textTertiary,
-            ),
+            icon: _isFullScreen ? Icons.close_fullscreen : Icons.open_in_full,
             onPressed: () {
               setState(() {
                 _isFullScreen = !_isFullScreen;
@@ -938,16 +932,38 @@ class _AgentChatDialogState extends State<AgentChatDialog>
               _scrollToBottom();
             },
           ),
-          IconButton(
+          _buildHeaderIconButton(
             tooltip: UserStorage.l10n.close,
-            icon: const Icon(
-              Icons.close,
-              size: 20,
-              color: AppColors.textTertiary,
-            ),
+            icon: Icons.close,
+            iconSize: 20,
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Compact header action button. Material's default [IconButton] reserves a
+  /// 48x48 hit box, which left the fullscreen/close icons floating ~38px from
+  /// the edge with visible gaps; this keeps a comfortable tap target while
+  /// sitting flush against the header's right padding.
+  Widget _buildHeaderIconButton({
+    Key? key,
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+    double iconSize = 18,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkResponse(
+        key: key,
+        onTap: onPressed,
+        radius: 20,
+        child: Padding(
+          padding: const EdgeInsets.all(7),
+          child: Icon(icon, size: iconSize, color: AppColors.textTertiary),
+        ),
       ),
     );
   }
