@@ -12,6 +12,7 @@ import 'package:memex/data/services/asset_safety_service.dart';
 import 'package:memex/data/services/custom_agent_config_service.dart';
 import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/data/services/llm_image_codec.dart';
 import 'package:memex/domain/models/agent_definitions.dart';
 import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/domain/models/custom_agent_config.dart';
@@ -124,13 +125,17 @@ Future<List<UserContentPart>> _buildAssetPartsFromXml(
         continue;
       }
 
-      final bytes = await file.readAsBytes();
-      final b64 = base64Encode(bytes);
-
       if (isImage && _imageExtensions.contains(ext)) {
-        parts.add(ImagePart(b64, mime));
+        // Transcode to JPEG so HEIC originals survive OpenAI-compatible
+        // endpoints (Kimi rejects HEIC); falls back to raw bytes.
+        final transcoded = await LlmImageCodec.transcodeForLlm(absPath);
+        final b64 = base64Encode(transcoded ?? await file.readAsBytes());
+        parts.add(ImagePart(
+          b64,
+          transcoded != null ? LlmImageCodec.jpegMimeType : mime,
+        ));
       } else if (!isImage && _audioExtensions.contains(ext)) {
-        parts.add(AudioPart(b64, mime));
+        parts.add(AudioPart(base64Encode(await file.readAsBytes()), mime));
       }
     } catch (e) {
       _logger.warning('Failed to read asset $filename: $e');

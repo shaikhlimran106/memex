@@ -11,6 +11,7 @@ import 'package:memex/agent/pure_skill_host_agent/pure_skill_host_agent.dart';
 import 'package:memex/agent/super_agent/super_agent.dart';
 import 'package:memex/data/services/asset_safety_service.dart';
 import 'package:memex/data/services/custom_agent_config_service.dart';
+import 'package:memex/data/services/llm_image_codec.dart';
 import 'package:memex/data/services/location_context_service.dart';
 import 'package:memex/data/services/media_service.dart';
 import 'package:memex/domain/models/custom_agent_config.dart';
@@ -470,12 +471,26 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     final mimeType = _mimeTypeForImagePath(imported.absolutePath);
 
     String? base64Data;
+    String? inlineMimeType;
     try {
       final safety =
           await AssetSafetyService.instance.inspectFile(imported.absolutePath);
       if (safety.safeForInlineBase64) {
-        base64Data =
-            base64Encode(await File(imported.absolutePath).readAsBytes());
+        // iOS gallery originals are commonly HEIC, which OpenAI-compatible
+        // endpoints (Kimi, OpenAI) reject. Inline a bounded JPEG transcode;
+        // the stored original stays untouched.
+        final transcoded =
+            await LlmImageCodec.transcodeForLlm(imported.absolutePath);
+        if (transcoded != null) {
+          base64Data = base64Encode(transcoded);
+          inlineMimeType = LlmImageCodec.jpegMimeType;
+        } else {
+          _logger.warning(
+            'Transcode failed, inlining original bytes for ${imported.relativePath}',
+          );
+          base64Data =
+              base64Encode(await File(imported.absolutePath).readAsBytes());
+        }
       } else {
         _logger.warning(
           'Skipping inline chat image ${imported.relativePath}: ${safety.reason}',
@@ -488,7 +503,7 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
 
     return _PreparedChatImage(
       relativePath: imported.relativePath,
-      mimeType: mimeType,
+      mimeType: inlineMimeType ?? mimeType,
       originalName: originalName,
       base64Data: base64Data,
     );
@@ -546,6 +561,9 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
         return 'image/webp';
       case '.gif':
         return 'image/gif';
+      case '.heic':
+      case '.heif':
+        return 'image/heic';
       case '.png':
       default:
         return 'image/png';
