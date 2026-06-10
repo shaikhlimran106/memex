@@ -321,7 +321,7 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     }
 
     if (runMode == AgentRunMode.confirm.wireName) {
-      final modeContext =
+      const modeContext =
           "Run mode: ASK-FIRST. Every mutating tool call (records, cards, "
           "PKM/file writes, reminders, deletions) pauses for explicit in-app "
           "user approval before executing. Propose actions normally and do "
@@ -417,13 +417,22 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
             : trimmedMessage,
       ),
     ];
+    final inlinedImagePaths = <String>[];
     for (final image in preparedImages) {
       if (image.base64Data != null) {
         userContentParts.add(ImagePart(image.base64Data!, image.mimeType));
+        inlinedImagePaths.add(image.relativePath);
       }
     }
 
-    userMessages.add(UserMessage(userContentParts));
+    userMessages.add(UserMessage(
+      userContentParts,
+      metadata: {
+        // Lets the context compressor replace archived image bytes with
+        // fs:// path placeholders (see SuperAgentContextCompressor).
+        if (inlinedImagePaths.isNotEmpty) 'image_fs_paths': inlinedImagePaths,
+      },
+    ));
 
     // We don't await the result here, we rely on AgentStoppedEvent to handle completion
     agent.run(userMessages).whenComplete(() async {

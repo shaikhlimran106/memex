@@ -4,6 +4,7 @@ import 'package:memex/agent/agent_controller.util.dart';
 import 'package:memex/agent/built_in_tools/file_tools.dart';
 import 'package:memex/agent/built_in_tools/search_event_logs_tool.dart';
 import 'package:memex/agent/memory/memory_management.dart';
+import 'package:memex/agent/memory/super_agent_context_compressor.dart';
 import 'package:memex/agent/skills/manage_pkm/pkm_skill.dart';
 import 'package:memex/agent/security/file_permission_manager.dart';
 import 'package:memex/agent/skills/dynamic_timeline_ui/dynamic_timeline_ui_skill.dart';
@@ -170,10 +171,13 @@ class SuperAgent {
         client: client,
         modelConfig: modelConfig,
         state: state,
-        compressor: LLMBasedContextCompressor(
+        // Claude Code-style fixed-quota compaction. 32k (down from 64k)
+        // bounds the steady-state per-turn prompt cost for BYO-key users
+        // while keeping recent images fully visible to the model.
+        compressor: SuperAgentContextCompressor(
           client: client,
           modelConfig: modelConfig,
-          totalTokenThreshold: 64000,
+          totalTokenThreshold: 32000,
           keepRecentMessageSize: 10,
         ),
         tools: tools,
