@@ -30,7 +30,6 @@ import 'package:memex/domain/models/shortcut_item.dart' as app_shortcut;
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'dart:ui';
 import 'package:memex/ui/main_screen/widgets/input_sheet.dart';
 import 'package:memex/ui/settings/widgets/ai_service_setup_page.dart';
 import 'package:memex/ui/settings/widgets/model_config_list_page.dart';
@@ -67,6 +66,8 @@ import 'package:quick_actions/quick_actions.dart';
 import 'package:memex/data/services/quick_action_service.dart';
 import 'package:memex/data/services/speech_transcription_service.dart';
 import 'package:memex/utils/wakelock_manager.dart';
+import 'package:memex/data/services/clipboard_preview_service.dart';
+import 'package:memex/ui/main_screen/widgets/clipboard_preview_card.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
@@ -89,10 +90,7 @@ void main() async {
   await UserStorage.initL10n();
 
   // Initialize Workmanager (for background tasks)
-  await Workmanager().initialize(
-    callbackDispatcher,
-    isInDebugMode: false,
-  );
+  await Workmanager().initialize(callbackDispatcher);
 
   // Cancel legacy pedometer background tasks on iOS without wiping newer
   // background registrations such as agent queue processing.
@@ -120,8 +118,10 @@ void main() async {
     ),
   );
 
-  final appRouter =
-      createAppRouter(rootNavigatorKey, () => RootShell(key: rootShellKey));
+  final appRouter = createAppRouter(
+    rootNavigatorKey,
+    () => RootShell(key: rootShellKey),
+  );
 
   // Initialize quick actions (app icon long-press shortcuts).
   const QuickActions quickActions = QuickActions();
@@ -129,10 +129,12 @@ void main() async {
     QuickActionService.instance.handleAction(shortcutType);
   });
 
-  runApp(MultiProvider(
-    providers: dependencyProviders,
-    child: MemexApp(router: appRouter),
-  ));
+  runApp(
+    MultiProvider(
+      providers: dependencyProviders,
+      child: MemexApp(router: appRouter),
+    ),
+  );
 }
 
 /// Root route content: user check then loading / UserSetupScreen / MainScreen (Compass-style).
@@ -226,9 +228,7 @@ class RootShellState extends State<RootShell> {
   @override
   Widget build(BuildContext context) {
     if (_isChecking) {
-      return const Scaffold(
-        body: Center(child: AgentLogoLoading()),
-      );
+      return const Scaffold(body: Center(child: AgentLogoLoading()));
     }
     if (_isLoadingFromICloud) {
       return Scaffold(
@@ -266,8 +266,9 @@ class RootShellState extends State<RootShell> {
               InsightViewModel(router: c.read<MemexRouter>())..loadData(),
         ),
         ChangeNotifierProvider<KnowledgeBaseViewModel>(
-          create: (c) => KnowledgeBaseViewModel(router: c.read<MemexRouter>())
-            ..fetchData(),
+          create: (c) =>
+              KnowledgeBaseViewModel(router: c.read<MemexRouter>())
+                ..fetchData(),
         ),
       ],
       child: const MainScreen(),
@@ -321,8 +322,11 @@ class _MemexAppState extends State<MemexApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
-      unawaited(LocalTaskExecutor.instance
-          .recordGracefulShutdown(reason: 'app_lifecycle_paused'));
+      unawaited(
+        LocalTaskExecutor.instance.recordGracefulShutdown(
+          reason: 'app_lifecycle_paused',
+        ),
+      );
       unawaited(AgentBackgroundTaskService.instance.onAppPaused());
       _lastPausedTime = DateTime.now();
       _checkLockSettingsBeforeLocking();
@@ -332,8 +336,11 @@ class _MemexAppState extends State<MemexApp> with WidgetsBindingObserver {
       MemexRouter().scheduleAutoBackupCheck(trigger: 'foreground');
       _checkGracePeriod();
     } else if (state == AppLifecycleState.detached) {
-      unawaited(LocalTaskExecutor.instance
-          .recordGracefulShutdown(reason: 'app_lifecycle_detached'));
+      unawaited(
+        LocalTaskExecutor.instance.recordGracefulShutdown(
+          reason: 'app_lifecycle_detached',
+        ),
+      );
     }
   }
 
@@ -442,6 +449,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       GlobalKey<KnowledgeBaseScreenState>();
   final MemexRouter _memexRouter = MemexRouter();
   final EventBusService _eventBus = EventBusService.instance;
+  final ClipboardPreviewService _clipboardPreviewService =
+      ClipboardPreviewService.instance;
   Timer? _memoryButtonTapTimer;
   int _memoryButtonTapCount = 0;
   bool _isRestoringExternalBackup = false;
@@ -451,7 +460,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   // Radial Menu & Recording State
   bool _isRadialMenuOpen = false;
-  List<app_shortcut.ShortcutItem> _shortcuts = [];
+  final List<app_shortcut.ShortcutItem> _shortcuts = [];
   final AudioRecorder _audioRecorder = AudioRecorder();
   String? _recordingPath;
   StreamingTranscriber? _quickTranscriber;
@@ -470,6 +479,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   bool _earlyUpdateCheckStarted = false;
   late final ShareIntentHandler _shareIntentHandler;
   InputData? _sharedDraft;
+  ClipboardPreviewCandidate? _homeClipboardCandidate;
+  bool _isCheckingHomeClipboard = false;
 
   // Agent Button Position - REMOVED (Moved to Main App)
 
@@ -496,16 +507,23 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     _logger.info('initState: Starting comprehensive health check...');
     _checkAndReportHealthData().catchError((error, stackTrace) {
       _logger.severe(
-          '❌ Error in _checkAndReportHealthData: $error', error, stackTrace);
+        '❌ Error in _checkAndReportHealthData: $error',
+        error,
+        stackTrace,
+      );
     });
 
     // Start auto input collection and quantity check
     _logger.info('initState: Starting Auto Input collection check...');
 
     _eventBus.addHandler(
-        EventBusMessageType.invalidModelConfig, _handleInvalidModelConfig);
+      EventBusMessageType.invalidModelConfig,
+      _handleInvalidModelConfig,
+    );
     _eventBus.addHandler(
-        EventBusMessageType.errorNotification, _handleErrorNotification);
+      EventBusMessageType.errorNotification,
+      _handleErrorNotification,
+    );
 
     _shareIntentHandler = ShareIntentHandler(
       logger: _logger,
@@ -513,6 +531,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       onSharedDraft: (data) {
         if (!mounted) return;
         setState(() {
+          _homeClipboardCandidate = null;
           _sharedDraft = data;
           _isInputOpen = true;
         });
@@ -524,6 +543,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     QuickActionService.instance.attach();
     _consumeQuickActionIfNeeded();
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_checkHomeClipboardPreview());
+    });
     _scheduleEarlyUpdateCheck();
   }
 
@@ -587,11 +609,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    notes,
-                    maxLines: 8,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  Text(notes, maxLines: 8, overflow: TextOverflow.ellipsis),
                 ],
               ],
             ),
@@ -626,34 +644,31 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
     try {
       final download = await AppUpdateService.instance.downloadUpdate(update);
-      final install =
-          await AppUpdateService.instance.installUpdate(download.apkPath);
-      final currentContext = rootNavigatorKey.currentContext;
-      if (currentContext == null) return;
-
+      final install = await AppUpdateService.instance.installUpdate(
+        download.apkPath,
+      );
       switch (install.status) {
         case AppUpdateInstallStatus.started:
-          ToastHelper.showSuccess(
-            currentContext,
+          ToastHelper.showSuccessWithKey(
+            rootScaffoldMessengerKey,
             UserStorage.l10n.earlyUpdateInstallStarted,
           );
         case AppUpdateInstallStatus.permissionRequired:
-          ToastHelper.showInfo(
-            currentContext,
+          ToastHelper.showInfoWithKey(
+            rootScaffoldMessengerKey,
             UserStorage.l10n.earlyUpdateInstallPermissionRequired,
           );
         case AppUpdateInstallStatus.unsupported:
           break;
       }
     } catch (e) {
-      final currentContext = rootNavigatorKey.currentContext;
       if (e is AppUpdateWifiRequiredException) {
-        ToastHelper.showInfo(
-          currentContext,
+        ToastHelper.showInfoWithKey(
+          rootScaffoldMessengerKey,
           UserStorage.l10n.earlyUpdateSkippedMobile,
         );
       } else {
-        ToastHelper.showError(currentContext, e);
+        ToastHelper.showErrorWithKey(rootScaffoldMessengerKey, e);
       }
     }
   }
@@ -675,22 +690,28 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: Text(UserStorage.l10n.warning),
-        content: Text(UserStorage.l10n
-            .invalidModelConfigDetailed(message.agentId, message.configKey)),
+        content: Text(
+          UserStorage.l10n.invalidModelConfigDetailed(
+            message.agentId,
+            message.configKey,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              if (mounted)
+              if (mounted) {
                 setState(() => _isInvalidConfigDialogShowing = false);
+              }
             },
             child: Text(UserStorage.l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              if (mounted)
+              if (mounted) {
                 setState(() => _isInvalidConfigDialogShowing = false);
+              }
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -705,7 +726,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         ],
       ),
     ).then((_) {
-      if (mounted) setState(() => _isInvalidConfigDialogShowing = false);
+      if (mounted) {
+        setState(() => _isInvalidConfigDialogShowing = false);
+      }
     });
   }
 
@@ -731,8 +754,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              if (mounted)
+              if (mounted) {
                 setState(() => _isErrorNotificationDialogShowing = false);
+              }
             },
             child: Text(UserStorage.l10n.cancel),
           ),
@@ -740,8 +764,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                if (mounted)
+                if (mounted) {
                   setState(() => _isErrorNotificationDialogShowing = false);
+                }
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -780,11 +805,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       // Prefill text during demo
       if (DemoService.instance.currentStep == DemoStep.tapSend) {
         setState(() {
+          _homeClipboardCandidate = null;
           _sharedDraft = InputData(text: DemoService.instance.prefillText);
           _isInputOpen = true;
         });
       } else {
-        setState(() => _isInputOpen = true);
+        setState(() {
+          _homeClipboardCandidate = null;
+          _isInputOpen = true;
+        });
       }
     }
   }
@@ -798,8 +827,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
     if (buttonBox != null && stackBox != null) {
       final buttonSize = buttonBox.size;
-      final buttonPosition =
-          stackBox.globalToLocal(buttonBox.localToGlobal(Offset.zero));
+      final buttonPosition = stackBox.globalToLocal(
+        buttonBox.localToGlobal(Offset.zero),
+      );
       _centerButtonCenter =
           buttonPosition + Offset(buttonSize.width / 2, buttonSize.height / 2);
     } else {
@@ -816,7 +846,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   void _handleAICoreButtonLongPressMoveUpdate(
-      LongPressMoveUpdateDetails details) {
+    LongPressMoveUpdateDetails details,
+  ) {
     if (_isRadialMenuOpen) {
       // coordinates in 'details' are local to the AICoreButton (64x64).
       // We need to transform them to be relative to the same space as _centerButtonCenter (the Stack).
@@ -848,7 +879,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       final prefs = await SharedPreferences.getInstance();
       if (prefs.getBool('pedometer_attempting') == true) {
         _logger.warning(
-            'Pedometer crash detected from previous launch, skipping this session');
+          'Pedometer crash detected from previous launch, skipping this session',
+        );
         await prefs.remove('pedometer_attempting');
         // Set in-memory flag only — will retry on next app launch
         PedometerFetcher.skipThisSession = true;
@@ -869,12 +901,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       _logger.info('Fitness permission status: $fitnessStatus');
       if (!fitnessStatus.isGranted && !fitnessStatus.isLimited) {
         _logger.info(
-            'Fitness permission not granted, skipping health data collection');
+          'Fitness permission not granted, skipping health data collection',
+        );
         return;
       }
 
-      _logger
-          .info('Types to check: ${typesToCheck.map((t) => t.name).toList()}');
+      _logger.info(
+        'Types to check: ${typesToCheck.map((t) => t.name).toList()}',
+      );
       Map<HealthDataType, dynamic> newlyFetchedData = {};
 
       for (var type in typesToCheck) {
@@ -911,8 +945,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                   dailySummary[dateStr]!['blood_pressure'] ??= [];
                   List existing = dailySummary[dateStr]!['blood_pressure'];
                   for (var item in val) {
-                    var found =
-                        existing.where((e) => e['time'] == item['time']);
+                    var found = existing.where(
+                      (e) => e['time'] == item['time'],
+                    );
                     if (found.isNotEmpty) {
                       found.first.addAll(item);
                     } else {
@@ -939,7 +974,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       }
 
       _logger.info(
-          'Reporting health summary to server for ${dailySummary.length} days...');
+        'Reporting health summary to server for ${dailySummary.length} days...',
+      );
       final success = await _memexRouter.reportDailyHealthSummary(dailySummary);
 
       if (success) {
@@ -950,11 +986,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         }
       } else {
         _logger.warning(
-            '❌ Failed to report health summary to server, will retry next time');
+          '❌ Failed to report health summary to server, will retry next time',
+        );
       }
     } catch (e, stackTrace) {
       _logger.severe(
-          '❌ Failed to check and report health data: $e', e, stackTrace);
+        '❌ Failed to check and report health data: $e',
+        e,
+        stackTrace,
+      );
     }
   }
 
@@ -967,9 +1007,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     QuickActionService.instance.detach();
     _shareIntentHandler.dispose();
     _eventBus.removeHandler(
-        EventBusMessageType.invalidModelConfig, _handleInvalidModelConfig);
+      EventBusMessageType.invalidModelConfig,
+      _handleInvalidModelConfig,
+    );
     _eventBus.removeHandler(
-        EventBusMessageType.errorNotification, _handleErrorNotification);
+      EventBusMessageType.errorNotification,
+      _handleErrorNotification,
+    );
     // Note: do not disconnect event bus here; other screens may still use it
     super.dispose();
   }
@@ -992,8 +1036,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         _quickTranscribedText = '';
         _quickPcmBuffer.clear();
         if (await speechService.supportsStreamingTranscription()) {
-          _logger
-              .info('Initializing streaming transcriber for quick recording');
+          _logger.info(
+            'Initializing streaming transcriber for quick recording',
+          );
           _quickTranscriber = StreamingTranscriber(
             onTextChanged: (fullText) {
               _quickTranscribedText = fullText;
@@ -1220,8 +1265,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
       // Final calibration from accumulated PCM
       if (_quickPcmBuffer.isNotEmpty) {
-        final useLocal =
-            await SpeechTranscriptionService.instance.isUsingLocalModel();
+        final useLocal = await SpeechTranscriptionService.instance
+            .isUsingLocalModel();
         final aligned = Uint8List.fromList(_quickPcmBuffer);
         final int16Data = Int16List.view(aligned.buffer);
         final samples = Float32List(int16Data.length);
@@ -1240,8 +1285,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           final directory = await getTemporaryDirectory();
           final timestamp = DateTime.now().millisecondsSinceEpoch;
           final wavPath = '${directory.path}/quick_audio_$timestamp.wav';
-          await SpeechTranscriptionService.instance
-              .savePcmAsWav(wavPath, Uint8List.fromList(_quickPcmBuffer));
+          await SpeechTranscriptionService.instance.savePcmAsWav(
+            wavPath,
+            Uint8List.fromList(_quickPcmBuffer),
+          );
           _quickAudioPath = wavPath;
         }
         _quickPcmBuffer.clear();
@@ -1278,8 +1325,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         if (await audioFile.exists()) {
           final length = await audioFile.length();
           final fileName = _quickAudioPath!.split(Platform.pathSeparator).last;
-          audioHash =
-              md5.convert(utf8.encode('audio_${fileName}_$length')).toString();
+          audioHash = md5
+              .convert(utf8.encode('audio_${fileName}_$length'))
+              .toString();
         }
         unawaited(
           _handleInputSubmit(
@@ -1312,6 +1360,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       if (action == 'quick_note') {
         _logger.info('Quick action: opening input sheet');
         setState(() {
+          _homeClipboardCandidate = null;
           _isInputOpen = true;
         });
       }
@@ -1436,11 +1485,53 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             _logger.info('Quick action (resumed): opening input sheet');
-            setState(() => _isInputOpen = true);
+            setState(() {
+              _homeClipboardCandidate = null;
+              _isInputOpen = true;
+            });
           }
         });
+      } else {
+        unawaited(_checkHomeClipboardPreview());
       }
     }
+  }
+
+  Future<void> _checkHomeClipboardPreview() async {
+    if (_isCheckingHomeClipboard ||
+        _isInputOpen ||
+        DemoService.instance.isActive) {
+      return;
+    }
+
+    _isCheckingHomeClipboard = true;
+    final candidate = await _clipboardPreviewService.fetchUnhandledText();
+    _isCheckingHomeClipboard = false;
+
+    if (!mounted || _isInputOpen) return;
+    setState(() => _homeClipboardCandidate = candidate);
+  }
+
+  Future<void> _pasteHomeClipboardToInput() async {
+    final candidate = _homeClipboardCandidate;
+    if (candidate == null) return;
+
+    await _clipboardPreviewService.markHandled(candidate);
+    if (!mounted) return;
+    setState(() {
+      _homeClipboardCandidate = null;
+      _sharedDraft = InputData(text: candidate.text);
+      _isInputOpen = true;
+    });
+  }
+
+  Future<void> _dismissHomeClipboardPreview() async {
+    final candidate = _homeClipboardCandidate;
+    if (candidate == null) return;
+
+    await _clipboardPreviewService.markHandled(candidate);
+    if (!mounted) return;
+    setState(() => _homeClipboardCandidate = null);
   }
 
   Future<bool> _handleInputSubmit(InputData data) async {
@@ -1499,7 +1590,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       // Show success message
       if (mounted) {
         ToastHelper.showSuccess(
-            context, UserStorage.l10n.recordSubmittedAiProcessing);
+          context,
+          UserStorage.l10n.recordSubmittedAiProcessing,
+        );
       }
 
       // Refresh auto-input count after manual input
@@ -1518,100 +1611,129 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final timelineViewModel = context.watch<TimelineViewModel>();
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
-        value: const SystemUiOverlayStyle(
-          systemNavigationBarColor: Colors.transparent,
-          systemNavigationBarDividerColor: Colors.transparent,
-          systemNavigationBarIconBrightness: Brightness.dark,
-          systemNavigationBarContrastEnforced: false,
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: Brightness.dark,
-        ),
-        child: Scaffold(
-          extendBody: true,
-          resizeToAvoidBottomInset: false,
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          body: Stack(
-            key: _mainStackKey,
-            children: [
-              // Main content wrapped in SafeArea
-              SafeArea(
-                bottom: false,
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: IndexedStack(
-                        index: _currentTab,
-                        children: [
-                          TimelineScreen(
-                            key: _timelineKey,
-                            viewModel: context.watch<TimelineViewModel>(),
-                            insightViewModel: context.watch<InsightViewModel>(),
-                            onInputTap: () {
-                              setState(() {
-                                _isInputOpen = true;
-                              });
-                            },
-                          ),
-                          KnowledgeBaseScreen(
-                            key: _knowledgeBaseKey,
-                            viewModel: context.watch<KnowledgeBaseViewModel>(),
-                          ),
-                        ],
-                      ),
+      value: const SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarContrastEnforced: false,
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        extendBody: true,
+        resizeToAvoidBottomInset: false,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: Stack(
+          key: _mainStackKey,
+          children: [
+            // Main content wrapped in SafeArea
+            SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: IndexedStack(
+                      index: _currentTab,
+                      children: [
+                        TimelineScreen(
+                          key: _timelineKey,
+                          viewModel: timelineViewModel,
+                          insightViewModel: context.watch<InsightViewModel>(),
+                          onInputTap: () {
+                            setState(() {
+                              _homeClipboardCandidate = null;
+                              _isInputOpen = true;
+                            });
+                          },
+                        ),
+                        KnowledgeBaseScreen(
+                          key: _knowledgeBaseKey,
+                          viewModel: context.watch<KnowledgeBaseViewModel>(),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-
-              // Floating bottom bar overlay
-              _buildBottomBar(),
-
-              Positioned(
-                bottom: 164,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: AgentActivityWidget(
-                    navigatorKey: null,
-                    forceVisible:
-                        context.watch<TimelineViewModel>().isSubmitting,
                   ),
+                ],
+              ),
+            ),
+
+            if (!_isInputOpen &&
+                _homeClipboardCandidate != null &&
+                !timelineViewModel.isSubmitting)
+              _buildHomeClipboardPreview(),
+
+            // Floating bottom bar overlay
+            _buildBottomBar(),
+
+            Positioned(
+              bottom: 164,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: AgentActivityWidget(
+                  navigatorKey: null,
+                  forceVisible: timelineViewModel.isSubmitting,
                 ),
               ),
+            ),
 
-              // Input sheet
-              InputSheet(
-                isOpen: _isInputOpen,
-                initialData: _sharedDraft,
-                onClose: () {
-                  setState(() {
-                    _isInputOpen = false;
-                    _sharedDraft = null;
-                  });
-                },
-                onSubmit: _handleInputSubmit,
+            // Input sheet
+            InputSheet(
+              isOpen: _isInputOpen,
+              initialData: _sharedDraft,
+              onClose: () {
+                setState(() {
+                  _isInputOpen = false;
+                  _sharedDraft = null;
+                });
+                unawaited(_checkHomeClipboardPreview());
+              },
+              onSubmit: _handleInputSubmit,
+            ),
+
+            if (_isRadialMenuOpen)
+              RadialMenu(
+                key: _radialMenuKey,
+                items: _shortcuts,
+                center: _centerButtonCenter,
+                visible: _isRadialMenuOpen,
+                onItemSelected: _handleShortcutSelect,
+                onCancel: _handleRadialCancel,
+                transcriptText: _quickTranscribedText.isNotEmpty
+                    ? _quickTranscribedText
+                    : null,
+                isCalibrating: _isQuickCalibrating,
               ),
 
-              if (_isRadialMenuOpen)
-                RadialMenu(
-                  key: _radialMenuKey,
-                  items: _shortcuts,
-                  center: _centerButtonCenter,
-                  visible: _isRadialMenuOpen,
-                  onItemSelected: _handleShortcutSelect,
-                  onCancel: _handleRadialCancel,
-                  transcriptText: _quickTranscribedText.isNotEmpty
-                      ? _quickTranscribedText
-                      : null,
-                  isCalibrating: _isQuickCalibrating,
-                ),
+            // Onboarding demo overlay
+            const DemoOverlay(),
+          ],
+        ),
+      ),
+    );
+  }
 
-              // Onboarding demo overlay
-              const DemoOverlay(),
-            ],
-          ),
-        ));
+  Widget _buildHomeClipboardPreview() {
+    final candidate = _homeClipboardCandidate;
+    if (candidate == null) return const SizedBox.shrink();
+
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 128,
+      child: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.only(bottom: 8),
+        child: ClipboardPreviewCard(
+          candidate: candidate,
+          onPaste: _pasteHomeClipboardToInput,
+          onDismiss: _dismissHomeClipboardPreview,
+        ),
+      ),
+    );
   }
 
   Widget _buildBottomBar() {
@@ -1637,9 +1759,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                   // Painted Native Vector Overlay
                   // Completely removing dependencies on Figma PNG/SVG transparent paddings!
                   Positioned.fill(
-                    child: CustomPaint(
-                      painter: _NavBarPainter(),
-                    ),
+                    child: CustomPaint(painter: _NavBarPainter()),
                   ),
 
                   // Shadow occluder mask
@@ -1734,8 +1854,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                       behavior: HitTestBehavior.opaque,
                       onTap: () {
                         _handleLibraryTabTap();
-                        DemoService.instance
-                            .tryAdvance(DemoStep.tapKnowledgeTab);
+                        DemoService.instance.tryAdvance(
+                          DemoStep.tapKnowledgeTab,
+                        );
                       },
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -1751,7 +1872,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                               BlendMode.srcIn,
                             ),
                           ),
-                          SizedBox(height: 76.0 - 47.02 - 21.15),
+                          const SizedBox(height: 76.0 - 47.02 - 21.15),
                           Text(
                             UserStorage.l10n.bottomNavLibrary,
                             textAlign: TextAlign.center,
@@ -1800,10 +1921,12 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (_knowledgeBaseButtonTapCount == 1) {
       setState(() => _currentTab = 1);
       _knowledgeBaseButtonTapTimer?.cancel();
-      _knowledgeBaseButtonTapTimer =
-          Timer(const Duration(milliseconds: 300), () {
-        _knowledgeBaseButtonTapCount = 0;
-      });
+      _knowledgeBaseButtonTapTimer = Timer(
+        const Duration(milliseconds: 300),
+        () {
+          _knowledgeBaseButtonTapCount = 0;
+        },
+      );
     } else if (_knowledgeBaseButtonTapCount == 2) {
       _knowledgeBaseButtonTapTimer?.cancel();
       _knowledgeBaseButtonTapCount = 0;
@@ -1834,20 +1957,18 @@ class _NavBarPainter extends CustomPainter {
     // Custom drop shadow that doesn't bleed weirdly
     // We clip the bottom so the shadow never goes below the nav bar visually
     canvas.save();
-    canvas
-        .clipRect(Rect.fromLTWH(-50, -50, size.width + 100, size.height + 50));
+    canvas.clipRect(
+      Rect.fromLTWH(-50, -50, size.width + 100, size.height + 50),
+    );
     canvas.drawPath(
       path,
       Paint()
-        ..color = Colors.black.withOpacity(0.08)
+        ..color = Colors.black.withValues(alpha: 0.08)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10.0),
     );
     canvas.restore();
 
-    canvas.drawPath(
-      path,
-      Paint()..color = Colors.white,
-    );
+    canvas.drawPath(path, Paint()..color = Colors.white);
   }
 
   @override

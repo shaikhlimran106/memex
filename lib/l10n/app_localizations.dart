@@ -1064,6 +1064,24 @@ abstract class AppLocalizations {
   /// **'Discard draft'**
   String get discardDraftTooltip;
 
+  /// No description provided for @clipboardPreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New clipboard'**
+  String get clipboardPreviewTitle;
+
+  /// No description provided for @clipboardPreviewUnprocessed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not pasted yet'**
+  String get clipboardPreviewUnprocessed;
+
+  /// No description provided for @clipboardPreviewPasteToInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste to input'**
+  String get clipboardPreviewPasteToInput;
+
   /// No description provided for @tellAiWhatHappened.
   ///
   /// In en, this message translates to:

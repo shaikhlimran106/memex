@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:memex/data/services/clipboard_preview_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/input_draft_service.dart';
 import 'package:memex/data/services/local_asset_server.dart';
 import 'package:memex/l10n/app_localizations.dart';
+import 'package:memex/ui/main_screen/widgets/clipboard_preview_card.dart';
 import 'package:memex/ui/main_screen/widgets/input_sheet.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,6 +19,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late Directory testDataRoot;
+  String? clipboardText;
 
   setUpAll(() async {
     const recordChannel = MethodChannel('com.llfbandit.record/messages');
@@ -66,7 +69,25 @@ void main() {
   });
 
   setUp(() async {
+    clipboardText = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_id', 'input-sheet-test');
+    await prefs.remove(
+      'clipboard_preview_handled_hashes_input-sheet-test',
+    );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.getData') {
+        return {'text': clipboardText};
+      }
+      return null;
+    });
     await InputDraftService.instance.clearActiveDraft();
+  });
+
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null);
   });
 
   tearDownAll(() async {
@@ -76,7 +97,10 @@ void main() {
     }
   });
 
-  Widget buildHost({InputData? initialData}) {
+  Widget buildHost({
+    InputData? initialData,
+    Future<bool> Function(InputData data)? onSubmit,
+  }) {
     var isOpen = true;
     var closeCount = 0;
 
@@ -98,7 +122,7 @@ void main() {
                       closeCount += 1;
                     });
                   },
-                  onSubmit: (_) async => true,
+                  onSubmit: onSubmit ?? (_) async => true,
                 ),
                 Text('close count: $closeCount'),
               ],
@@ -130,77 +154,163 @@ void main() {
     expect(find.text('close count: 1'), findsOneWidget);
   });
 
-  testWidgets('unsafe selected image uses safety placeholder in preview strip',
-      (
+  testWidgets('clipboard preview pastes into the input without submitting', (
     tester,
   ) async {
-    final image = File('${testDataRoot.path}/unsafe_selected.png');
-    image.writeAsBytesSync(_pngHeader(width: 1000, height: 13000));
+    clipboardText = 'clipboard note';
+    var submitCount = 0;
+
+    final directCandidate =
+        await ClipboardPreviewService.instance.fetchUnhandledText();
+    expect(directCandidate?.text, 'clipboard note');
 
     await tester.pumpWidget(
       buildHost(
-        initialData: InputData(
-          text: 'long screenshot',
-          images: [XFile(image.path)],
-        ),
+        initialData: InputData(text: ''),
+        onSubmit: (_) async {
+          submitCount += 1;
+          return true;
+        },
       ),
     );
     await tester.pump(const Duration(milliseconds: 350));
-    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.byType(TextField));
+    await pumpUntilFound(tester, find.byType(ClipboardPreviewCard));
 
-    expect(find.byIcon(Icons.image_not_supported_outlined), findsOneWidget);
-    expect(find.byType(Image), findsNothing);
+    expect(find.byType(ClipboardPreviewCard), findsOneWidget);
+    expect(
+      find.text(UserStorage.l10n.clipboardPreviewPasteToInput),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text(UserStorage.l10n.clipboardPreviewPasteToInput));
+    await tester.pump();
+    await pumpUntilGone(tester, find.byType(ClipboardPreviewCard));
+
+    expect(find.byType(ClipboardPreviewCard), findsNothing);
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      'clipboard note',
+    );
+    expect(submitCount, 0);
   });
 
   testWidgets(
-    'successful submit clears draft and suppresses dispose saves',
+    'clipboard preview is suppressed when the input already contains the clipboard',
     (tester) async {
-      final submitCompleter = Completer<bool>();
-      InputData? submittedData;
+      clipboardText = 'already included';
 
       await tester.pumpWidget(
-        buildSubmitHost(
-          onSubmit: (data, closeSheet) {
-            submittedData = data;
-            closeSheet();
-            return submitCompleter.future;
-          },
+        buildHost(
+          initialData: InputData(text: 'draft with already included text'),
         ),
       );
       await tester.pump(const Duration(milliseconds: 350));
-
-      await tester.enterText(find.byType(TextField), 'sent note');
-      await tester.pump();
-      await saveActiveDraft(tester, 'sent note');
-      expect(await activeDraftText(tester), 'sent note');
-
-      final submitButton = find.byKey(
-        const ValueKey('input_sheet_submit_button'),
-      );
-      await tester.runAsync<void>(() async {
-        tester.widget<GestureDetector>(submitButton).onTap!();
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-      });
-      await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
 
-      expect(submittedData?.text, 'sent note');
-      expect(await activeDraftText(tester), isNull);
+      expect(find.byType(ClipboardPreviewCard), findsNothing);
 
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(await activeDraftText(tester), isNull);
-
-      await tester.runAsync<void>(() async {
-        submitCompleter.complete(true);
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-      });
-      await tester.pump();
+      await tester.tap(find.byType(TextField));
       await tester.pump(const Duration(milliseconds: 50));
 
-      expect(await activeDraftText(tester), isNull);
+      expect(find.byType(ClipboardPreviewCard), findsNothing);
     },
   );
+
+  testWidgets('dismissing clipboard preview hides it for the same clipboard', (
+    tester,
+  ) async {
+    clipboardText = 'dismiss me';
+
+    await tester.pumpWidget(buildHost(initialData: InputData(text: '')));
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(find.byType(TextField));
+    await pumpUntilFound(tester, find.byType(ClipboardPreviewCard));
+
+    expect(find.byType(ClipboardPreviewCard), findsOneWidget);
+
+    await tester.tap(find.byTooltip(UserStorage.l10n.ignore));
+    await tester.pump();
+    await pumpUntilGone(tester, find.byType(ClipboardPreviewCard));
+
+    expect(find.byType(ClipboardPreviewCard), findsNothing);
+
+    await tester.tap(find.byType(TextField));
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.byType(ClipboardPreviewCard), findsNothing);
+  });
+
+  testWidgets(
+    'unsafe selected image uses safety placeholder in preview strip',
+    (tester) async {
+      final image = File('${testDataRoot.path}/unsafe_selected.png');
+      image.writeAsBytesSync(_pngHeader(width: 1000, height: 13000));
+
+      await tester.pumpWidget(
+        buildHost(
+          initialData: InputData(
+            text: 'long screenshot',
+            images: [XFile(image.path)],
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.byIcon(Icons.image_not_supported_outlined), findsOneWidget);
+      expect(find.byType(Image), findsNothing);
+    },
+  );
+
+  testWidgets('successful submit clears draft and suppresses dispose saves', (
+    tester,
+  ) async {
+    final submitCompleter = Completer<bool>();
+    InputData? submittedData;
+
+    await tester.pumpWidget(
+      buildSubmitHost(
+        onSubmit: (data, closeSheet) {
+          submittedData = data;
+          closeSheet();
+          return submitCompleter.future;
+        },
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 350));
+
+    await tester.enterText(find.byType(TextField), 'sent note');
+    await tester.pump();
+    await saveActiveDraft(tester, 'sent note');
+    expect(await activeDraftText(tester), 'sent note');
+
+    final submitButton = find.byKey(
+      const ValueKey('input_sheet_submit_button'),
+    );
+    await tester.runAsync<void>(() async {
+      tester.widget<GestureDetector>(submitButton).onTap!();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(submittedData?.text, 'sent note');
+    expect(await activeDraftText(tester), isNull);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(await activeDraftText(tester), isNull);
+
+    await tester.runAsync<void>(() async {
+      submitCompleter.complete(true);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(await activeDraftText(tester), isNull);
+  });
 
   testWidgets('failed submit writes the submitted text back to draft', (
     tester,
@@ -244,9 +354,7 @@ void main() {
 }
 
 typedef SubmitHostCallback = Future<bool> Function(
-  InputData data,
-  VoidCallback closeSheet,
-);
+    InputData data, VoidCallback closeSheet);
 
 Widget buildSubmitHost({required SubmitHostCallback onSubmit}) {
   var isOpen = true;
@@ -289,6 +397,20 @@ Future<void> saveActiveDraft(WidgetTester tester, String text) {
   return tester.runAsync<void>(() {
     return InputDraftService.instance.saveTextDraft(text);
   });
+}
+
+Future<void> pumpUntilFound(WidgetTester tester, Finder finder) async {
+  for (var i = 0; i < 20; i += 1) {
+    await tester.pump(const Duration(milliseconds: 50));
+    if (finder.evaluate().isNotEmpty) return;
+  }
+}
+
+Future<void> pumpUntilGone(WidgetTester tester, Finder finder) async {
+  for (var i = 0; i < 20; i += 1) {
+    await tester.pump(const Duration(milliseconds: 50));
+    if (finder.evaluate().isEmpty) return;
+  }
 }
 
 List<int> _pngHeader({required int width, required int height}) {

@@ -526,6 +526,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get discardDraftTooltip => '丢弃草稿';
 
   @override
+  String get clipboardPreviewTitle => '新剪贴板';
+
+  @override
+  String get clipboardPreviewUnprocessed => '未处理';
+
+  @override
+  String get clipboardPreviewPasteToInput => '粘贴到输入框';
+
+  @override
   String get tellAiWhatHappened => '告诉AI发生了什么...';
 
   @override

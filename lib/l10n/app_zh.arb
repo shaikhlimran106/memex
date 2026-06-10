@@ -237,6 +237,9 @@
   "discardDraftTitle": "丢弃这份草稿？",
   "discardDraftMessage": "草稿内容会被清空。",
   "discardDraftTooltip": "丢弃草稿",
+  "clipboardPreviewTitle": "新剪贴板",
+  "clipboardPreviewUnprocessed": "未处理",
+  "clipboardPreviewPasteToInput": "粘贴到输入框",
   "tellAiWhatHappened": "告诉AI发生了什么...",
   "@recordingWithDuration": {
     "placeholders": {

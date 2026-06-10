@@ -542,6 +542,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get discardDraftTooltip => 'Discard draft';
 
   @override
+  String get clipboardPreviewTitle => 'New clipboard';
+
+  @override
+  String get clipboardPreviewUnprocessed => 'Not pasted yet';
+
+  @override
+  String get clipboardPreviewPasteToInput => 'Paste to input';
+
+  @override
   String get tellAiWhatHappened => 'Tell AI what happened...';
 
   @override
