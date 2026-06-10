@@ -320,7 +320,6 @@ def policy_detail(policy_data: dict[str, Any]) -> tuple[str, str]:
         findings = []
     reject_count = sum(1 for item in findings if isinstance(item, dict) and item.get("severity") == "reject")
     high_count = sum(1 for item in findings if isinstance(item, dict) and item.get("severity") == "high")
-    warn_count = sum(1 for item in findings if isinstance(item, dict) and item.get("severity") == "warn")
     decision = str(policy_data.get("decision", "unknown"))
 
     if decision == "reject":
@@ -329,21 +328,14 @@ def policy_detail(policy_data: dict[str, Any]) -> tuple[str, str]:
             f"命中 {reject_count} 条打回规则，需要修复后再进入普通 review。",
         )
     if decision == "high_risk":
-        warning_part_en = f" and {warn_count} warning(s)" if warn_count else ""
-        warning_part_zh = f"，另有 {warn_count} 条警告" if warn_count else ""
         return (
-            f"Found {high_count} high-risk policy signal(s){warning_part_en}; maintainer review is required.",
-            f"命中 {high_count} 条高风险规则{warning_part_zh}，需要 maintainer 人工确认。",
+            f"Found {high_count} high-risk policy signal(s); maintainer review is required.",
+            f"命中 {high_count} 条高风险规则，需要 maintainer 人工确认。",
         )
     if decision == "low_risk":
-        if warn_count:
-            return (
-                f"No blocking or high-risk policy signal; {warn_count} warning(s) remain for review context.",
-                f"未命中打回或高风险规则，仅有 {warn_count} 条警告供 review 参考。",
-            )
         return (
-            "No blocking, high-risk, or warning policy signal was found.",
-            "未命中打回、高风险或警告规则。",
+            "No blocking or high-risk policy signal was found.",
+            "未命中打回或高风险规则。",
         )
     return (
         "Policy decision is unknown; check the detailed report below.",

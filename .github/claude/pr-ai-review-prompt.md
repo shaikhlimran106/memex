@@ -22,6 +22,8 @@ Read these files before judging the PR:
 - `pr-ai-review-input/pr-files.txt`
 - `pr-ai-review-input/pr-diff.patch`
 - `pr-ai-review-input/pr-context.json`
+- `pr-ai-review-input/pr-policy-preflight.json`
+- `pr-ai-review-input/pr-policy-preflight.md`
 
 Your job:
 
@@ -30,10 +32,13 @@ Your job:
 3. Identify golden path impact as `none`, `possible`, `likely`, or `confirmed`.
 4. List affected areas, architecture violations, security/privacy/data risks, and
    test gaps.
-5. Cite evidence as concise file/path references or short diff references.
-6. If the diff is too incomplete to assess a relevant area, raise risk instead of
+5. Use the prepared policy preflight files as deterministic governance signals.
+   Do not duplicate those hard-rule checks as semantic findings unless they
+   change the semantic risk classification or human-review decision.
+6. Cite evidence as concise file/path references or short diff references.
+7. If the diff is too incomplete to assess a relevant area, raise risk instead of
    pretending confidence is high.
-7. Apply the unit/widget/integration test expectations from `AGENTS.md` and
+8. Apply the unit/widget/integration test expectations from `AGENTS.md` and
    `docs/pr-ai-review.*.md`; missing test evidence for behavior changes must be
    reported in `test_gaps`.
 
