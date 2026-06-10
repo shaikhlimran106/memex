@@ -198,6 +198,24 @@ class ChatService {
       // Refresh per-turn: the user can switch run modes between messages.
       state.metadata[AgentRunMode.metadataKey] = runMode;
 
+      // Heal sessions that inlined provider-unsafe images (e.g. HEIC before
+      // transcoding existed): they are replayed every turn and would fail
+      // OpenAI-compatible providers with 400 forever.
+      if (state.metadata['history_images_sanitized_v1'] != true) {
+        try {
+          final sanitized = await LlmImageCodec.sanitizeHistoryImages(state);
+          if (sanitized > 0) {
+            _logger.info(
+              'Sanitized $sanitized provider-unsafe history image(s) '
+              'in session $finalSessionId',
+            );
+          }
+          state.metadata['history_images_sanitized_v1'] = true;
+        } catch (e) {
+          _logger.warning('History image sanitize failed: $e');
+        }
+      }
+
       controller = AgentController();
 
       if (customAgentCfg != null) {
@@ -485,11 +503,21 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
           base64Data = base64Encode(transcoded);
           inlineMimeType = LlmImageCodec.jpegMimeType;
         } else {
-          _logger.warning(
-            'Transcode failed, inlining original bytes for ${imported.relativePath}',
-          );
-          base64Data =
-              base64Encode(await File(imported.absolutePath).readAsBytes());
+          // Only fall back to original bytes when the format is universally
+          // accepted; inlining HEIC would poison the session history.
+          final originalBytes =
+              await File(imported.absolutePath).readAsBytes();
+          if (LlmImageCodec.isLlmSafeImageBytes(originalBytes)) {
+            _logger.warning(
+              'Transcode failed, inlining original bytes for ${imported.relativePath}',
+            );
+            base64Data = base64Encode(originalBytes);
+          } else {
+            _logger.warning(
+              'Transcode failed and original format is not LLM-safe, '
+              'skipping inline for ${imported.relativePath}',
+            );
+          }
         }
       } else {
         _logger.warning(
