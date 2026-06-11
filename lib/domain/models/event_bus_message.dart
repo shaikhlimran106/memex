@@ -14,6 +14,8 @@ enum EventBusMessageType {
   profileUpdated('profile_updated'),
   characterUpdated('character_updated'),
   personaChatMessageAdded('persona_chat_message_added'),
+  backupSnapshotsChanged('backup_snapshots_changed'),
+  backupRestored('backup_restored'),
   unknown('unknown');
 
   final String value;
@@ -32,10 +34,7 @@ abstract class EventBusMessage {
   final EventBusMessageType type;
   final Map<String, dynamic> data;
 
-  EventBusMessage({
-    required this.type,
-    required this.data,
-  });
+  EventBusMessage({required this.type, required this.data});
 
   factory EventBusMessage.fromJson(Map<String, dynamic> json) {
     final type = EventBusMessageType.fromString(json['type'] as String? ?? '');
@@ -65,6 +64,10 @@ abstract class EventBusMessage {
         return CharacterUpdatedMessage.fromJson(json);
       case EventBusMessageType.personaChatMessageAdded:
         return PersonaChatMessageAddedMessage.fromJson(json);
+      case EventBusMessageType.backupSnapshotsChanged:
+        return BackupSnapshotsChangedMessage.fromJson(json);
+      case EventBusMessageType.backupRestored:
+        return BackupRestoredMessage.fromJson(json);
       default:
         return UnknownMessage.fromJson(json);
     }
@@ -98,21 +101,21 @@ class CardUpdatedMessage extends EventBusMessage {
     this.address,
     this.failureReason,
   }) : super(
-          type: EventBusMessageType.cardUpdated,
-          data: {
-            'id': id,
-            'html': html,
-            'timestamp': timestamp,
-            'tags': tags,
-            'status': status,
-            if (title != null) 'title': title,
-            'ui_configs': uiConfigs.map((e) => e.toJson()).toList(),
-            if (assets != null && assets.isNotEmpty) 'assets': assets,
-            if (rawText != null) 'raw_text': rawText,
-            if (address != null) 'address': address,
-            if (failureReason != null) 'failure_reason': failureReason,
-          },
-        );
+         type: EventBusMessageType.cardUpdated,
+         data: {
+           'id': id,
+           'html': html,
+           'timestamp': timestamp,
+           'tags': tags,
+           'status': status,
+           if (title != null) 'title': title,
+           'ui_configs': uiConfigs.map((e) => e.toJson()).toList(),
+           if (assets != null && assets.isNotEmpty) 'assets': assets,
+           if (rawText != null) 'raw_text': rawText,
+           if (address != null) 'address': address,
+           if (failureReason != null) 'failure_reason': failureReason,
+         },
+       );
 
   factory CardUpdatedMessage.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>;
@@ -130,7 +133,7 @@ class CardUpdatedMessage extends EventBusMessage {
       timestamp: data['timestamp'] as int,
       tags:
           (data['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
-              [],
+          [],
       status: data['status'] as String? ?? 'processing',
       title: data['title'] as String?,
       uiConfigs: configs,
@@ -169,20 +172,20 @@ class CardAddedMessage extends EventBusMessage {
     this.rawText,
     this.address,
   }) : super(
-          type: EventBusMessageType.cardAdded,
-          data: {
-            'id': id,
-            'html': html,
-            'timestamp': timestamp,
-            'tags': tags,
-            'status': status,
-            if (title != null) 'title': title,
-            'ui_configs': uiConfigs.map((e) => e.toJson()).toList(),
-            if (assets != null && assets.isNotEmpty) 'assets': assets,
-            if (rawText != null) 'raw_text': rawText,
-            if (address != null) 'address': address,
-          },
-        );
+         type: EventBusMessageType.cardAdded,
+         data: {
+           'id': id,
+           'html': html,
+           'timestamp': timestamp,
+           'tags': tags,
+           'status': status,
+           if (title != null) 'title': title,
+           'ui_configs': uiConfigs.map((e) => e.toJson()).toList(),
+           if (assets != null && assets.isNotEmpty) 'assets': assets,
+           if (rawText != null) 'raw_text': rawText,
+           if (address != null) 'address': address,
+         },
+       );
 
   factory CardAddedMessage.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>;
@@ -200,7 +203,7 @@ class CardAddedMessage extends EventBusMessage {
       timestamp: data['timestamp'] as int,
       tags:
           (data['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
-              [],
+          [],
       status: data['status'] as String? ?? 'processing',
       title: data['title'] as String?,
       uiConfigs: configs,
@@ -217,20 +220,15 @@ class CardAddedMessage extends EventBusMessage {
 class CardDetailUpdatedMessage extends EventBusMessage {
   final String cardId;
 
-  CardDetailUpdatedMessage({
-    required this.cardId,
-  }) : super(
-          type: EventBusMessageType.cardDetailUpdated,
-          data: {
-            'card_id': cardId,
-          },
-        );
+  CardDetailUpdatedMessage({required this.cardId})
+    : super(
+        type: EventBusMessageType.cardDetailUpdated,
+        data: {'card_id': cardId},
+      );
 
   factory CardDetailUpdatedMessage.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>;
-    return CardDetailUpdatedMessage(
-      cardId: data['card_id'] as String,
-    );
+    return CardDetailUpdatedMessage(cardId: data['card_id'] as String);
   }
 }
 
@@ -238,16 +236,11 @@ class NewInsightMessage extends EventBusMessage {
   final String insightId;
   final String html;
 
-  NewInsightMessage({
-    required this.insightId,
-    required this.html,
-  }) : super(
-          type: EventBusMessageType.newInsight,
-          data: {
-            'insight_id': insightId,
-            'html': html,
-          },
-        );
+  NewInsightMessage({required this.insightId, required this.html})
+    : super(
+        type: EventBusMessageType.newInsight,
+        data: {'insight_id': insightId, 'html': html},
+      );
 
   factory NewInsightMessage.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>;
@@ -262,15 +255,15 @@ class NewInsightMessage extends EventBusMessage {
 class ScheduleAggregationUpdatedMessage extends EventBusMessage {
   final String aggregationId;
 
-  ScheduleAggregationUpdatedMessage({
-    required this.aggregationId,
-  }) : super(
-          type: EventBusMessageType.scheduleAggregationUpdated,
-          data: {'aggregation_id': aggregationId},
-        );
+  ScheduleAggregationUpdatedMessage({required this.aggregationId})
+    : super(
+        type: EventBusMessageType.scheduleAggregationUpdated,
+        data: {'aggregation_id': aggregationId},
+      );
 
   factory ScheduleAggregationUpdatedMessage.fromJson(
-      Map<String, dynamic> json) {
+    Map<String, dynamic> json,
+  ) {
     final data = json['data'] as Map<String, dynamic>;
     return ScheduleAggregationUpdatedMessage(
       aggregationId: data['aggregation_id'] as String,
@@ -281,7 +274,7 @@ class ScheduleAggregationUpdatedMessage extends EventBusMessage {
 /// Unknown message type
 class UnknownMessage extends EventBusMessage {
   UnknownMessage({required super.data})
-      : super(type: EventBusMessageType.unknown);
+    : super(type: EventBusMessageType.unknown);
 
   factory UnknownMessage.fromJson(Map<String, dynamic> json) {
     return UnknownMessage(data: json['data'] as Map<String, dynamic>? ?? {});
@@ -291,10 +284,7 @@ class UnknownMessage extends EventBusMessage {
 /// New System Action Message (Trigger sync)
 class NewSystemActionMessage extends EventBusMessage {
   NewSystemActionMessage()
-      : super(
-          type: EventBusMessageType.newSystemAction,
-          data: {},
-        );
+    : super(type: EventBusMessageType.newSystemAction, data: {});
 
   factory NewSystemActionMessage.fromJson(Map<String, dynamic> json) {
     return NewSystemActionMessage();
@@ -307,13 +297,10 @@ class InvalidModelConfigMessage extends EventBusMessage {
   final String configKey;
 
   InvalidModelConfigMessage({required this.agentId, required this.configKey})
-      : super(
-          type: EventBusMessageType.invalidModelConfig,
-          data: {
-            'agent_id': agentId,
-            'config_key': configKey,
-          },
-        );
+    : super(
+        type: EventBusMessageType.invalidModelConfig,
+        data: {'agent_id': agentId, 'config_key': configKey},
+      );
 
   factory InvalidModelConfigMessage.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>;
@@ -335,13 +322,13 @@ class ErrorNotificationMessage extends EventBusMessage {
     required this.errorMessage,
     this.cardId,
   }) : super(
-          type: EventBusMessageType.errorNotification,
-          data: {
-            'error_category': errorCategory,
-            'error_message': errorMessage,
-            if (cardId != null) 'card_id': cardId,
-          },
-        );
+         type: EventBusMessageType.errorNotification,
+         data: {
+           'error_category': errorCategory,
+           'error_message': errorMessage,
+           if (cardId != null) 'card_id': cardId,
+         },
+       );
 
   factory ErrorNotificationMessage.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>;
@@ -358,18 +345,14 @@ class AttachmentsChangedMessage extends EventBusMessage {
   final String? factId;
 
   AttachmentsChangedMessage({this.factId})
-      : super(
-          type: EventBusMessageType.attachmentsChanged,
-          data: {
-            if (factId != null) 'fact_id': factId,
-          },
-        );
+    : super(
+        type: EventBusMessageType.attachmentsChanged,
+        data: {if (factId != null) 'fact_id': factId},
+      );
 
   factory AttachmentsChangedMessage.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>? ?? {};
-    return AttachmentsChangedMessage(
-      factId: data['fact_id'] as String?,
-    );
+    return AttachmentsChangedMessage(factId: data['fact_id'] as String?);
   }
 }
 
@@ -378,13 +361,10 @@ class ProfileUpdatedMessage extends EventBusMessage {
   final String? avatar;
 
   ProfileUpdatedMessage({required this.userId, this.avatar})
-      : super(
-          type: EventBusMessageType.profileUpdated,
-          data: {
-            'user_id': userId,
-            if (avatar != null) 'avatar': avatar,
-          },
-        );
+    : super(
+        type: EventBusMessageType.profileUpdated,
+        data: {'user_id': userId, if (avatar != null) 'avatar': avatar},
+      );
 
   factory ProfileUpdatedMessage.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>? ?? {};
@@ -400,13 +380,10 @@ class CharacterUpdatedMessage extends EventBusMessage {
   final String characterId;
 
   CharacterUpdatedMessage({required this.userId, required this.characterId})
-      : super(
-          type: EventBusMessageType.characterUpdated,
-          data: {
-            'user_id': userId,
-            'character_id': characterId,
-          },
-        );
+    : super(
+        type: EventBusMessageType.characterUpdated,
+        data: {'user_id': userId, 'character_id': characterId},
+      );
 
   factory CharacterUpdatedMessage.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>? ?? {};
@@ -423,15 +400,56 @@ class PersonaChatMessageAddedMessage extends EventBusMessage {
   final String characterId;
 
   PersonaChatMessageAddedMessage({required this.characterId})
-      : super(
-          type: EventBusMessageType.personaChatMessageAdded,
-          data: {'character_id': characterId},
-        );
+    : super(
+        type: EventBusMessageType.personaChatMessageAdded,
+        data: {'character_id': characterId},
+      );
 
   factory PersonaChatMessageAddedMessage.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>? ?? {};
     return PersonaChatMessageAddedMessage(
       characterId: data['character_id'] as String? ?? '',
+    );
+  }
+}
+
+class BackupSnapshotsChangedMessage extends EventBusMessage {
+  final String reason;
+  final String? snapshotId;
+
+  BackupSnapshotsChangedMessage({this.reason = 'updated', this.snapshotId})
+    : super(
+        type: EventBusMessageType.backupSnapshotsChanged,
+        data: {
+          'reason': reason,
+          if (snapshotId != null) 'snapshot_id': snapshotId,
+        },
+      );
+
+  factory BackupSnapshotsChangedMessage.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>? ?? {};
+    return BackupSnapshotsChangedMessage(
+      reason: data['reason'] as String? ?? 'updated',
+      snapshotId: data['snapshot_id'] as String?,
+    );
+  }
+}
+
+class BackupRestoredMessage extends EventBusMessage {
+  final String userId;
+  final String sourcePath;
+
+  BackupRestoredMessage({required this.userId, required this.sourcePath})
+    : super(
+        type: EventBusMessageType.backupRestored,
+        data: {'user_id': userId, 'source_path': sourcePath},
+      );
+
+  factory BackupRestoredMessage.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>? ?? {};
+    return BackupRestoredMessage(
+      userId: data['user_id'] as String? ?? '',
+      sourcePath: data['source_path'] as String? ?? '',
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -7,17 +8,19 @@ import 'package:intl/intl.dart';
 import 'package:logging/logging.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:memex/data/services/backup_service.dart';
+import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
 import 'package:memex/ui/settings/widgets/backup_restore_confirm_dialog.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/utils/user_storage.dart';
 
-typedef AutoBackupCreator = Future<BackupSnapshot?> Function({
-  String trigger,
-  bool force,
-  void Function(String status)? onProgress,
-});
+typedef AutoBackupCreator =
+    Future<BackupSnapshot?> Function({
+      String trigger,
+      bool force,
+      void Function(String status)? onProgress,
+    });
 
 typedef StoredBackupDeleter = Future<void> Function(BackupSnapshot snapshot);
 
@@ -68,14 +71,47 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
   @override
   void initState() {
     super.initState();
+    EventBusService.instance.addHandler(
+      EventBusMessageType.backupSnapshotsChanged,
+      _handleBackupDataChanged,
+    );
+    EventBusService.instance.addHandler(
+      EventBusMessageType.backupRestored,
+      _handleBackupDataChanged,
+    );
     _loadPageData();
+  }
+
+  @override
+  void dispose() {
+    EventBusService.instance.removeHandler(
+      EventBusMessageType.backupSnapshotsChanged,
+      _handleBackupDataChanged,
+    );
+    EventBusService.instance.removeHandler(
+      EventBusMessageType.backupRestored,
+      _handleBackupDataChanged,
+    );
+    super.dispose();
+  }
+
+  bool get _isBusy =>
+      _isBackingUp ||
+      _isRestoring ||
+      _isCreatingSnapshot ||
+      _isPickingLocation ||
+      _deletingBackupId != null;
+
+  void _handleBackupDataChanged(EventBusMessage message) {
+    if (!mounted || _isBusy) return;
+    unawaited(_loadPageData(includeEstimatedSize: false));
   }
 
   Future<void> _loadPageData({bool includeEstimatedSize = true}) async {
     final userId = await UserStorage.getUserId();
     final size = includeEstimatedSize
         ? await (widget.estimateBackupSize ??
-            BackupService.estimateBackupSize)()
+              BackupService.estimateBackupSize)()
         : null;
     final location = await _resolveBackupLocationInfo();
     final snapshots =
@@ -560,6 +596,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       await restore((status) {
         if (mounted) setState(() => _statusText = status);
       });
+      await _loadPageData(includeEstimatedSize: false);
 
       if (!mounted) return;
       setState(() {
@@ -606,11 +643,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
 
   @override
   Widget build(BuildContext context) {
-    final isBusy = _isBackingUp ||
-        _isRestoring ||
-        _isCreatingSnapshot ||
-        _isPickingLocation ||
-        _deletingBackupId != null;
+    final isBusy = _isBusy;
 
     return Scaffold(
       appBar: AppBar(

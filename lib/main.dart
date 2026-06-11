@@ -266,9 +266,8 @@ class RootShellState extends State<RootShell> {
               InsightViewModel(router: c.read<MemexRouter>())..loadData(),
         ),
         ChangeNotifierProvider<KnowledgeBaseViewModel>(
-          create: (c) =>
-              KnowledgeBaseViewModel(router: c.read<MemexRouter>())
-                ..fetchData(),
+          create: (c) => KnowledgeBaseViewModel(router: c.read<MemexRouter>())
+            ..fetchData(),
         ),
       ],
       child: const MainScreen(),
@@ -481,6 +480,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   InputData? _sharedDraft;
   ClipboardPreviewCandidate? _homeClipboardCandidate;
   bool _isCheckingHomeClipboard = false;
+  bool _isRefreshingAfterRestore = false;
 
   // Agent Button Position - REMOVED (Moved to Main App)
 
@@ -523,6 +523,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     _eventBus.addHandler(
       EventBusMessageType.errorNotification,
       _handleErrorNotification,
+    );
+    _eventBus.addHandler(
+      EventBusMessageType.backupRestored,
+      _handleBackupRestored,
     );
 
     _shareIntentHandler = ShareIntentHandler(
@@ -1014,8 +1018,42 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       EventBusMessageType.errorNotification,
       _handleErrorNotification,
     );
+    _eventBus.removeHandler(
+      EventBusMessageType.backupRestored,
+      _handleBackupRestored,
+    );
     // Note: do not disconnect event bus here; other screens may still use it
     super.dispose();
+  }
+
+  void _handleBackupRestored(EventBusMessage message) {
+    if (message is! BackupRestoredMessage) return;
+    unawaited(_refreshAfterBackupRestore(message.userId));
+  }
+
+  Future<void> _refreshAfterBackupRestore(String restoredUserId) async {
+    if (_isRefreshingAfterRestore) return;
+    _isRefreshingAfterRestore = true;
+    try {
+      var userId = restoredUserId;
+      if (userId.isEmpty) {
+        userId = await UserStorage.getUserId() ?? '';
+      }
+      if (userId.isNotEmpty) {
+        await _memexRouter.switchUser(userId);
+      }
+      if (!mounted) return;
+      await Future.wait<void>([
+        context.read<TimelineViewModel>().refresh(),
+        context.read<InsightViewModel>().loadData(),
+        context.read<KnowledgeBaseViewModel>().fetchData(),
+      ]);
+      if (mounted) setState(() {});
+    } catch (e, st) {
+      _logger.warning('Failed to refresh UI after backup restore: $e', e, st);
+    } finally {
+      _isRefreshingAfterRestore = false;
+    }
   }
 
   Future<void> _startRecording() async {
@@ -1265,8 +1303,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
       // Final calibration from accumulated PCM
       if (_quickPcmBuffer.isNotEmpty) {
-        final useLocal = await SpeechTranscriptionService.instance
-            .isUsingLocalModel();
+        final useLocal =
+            await SpeechTranscriptionService.instance.isUsingLocalModel();
         final aligned = Uint8List.fromList(_quickPcmBuffer);
         final int16Data = Int16List.view(aligned.buffer);
         final samples = Float32List(int16Data.length);
@@ -1325,9 +1363,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         if (await audioFile.exists()) {
           final length = await audioFile.length();
           final fileName = _quickAudioPath!.split(Platform.pathSeparator).last;
-          audioHash = md5
-              .convert(utf8.encode('audio_${fileName}_$length'))
-              .toString();
+          audioHash =
+              md5.convert(utf8.encode('audio_${fileName}_$length')).toString();
         }
         unawaited(
           _handleInputSubmit(
@@ -1436,6 +1473,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           });
         },
       );
+      await _refreshAfterBackupRestore(await UserStorage.getUserId() ?? '');
 
       if (!mounted || !rootNavigator.mounted) return;
       rootNavigator.pop();
