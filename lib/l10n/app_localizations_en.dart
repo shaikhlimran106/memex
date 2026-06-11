@@ -3295,6 +3295,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get earlyUpdateReleaseNotes => 'Release notes';
 
   @override
+  String get agentBackgroundTitle => 'Memex Agent';
+
+  @override
+  String get agentBackgroundNeedsAttentionTitle =>
+      'Memex Agent needs attention';
+
+  @override
+  String get agentBackgroundProcessing => 'Processing';
+
+  @override
+  String get agentBackgroundNeedsAttention => 'Needs attention';
+
+  @override
+  String get agentBackgroundCompleted => 'Completed';
+
+  @override
+  String get agentBackgroundIdle => 'Idle';
+
+  @override
+  String get agentBackgroundProcessingStarting => 'Processing is starting.';
+
+  @override
+  String get agentBackgroundStoppedWithError =>
+      'Processing stopped with an error.';
+
+  @override
+  String get agentBackgroundAllTasksFinished =>
+      'All background tasks finished.';
+
+  @override
+  String get agentBackgroundNoTasks => 'No background tasks.';
+
+  @override
+  String agentBackgroundQueuedTasks(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Processing $count queued tasks',
+      one: 'Processing 1 queued task',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get dismissAllNotifications => 'Clear all';
 
   @override

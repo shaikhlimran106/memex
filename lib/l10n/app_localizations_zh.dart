@@ -3166,6 +3166,46 @@ class AppLocalizationsZh extends AppLocalizations {
   String get earlyUpdateReleaseNotes => '更新说明';
 
   @override
+  String get agentBackgroundTitle => 'Memex Agent';
+
+  @override
+  String get agentBackgroundNeedsAttentionTitle => 'Memex Agent 需要处理';
+
+  @override
+  String get agentBackgroundProcessing => '处理中';
+
+  @override
+  String get agentBackgroundNeedsAttention => '需要处理';
+
+  @override
+  String get agentBackgroundCompleted => '已完成';
+
+  @override
+  String get agentBackgroundIdle => '空闲';
+
+  @override
+  String get agentBackgroundProcessingStarting => '正在开始处理。';
+
+  @override
+  String get agentBackgroundStoppedWithError => '处理因错误停止。';
+
+  @override
+  String get agentBackgroundAllTasksFinished => '所有后台任务已完成。';
+
+  @override
+  String get agentBackgroundNoTasks => '当前没有后台任务。';
+
+  @override
+  String agentBackgroundQueuedTasks(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '正在处理 $count 个后台任务',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get dismissAllNotifications => '清除全部';
 
   @override

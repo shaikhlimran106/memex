@@ -5936,6 +5936,72 @@ abstract class AppLocalizations {
   /// **'Release notes'**
   String get earlyUpdateReleaseNotes;
 
+  /// No description provided for @agentBackgroundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex Agent'**
+  String get agentBackgroundTitle;
+
+  /// No description provided for @agentBackgroundNeedsAttentionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex Agent needs attention'**
+  String get agentBackgroundNeedsAttentionTitle;
+
+  /// No description provided for @agentBackgroundProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing'**
+  String get agentBackgroundProcessing;
+
+  /// No description provided for @agentBackgroundNeedsAttention.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs attention'**
+  String get agentBackgroundNeedsAttention;
+
+  /// No description provided for @agentBackgroundCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get agentBackgroundCompleted;
+
+  /// No description provided for @agentBackgroundIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Idle'**
+  String get agentBackgroundIdle;
+
+  /// No description provided for @agentBackgroundProcessingStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing is starting.'**
+  String get agentBackgroundProcessingStarting;
+
+  /// No description provided for @agentBackgroundStoppedWithError.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing stopped with an error.'**
+  String get agentBackgroundStoppedWithError;
+
+  /// No description provided for @agentBackgroundAllTasksFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'All background tasks finished.'**
+  String get agentBackgroundAllTasksFinished;
+
+  /// No description provided for @agentBackgroundNoTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'No background tasks.'**
+  String get agentBackgroundNoTasks;
+
+  /// No description provided for @agentBackgroundQueuedTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Processing 1 queued task} other{Processing {count} queued tasks}}'**
+  String agentBackgroundQueuedTasks(num count);
+
   /// No description provided for @dismissAllNotifications.
   ///
   /// In en, this message translates to:

@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';
 import 'package:memex/data/repositories/memex_router.dart';
+import 'package:memex/data/services/agent_activity_service.dart';
 import 'package:memex/data/services/agent_background_platform.dart';
 import 'package:memex/data/services/agent_background_status.dart';
 import 'package:memex/data/services/agent_queue_drain_scheduler.dart';
@@ -27,6 +28,7 @@ class AgentQueueBackgroundWorker {
     LocalTaskExecutor? executor,
     AgentQueueDrainScheduler? scheduler,
     AgentBackgroundPlatform? backgroundPlatform,
+    AgentActivityService? activityService,
     Duration maxRunDuration = _maxRunDuration,
     Duration databaseRetryDelay = const Duration(milliseconds: 300),
   }) async {
@@ -47,6 +49,13 @@ class AgentQueueBackgroundWorker {
 
       final taskExecutor = executor ?? LocalTaskExecutor.instance;
       final queueScheduler = scheduler ?? WorkmanagerAgentQueueDrainScheduler();
+      final labels = _statusLabels();
+      final liveSurface = _LiveBackgroundSurfacePublisher(
+        logger: logger,
+        platform: surfacePlatform,
+        executor: taskExecutor,
+        labels: labels,
+      );
       final result = await _withDatabaseLockRetry(
         logger,
         maxAttempts: _databaseMaxAttempts,
@@ -60,11 +69,20 @@ class AgentQueueBackgroundWorker {
               executor: taskExecutor,
             );
           }
-          return taskExecutor.drainAvailableTasks(
-            userId: userId,
-            maxDuration: maxRunDuration,
-            stopWhenDone: true,
-          );
+          final liveActivityService =
+              activityService ?? _tryGetActivityService(logger);
+          if (liveActivityService != null) {
+            await liveSurface.start(liveActivityService);
+          }
+          try {
+            return await taskExecutor.drainAvailableTasks(
+              userId: userId,
+              maxDuration: maxRunDuration,
+              stopWhenDone: true,
+            );
+          } finally {
+            await liveSurface.stop();
+          }
         },
       );
 
@@ -78,6 +96,8 @@ class AgentQueueBackgroundWorker {
         logger,
         surfacePlatform,
         result.snapshot,
+        latestMessage: liveSurface.latestMessage,
+        labels: labels,
       );
 
       logger.info(
@@ -103,8 +123,10 @@ class AgentQueueBackgroundWorker {
   static Future<void> _syncBackgroundSurfaceAfterDrain(
     Logger logger,
     AgentBackgroundPlatform platform,
-    TaskActivitySnapshot snapshot,
-  ) async {
+    TaskActivitySnapshot snapshot, {
+    AgentActivityMessageModel? latestMessage,
+    AgentBackgroundStatusLabels labels = const AgentBackgroundStatusLabels(),
+  }) async {
     if (!platform.isSupported) return;
 
     if (!snapshot.hasActiveTasks) {
@@ -114,7 +136,11 @@ class AgentQueueBackgroundWorker {
 
     try {
       await platform.updateStatus(
-        AgentBackgroundStatus.fromActivity(taskSnapshot: snapshot),
+        AgentBackgroundStatus.fromActivity(
+          taskSnapshot: snapshot,
+          latestMessage: latestMessage,
+          labels: labels,
+        ),
         isInBackground: true,
       );
     } catch (e, stackTrace) {
@@ -174,5 +200,97 @@ class AgentQueueBackgroundWorker {
     return message.contains('database is locked') ||
         message.contains('sqliteexception(5)') ||
         message.contains('code 5');
+  }
+
+  static AgentBackgroundStatusLabels _statusLabels() {
+    try {
+      return AgentBackgroundStatusLabels.fromL10n(UserStorage.l10n);
+    } catch (_) {
+      return const AgentBackgroundStatusLabels();
+    }
+  }
+
+  static AgentActivityService? _tryGetActivityService(Logger logger) {
+    try {
+      return AgentActivityService.instance;
+    } catch (e, stackTrace) {
+      logger.fine(
+        'Skipping live Android agent background surface updates: '
+        'agent activity service is unavailable',
+        e,
+        stackTrace,
+      );
+      return null;
+    }
+  }
+}
+
+class _LiveBackgroundSurfacePublisher {
+  _LiveBackgroundSurfacePublisher({
+    required this.logger,
+    required this.platform,
+    required this.executor,
+    required this.labels,
+  });
+
+  final Logger logger;
+  final AgentBackgroundPlatform platform;
+  final LocalTaskExecutor executor;
+  final AgentBackgroundStatusLabels labels;
+  StreamSubscription<AgentActivityMessageModel>? _subscription;
+  Future<void> _publishChain = Future<void>.value();
+
+  AgentActivityMessageModel? latestMessage;
+
+  Future<void> start(AgentActivityService activityService) async {
+    if (!platform.isSupported) return;
+    await _subscription?.cancel();
+    _subscription = activityService.messageStream.listen(
+      (message) {
+        latestMessage = message;
+        _publishChain =
+            _publishChain.then((_) => _publish(message)).catchError((
+          Object e,
+          StackTrace stackTrace,
+        ) {
+          logger.warning(
+            'Failed to refresh Android agent background surface from activity',
+            e,
+            stackTrace,
+          );
+        });
+        unawaited(_publishChain);
+      },
+      onError: (Object e, StackTrace stackTrace) {
+        logger.warning(
+          'Agent activity stream failed in background',
+          e,
+          stackTrace,
+        );
+      },
+    );
+  }
+
+  Future<void> stop() async {
+    await _subscription?.cancel();
+    _subscription = null;
+    await _publishChain;
+  }
+
+  Future<void> _publish(AgentActivityMessageModel message) async {
+    final snapshot = await executor.getTaskActivitySnapshot();
+    final status = AgentBackgroundStatus.fromActivity(
+      taskSnapshot: snapshot,
+      latestMessage: message,
+      labels: labels,
+    );
+    if (!status.shouldShowSystemSurface) return;
+
+    if (status.state == AgentBackgroundRunState.failed) {
+      await platform.finishStatus(status, isInBackground: true);
+      return;
+    }
+
+    await platform.updateStatus(status, isInBackground: true);
   }
 }

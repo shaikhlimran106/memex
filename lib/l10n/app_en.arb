@@ -1495,6 +1495,23 @@
   "earlyUpdateDialogTitle": "Early update available",
   "earlyUpdateReleaseNotes": "Release notes",
 
+  "agentBackgroundTitle": "Memex Agent",
+  "agentBackgroundNeedsAttentionTitle": "Memex Agent needs attention",
+  "agentBackgroundProcessing": "Processing",
+  "agentBackgroundNeedsAttention": "Needs attention",
+  "agentBackgroundCompleted": "Completed",
+  "agentBackgroundIdle": "Idle",
+  "agentBackgroundProcessingStarting": "Processing is starting.",
+  "agentBackgroundStoppedWithError": "Processing stopped with an error.",
+  "agentBackgroundAllTasksFinished": "All background tasks finished.",
+  "agentBackgroundNoTasks": "No background tasks.",
+  "agentBackgroundQueuedTasks": "{count, plural, =1{Processing 1 queued task} other{Processing {count} queued tasks}}",
+  "@agentBackgroundQueuedTasks": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+
   "dismissAllNotifications": "Clear all",
   "dismissByType": "Clear by type",
   "dismissTypeSystemAction": "Reminders & events",
