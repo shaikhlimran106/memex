@@ -1458,6 +1458,23 @@
   "earlyUpdateDialogTitle": "发现 Early 更新",
   "earlyUpdateReleaseNotes": "更新说明",
 
+  "agentBackgroundTitle": "Memex Agent",
+  "agentBackgroundNeedsAttentionTitle": "Memex Agent 需要处理",
+  "agentBackgroundProcessing": "处理中",
+  "agentBackgroundNeedsAttention": "需要处理",
+  "agentBackgroundCompleted": "已完成",
+  "agentBackgroundIdle": "空闲",
+  "agentBackgroundProcessingStarting": "正在开始处理。",
+  "agentBackgroundStoppedWithError": "处理因错误停止。",
+  "agentBackgroundAllTasksFinished": "所有后台任务已完成。",
+  "agentBackgroundNoTasks": "当前没有后台任务。",
+  "agentBackgroundQueuedTasks": "{count, plural, other{正在处理 {count} 个后台任务}}",
+  "@agentBackgroundQueuedTasks": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+
   "dismissAllNotifications": "清除全部",
   "dismissByType": "按类型清除",
   "dismissTypeSystemAction": "日程提醒",

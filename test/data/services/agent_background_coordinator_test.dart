@@ -69,6 +69,8 @@ void main() {
 
     expect(platform.updates.last.stage, 'Updating PKM');
     expect(platform.updates.last.detail, 'Writing local notes');
+    expect(platform.updates.last.summary, 'Writing local notes');
+    expect(platform.updates.last.summary, isNot(contains('Updating PKM')));
     expect(scheduler.scheduleCount, 1);
   });
 
@@ -178,6 +180,7 @@ void main() {
 
       expect(platform.updates.last.state, AgentBackgroundRunState.active);
       expect(platform.updates.last.detail, 'Will retry automatically');
+      expect(platform.updates.last.summary, 'Will retry automatically');
       expect(platform.finished, isEmpty);
       expect(scheduler.cancelCount, cancelCountBeforeError);
     },

@@ -111,6 +111,7 @@ class AgentBackgroundService : Service() {
         val title = intent?.getStringExtra("title") ?: "Memex Agent"
         val stage = intent?.getStringExtra("stage") ?: "Processing"
         val detail = intent?.getStringExtra("detail") ?: ""
+        val summary = intent?.getStringExtra("summary") ?: ""
         val remainingTasks = intent?.getIntExtra("remainingTasks", 0) ?: 0
 
         val openIntent = Intent(this, MainActivity::class.java).apply {
@@ -125,7 +126,7 @@ class AgentBackgroundService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val subText = when (state) {
+        val fallbackText = when (state) {
             "failed" -> "Needs attention"
             else -> {
                 val taskLabel = if (remainingTasks == 1) "task" else "tasks"
@@ -136,16 +137,18 @@ class AgentBackgroundService : Service() {
                 }
             }
         }
+        val contentText = summary.ifBlank { fallbackText }
         val body = listOf(
             stage,
             detail,
         ).filter { it.isNotBlank() }.joinToString("\n")
+        val bigText = body.ifBlank { contentText }
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_quick_note)
             .setContentTitle(title)
-            .setContentText(subText)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setContentText(contentText)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(bigText))
             .setContentIntent(pendingIntent)
             .setOngoing(state == "active")
             .setAutoCancel(state != "active")
