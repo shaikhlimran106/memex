@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/data/services/backup_service.dart';
@@ -80,6 +81,87 @@ void main() {
 
     expect(manifestJson['formatVersion'], 1);
     expect(manifestJson['entries'], isNotEmpty);
+  });
+
+  test('createBackup still compresses small text files', () async {
+    final outputDir = Directory(p.join(tempDir.path, 'Backups'));
+    final backupPath = await BackupService.createBackup(
+      outputDirectory: outputDir.path,
+    );
+
+    final archive = ZipDecoder().decodeBytes(
+      await File(backupPath).readAsBytes(),
+    );
+    final archivedCard = archive.files.firstWhere(
+      (file) => file.name == 'workspace/Cards/card.md',
+    );
+
+    expect(archivedCard.compression, CompressionType.deflate);
+    expect(utf8.decode(archivedCard.content), 'hello backup');
+  });
+
+  test('createBackup stores compressed media without recompressing', () async {
+    final workspace = Directory(
+      FileSystemService.instance.getWorkspacePath('backup-service-user'),
+    );
+    final mediaFile = File(p.join(workspace.path, 'Assets', 'clip.mp4'));
+    await mediaFile.create(recursive: true);
+    await mediaFile.writeAsBytes(List<int>.generate(1024, (index) => index));
+
+    final outputDir = Directory(p.join(tempDir.path, 'Backups'));
+    final backupPath = await BackupService.createBackup(
+      outputDirectory: outputDir.path,
+    );
+
+    final archive = ZipDecoder().decodeBytes(
+      await File(backupPath).readAsBytes(),
+    );
+    final archivedMedia = archive.files.firstWhere(
+      (file) => file.name == 'workspace/Assets/clip.mp4',
+    );
+
+    expect(archivedMedia.compression, CompressionType.none);
+    expect(archivedMedia.content, await mediaFile.readAsBytes());
+  });
+
+  test('createBackup stores large files without recompressing', () async {
+    final workspace = Directory(
+      FileSystemService.instance.getWorkspacePath('backup-service-user'),
+    );
+    final largeFile = File(p.join(workspace.path, 'Cards', 'large.bin'));
+    const largeFileSize = 16 * 1024 * 1024 + 1;
+    await _writeDeterministicBinaryFile(
+      largeFile,
+      sizeBytes: largeFileSize,
+      seed: 99,
+    );
+
+    final outputDir = Directory(p.join(tempDir.path, 'Backups'));
+    final backupPath = await BackupService.createBackup(
+      outputDirectory: outputDir.path,
+    );
+
+    final archive = ZipDecoder().decodeBytes(
+      await File(backupPath).readAsBytes(),
+    );
+    final archivedLargeFile = archive.files.firstWhere(
+      (file) => file.name == 'workspace/Cards/large.bin',
+    );
+    final manifest = archive.files.firstWhere(
+      (file) => file.name == 'manifest.json',
+    );
+    final manifestJson = jsonDecode(utf8.decode(manifest.content));
+    final entries = (manifestJson['entries'] as List)
+        .whereType<Map>()
+        .map((entry) => entry.cast<String, dynamic>());
+    final largeEntry = entries.firstWhere(
+      (entry) => entry['path'] == 'workspace/Cards/large.bin',
+    );
+
+    expect(archivedLargeFile.compression, CompressionType.none);
+    expect(archivedLargeFile.size, largeFileSize);
+    expect(largeEntry['size'], largeFileSize);
+    expect(largeEntry['sha256'], await _sha256File(largeFile));
   });
 
   test(
@@ -572,4 +654,9 @@ List<int> _deterministicBytes({
   }
   nextState?.call(state);
   return bytes;
+}
+
+Future<String> _sha256File(File file) async {
+  final digest = await sha256.bind(file.openRead()).first;
+  return digest.toString();
 }
