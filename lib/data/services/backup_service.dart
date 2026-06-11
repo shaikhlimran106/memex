@@ -27,9 +27,36 @@ const _safetyBackupPrefix = 'memex_safety';
 const _autoBackupInterval = Duration(hours: 24);
 const _autoBackupKeepRecent = 7;
 const _autoBackupMaxBytes = 2 * 1024 * 1024 * 1024; // 2 GB
+const _backupStoreWithoutCompressionThreshold = 16 * 1024 * 1024; // 16 MB
 const _backupManifestFileName = 'manifest.json';
 const _backupFormat = 'memex.backup';
 const _currentBackupSchemaVersion = 1;
+const _backupStoreWithoutCompressionExtensions = <String>{
+  '.7z',
+  '.aac',
+  '.avi',
+  '.bz2',
+  '.gif',
+  '.gz',
+  '.heic',
+  '.heif',
+  '.jpeg',
+  '.jpg',
+  '.m4a',
+  '.m4v',
+  '.mkv',
+  '.mov',
+  '.mp3',
+  '.mp4',
+  '.ogg',
+  '.opus',
+  '.pdf',
+  '.png',
+  '.rar',
+  '.webm',
+  '.webp',
+  '.zip',
+};
 
 /// Android Storage Access Framework directory selected for backups.
 class AndroidBackupDirectory {
@@ -1532,12 +1559,49 @@ Future<void> _addFileToBackupArchive(
 ) async {
   final stat = await file.stat();
   final digest = await _sha256FilePath(file.path);
-  await encoder.addFile(file, archivePath, ZipFileEncoder.gzip);
+  await _addFileStreamToBackupArchive(
+    encoder,
+    file,
+    archivePath,
+    stat,
+    storeWithoutCompression: _shouldStoreFileWithoutCompression(
+      file.path,
+      stat.size,
+    ),
+  );
   manifestEntries.add({
     'path': archivePath,
     'size': stat.size,
     'sha256': digest,
   });
+}
+
+Future<void> _addFileStreamToBackupArchive(
+  ZipFileEncoder encoder,
+  File file,
+  String archivePath,
+  FileStat stat, {
+  required bool storeWithoutCompression,
+}) async {
+  final fileStream = InputFileStream(file.path);
+  final archiveFile = ArchiveFile.stream(archivePath, fileStream)
+    ..lastModTime = stat.modified.millisecondsSinceEpoch ~/ 1000
+    ..mode = stat.mode;
+  if (storeWithoutCompression) {
+    archiveFile.compression = CompressionType.none;
+  }
+
+  try {
+    encoder.addArchiveFile(archiveFile);
+  } finally {
+    await fileStream.close();
+  }
+}
+
+bool _shouldStoreFileWithoutCompression(String filePath, int fileSize) {
+  if (fileSize >= _backupStoreWithoutCompressionThreshold) return true;
+  final extension = path.extension(filePath).toLowerCase();
+  return _backupStoreWithoutCompressionExtensions.contains(extension);
 }
 
 void _addBytesToBackupArchive(
