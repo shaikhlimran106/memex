@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -294,6 +295,87 @@ void main() {
     expect(await File(backupPath).exists(), isTrue);
   });
 
+  test('restore stages and applies workspace files from backup', () async {
+    final exportedDir = Directory(p.join(tempDir.path, 'ExportedBackups'));
+    final backupPath = await BackupService.createBackup(
+      outputDirectory: exportedDir.path,
+    );
+
+    final workspace = Directory(
+      FileSystemService.instance.getWorkspacePath('backup-service-user'),
+    );
+    final cardFile = File(p.join(workspace.path, 'Cards', 'card.md'));
+    await cardFile.writeAsString('local changes after backup');
+
+    try {
+      await BackupService.restoreBackup(backupPath);
+    } finally {
+      if (AppDatabase.isInitialized) {
+        await AppDatabase.instance.close();
+      }
+    }
+
+    expect(await cardFile.readAsString(), 'hello backup');
+  });
+
+  test(
+    'restore keeps the main isolate responsive while extracting a larger backup',
+    () async {
+      final workspace = Directory(
+        FileSystemService.instance.getWorkspacePath('backup-service-user'),
+      );
+      final largeFilesDir = Directory(p.join(workspace.path, 'Cards', 'Large'));
+      const largeFileCount = 32;
+      const largeFileSize = 768 * 1024;
+
+      for (var i = 0; i < largeFileCount; i += 1) {
+        await _writeDeterministicBinaryFile(
+          File(p.join(largeFilesDir.path, 'payload_$i.bin')),
+          sizeBytes: largeFileSize,
+          seed: i + 1,
+        );
+      }
+
+      final exportedDir = Directory(p.join(tempDir.path, 'ExportedBackups'));
+      final backupPath = await BackupService.createBackup(
+        outputDirectory: exportedDir.path,
+      );
+
+      final mutatedFile = File(p.join(largeFilesDir.path, 'payload_0.bin'));
+      await mutatedFile.writeAsString('local mutation after backup');
+
+      var mainIsolateTicks = 0;
+      final timer = Timer.periodic(const Duration(milliseconds: 10), (_) {
+        mainIsolateTicks += 1;
+      });
+      final stopwatch = Stopwatch()..start();
+      try {
+        await BackupService.restoreBackup(backupPath).timeout(
+          const Duration(seconds: 30),
+        );
+      } finally {
+        timer.cancel();
+        stopwatch.stop();
+        if (AppDatabase.isInitialized) {
+          await AppDatabase.instance.close();
+        }
+      }
+
+      expect(stopwatch.elapsed, lessThan(const Duration(seconds: 20)));
+      expect(
+        mainIsolateTicks,
+        greaterThan(5),
+        reason: 'Restore should yield to the main isolate during extraction.',
+      );
+      expect(await mutatedFile.length(), largeFileSize);
+      expect(
+        await mutatedFile.openRead(0, 64).expand((bytes) => bytes).toList(),
+        _deterministicBytes(length: 64, seed: 1),
+      );
+    },
+    timeout: const Timeout(Duration(seconds: 60)),
+  );
+
   group('inspectBackup', () {
     test('reads backup manifest metadata', () async {
       final file = await _writeBackup(
@@ -370,28 +452,28 @@ void main() {
 void _mockPathProviderChannel(String rootPath) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(
-        const MethodChannel('plugins.flutter.io/path_provider'),
-        (call) async {
-          switch (call.method) {
-            case 'getTemporaryDirectory':
-            case 'getApplicationDocumentsDirectory':
-            case 'getApplicationSupportDirectory':
-            case 'getExternalStorageDirectory':
-              return rootPath;
-            case 'getExternalStorageDirectories':
-              return <String>[rootPath];
-          }
-          return null;
-        },
-      );
+    const MethodChannel('plugins.flutter.io/path_provider'),
+    (call) async {
+      switch (call.method) {
+        case 'getTemporaryDirectory':
+        case 'getApplicationDocumentsDirectory':
+        case 'getApplicationSupportDirectory':
+        case 'getExternalStorageDirectory':
+          return rootPath;
+        case 'getExternalStorageDirectories':
+          return <String>[rootPath];
+      }
+      return null;
+    },
+  );
 }
 
 void _clearPathProviderChannelMock() {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(
-        const MethodChannel('plugins.flutter.io/path_provider'),
-        null,
-      );
+    const MethodChannel('plugins.flutter.io/path_provider'),
+    null,
+  );
 }
 
 void _mockBackupStorageChannel(
@@ -399,17 +481,17 @@ void _mockBackupStorageChannel(
 ) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(
-        const MethodChannel('com.memexlab.memex/backup_storage'),
-        handler,
-      );
+    const MethodChannel('com.memexlab.memex/backup_storage'),
+    handler,
+  );
 }
 
 void _clearBackupStorageChannelMock() {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(
-        const MethodChannel('com.memexlab.memex/backup_storage'),
-        null,
-      );
+    const MethodChannel('com.memexlab.memex/backup_storage'),
+    null,
+  );
 }
 
 class FakePathProviderPlatform extends PathProviderPlatform
@@ -451,4 +533,43 @@ Future<File> _writeBackup(
   final file = File('${tempDir.path}/$fileName');
   await file.writeAsBytes(ZipEncoder().encode(archive));
   return file;
+}
+
+Future<void> _writeDeterministicBinaryFile(
+  File file, {
+  required int sizeBytes,
+  required int seed,
+}) async {
+  await file.parent.create(recursive: true);
+  final sink = file.openWrite();
+  var remaining = sizeBytes;
+  var state = seed;
+
+  while (remaining > 0) {
+    final chunkLength = remaining < 64 * 1024 ? remaining : 64 * 1024;
+    final chunk = _deterministicBytes(
+      length: chunkLength,
+      seed: state,
+      nextState: (value) => state = value,
+    );
+    sink.add(chunk);
+    remaining -= chunkLength;
+  }
+
+  await sink.close();
+}
+
+List<int> _deterministicBytes({
+  required int length,
+  required int seed,
+  void Function(int value)? nextState,
+}) {
+  var state = seed;
+  final bytes = List<int>.filled(length, 0);
+  for (var i = 0; i < bytes.length; i += 1) {
+    state = (state * 1103515245 + 12345) & 0x7fffffff;
+    bytes[i] = state & 0xff;
+  }
+  nextState?.call(state);
+  return bytes;
 }

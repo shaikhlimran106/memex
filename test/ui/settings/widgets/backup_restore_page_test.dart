@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/data/services/backup_service.dart';
+import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/l10n/app_localizations.dart';
 import 'package:memex/ui/settings/widgets/backup_restore_page.dart';
 import 'package:memex/utils/user_storage.dart';
@@ -13,6 +14,8 @@ void main() {
     SharedPreferences.setMockInitialValues({'language': 'en'});
     await UserStorage.initL10n();
     await UserStorage.saveUser('backup-test-user');
+    EventBusService.instance.clearHandlers();
+    await EventBusService.instance.connect();
   });
 
   testWidgets('renders automatic backup settings and persists toggle', (
@@ -237,6 +240,39 @@ void main() {
     await _scrollUntilVisible(tester, find.text(snapshot.name));
 
     expect(estimateCalls, 1);
+  });
+
+  testWidgets('refreshes stored backup list when backup event is emitted', (
+    tester,
+  ) async {
+    final snapshots = <BackupSnapshot>[];
+    final snapshot = BackupSnapshot(
+      id: 'background-auto',
+      name: 'memex_auto_2026-05-15T12-00-00.memex',
+      createdAt: DateTime(2026, 5, 15, 12),
+      sizeBytes: 12,
+      filePath: '/tmp/memex_auto_2026-05-15T12-00-00.memex',
+    );
+
+    await _pumpBackupPage(
+      tester,
+      listStoredBackups: () async => List<BackupSnapshot>.of(snapshots),
+    );
+
+    expect(find.text(snapshot.name), findsNothing);
+
+    snapshots.add(snapshot);
+    EventBusService.instance.emitEvent(
+      BackupSnapshotsChangedMessage(reason: 'created', snapshotId: snapshot.id),
+    );
+
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pump();
+
+    await _scrollUntilVisible(tester, find.text(snapshot.name));
+    expect(find.text(snapshot.name), findsOneWidget);
   });
 
   testWidgets('shows Android backup location picker menu', (tester) async {

@@ -33,4 +33,36 @@ void main() {
     expect(message.userId, 'user-1');
     expect(message.characterId, 'mentor');
   });
+
+  test('parses backup snapshot change messages from event payloads', () {
+    final parsed = EventBusMessage.fromJson({
+      'type': 'backup_snapshots_changed',
+      'data': {
+        'reason': 'created',
+        'snapshot_id': 'memex_auto_2026.memex',
+      },
+    });
+
+    expect(parsed, isA<BackupSnapshotsChangedMessage>());
+    final message = parsed as BackupSnapshotsChangedMessage;
+    expect(message.type, EventBusMessageType.backupSnapshotsChanged);
+    expect(message.reason, 'created');
+    expect(message.snapshotId, 'memex_auto_2026.memex');
+  });
+
+  test('parses backup restored messages from event payloads', () {
+    final parsed = EventBusMessage.fromJson({
+      'type': 'backup_restored',
+      'data': {
+        'user_id': 'user-1',
+        'source_path': '/tmp/memex_backup.memex',
+      },
+    });
+
+    expect(parsed, isA<BackupRestoredMessage>());
+    final message = parsed as BackupRestoredMessage;
+    expect(message.type, EventBusMessageType.backupRestored);
+    expect(message.userId, 'user-1');
+    expect(message.sourcePath, '/tmp/memex_backup.memex');
+  });
 }
