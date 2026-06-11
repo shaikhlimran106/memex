@@ -1070,6 +1070,18 @@ abstract class AppLocalizations {
   /// **'New clipboard'**
   String get clipboardPreviewTitle;
 
+  /// No description provided for @clipboardPreviewImageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clipboard image'**
+  String get clipboardPreviewImageTitle;
+
+  /// No description provided for @clipboardPreviewImageDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Image ready to add'**
+  String get clipboardPreviewImageDescription;
+
   /// No description provided for @clipboardPreviewUnprocessed.
   ///
   /// In en, this message translates to:
@@ -1081,6 +1093,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Paste to input'**
   String get clipboardPreviewPasteToInput;
+
+  /// No description provided for @clipboardPreviewAddImageToInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Add image'**
+  String get clipboardPreviewAddImageToInput;
+
+  /// No description provided for @clipboardPreviewImageFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read clipboard image'**
+  String get clipboardPreviewImageFailed;
 
   /// No description provided for @tellAiWhatHappened.
   ///

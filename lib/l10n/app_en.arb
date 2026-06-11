@@ -238,8 +238,12 @@
   "discardDraftMessage": "The draft content will be cleared.",
   "discardDraftTooltip": "Discard draft",
   "clipboardPreviewTitle": "New clipboard",
+  "clipboardPreviewImageTitle": "Clipboard image",
+  "clipboardPreviewImageDescription": "Image ready to add",
   "clipboardPreviewUnprocessed": "Not pasted yet",
   "clipboardPreviewPasteToInput": "Paste to input",
+  "clipboardPreviewAddImageToInput": "Add image",
+  "clipboardPreviewImageFailed": "Couldn't read clipboard image",
   "tellAiWhatHappened": "Tell AI what happened...",
   "@recordingWithDuration": {
     "placeholders": {

@@ -529,10 +529,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get clipboardPreviewTitle => '新剪贴板';
 
   @override
+  String get clipboardPreviewImageTitle => '剪贴板图片';
+
+  @override
+  String get clipboardPreviewImageDescription => '可添加到输入框';
+
+  @override
   String get clipboardPreviewUnprocessed => '未处理';
 
   @override
   String get clipboardPreviewPasteToInput => '粘贴到输入框';
+
+  @override
+  String get clipboardPreviewAddImageToInput => '添加图片';
+
+  @override
+  String get clipboardPreviewImageFailed => '无法读取剪贴板图片';
 
   @override
   String get tellAiWhatHappened => '告诉AI发生了什么...';

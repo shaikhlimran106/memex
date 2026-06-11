@@ -238,8 +238,12 @@
   "discardDraftMessage": "草稿内容会被清空。",
   "discardDraftTooltip": "丢弃草稿",
   "clipboardPreviewTitle": "新剪贴板",
+  "clipboardPreviewImageTitle": "剪贴板图片",
+  "clipboardPreviewImageDescription": "可添加到输入框",
   "clipboardPreviewUnprocessed": "未处理",
   "clipboardPreviewPasteToInput": "粘贴到输入框",
+  "clipboardPreviewAddImageToInput": "添加图片",
+  "clipboardPreviewImageFailed": "无法读取剪贴板图片",
   "tellAiWhatHappened": "告诉AI发生了什么...",
   "@recordingWithDuration": {
     "placeholders": {

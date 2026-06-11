@@ -375,7 +375,7 @@ class _InputSheetState extends State<InputSheet>
     if (_isCheckingClipboard || !widget.isOpen) return;
 
     _isCheckingClipboard = true;
-    final candidate = await _clipboardPreviewService.fetchUnhandledText(
+    final candidate = await _clipboardPreviewService.fetchUnhandledCandidate(
       currentText: _textController.text,
     );
     _isCheckingClipboard = false;
@@ -384,10 +384,33 @@ class _InputSheetState extends State<InputSheet>
     setState(() => _clipboardCandidate = candidate);
   }
 
-  Future<void> _pasteClipboardCandidate() async {
-    final candidate = _clipboardCandidate;
-    if (candidate == null) return;
+  Future<void> _pasteClipboardCandidate(
+      ClipboardPreviewCandidate candidate) async {
+    if (candidate.isImage) {
+      final image = await _clipboardPreviewService.materializeImage(candidate);
+      if (!mounted) return;
+      if (image == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(UserStorage.l10n.clipboardPreviewImageFailed)),
+        );
+        return;
+      }
 
+      await _clipboardPreviewService.markHandled(candidate);
+      if (!mounted) return;
+      setState(() {
+        _selectedImages.add(image);
+        final fileName = candidate.fileName;
+        if (fileName != null && fileName.isNotEmpty) {
+          _originalFilenames[image.path] = fileName;
+        }
+        _clipboardCandidate = null;
+      });
+      return;
+    }
+
+    final candidateText = candidate.text;
+    if (candidateText == null || candidateText.isEmpty) return;
     final currentText = _textController.text;
     final selection = _textController.selection;
     final start = selection.isValid
@@ -401,9 +424,9 @@ class _InputSheetState extends State<InputSheet>
     final updatedText = currentText.replaceRange(
       normalizedStart,
       normalizedEnd,
-      candidate.text,
+      candidateText,
     );
-    final cursorOffset = normalizedStart + candidate.text.length;
+    final cursorOffset = normalizedStart + candidateText.length;
 
     _textController.value = TextEditingValue(
       text: updatedText,
@@ -417,10 +440,9 @@ class _InputSheetState extends State<InputSheet>
     _scrollTextToBottom();
   }
 
-  Future<void> _dismissClipboardCandidate() async {
-    final candidate = _clipboardCandidate;
-    if (candidate == null) return;
-
+  Future<void> _dismissClipboardCandidate(
+    ClipboardPreviewCandidate candidate,
+  ) async {
     await _clipboardPreviewService.markHandled(candidate);
     if (!mounted) return;
     setState(() => _clipboardCandidate = null);
@@ -1400,14 +1422,21 @@ class _InputSheetState extends State<InputSheet>
                       switchOutCurve: Curves.easeIn,
                       child: _clipboardCandidate == null
                           ? const SizedBox.shrink()
-                          : Padding(
-                              key: ValueKey(_clipboardCandidate!.hash),
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: ClipboardPreviewCard(
-                                candidate: _clipboardCandidate!,
-                                onPaste: _pasteClipboardCandidate,
-                                onDismiss: _dismissClipboardCandidate,
-                              ),
+                          : Builder(
+                              builder: (context) {
+                                final candidate = _clipboardCandidate!;
+                                return Padding(
+                                  key: ValueKey(candidate.hash),
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: ClipboardPreviewCard(
+                                    candidate: candidate,
+                                    onPaste: () =>
+                                        _pasteClipboardCandidate(candidate),
+                                    onDismiss: () =>
+                                        _dismissClipboardCandidate(candidate),
+                                  ),
+                                );
+                              },
                             ),
                     ),
                     Flexible(
