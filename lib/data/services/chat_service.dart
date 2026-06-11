@@ -10,6 +10,7 @@ import 'package:memex/agent/run_mode/agent_run_mode.dart';
 import 'package:memex/agent/pure_skill_host_agent/pure_skill_host_agent.dart';
 import 'package:memex/agent/super_agent/super_agent.dart';
 import 'package:memex/data/services/asset_safety_service.dart';
+import 'package:memex/data/services/chat_history_sanitizer.dart';
 import 'package:memex/data/services/chat_run_registry.dart';
 import 'package:memex/data/services/custom_agent_config_service.dart';
 import 'package:memex/data/services/llm_image_codec.dart';
@@ -237,6 +238,26 @@ class ChatService {
         }
       }
 
+      // Heal sessions poisoned by the legacy reminder injection (a fake
+      // "Understood, I will keep this context in mind." assistant turn per
+      // message), which made the loop detector misfire. New turns use the
+      // transient systemReminders channel instead (see below).
+      if (state.metadata['history_reminder_migrated_v1'] != true) {
+        try {
+          final stripped =
+              ChatHistorySanitizer.stripLegacyReminderTurns(state);
+          if (stripped > 0) {
+            _logger.info(
+              'Stripped $stripped legacy reminder turn message(s) '
+              'in session $finalSessionId',
+            );
+          }
+          state.metadata['history_reminder_migrated_v1'] = true;
+        } catch (e) {
+          _logger.warning('Legacy reminder strip failed: $e');
+        }
+      }
+
       controller = AgentController();
 
       if (customAgentCfg != null) {
@@ -386,70 +407,41 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
       _logger.warning('Failed to decorate chat with location context: $e');
     }
 
-    // Build combined system reminder content
+    // Inject per-turn context (scene, location, attachments, refs) through the
+    // transient systemReminders channel. The agent loop re-injects these into
+    // each request without persisting them into history, so they can never
+    // pollute loop detection the way the old fake "Understood" assistant turn
+    // did. Clear keys that don't apply this turn so stale (e.g. previous
+    // turn's attachment) context doesn't linger — systemReminders is persisted
+    // in agent state.
     final attachmentContext = _buildAttachmentContext(
       preparedImages,
       scene: scene,
     );
-    if (sceneContext.isNotEmpty ||
-        locationContextReminder != null ||
-        attachmentContext.isNotEmpty ||
-        (refs != null && refs.isNotEmpty)) {
-      final StringBuffer reminderContent = StringBuffer();
-      reminderContent.write('<system-reminder>\n');
-
-      // Add scene context if available
-      if (sceneContext.isNotEmpty) {
-        reminderContent.write(sceneContext);
-        reminderContent.write('\n');
+    final reminderState = agent.state;
+    void setOrClearReminder(String key, String? value) {
+      if (value == null || value.isEmpty) {
+        reminderState.systemReminders.remove(key);
+      } else {
+        reminderState.systemReminders[key] = value;
       }
-
-      if (locationContextReminder != null) {
-        if (sceneContext.isNotEmpty) {
-          reminderContent.write('\n');
-        }
-        reminderContent.write(locationContextReminder);
-        reminderContent.write('\n');
-      }
-
-      if (attachmentContext.isNotEmpty) {
-        if (sceneContext.isNotEmpty || locationContextReminder != null) {
-          reminderContent.write('\n');
-        }
-        reminderContent.write(attachmentContext);
-        reminderContent.write('\n');
-      }
-
-      // Add refs context if available
-      if (refs != null && refs.isNotEmpty) {
-        if (sceneContext.isNotEmpty ||
-            locationContextReminder != null ||
-            attachmentContext.isNotEmpty) {
-          reminderContent.write('\n');
-        }
-        final refsString = refs
-            .map(
-              (r) =>
-                  'Title: ${r['title']}\nType: ${r['type'] ?? 'unknown'}\nContent: ${r['content']}',
-            )
-            .join('\n\n');
-        reminderContent.write(
-          'The user has referenced the following content. Use this context to answer the user query:\n',
-        );
-        reminderContent.write(refsString);
-        reminderContent.write('\n');
-      }
-
-      reminderContent.write('</system-reminder>');
-
-      userMessages.addAll([
-        UserMessage.text(reminderContent.toString()),
-        ModelMessage(
-          model: "mocked",
-          textOutput: "Understood, I will keep this context in mind.",
-        ),
-      ]);
     }
+
+    setOrClearReminder(
+        'scene_context', sceneContext.isEmpty ? null : sceneContext);
+    setOrClearReminder('location_context', locationContextReminder);
+    setOrClearReminder('attachment_context',
+        attachmentContext.isEmpty ? null : attachmentContext);
+    setOrClearReminder(
+      'referenced_content',
+      (refs != null && refs.isNotEmpty)
+          ? 'The user has referenced the following content. Use this context '
+              'to answer the user query:\n${refs.map(
+                    (r) =>
+                        'Title: ${r['title']}\nType: ${r['type'] ?? 'unknown'}\nContent: ${r['content']}',
+                  ).join('\n\n')}'
+          : null,
+    );
 
     final userContentParts = <UserContentPart>[
       TextPart(buildCurrentTimeReminder(userMessageTime)),
