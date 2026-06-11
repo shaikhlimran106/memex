@@ -10,6 +10,7 @@ import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/input_draft_service.dart';
 import 'package:memex/data/services/local_asset_server.dart';
 import 'package:memex/l10n/app_localizations.dart';
+import 'package:memex/ui/core/widgets/local_image.dart';
 import 'package:memex/ui/main_screen/widgets/clipboard_preview_card.dart';
 import 'package:memex/ui/main_screen/widgets/input_sheet.dart';
 import 'package:memex/utils/user_storage.dart';
@@ -65,16 +66,24 @@ void main() {
     await UserStorage.initL10n();
 
     testDataRoot = await Directory.systemTemp.createTemp('memex_input_sheet_');
+    messenger.setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      (call) async {
+        if (call.method == 'getTemporaryDirectory') {
+          return testDataRoot.path;
+        }
+        return null;
+      },
+    );
     await FileSystemService.init(testDataRoot.path);
   });
 
   setUp(() async {
     clipboardText = null;
+    ClipboardPreviewService.debugUseBackgroundWorker = false;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_id', 'input-sheet-test');
-    await prefs.remove(
-      'clipboard_preview_handled_hashes_input-sheet-test',
-    );
+    await prefs.remove('clipboard_preview_handled_hashes_input-sheet-test');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform, (call) async {
       if (call.method == 'Clipboard.getData') {
@@ -82,15 +91,31 @@ void main() {
       }
       return null;
     });
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('com.memexlab.memex/clipboard_preview'),
+      (_) async => null,
+    );
     await InputDraftService.instance.clearActiveDraft();
   });
 
   tearDown(() {
+    ClipboardPreviewService.debugUseBackgroundWorker = true;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform, null);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('com.memexlab.memex/clipboard_preview'),
+      null,
+    );
   });
 
   tearDownAll(() async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      null,
+    );
     await LocalAssetServer.stopServer();
     if (await testDataRoot.exists()) {
       await testDataRoot.delete(recursive: true);
@@ -239,6 +264,52 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
 
     expect(find.byType(ClipboardPreviewCard), findsNothing);
+  });
+
+  testWidgets('clipboard image preview adds image without submitting text', (
+    tester,
+  ) async {
+    final clipboardImage = File('${testDataRoot.path}/clipboard_preview.png');
+    clipboardImage.writeAsBytesSync(_pngHeader(width: 12, height: 12));
+    clipboardText = clipboardImage.uri.toString();
+
+    await tester.pumpWidget(
+      buildHost(
+        initialData: InputData(text: ''),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(find.byType(TextField));
+    await pumpUntilFound(tester, find.byType(ClipboardPreviewCard));
+
+    expect(
+      find.text(UserStorage.l10n.clipboardPreviewImageTitle),
+      findsOneWidget,
+    );
+    expect(
+      find.text(UserStorage.l10n.clipboardPreviewAddImageToInput),
+      findsOneWidget,
+    );
+
+    final addImageButton = tester.widget<FilledButton>(
+      find.widgetWithText(
+        FilledButton,
+        UserStorage.l10n.clipboardPreviewAddImageToInput,
+      ),
+    );
+    addImageButton.onPressed!();
+    await tester.runAsync<void>(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    });
+    await tester.pump(const Duration(milliseconds: 250));
+    await pumpUntilGone(tester, find.byType(ClipboardPreviewCard));
+
+    expect(find.byType(ClipboardPreviewCard), findsNothing);
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      isEmpty,
+    );
+    expect(find.byType(LocalImage), findsOneWidget);
   });
 
   testWidgets(

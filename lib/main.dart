@@ -1505,7 +1505,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
 
     _isCheckingHomeClipboard = true;
-    final candidate = await _clipboardPreviewService.fetchUnhandledText();
+    final candidate = await _clipboardPreviewService.fetchUnhandledCandidate();
     _isCheckingHomeClipboard = false;
 
     if (!mounted || _isInputOpen) return;
@@ -1516,11 +1516,33 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final candidate = _homeClipboardCandidate;
     if (candidate == null) return;
 
+    if (candidate.isImage) {
+      final image = await _clipboardPreviewService.materializeImage(candidate);
+      if (image == null) {
+        ToastHelper.showInfoWithKey(
+          rootScaffoldMessengerKey,
+          UserStorage.l10n.clipboardPreviewImageFailed,
+        );
+        return;
+      }
+      await _clipboardPreviewService.markHandled(candidate);
+      if (!mounted) return;
+      setState(() {
+        _homeClipboardCandidate = null;
+        _sharedDraft = InputData(images: [image]);
+        _isInputOpen = true;
+      });
+      return;
+    }
+
+    final text = candidate.text;
+    if (text == null || text.isEmpty) return;
+
     await _clipboardPreviewService.markHandled(candidate);
     if (!mounted) return;
     setState(() {
       _homeClipboardCandidate = null;
-      _sharedDraft = InputData(text: candidate.text);
+      _sharedDraft = InputData(text: text);
       _isInputOpen = true;
     });
   }

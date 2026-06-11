@@ -545,10 +545,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clipboardPreviewTitle => 'New clipboard';
 
   @override
+  String get clipboardPreviewImageTitle => 'Clipboard image';
+
+  @override
+  String get clipboardPreviewImageDescription => 'Image ready to add';
+
+  @override
   String get clipboardPreviewUnprocessed => 'Not pasted yet';
 
   @override
   String get clipboardPreviewPasteToInput => 'Paste to input';
+
+  @override
+  String get clipboardPreviewAddImageToInput => 'Add image';
+
+  @override
+  String get clipboardPreviewImageFailed => 'Couldn\'t read clipboard image';
 
   @override
   String get tellAiWhatHappened => 'Tell AI what happened...';

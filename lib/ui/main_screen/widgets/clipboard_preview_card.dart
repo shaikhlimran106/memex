@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:memex/data/services/clipboard_preview_service.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
 import 'package:memex/utils/user_storage.dart';
@@ -20,6 +19,17 @@ class ClipboardPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isImage = candidate.isImage;
+    final title = isImage
+        ? UserStorage.l10n.clipboardPreviewImageTitle
+        : UserStorage.l10n.clipboardPreviewTitle;
+    final previewText = isImage
+        ? UserStorage.l10n.clipboardPreviewImageDescription
+        : candidate.previewText;
+    final buttonLabel = isImage
+        ? UserStorage.l10n.clipboardPreviewAddImageToInput
+        : UserStorage.l10n.clipboardPreviewPasteToInput;
+
     return Padding(
       padding: margin,
       child: Material(
@@ -55,8 +65,10 @@ class ClipboardPreviewCard extends StatelessWidget {
                       color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Icon(
-                      Icons.content_paste_rounded,
+                    child: Icon(
+                      isImage
+                          ? Icons.image_outlined
+                          : Icons.content_paste_rounded,
                       size: 16,
                       color: AppColors.primary,
                     ),
@@ -64,10 +76,10 @@ class ClipboardPreviewCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      UserStorage.l10n.clipboardPreviewTitle,
+                      title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
+                      style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary,
@@ -85,7 +97,7 @@ class ClipboardPreviewCard extends StatelessWidget {
                     ),
                     child: Text(
                       UserStorage.l10n.clipboardPreviewUnprocessed,
-                      style: GoogleFonts.inter(
+                      style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         color: AppColors.success,
@@ -96,10 +108,10 @@ class ClipboardPreviewCard extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                candidate.previewText,
+                previewText,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.inter(
+                style: const TextStyle(
                   fontSize: 13,
                   height: 1.45,
                   fontWeight: FontWeight.w500,
@@ -112,10 +124,13 @@ class ClipboardPreviewCard extends StatelessWidget {
                   Expanded(
                     child: FilledButton.icon(
                       onPressed: onPaste,
-                      icon: const Icon(Icons.keyboard_tab_rounded, size: 17),
-                      label: Text(
-                        UserStorage.l10n.clipboardPreviewPasteToInput,
+                      icon: Icon(
+                        isImage
+                            ? Icons.add_photo_alternate_outlined
+                            : Icons.keyboard_tab_rounded,
+                        size: 17,
                       ),
+                      label: Text(buttonLabel),
                       style: FilledButton.styleFrom(
                         backgroundColor: Colors.black,
                         foregroundColor: Colors.white,
@@ -123,7 +138,7 @@ class ClipboardPreviewCard extends StatelessWidget {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        textStyle: GoogleFonts.inter(
+                        textStyle: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                         ),
