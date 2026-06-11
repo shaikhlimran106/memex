@@ -228,10 +228,26 @@ Future<CardRenderResult> renderCard({
               .add(UiConfig(templateId: validTemplateId, data: processedData));
         }
       } else {
-        // Unknown template and no HTML file found -> Treat as native (will likely show error in UI)
+        // Unknown template and no HTML file found.
+        // For legacy_html we need to normalize embedded fs:// references in
+        // the html payload in addition to normal data field replacement.
         final processedData = await replaceFsInData(config.data, userId);
+
+        Map<String, dynamic> updatedData = processedData;
+        if (validTemplateId == 'legacy_html') {
+          final htmlContent = processedData['html'];
+          if (htmlContent is String) {
+            final replacedHtml =
+                await fileSystemService.replaceFsInHtml(htmlContent, userId);
+            updatedData = {
+              ...processedData,
+              'html': replacedHtml,
+            };
+          }
+        }
+
         processedConfigs
-            .add(UiConfig(templateId: validTemplateId, data: processedData));
+            .add(UiConfig(templateId: validTemplateId, data: updatedData));
       }
     }
   }
