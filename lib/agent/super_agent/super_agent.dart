@@ -18,6 +18,7 @@ import 'package:memex/agent/skills/timeline_diagnostics/timeline_diagnostics_ski
 import 'package:memex/agent/common_tools.dart';
 import 'package:memex/agent/state_util.dart';
 import 'package:memex/agent/super_agent/prompts.dart';
+import 'package:memex/agent/super_agent/pending_tool_image_buffer.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:logging/logging.dart';
 import 'package:memex/utils/logger.dart';
@@ -259,10 +260,31 @@ class SuperAgent {
         nextTools = const [];
       }
 
+      // Deliver any images a tool stashed for the model (e.g. the dynamic
+      // timeline UI render preview). They cannot ride in the tool result —
+      // OpenAI-compatible providers reject images there — so inject them as a
+      // UserMessage on this call only. requestMessages is a per-call copy of
+      // state.history, so this is never persisted into the agent state.
+      var nextRequestMessages = result.requestMessages;
+      final pendingImages =
+          PendingToolImageBuffer.instance.drain(agent.state.sessionId);
+      if (pendingImages.isNotEmpty) {
+        nextRequestMessages = [
+          ...nextRequestMessages,
+          UserMessage([
+            TextPart(
+              'Rendered preview(s) of the dynamic timeline card HTML you '
+              'generated. Inspect now and decide this turn:',
+            ),
+            ...pendingImages,
+          ]),
+        ];
+      }
+
       return SystemCallbackResult(
         systemMessage: nextSystemMessage,
         tools: nextTools,
-        requestMessages: result.requestMessages,
+        requestMessages: nextRequestMessages,
       );
     };
   }

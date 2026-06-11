@@ -770,83 +770,10 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
   }
 
   Future<_CloneToTestUserRequest?> _showCloneToTestUserDialog() async {
-    final controller = TextEditingController(text: 'test');
-    final validUserId = RegExp(r'^[A-Za-z0-9_-]+$');
-    var overwriteTarget = false;
-    var touched = false;
-
-    try {
-      return await showDialog<_CloneToTestUserRequest>(
-        context: context,
-        builder: (dialogContext) => StatefulBuilder(
-          builder: (dialogContext, setDialogState) {
-            final targetUserId = controller.text.trim();
-            final isValid = validUserId.hasMatch(targetUserId);
-
-            void submit() {
-              if (!isValid) {
-                setDialogState(() => touched = true);
-                return;
-              }
-              Navigator.of(dialogContext).pop(
-                _CloneToTestUserRequest(
-                  targetUserId: targetUserId,
-                  overwriteTarget: overwriteTarget,
-                ),
-              );
-            }
-
-            return AlertDialog(
-              title: Text(UserStorage.l10n.cloneToTestUser),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(UserStorage.l10n.confirmCloneToTestUserMessage),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: controller,
-                    autofocus: true,
-                    textInputAction: TextInputAction.done,
-                    decoration: InputDecoration(
-                      labelText: UserStorage.l10n.testUserIdLabel,
-                      helperText: UserStorage.l10n.testUserIdHelper,
-                      errorText: touched && !isValid
-                          ? UserStorage.l10n.testUserIdInvalid
-                          : null,
-                    ),
-                    onChanged: (_) => setDialogState(() => touched = true),
-                    onSubmitted: (_) => submit(),
-                  ),
-                  const SizedBox(height: 8),
-                  CheckboxListTile(
-                    value: overwriteTarget,
-                    contentPadding: EdgeInsets.zero,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    title: Text(UserStorage.l10n.overwriteExistingTestUser),
-                    onChanged: (value) {
-                      setDialogState(() => overwriteTarget = value ?? false);
-                    },
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: Text(UserStorage.l10n.cancel),
-                ),
-                TextButton(
-                  onPressed: isValid ? submit : null,
-                  child: Text(UserStorage.l10n.confirm),
-                ),
-              ],
-            );
-          },
-        ),
-      );
-    } finally {
-      controller.dispose();
-    }
+    return showDialog<_CloneToTestUserRequest>(
+      context: context,
+      builder: (dialogContext) => const _CloneToTestUserDialog(),
+    );
   }
 
   Future<void> _clearData() async {
@@ -1308,4 +1235,91 @@ class _CloneToTestUserRequest {
     required this.targetUserId,
     required this.overwriteTarget,
   });
+}
+
+class _CloneToTestUserDialog extends StatefulWidget {
+  const _CloneToTestUserDialog();
+
+  @override
+  State<_CloneToTestUserDialog> createState() => _CloneToTestUserDialogState();
+}
+
+class _CloneToTestUserDialogState extends State<_CloneToTestUserDialog> {
+  static final RegExp _validUserId = RegExp(r'^[A-Za-z0-9_-]+$');
+
+  final TextEditingController _controller = TextEditingController(text: 'test');
+  bool _overwriteTarget = false;
+  bool _touched = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final targetUserId = _controller.text.trim();
+    if (!_validUserId.hasMatch(targetUserId)) {
+      setState(() => _touched = true);
+      return;
+    }
+    Navigator.of(context).pop(
+      _CloneToTestUserRequest(
+        targetUserId: targetUserId,
+        overwriteTarget: _overwriteTarget,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final targetUserId = _controller.text.trim();
+    final isValid = _validUserId.hasMatch(targetUserId);
+
+    return AlertDialog(
+      title: Text(UserStorage.l10n.cloneToTestUser),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(UserStorage.l10n.confirmCloneToTestUserMessage),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              labelText: UserStorage.l10n.testUserIdLabel,
+              helperText: UserStorage.l10n.testUserIdHelper,
+              errorText: _touched && !isValid
+                  ? UserStorage.l10n.testUserIdInvalid
+                  : null,
+            ),
+            onChanged: (_) => setState(() => _touched = true),
+            onSubmitted: (_) => _submit(),
+          ),
+          const SizedBox(height: 8),
+          CheckboxListTile(
+            value: _overwriteTarget,
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            title: Text(UserStorage.l10n.overwriteExistingTestUser),
+            onChanged: (value) {
+              setState(() => _overwriteTarget = value ?? false);
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(UserStorage.l10n.cancel),
+        ),
+        TextButton(
+          onPressed: isValid ? _submit : null,
+          child: Text(UserStorage.l10n.confirm),
+        ),
+      ],
+    );
+  }
 }

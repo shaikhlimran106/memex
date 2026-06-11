@@ -1,12 +1,20 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io'; // DEBUG(render-preview): remove with debug block below
+import 'package:flutter/foundation.dart' // DEBUG(render-preview)
+    show kDebugMode;
+import 'package:path_provider/path_provider.dart' // DEBUG(render-preview)
+    show getTemporaryDirectory;
 
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:logging/logging.dart';
 import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
+import 'package:memex/agent/super_agent/pending_tool_image_buffer.dart';
 import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/data/services/webview_snapshot_service.dart';
 import 'package:memex/domain/models/card_model.dart';
+import 'package:memex/ui/core/widgets/html_webview_card.dart';
 import 'package:memex/agent/skills/dynamic_timeline_ui/design_pattern_library.dart';
 
 final _logger = Logger('DynamicTimelineUiSkill');
@@ -39,6 +47,7 @@ This is an MVP display pipeline:
 - The result is display-only for now. If the user asks for actual system actions, use the appropriate action/tool skill instead of faking controls in HTML.
 - Before generating HTML, call `recommend_dynamic_timeline_design_patterns` or `get_dynamic_timeline_design_pattern` unless the user explicitly provides a complete design direction.
 - Treat design patterns as reference material, not rigid templates. Adapt the HTML to the user content and constraints.
+- After generating HTML and BEFORE calling `create_dynamic_timeline_card` / `update_dynamic_timeline_card`, call `preview_dynamic_timeline_card_render` to render the HTML exactly as the Timeline WebView card will show it. The rendered image arrives as the next message and is provided ONLY ONCE this turn — inspect it in the same turn (layout, spacing, overflow, contrast, clipped/empty content) and decide right then whether to revise the HTML, re-preview, or create/update. Do not assume the image will still be visible on a later turn; if you need to look again, call `preview_dynamic_timeline_card_render` again. If the preview tool reports that rendering is unavailable, fall back to checking the HTML against the rules above.
 
 Use `create_dynamic_timeline_card` when there is no existing card id.
 Use `update_dynamic_timeline_card` when the user asks to revise a specific existing card.
@@ -116,6 +125,32 @@ Use `update_dynamic_timeline_card` when the user asks to revise a specific exist
         executable: () {
           return DynamicTimelineDesignPatternLibrary.catalogJson();
         },
+      ),
+      Tool(
+        name: 'preview_dynamic_timeline_card_render',
+        description:
+            'Render candidate HTML exactly as the Timeline WebView card will display it and return the result as an image for visual inspection. '
+            'Call this after generating HTML and before create_dynamic_timeline_card / update_dynamic_timeline_card so you can verify layout, spacing, overflow, and contrast.',
+        parameters: {
+          'type': 'object',
+          'properties': {
+            'html': {
+              'type': 'string',
+              'description':
+                  'Self-contained HTML/CSS to preview. Same content you would pass to create/update. Scripts, iframes, external resources, forms, and event handler attributes are not allowed.',
+            },
+            'width': {
+              'type': 'number',
+              'description':
+                  'Optional logical render width in dp. Defaults to 390 (the Timeline card width). Use the default unless the user needs a specific width.',
+            },
+          },
+          'required': ['html'],
+        },
+        executable: (String html, num? width) => _previewDynamicTimelineCard(
+          html: html,
+          width: width?.toDouble(),
+        ),
       ),
       Tool(
         name: 'create_dynamic_timeline_card',
@@ -267,6 +302,81 @@ Use `update_dynamic_timeline_card` when the user asks to revise a specific exist
         ),
       ),
     ];
+  }
+
+  static Future<AgentToolResult> _previewDynamicTimelineCard({
+    required String html,
+    double? width,
+  }) async {
+    // Apply the same safety validation as create/update so the preview matches
+    // what would actually be saved.
+    final cleanHtml = sanitizeHtmlForTimeline(html);
+    final renderWidth = (width == null || width <= 0) ? 390.0 : width;
+
+    // Wrap with the shared timeline document builder so the snapshot renders
+    // pixel-identically to the live Timeline card (no interactive script needed
+    // off-screen).
+    final document = HtmlWebViewCard.buildTimelineHtmlDocument(cleanHtml);
+
+    final bytes = await WebviewSnapshotService.instance.renderHtmlToImage(
+      html: document,
+      width: renderWidth,
+    );
+
+    if (bytes == null || bytes.isEmpty) {
+      return AgentToolResult(
+        content: TextPart(
+          'Render preview is unavailable on this platform or the snapshot failed. '
+          'Could not produce an image. Re-check the HTML against the skill rules '
+          '(self-contained, no scripts/iframes/external resources, single root '
+          'container, mobile-first) before creating the card.',
+        ),
+      );
+    }
+
+    final base64Png = base64Encode(bytes);
+
+    // Do NOT return the image inside the tool result: OpenAI-compatible
+    // providers reject images in a function-result message. Instead stash it in
+    // the per-session buffer; the SuperAgent systemCallback injects it as a
+    // UserMessage on the next LLM call (supported by every provider). The image
+    // is delivered exactly once — the model must inspect it this turn.
+    final sessionId =
+        AgentCallToolContext.current?.state.sessionId ?? '';
+    PendingToolImageBuffer.instance.add(
+      sessionId,
+      ImagePart(base64Png, 'image/png'),
+    );
+
+    // DEBUG(render-preview): dump the snapshot to disk so it can be eyeballed
+    // (the injected image is never persisted otherwise). Remove this whole
+    // block — and the `dart:io` / `kDebugMode` / `getTemporaryDirectory`
+    // imports flagged with DEBUG(render-preview) above — when done verifying.
+    if (kDebugMode) {
+      try {
+        final dir = await getTemporaryDirectory();
+        final path =
+            '${dir.path}/render_preview_${DateTime.now().millisecondsSinceEpoch}.png';
+        await File(path).writeAsBytes(bytes);
+        _logger.info(
+          'DEBUG render preview: ${bytes.length} bytes, ${renderWidth.toStringAsFixed(0)}dp wide, saved to $path',
+        );
+      } catch (e) {
+        _logger.warning('DEBUG render preview dump failed: $e');
+      }
+    }
+
+    return AgentToolResult(
+      content: TextPart(
+        'Rendered the candidate HTML at ${renderWidth.toStringAsFixed(0)}dp wide, '
+        'exactly as the Timeline WebView card will display it. The rendered image '
+        'is attached as the next message — inspect it now for layout, spacing, '
+        'overflow, contrast, and clipped/empty content. The image is provided '
+        'only once this turn, so decide within this turn whether to revise the '
+        'HTML, re-preview, or call create_dynamic_timeline_card / '
+        'update_dynamic_timeline_card.',
+      ),
+    );
   }
 
   static Future<AgentToolResult> _createDynamicTimelineCard({
