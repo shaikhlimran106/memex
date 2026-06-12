@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/data/services/agent_activity_service.dart';
 import 'package:memex/data/services/agent_background_status.dart';
+import 'package:memex/data/services/agent_run_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/l10n/app_localizations_zh.dart';
 
@@ -32,15 +33,25 @@ void main() {
       expect(status.state, AgentBackgroundRunState.active);
       expect(status.remainingTasks, 4);
       expect(status.title, 'Memex Agent');
-      expect(status.detail, 'Processing 4 queued tasks');
-      expect(status.summary, 'Processing 4 queued tasks');
+      expect(status.taskSummary, 'Running 1, Pending 2, Retry 1');
+      expect(status.statusText, 'Running 1, Pending 2, Retry 1');
+      expect(status.detail, 'Processing 4 queued task(s).');
+      expect(status.summary, 'Processing 4 queued task(s).');
       expect(
         status.toPlatformMap(isInBackground: true),
-        containsPair('summary', 'Processing 4 queued tasks'),
+        containsPair('summary', 'Processing 4 queued task(s).'),
       );
       expect(
         status.toPlatformMap(isInBackground: true),
         containsPair('remainingTasks', 4),
+      );
+      expect(
+        status.toPlatformMap(isInBackground: true),
+        containsPair('taskSummary', 'Running 1, Pending 2, Retry 1'),
+      );
+      expect(
+        status.toPlatformMap(isInBackground: true),
+        containsPair('statusText', 'Running 1, Pending 2, Retry 1'),
       );
       expect(
         status.toPlatformMap(isInBackground: true),
@@ -73,39 +84,44 @@ void main() {
       expect(status.summary, 'Will retry automatically');
     });
 
-    test('uses activity content as notification summary without title prefix',
-        () {
-      final status = AgentBackgroundStatus.fromActivity(
-        taskSnapshot: const TaskActivitySnapshot(
-          pending: 1,
-          processing: 1,
-          retrying: 0,
-        ),
-        latestMessage: AgentActivityMessageModel(
-          id: 4,
-          type: AgentActivityType.tool_call_response,
-          title: 'Tool called',
-          content: 'Updated the timeline card',
-          agentName: 'Timeline Agent',
-          agentId: 'timeline',
-          scene: 'timeline',
-          sceneId: 'card-123',
-          timestamp: DateTime(2026, 1, 1),
-        ),
-        now: DateTime(2026, 1, 1),
-      );
+    test(
+      'uses activity content as notification summary without title prefix',
+      () {
+        final status = AgentBackgroundStatus.fromActivity(
+          taskSnapshot: const TaskActivitySnapshot(
+            pending: 1,
+            processing: 1,
+            retrying: 0,
+          ),
+          latestMessage: AgentActivityMessageModel(
+            id: 4,
+            type: AgentActivityType.tool_call_response,
+            title: 'Tool called',
+            content: 'Updated the timeline card',
+            agentName: 'Timeline Agent',
+            agentId: 'timeline',
+            scene: 'timeline',
+            sceneId: 'card-123',
+            timestamp: DateTime(2026, 1, 1),
+          ),
+          now: DateTime(2026, 1, 1),
+        );
 
-      final platformMap = status.toPlatformMap(isInBackground: true);
+        final platformMap = status.toPlatformMap(isInBackground: true);
 
-      expect(status.title, 'Memex Agent');
-      expect(status.stage, 'Tool called');
-      expect(status.detail, 'Updated the timeline card');
-      expect(status.summary, 'Updated the timeline card');
-      expect(status.summary, isNot(contains('Tool called')));
-      expect(platformMap, containsPair('summary', 'Updated the timeline card'));
-      expect(platformMap, containsPair('scene', 'timeline'));
-      expect(platformMap, containsPair('sceneId', 'card-123'));
-    });
+        expect(status.title, 'Memex Agent');
+        expect(status.stage, 'Tool called');
+        expect(status.detail, 'Updated the timeline card');
+        expect(status.summary, 'Updated the timeline card');
+        expect(status.summary, isNot(contains('Tool called')));
+        expect(
+          platformMap,
+          containsPair('summary', 'Updated the timeline card'),
+        );
+        expect(platformMap, containsPair('scene', 'timeline'));
+        expect(platformMap, containsPair('sceneId', 'card-123'));
+      },
+    );
 
     test('falls back to activity title when content is blank', () {
       final status = AgentBackgroundStatus.fromActivity(
@@ -127,7 +143,7 @@ void main() {
       );
 
       expect(status.stage, 'Reading workspace');
-      expect(status.detail, 'Processing 1 queued task');
+      expect(status.detail, 'Processing 1 queued task(s).');
       expect(status.summary, 'Reading workspace');
     });
 
@@ -217,8 +233,8 @@ void main() {
       final status = AgentBackgroundStatus.fromActivity(
         taskSnapshot: const TaskActivitySnapshot(
           pending: 2,
-          processing: 0,
-          retrying: 0,
+          processing: 1,
+          retrying: 1,
         ),
         labels: AgentBackgroundStatusLabels.fromL10n(AppLocalizationsZh()),
         now: DateTime(2026, 1, 1),
@@ -226,8 +242,78 @@ void main() {
 
       expect(status.title, 'Memex Agent');
       expect(status.stage, '处理中');
-      expect(status.detail, '正在处理 2 个后台任务');
-      expect(status.summary, '正在处理 2 个后台任务');
+      expect(status.detail, '正在处理 4 个后台任务。');
+      expect(status.summary, '正在处理 4 个后台任务。');
+      expect(status.taskSummary, '执行中 1，排队中 2，重试中 1');
+      expect(status.statusText, '执行中 1，排队中 2，重试中 1');
+      expect(
+        status.toPlatformMap(),
+        containsPair('statusText', '执行中 1，排队中 2，重试中 1'),
+      );
+    });
+
+    test('prefers durable run stage and progress over generic task detail', () {
+      final status = AgentBackgroundStatus.fromActivity(
+        taskSnapshot: const TaskActivitySnapshot(
+          pending: 1,
+          processing: 1,
+          retrying: 0,
+        ),
+        runSnapshot: AgentRunSnapshot(
+          id: 'run-1',
+          userId: 'user-a',
+          factId: 'fact-1',
+          state: AgentRunState.running,
+          stage: 'Generating card',
+          message: 'Turning the record into a timeline card.',
+          completedUnits: 30,
+          totalUnits: 100,
+          remainingTasks: 2,
+          updatedAt: DateTime(2026, 1, 1),
+        ),
+        now: DateTime(2026, 1, 1),
+      );
+
+      expect(status.state, AgentBackgroundRunState.active);
+      expect(status.stage, 'Generating card');
+      expect(status.detail, 'Turning the record into a timeline card.');
+      expect(status.progressCompleted, 30);
+      expect(status.progressTotal, 100);
+      expect(status.runId, 'run-1');
+      expect(status.factId, 'fact-1');
+      expect(status.taskSummary, 'Running 1, Pending 1, Retry 0');
+      expect(status.toPlatformMap(), containsPair('state', 'active'));
+      expect(status.toPlatformMap(), containsPair('progressCompleted', 30));
+    });
+
+    test('maps paused durable run to a visible paused platform status', () {
+      final status = AgentBackgroundStatus.fromActivity(
+        taskSnapshot: const TaskActivitySnapshot.empty(),
+        runSnapshot: AgentRunSnapshot(
+          id: 'run-2',
+          userId: 'user-a',
+          factId: 'fact-2',
+          state: AgentRunState.pausedBySystem,
+          stage: 'Paused',
+          message: 'Background time expired. Memex will continue later.',
+          completedUnits: 65,
+          totalUnits: 100,
+          remainingTasks: 3,
+          updatedAt: DateTime(2026, 1, 1),
+        ),
+        now: DateTime(2026, 1, 1),
+      );
+
+      expect(status.state, AgentBackgroundRunState.paused);
+      expect(status.shouldShowSystemSurface, isTrue);
+      expect(status.remainingTasks, 3);
+      expect(status.taskSummary, 'Running 0, Pending 3, Retry 0');
+      expect(status.detail, contains('continue later'));
+      expect(status.toPlatformMap(), containsPair('state', 'paused'));
+      expect(
+        status.toPlatformMap(),
+        containsPair('taskSummary', 'Running 0, Pending 3, Retry 0'),
+      );
     });
   });
 }

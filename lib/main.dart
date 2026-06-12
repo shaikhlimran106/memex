@@ -322,9 +322,7 @@ class _MemexAppState extends State<MemexApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
       unawaited(
-        LocalTaskExecutor.instance.recordGracefulShutdown(
-          reason: 'app_lifecycle_paused',
-        ),
+        _recordGracefulShutdownIfTaskQueueIdle('app_lifecycle_paused'),
       );
       unawaited(AgentBackgroundTaskService.instance.onAppPaused());
       _lastPausedTime = DateTime.now();
@@ -336,11 +334,16 @@ class _MemexAppState extends State<MemexApp> with WidgetsBindingObserver {
       _checkGracePeriod();
     } else if (state == AppLifecycleState.detached) {
       unawaited(
-        LocalTaskExecutor.instance.recordGracefulShutdown(
-          reason: 'app_lifecycle_detached',
-        ),
+        _recordGracefulShutdownIfTaskQueueIdle('app_lifecycle_detached'),
       );
     }
+  }
+
+  Future<void> _recordGracefulShutdownIfTaskQueueIdle(String reason) async {
+    if (!AppDatabase.isInitialized) return;
+    final snapshot = await LocalTaskExecutor.instance.getTaskActivitySnapshot();
+    if (snapshot.hasActiveTasks) return;
+    await LocalTaskExecutor.instance.recordGracefulShutdown(reason: reason);
   }
 
   Future<void> _checkLockSettingsBeforeLocking() async {

@@ -8,6 +8,7 @@ import 'package:memex/data/services/agent_activity_service.dart';
 import 'package:memex/data/services/agent_background_platform.dart';
 import 'package:memex/data/services/agent_background_status.dart';
 import 'package:memex/data/services/agent_queue_drain_scheduler.dart';
+import 'package:memex/data/services/agent_run_service.dart';
 import 'package:memex/data/services/file_logger_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/utils/logger.dart';
@@ -87,6 +88,12 @@ class AgentQueueBackgroundWorker {
       );
 
       if (result.snapshot.hasActiveTasks) {
+        await AgentRunService.instance.markActiveRunsPausedBySystem(
+          userId: userId,
+          message: result.timedOut
+              ? UserStorage.l10n.agentBackgroundPausedDetail
+              : UserStorage.l10n.agentBackgroundQueuedDetail,
+        );
         await queueScheduler.schedule(
           initialDelay: result.nextRunnableDelay ?? _defaultRetryDelay,
           expedited: false,
@@ -135,9 +142,11 @@ class AgentQueueBackgroundWorker {
     }
 
     try {
+      final runSnapshot = await AgentRunService.instance.getLatestVisibleRun();
       await platform.updateStatus(
         AgentBackgroundStatus.fromActivity(
           taskSnapshot: snapshot,
+          runSnapshot: runSnapshot,
           latestMessage: latestMessage,
           labels: labels,
         ),
@@ -248,8 +257,7 @@ class _LiveBackgroundSurfacePublisher {
     _subscription = activityService.messageStream.listen(
       (message) {
         latestMessage = message;
-        _publishChain =
-            _publishChain.then((_) => _publish(message)).catchError((
+        _publishChain = _publishChain.then((_) => _publish(message)).catchError((
           Object e,
           StackTrace stackTrace,
         ) {
@@ -279,9 +287,11 @@ class _LiveBackgroundSurfacePublisher {
 
   Future<void> _publish(AgentActivityMessageModel message) async {
     final snapshot = await executor.getTaskActivitySnapshot();
+    final runSnapshot = await AgentRunService.instance.getLatestVisibleRun();
     final status = AgentBackgroundStatus.fromActivity(
       taskSnapshot: snapshot,
       latestMessage: message,
+      runSnapshot: runSnapshot,
       labels: labels,
     );
     if (!status.shouldShowSystemSurface) return;

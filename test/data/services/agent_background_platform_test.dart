@@ -21,9 +21,9 @@ void main() {
     final calls = <MethodCall>[];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      calls.add(call);
-      return null;
-    });
+          calls.add(call);
+          return null;
+        });
     final platform = MethodChannelAgentBackgroundPlatform(channel: channel);
 
     await platform.updateStatus(
@@ -63,9 +63,9 @@ void main() {
     final calls = <MethodCall>[];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      calls.add(call);
-      return null;
-    });
+          calls.add(call);
+          return null;
+        });
     final platform = MethodChannelAgentBackgroundPlatform(channel: channel);
 
     await platform.finishStatus(
@@ -94,24 +94,26 @@ void main() {
     expect(payload['isInBackground'], isTrue);
   });
 
-  test('emits action event when Android asks Flutter to open agent activity',
-      () async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    final platform = MethodChannelAgentBackgroundPlatform(channel: channel);
-    final events = <String>[];
-    final subscription = platform.actionStream.listen(events.add);
+  test(
+    'emits action event when Android asks Flutter to open agent activity',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final platform = MethodChannelAgentBackgroundPlatform(channel: channel);
+      final events = <String>[];
+      final subscription = platform.actionStream.listen(events.add);
 
-    await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .handlePlatformMessage(
-      channelName,
-      const StandardMethodCodec().encodeMethodCall(
-        const MethodCall('openAgentActivity'),
-      ),
-      (_) {},
-    );
-    await Future<void>.delayed(Duration.zero);
+      await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .handlePlatformMessage(
+            channelName,
+            const StandardMethodCodec().encodeMethodCall(
+              const MethodCall('openAgentActivity'),
+            ),
+            (_) {},
+          );
+      await Future<void>.delayed(Duration.zero);
 
-    expect(events, ['agent_activity']);
-    await subscription.cancel();
-  });
+      expect(events, ['agent_activity']);
+      await subscription.cancel();
+    },
+  );
 }

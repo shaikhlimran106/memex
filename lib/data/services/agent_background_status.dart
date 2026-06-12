@@ -1,8 +1,9 @@
 import 'package:memex/data/services/agent_activity_service.dart';
+import 'package:memex/data/services/agent_run_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/l10n/app_localizations.dart';
 
-enum AgentBackgroundRunState { idle, active, completed, failed }
+enum AgentBackgroundRunState { idle, active, paused, completed, failed }
 
 class AgentBackgroundStatus {
   const AgentBackgroundStatus({
@@ -16,6 +17,12 @@ class AgentBackgroundStatus {
     required this.summary,
     required this.agentName,
     required this.updatedAt,
+    this.taskSummary = '',
+    this.statusText = '',
+    this.progressCompleted = 0,
+    this.progressTotal = 0,
+    this.runId,
+    this.factId,
     this.scene,
     this.sceneId,
   });
@@ -23,9 +30,20 @@ class AgentBackgroundStatus {
   factory AgentBackgroundStatus.fromActivity({
     required TaskActivitySnapshot taskSnapshot,
     AgentActivityMessageModel? latestMessage,
+    AgentRunSnapshot? runSnapshot,
     DateTime? now,
     AgentBackgroundStatusLabels labels = const AgentBackgroundStatusLabels(),
   }) {
+    if (runSnapshot != null) {
+      return _fromRunSnapshot(
+        runSnapshot: runSnapshot,
+        taskSnapshot: taskSnapshot,
+        latestMessage: latestMessage,
+        now: now,
+        labels: labels,
+      );
+    }
+
     final messageType = latestMessage?.type;
     final hasTasks = taskSnapshot.hasActiveTasks;
     final state = switch (messageType) {
@@ -36,24 +54,14 @@ class AgentBackgroundStatus {
       _ => AgentBackgroundRunState.idle,
     };
 
-    final fallbackStage = switch (state) {
-      AgentBackgroundRunState.failed => labels.needsAttention,
-      AgentBackgroundRunState.completed => labels.completed,
-      AgentBackgroundRunState.active => labels.processing,
-      AgentBackgroundRunState.idle => labels.idle,
-    };
-
-    final title = switch (state) {
-      AgentBackgroundRunState.failed => labels.needsAttentionTitle,
-      AgentBackgroundRunState.completed => labels.title,
-      AgentBackgroundRunState.active => labels.title,
-      AgentBackgroundRunState.idle => labels.title,
-    };
-
+    final fallbackStage = _stageForState(state, labels);
+    final title = _titleForState(state, labels);
     final stage =
-        _firstNonBlank([latestMessage?.title, latestMessage?.agentName]) ??
-            fallbackStage;
-
+        _localizeKnownStatusText(
+          _firstNonBlank([latestMessage?.title, latestMessage?.agentName]),
+          labels,
+        ) ??
+        fallbackStage;
     final detail = _detailFor(
       taskSnapshot: taskSnapshot,
       latestMessage: latestMessage,
@@ -67,6 +75,12 @@ class AgentBackgroundStatus {
       detail: detail,
       labels: labels,
     );
+    final taskSummary = formatAgentTaskSummary(
+      pending: taskSnapshot.pending,
+      processing: taskSnapshot.processing,
+      retrying: taskSnapshot.retrying,
+      labels: labels,
+    );
 
     return AgentBackgroundStatus(
       state: state,
@@ -77,6 +91,13 @@ class AgentBackgroundStatus {
       stage: stage,
       detail: detail,
       summary: summary,
+      taskSummary: taskSummary,
+      statusText: _statusTextFor(
+        state: state,
+        remainingTasks: taskSnapshot.total,
+        taskSummary: taskSummary,
+        labels: labels,
+      ),
       agentName: latestMessage?.agentName ?? '',
       scene: latestMessage?.scene,
       sceneId: latestMessage?.sceneId,
@@ -92,10 +113,16 @@ class AgentBackgroundStatus {
   final String stage;
   final String detail;
   final String summary;
+  final String taskSummary;
+  final String statusText;
   final String agentName;
   final String? scene;
   final String? sceneId;
   final DateTime updatedAt;
+  final int progressCompleted;
+  final int progressTotal;
+  final String? runId;
+  final String? factId;
 
   int get remainingTasks => pending + processing + retrying;
 
@@ -103,6 +130,7 @@ class AgentBackgroundStatus {
 
   bool get shouldShowSystemSurface =>
       state == AgentBackgroundRunState.active ||
+      state == AgentBackgroundRunState.paused ||
       state == AgentBackgroundRunState.failed;
 
   Map<String, dynamic> toPlatformMap({bool isInBackground = false}) {
@@ -112,6 +140,8 @@ class AgentBackgroundStatus {
       'processing': processing,
       'retrying': retrying,
       'remainingTasks': remainingTasks,
+      'taskSummary': taskSummary,
+      'statusText': statusText,
       'title': title,
       'stage': stage,
       'detail': detail,
@@ -119,6 +149,10 @@ class AgentBackgroundStatus {
       'agentName': agentName,
       'scene': scene,
       'sceneId': sceneId,
+      'runId': runId,
+      'factId': factId,
+      'progressCompleted': progressCompleted,
+      'progressTotal': progressTotal,
       'updatedAtMs': updatedAt.millisecondsSinceEpoch,
       'isInBackground': isInBackground,
     };
@@ -135,69 +169,215 @@ class AgentBackgroundStatus {
         other.stage == stage &&
         other.detail == detail &&
         other.summary == summary &&
+        other.taskSummary == taskSummary &&
+        other.statusText == statusText &&
         other.agentName == agentName &&
         other.scene == scene &&
-        other.sceneId == sceneId;
+        other.sceneId == sceneId &&
+        other.progressCompleted == progressCompleted &&
+        other.progressTotal == progressTotal &&
+        other.runId == runId &&
+        other.factId == factId;
   }
 
   @override
-  int get hashCode => Object.hash(
-        state,
-        pending,
-        processing,
-        retrying,
-        title,
-        stage,
-        detail,
-        summary,
-        agentName,
-        scene,
-        sceneId,
-      );
+  int get hashCode => Object.hashAll([
+    state,
+    pending,
+    processing,
+    retrying,
+    title,
+    stage,
+    detail,
+    summary,
+    taskSummary,
+    statusText,
+    agentName,
+    scene,
+    sceneId,
+    progressCompleted,
+    progressTotal,
+    runId,
+    factId,
+  ]);
 }
 
 class AgentBackgroundStatusLabels {
   const AgentBackgroundStatusLabels({
     this.title = 'Memex Agent',
+    this.pausedTitle = 'Memex Agent paused',
     this.needsAttentionTitle = 'Memex Agent needs attention',
-    this.processing = 'Processing',
-    this.needsAttention = 'Needs attention',
-    this.completed = 'Completed',
-    this.idle = 'Idle',
-    this.processingStarting = 'Processing is starting.',
-    this.processingStoppedWithError = 'Processing stopped with an error.',
-    this.allBackgroundTasksFinished = 'All background tasks finished.',
-    this.noBackgroundTasks = 'No background tasks.',
-    this.processingQueuedTasks = _defaultProcessingQueuedTasks,
+    this.stageIdle = 'Idle',
+    this.stageProcessing = 'Processing',
+    this.stageQueued = 'Queued',
+    this.stageRetrying = 'Waiting to retry',
+    this.stagePaused = 'Paused',
+    this.stageCompleted = 'Completed',
+    this.stageNeedsAttention = 'Needs attention',
+    this.stageAnalyzingMedia = 'Analyzing media',
+    this.stageGeneratingCard = 'Generating card',
+    this.stageUpdatingKnowledge = 'Updating knowledge',
+    this.stagePreparingComment = 'Preparing comment',
+    this.stageRoutingFollowUps = 'Routing follow-ups',
+    this.taskSummary = _defaultTaskSummary,
+    this.taskDetail = _defaultTaskDetail,
+    this.noTasks = 'No background tasks.',
+    this.starting = 'Processing is starting.',
+    this.completedDetail = 'All background tasks finished.',
+    this.failedDetail = 'Processing stopped with an error.',
+    this.pausedDetail = 'Processing is paused and will continue later.',
+    this.queuedDetail = 'Waiting for the next processing step.',
+    this.retryingDetail = 'The current step will retry automatically.',
+    this.analyzeMediaDetail = 'Reading attachments and local context.',
+    this.generatingCardDetail = 'Turning the record into a timeline card.',
+    this.updatingKnowledgeDetail = 'Updating local knowledge and memory.',
+    this.preparingCommentDetail = 'Preparing an assistant follow-up.',
+    this.routingFollowUpsDetail = 'Checking follow-up actions for this card.',
+    this.pausedStatus = _defaultPausedStatus,
+    this.needsAttentionStatus = _defaultNeedsAttentionStatus,
   });
 
   factory AgentBackgroundStatusLabels.fromL10n(AppLocalizations l10n) {
     return AgentBackgroundStatusLabels(
       title: l10n.agentBackgroundTitle,
+      pausedTitle: l10n.agentBackgroundPausedTitle,
       needsAttentionTitle: l10n.agentBackgroundNeedsAttentionTitle,
-      processing: l10n.agentBackgroundProcessing,
-      needsAttention: l10n.agentBackgroundNeedsAttention,
-      completed: l10n.agentBackgroundCompleted,
-      idle: l10n.agentBackgroundIdle,
-      processingStarting: l10n.agentBackgroundProcessingStarting,
-      processingStoppedWithError: l10n.agentBackgroundStoppedWithError,
-      allBackgroundTasksFinished: l10n.agentBackgroundAllTasksFinished,
-      noBackgroundTasks: l10n.agentBackgroundNoTasks,
-      processingQueuedTasks: l10n.agentBackgroundQueuedTasks,
+      stageIdle: l10n.agentBackgroundStageIdle,
+      stageProcessing: l10n.agentBackgroundStageProcessing,
+      stageQueued: l10n.agentBackgroundStageQueued,
+      stageRetrying: l10n.agentBackgroundStageRetrying,
+      stagePaused: l10n.agentBackgroundStagePaused,
+      stageCompleted: l10n.agentBackgroundStageCompleted,
+      stageNeedsAttention: l10n.agentBackgroundStageNeedsAttention,
+      stageAnalyzingMedia: l10n.agentBackgroundStageAnalyzingMedia,
+      stageGeneratingCard: l10n.agentBackgroundStageGeneratingCard,
+      stageUpdatingKnowledge: l10n.agentBackgroundStageUpdatingKnowledge,
+      stagePreparingComment: l10n.agentBackgroundStagePreparingComment,
+      stageRoutingFollowUps: l10n.agentBackgroundStageRoutingFollowUps,
+      taskSummary: l10n.agentBackgroundTaskSummary,
+      taskDetail: l10n.agentBackgroundTaskDetail,
+      noTasks: l10n.agentBackgroundNoTasks,
+      starting: l10n.agentBackgroundStarting,
+      completedDetail: l10n.agentBackgroundCompletedDetail,
+      failedDetail: l10n.agentBackgroundFailedDetail,
+      pausedDetail: l10n.agentBackgroundPausedDetail,
+      queuedDetail: l10n.agentBackgroundQueuedDetail,
+      retryingDetail: l10n.agentBackgroundRetryingDetail,
+      analyzeMediaDetail: l10n.agentBackgroundAnalyzeMediaDetail,
+      generatingCardDetail: l10n.agentBackgroundGeneratingCardDetail,
+      updatingKnowledgeDetail: l10n.agentBackgroundUpdatingKnowledgeDetail,
+      preparingCommentDetail: l10n.agentBackgroundPreparingCommentDetail,
+      routingFollowUpsDetail: l10n.agentBackgroundRoutingFollowUpsDetail,
+      pausedStatus: l10n.agentBackgroundPausedStatus,
+      needsAttentionStatus: l10n.agentBackgroundNeedsAttentionStatus,
     );
   }
 
   final String title;
+  final String pausedTitle;
   final String needsAttentionTitle;
-  final String processing;
-  final String needsAttention;
-  final String completed;
-  final String idle;
-  final String processingStarting;
-  final String processingStoppedWithError;
-  final String allBackgroundTasksFinished;
-  final String noBackgroundTasks;
-  final String Function(num count) processingQueuedTasks;
+  final String stageIdle;
+  final String stageProcessing;
+  final String stageQueued;
+  final String stageRetrying;
+  final String stagePaused;
+  final String stageCompleted;
+  final String stageNeedsAttention;
+  final String stageAnalyzingMedia;
+  final String stageGeneratingCard;
+  final String stageUpdatingKnowledge;
+  final String stagePreparingComment;
+  final String stageRoutingFollowUps;
+  final String Function(Object running, Object pending, Object retrying)
+  taskSummary;
+  final String Function(Object count) taskDetail;
+  final String noTasks;
+  final String starting;
+  final String completedDetail;
+  final String failedDetail;
+  final String pausedDetail;
+  final String queuedDetail;
+  final String retryingDetail;
+  final String analyzeMediaDetail;
+  final String generatingCardDetail;
+  final String updatingKnowledgeDetail;
+  final String preparingCommentDetail;
+  final String routingFollowUpsDetail;
+  final String Function(Object summary) pausedStatus;
+  final String Function(Object summary) needsAttentionStatus;
+}
+
+AgentBackgroundStatus _fromRunSnapshot({
+  required AgentRunSnapshot runSnapshot,
+  required TaskActivitySnapshot taskSnapshot,
+  required AgentActivityMessageModel? latestMessage,
+  required AgentBackgroundStatusLabels labels,
+  DateTime? now,
+}) {
+  final state = switch (runSnapshot.state) {
+    AgentRunState.queued ||
+    AgentRunState.running => AgentBackgroundRunState.active,
+    AgentRunState.pausedBySystem => AgentBackgroundRunState.paused,
+    AgentRunState.completed => AgentBackgroundRunState.completed,
+    AgentRunState.failed => AgentBackgroundRunState.failed,
+  };
+
+  final fallbackDetail = _detailFor(
+    taskSnapshot: taskSnapshot,
+    latestMessage: latestMessage,
+    state: state,
+    labels: labels,
+  );
+  final pending = taskSnapshot.total == 0
+      ? runSnapshot.remainingTasks
+      : taskSnapshot.pending;
+  final taskSummary = formatAgentTaskSummary(
+    pending: pending,
+    processing: taskSnapshot.processing,
+    retrying: taskSnapshot.retrying,
+    labels: labels,
+  );
+  final stage =
+      _localizeKnownStatusText(runSnapshot.stage, labels) ?? runSnapshot.stage;
+  final detail =
+      _trimToSingleLine(
+        _localizeKnownStatusText(runSnapshot.message, labels) ??
+            runSnapshot.message,
+      ) ??
+      fallbackDetail;
+  final summary = _summaryFor(
+    taskSnapshot: taskSnapshot,
+    latestMessage: latestMessage,
+    fallbackStage: _stageForState(state, labels),
+    detail: detail,
+    labels: labels,
+  );
+
+  return AgentBackgroundStatus(
+    state: state,
+    pending: pending,
+    processing: taskSnapshot.processing,
+    retrying: taskSnapshot.retrying,
+    title: _titleForState(state, labels),
+    stage: stage,
+    detail: detail,
+    summary: summary,
+    taskSummary: taskSummary,
+    statusText: _statusTextFor(
+      state: state,
+      remainingTasks: pending + taskSnapshot.processing + taskSnapshot.retrying,
+      taskSummary: taskSummary,
+      labels: labels,
+    ),
+    agentName: latestMessage?.agentName ?? '',
+    scene: latestMessage?.scene,
+    sceneId: latestMessage?.sceneId ?? runSnapshot.factId,
+    updatedAt: now ?? runSnapshot.updatedAt,
+    progressCompleted: runSnapshot.completedUnits,
+    progressTotal: runSnapshot.totalUnits,
+    runId: runSnapshot.id,
+    factId: runSnapshot.factId,
+  );
 }
 
 String _detailFor({
@@ -210,14 +390,15 @@ String _detailFor({
   if (messageContent != null) return messageContent;
 
   if (taskSnapshot.hasActiveTasks) {
-    return labels.processingQueuedTasks(taskSnapshot.total);
+    return labels.taskDetail(taskSnapshot.total);
   }
 
   return switch (state) {
-    AgentBackgroundRunState.failed => labels.processingStoppedWithError,
-    AgentBackgroundRunState.completed => labels.allBackgroundTasksFinished,
-    AgentBackgroundRunState.active => labels.processingStarting,
-    AgentBackgroundRunState.idle => labels.noBackgroundTasks,
+    AgentBackgroundRunState.failed => labels.failedDetail,
+    AgentBackgroundRunState.completed => labels.completedDetail,
+    AgentBackgroundRunState.paused => labels.pausedDetail,
+    AgentBackgroundRunState.active => labels.starting,
+    AgentBackgroundRunState.idle => labels.noTasks,
   };
 }
 
@@ -233,15 +414,109 @@ String _summaryFor({
     latestMessage?.agentName,
   ]);
   final messageContent = _trimToSingleLine(latestMessage?.content);
-  if (messageContent != null) {
-    return messageContent;
-  }
+  if (messageContent != null) return messageContent;
   if (messageTitle != null) return messageTitle;
-  if (taskSnapshot.hasActiveTasks) {
-    return labels.processingQueuedTasks(taskSnapshot.total);
-  }
+  if (taskSnapshot.hasActiveTasks) return labels.taskDetail(taskSnapshot.total);
   if (detail.isNotBlank) return detail;
   return fallbackStage;
+}
+
+String formatAgentTaskSummary({
+  required int pending,
+  required int processing,
+  required int retrying,
+  AgentBackgroundStatusLabels labels = const AgentBackgroundStatusLabels(),
+}) {
+  return labels.taskSummary(processing, pending, retrying);
+}
+
+String _statusTextFor({
+  required AgentBackgroundRunState state,
+  required int remainingTasks,
+  required String taskSummary,
+  required AgentBackgroundStatusLabels labels,
+}) {
+  return switch (state) {
+    AgentBackgroundRunState.failed =>
+      remainingTasks > 0
+          ? labels.needsAttentionStatus(taskSummary)
+          : labels.stageNeedsAttention,
+    AgentBackgroundRunState.paused =>
+      remainingTasks > 0
+          ? labels.pausedStatus(taskSummary)
+          : labels.pausedDetail,
+    AgentBackgroundRunState.active =>
+      remainingTasks > 0 ? taskSummary : labels.stageProcessing,
+    AgentBackgroundRunState.completed => labels.stageCompleted,
+    AgentBackgroundRunState.idle => labels.stageIdle,
+  };
+}
+
+String _titleForState(
+  AgentBackgroundRunState state,
+  AgentBackgroundStatusLabels labels,
+) {
+  return switch (state) {
+    AgentBackgroundRunState.failed => labels.needsAttentionTitle,
+    AgentBackgroundRunState.paused => labels.pausedTitle,
+    AgentBackgroundRunState.completed ||
+    AgentBackgroundRunState.active ||
+    AgentBackgroundRunState.idle => labels.title,
+  };
+}
+
+String _stageForState(
+  AgentBackgroundRunState state,
+  AgentBackgroundStatusLabels labels,
+) {
+  return switch (state) {
+    AgentBackgroundRunState.failed => labels.stageNeedsAttention,
+    AgentBackgroundRunState.completed => labels.stageCompleted,
+    AgentBackgroundRunState.paused => labels.stagePaused,
+    AgentBackgroundRunState.active => labels.stageProcessing,
+    AgentBackgroundRunState.idle => labels.stageIdle,
+  };
+}
+
+String? _localizeKnownStatusText(
+  String? value,
+  AgentBackgroundStatusLabels labels,
+) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) return null;
+  return switch (trimmed) {
+    'Idle' => labels.stageIdle,
+    'Processing' => labels.stageProcessing,
+    'Queued' => labels.stageQueued,
+    'Waiting to retry' => labels.stageRetrying,
+    'Paused' => labels.stagePaused,
+    'Completed' => labels.stageCompleted,
+    'Needs attention' => labels.stageNeedsAttention,
+    'Analyzing media' => labels.stageAnalyzingMedia,
+    'Generating card' => labels.stageGeneratingCard,
+    'Updating knowledge' => labels.stageUpdatingKnowledge,
+    'Preparing comment' => labels.stagePreparingComment,
+    'Routing follow-ups' => labels.stageRoutingFollowUps,
+    'No background tasks.' => labels.noTasks,
+    'Processing is starting.' => labels.starting,
+    'All background tasks finished.' => labels.completedDetail,
+    'Processing stopped with an error.' => labels.failedDetail,
+    'Processing is paused and will continue later.' => labels.pausedDetail,
+    'Background time expired. Memex will continue later.' ||
+    'iOS paused background processing. Memex will continue later.' =>
+      labels.pausedDetail,
+    'Waiting for the next processing step.' ||
+    'Waiting for background processing to start.' ||
+    'Waiting for the next background window.' => labels.queuedDetail,
+    'The current step will retry automatically.' => labels.retryingDetail,
+    'Reading attachments and local context.' => labels.analyzeMediaDetail,
+    'Turning the record into a timeline card.' => labels.generatingCardDetail,
+    'Updating local knowledge and memory.' => labels.updatingKnowledgeDetail,
+    'Preparing an assistant follow-up.' => labels.preparingCommentDetail,
+    'Checking follow-up actions for this card.' =>
+      labels.routingFollowUpsDetail,
+    _ => trimmed,
+  };
 }
 
 String? _firstNonBlank(Iterable<String?> values) {
@@ -260,8 +535,20 @@ String? _trimToSingleLine(String? value) {
   return '${compact.substring(0, 137)}...';
 }
 
-String _defaultProcessingQueuedTasks(num count) {
-  return 'Processing $count queued ${count == 1 ? 'task' : 'tasks'}';
+String _defaultTaskSummary(Object running, Object pending, Object retrying) {
+  return 'Running $running, Pending $pending, Retry $retrying';
+}
+
+String _defaultTaskDetail(Object count) {
+  return 'Processing $count queued task(s).';
+}
+
+String _defaultPausedStatus(Object summary) {
+  return 'Paused - $summary';
+}
+
+String _defaultNeedsAttentionStatus(Object summary) {
+  return 'Needs attention - $summary';
 }
 
 extension on String {

@@ -24,6 +24,11 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
   late final GeneratedColumn<String> payload = GeneratedColumn<String>(
       'payload', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _runIdMeta = const VerificationMeta('runId');
+  @override
+  late final GeneratedColumn<String> runId = GeneratedColumn<String>(
+      'run_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
   late final GeneratedColumn<String> status = GeneratedColumn<String>(
@@ -103,6 +108,7 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         id,
         type,
         payload,
+        runId,
         status,
         priority,
         createdAt,
@@ -140,6 +146,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     if (data.containsKey('payload')) {
       context.handle(_payloadMeta,
           payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta));
+    }
+    if (data.containsKey('run_id')) {
+      context.handle(
+          _runIdMeta, runId.isAcceptableOrUnknown(data['run_id']!, _runIdMeta));
     }
     if (data.containsKey('status')) {
       context.handle(_statusMeta,
@@ -216,6 +226,8 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
           .read(DriftSqlType.string, data['${effectivePrefix}type'])!,
       payload: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}payload']),
+      runId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}run_id']),
       status: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
       priority: attachedDatabase.typeMapping
@@ -253,6 +265,7 @@ class Task extends DataClass implements Insertable<Task> {
   final String id;
   final String type;
   final String? payload;
+  final String? runId;
   final String status;
   final int priority;
   final int? createdAt;
@@ -269,6 +282,7 @@ class Task extends DataClass implements Insertable<Task> {
       {required this.id,
       required this.type,
       this.payload,
+      this.runId,
       required this.status,
       required this.priority,
       this.createdAt,
@@ -288,6 +302,9 @@ class Task extends DataClass implements Insertable<Task> {
     map['type'] = Variable<String>(type);
     if (!nullToAbsent || payload != null) {
       map['payload'] = Variable<String>(payload);
+    }
+    if (!nullToAbsent || runId != null) {
+      map['run_id'] = Variable<String>(runId);
     }
     map['status'] = Variable<String>(status);
     map['priority'] = Variable<int>(priority);
@@ -327,6 +344,8 @@ class Task extends DataClass implements Insertable<Task> {
       payload: payload == null && nullToAbsent
           ? const Value.absent()
           : Value(payload),
+      runId:
+          runId == null && nullToAbsent ? const Value.absent() : Value(runId),
       status: Value(status),
       priority: Value(priority),
       createdAt: createdAt == null && nullToAbsent
@@ -362,6 +381,7 @@ class Task extends DataClass implements Insertable<Task> {
       id: serializer.fromJson<String>(json['id']),
       type: serializer.fromJson<String>(json['type']),
       payload: serializer.fromJson<String?>(json['payload']),
+      runId: serializer.fromJson<String?>(json['runId']),
       status: serializer.fromJson<String>(json['status']),
       priority: serializer.fromJson<int>(json['priority']),
       createdAt: serializer.fromJson<int?>(json['createdAt']),
@@ -383,6 +403,7 @@ class Task extends DataClass implements Insertable<Task> {
       'id': serializer.toJson<String>(id),
       'type': serializer.toJson<String>(type),
       'payload': serializer.toJson<String?>(payload),
+      'runId': serializer.toJson<String?>(runId),
       'status': serializer.toJson<String>(status),
       'priority': serializer.toJson<int>(priority),
       'createdAt': serializer.toJson<int?>(createdAt),
@@ -402,6 +423,7 @@ class Task extends DataClass implements Insertable<Task> {
           {String? id,
           String? type,
           Value<String?> payload = const Value.absent(),
+          Value<String?> runId = const Value.absent(),
           String? status,
           int? priority,
           Value<int?> createdAt = const Value.absent(),
@@ -418,6 +440,7 @@ class Task extends DataClass implements Insertable<Task> {
         id: id ?? this.id,
         type: type ?? this.type,
         payload: payload.present ? payload.value : this.payload,
+        runId: runId.present ? runId.value : this.runId,
         status: status ?? this.status,
         priority: priority ?? this.priority,
         createdAt: createdAt.present ? createdAt.value : this.createdAt,
@@ -437,6 +460,7 @@ class Task extends DataClass implements Insertable<Task> {
       id: data.id.present ? data.id.value : this.id,
       type: data.type.present ? data.type.value : this.type,
       payload: data.payload.present ? data.payload.value : this.payload,
+      runId: data.runId.present ? data.runId.value : this.runId,
       status: data.status.present ? data.status.value : this.status,
       priority: data.priority.present ? data.priority.value : this.priority,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -464,6 +488,7 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('id: $id, ')
           ..write('type: $type, ')
           ..write('payload: $payload, ')
+          ..write('runId: $runId, ')
           ..write('status: $status, ')
           ..write('priority: $priority, ')
           ..write('createdAt: $createdAt, ')
@@ -485,6 +510,7 @@ class Task extends DataClass implements Insertable<Task> {
       id,
       type,
       payload,
+      runId,
       status,
       priority,
       createdAt,
@@ -504,6 +530,7 @@ class Task extends DataClass implements Insertable<Task> {
           other.id == this.id &&
           other.type == this.type &&
           other.payload == this.payload &&
+          other.runId == this.runId &&
           other.status == this.status &&
           other.priority == this.priority &&
           other.createdAt == this.createdAt &&
@@ -522,6 +549,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<String> id;
   final Value<String> type;
   final Value<String?> payload;
+  final Value<String?> runId;
   final Value<String> status;
   final Value<int> priority;
   final Value<int?> createdAt;
@@ -539,6 +567,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.id = const Value.absent(),
     this.type = const Value.absent(),
     this.payload = const Value.absent(),
+    this.runId = const Value.absent(),
     this.status = const Value.absent(),
     this.priority = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -557,6 +586,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     required String id,
     required String type,
     this.payload = const Value.absent(),
+    this.runId = const Value.absent(),
     required String status,
     this.priority = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -577,6 +607,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<String>? id,
     Expression<String>? type,
     Expression<String>? payload,
+    Expression<String>? runId,
     Expression<String>? status,
     Expression<int>? priority,
     Expression<int>? createdAt,
@@ -595,6 +626,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (id != null) 'id': id,
       if (type != null) 'type': type,
       if (payload != null) 'payload': payload,
+      if (runId != null) 'run_id': runId,
       if (status != null) 'status': status,
       if (priority != null) 'priority': priority,
       if (createdAt != null) 'created_at': createdAt,
@@ -615,6 +647,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       {Value<String>? id,
       Value<String>? type,
       Value<String?>? payload,
+      Value<String?>? runId,
       Value<String>? status,
       Value<int>? priority,
       Value<int?>? createdAt,
@@ -632,6 +665,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       id: id ?? this.id,
       type: type ?? this.type,
       payload: payload ?? this.payload,
+      runId: runId ?? this.runId,
       status: status ?? this.status,
       priority: priority ?? this.priority,
       createdAt: createdAt ?? this.createdAt,
@@ -659,6 +693,9 @@ class TasksCompanion extends UpdateCompanion<Task> {
     }
     if (payload.present) {
       map['payload'] = Variable<String>(payload.value);
+    }
+    if (runId.present) {
+      map['run_id'] = Variable<String>(runId.value);
     }
     if (status.present) {
       map['status'] = Variable<String>(status.value);
@@ -708,6 +745,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('id: $id, ')
           ..write('type: $type, ')
           ..write('payload: $payload, ')
+          ..write('runId: $runId, ')
           ..write('status: $status, ')
           ..write('priority: $priority, ')
           ..write('createdAt: $createdAt, ')
@@ -720,6 +758,738 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('result: $result, ')
           ..write('bizId: $bizId, ')
           ..write('dependencies: $dependencies, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AgentRunsTable extends AgentRuns
+    with TableInfo<$AgentRunsTable, AgentRun> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AgentRunsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+      'user_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _factIdMeta = const VerificationMeta('factId');
+  @override
+  late final GeneratedColumn<String> factId = GeneratedColumn<String>(
+      'fact_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _stateMeta = const VerificationMeta('state');
+  @override
+  late final GeneratedColumn<String> state = GeneratedColumn<String>(
+      'state', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _stageMeta = const VerificationMeta('stage');
+  @override
+  late final GeneratedColumn<String> stage = GeneratedColumn<String>(
+      'stage', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _messageMeta =
+      const VerificationMeta('message');
+  @override
+  late final GeneratedColumn<String> message = GeneratedColumn<String>(
+      'message', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _completedUnitsMeta =
+      const VerificationMeta('completedUnits');
+  @override
+  late final GeneratedColumn<int> completedUnits = GeneratedColumn<int>(
+      'completed_units', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _totalUnitsMeta =
+      const VerificationMeta('totalUnits');
+  @override
+  late final GeneratedColumn<int> totalUnits = GeneratedColumn<int>(
+      'total_units', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(100));
+  static const VerificationMeta _remainingTasksMeta =
+      const VerificationMeta('remainingTasks');
+  @override
+  late final GeneratedColumn<int> remainingTasks = GeneratedColumn<int>(
+      'remaining_tasks', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _currentTaskIdMeta =
+      const VerificationMeta('currentTaskId');
+  @override
+  late final GeneratedColumn<String> currentTaskId = GeneratedColumn<String>(
+      'current_task_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _currentTaskTypeMeta =
+      const VerificationMeta('currentTaskType');
+  @override
+  late final GeneratedColumn<String> currentTaskType = GeneratedColumn<String>(
+      'current_task_type', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _lastErrorMeta =
+      const VerificationMeta('lastError');
+  @override
+  late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
+      'last_error', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _completedAtMeta =
+      const VerificationMeta('completedAt');
+  @override
+  late final GeneratedColumn<int> completedAt = GeneratedColumn<int>(
+      'completed_at', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        userId,
+        factId,
+        state,
+        stage,
+        message,
+        completedUnits,
+        totalUnits,
+        remainingTasks,
+        currentTaskId,
+        currentTaskType,
+        lastError,
+        createdAt,
+        updatedAt,
+        completedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'agent_runs';
+  @override
+  VerificationContext validateIntegrity(Insertable<AgentRun> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(_userIdMeta,
+          userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta));
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('fact_id')) {
+      context.handle(_factIdMeta,
+          factId.isAcceptableOrUnknown(data['fact_id']!, _factIdMeta));
+    } else if (isInserting) {
+      context.missing(_factIdMeta);
+    }
+    if (data.containsKey('state')) {
+      context.handle(
+          _stateMeta, state.isAcceptableOrUnknown(data['state']!, _stateMeta));
+    } else if (isInserting) {
+      context.missing(_stateMeta);
+    }
+    if (data.containsKey('stage')) {
+      context.handle(
+          _stageMeta, stage.isAcceptableOrUnknown(data['stage']!, _stageMeta));
+    } else if (isInserting) {
+      context.missing(_stageMeta);
+    }
+    if (data.containsKey('message')) {
+      context.handle(_messageMeta,
+          message.isAcceptableOrUnknown(data['message']!, _messageMeta));
+    }
+    if (data.containsKey('completed_units')) {
+      context.handle(
+          _completedUnitsMeta,
+          completedUnits.isAcceptableOrUnknown(
+              data['completed_units']!, _completedUnitsMeta));
+    }
+    if (data.containsKey('total_units')) {
+      context.handle(
+          _totalUnitsMeta,
+          totalUnits.isAcceptableOrUnknown(
+              data['total_units']!, _totalUnitsMeta));
+    }
+    if (data.containsKey('remaining_tasks')) {
+      context.handle(
+          _remainingTasksMeta,
+          remainingTasks.isAcceptableOrUnknown(
+              data['remaining_tasks']!, _remainingTasksMeta));
+    }
+    if (data.containsKey('current_task_id')) {
+      context.handle(
+          _currentTaskIdMeta,
+          currentTaskId.isAcceptableOrUnknown(
+              data['current_task_id']!, _currentTaskIdMeta));
+    }
+    if (data.containsKey('current_task_type')) {
+      context.handle(
+          _currentTaskTypeMeta,
+          currentTaskType.isAcceptableOrUnknown(
+              data['current_task_type']!, _currentTaskTypeMeta));
+    }
+    if (data.containsKey('last_error')) {
+      context.handle(_lastErrorMeta,
+          lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+          _completedAtMeta,
+          completedAt.isAcceptableOrUnknown(
+              data['completed_at']!, _completedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AgentRun map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AgentRun(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      userId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}user_id'])!,
+      factId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}fact_id'])!,
+      state: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}state'])!,
+      stage: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}stage'])!,
+      message: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}message']),
+      completedUnits: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}completed_units'])!,
+      totalUnits: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}total_units'])!,
+      remainingTasks: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}remaining_tasks'])!,
+      currentTaskId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}current_task_id']),
+      currentTaskType: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}current_task_type']),
+      lastError: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}last_error']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      completedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}completed_at']),
+    );
+  }
+
+  @override
+  $AgentRunsTable createAlias(String alias) {
+    return $AgentRunsTable(attachedDatabase, alias);
+  }
+}
+
+class AgentRun extends DataClass implements Insertable<AgentRun> {
+  final String id;
+  final String userId;
+  final String factId;
+  final String state;
+  final String stage;
+  final String? message;
+  final int completedUnits;
+  final int totalUnits;
+  final int remainingTasks;
+  final String? currentTaskId;
+  final String? currentTaskType;
+  final String? lastError;
+  final int createdAt;
+  final int updatedAt;
+  final int? completedAt;
+  const AgentRun(
+      {required this.id,
+      required this.userId,
+      required this.factId,
+      required this.state,
+      required this.stage,
+      this.message,
+      required this.completedUnits,
+      required this.totalUnits,
+      required this.remainingTasks,
+      this.currentTaskId,
+      this.currentTaskType,
+      this.lastError,
+      required this.createdAt,
+      required this.updatedAt,
+      this.completedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['fact_id'] = Variable<String>(factId);
+    map['state'] = Variable<String>(state);
+    map['stage'] = Variable<String>(stage);
+    if (!nullToAbsent || message != null) {
+      map['message'] = Variable<String>(message);
+    }
+    map['completed_units'] = Variable<int>(completedUnits);
+    map['total_units'] = Variable<int>(totalUnits);
+    map['remaining_tasks'] = Variable<int>(remainingTasks);
+    if (!nullToAbsent || currentTaskId != null) {
+      map['current_task_id'] = Variable<String>(currentTaskId);
+    }
+    if (!nullToAbsent || currentTaskType != null) {
+      map['current_task_type'] = Variable<String>(currentTaskType);
+    }
+    if (!nullToAbsent || lastError != null) {
+      map['last_error'] = Variable<String>(lastError);
+    }
+    map['created_at'] = Variable<int>(createdAt);
+    map['updated_at'] = Variable<int>(updatedAt);
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<int>(completedAt);
+    }
+    return map;
+  }
+
+  AgentRunsCompanion toCompanion(bool nullToAbsent) {
+    return AgentRunsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      factId: Value(factId),
+      state: Value(state),
+      stage: Value(stage),
+      message: message == null && nullToAbsent
+          ? const Value.absent()
+          : Value(message),
+      completedUnits: Value(completedUnits),
+      totalUnits: Value(totalUnits),
+      remainingTasks: Value(remainingTasks),
+      currentTaskId: currentTaskId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(currentTaskId),
+      currentTaskType: currentTaskType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(currentTaskType),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
+    );
+  }
+
+  factory AgentRun.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AgentRun(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      factId: serializer.fromJson<String>(json['factId']),
+      state: serializer.fromJson<String>(json['state']),
+      stage: serializer.fromJson<String>(json['stage']),
+      message: serializer.fromJson<String?>(json['message']),
+      completedUnits: serializer.fromJson<int>(json['completedUnits']),
+      totalUnits: serializer.fromJson<int>(json['totalUnits']),
+      remainingTasks: serializer.fromJson<int>(json['remainingTasks']),
+      currentTaskId: serializer.fromJson<String?>(json['currentTaskId']),
+      currentTaskType: serializer.fromJson<String?>(json['currentTaskType']),
+      lastError: serializer.fromJson<String?>(json['lastError']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      completedAt: serializer.fromJson<int?>(json['completedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'factId': serializer.toJson<String>(factId),
+      'state': serializer.toJson<String>(state),
+      'stage': serializer.toJson<String>(stage),
+      'message': serializer.toJson<String?>(message),
+      'completedUnits': serializer.toJson<int>(completedUnits),
+      'totalUnits': serializer.toJson<int>(totalUnits),
+      'remainingTasks': serializer.toJson<int>(remainingTasks),
+      'currentTaskId': serializer.toJson<String?>(currentTaskId),
+      'currentTaskType': serializer.toJson<String?>(currentTaskType),
+      'lastError': serializer.toJson<String?>(lastError),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'completedAt': serializer.toJson<int?>(completedAt),
+    };
+  }
+
+  AgentRun copyWith(
+          {String? id,
+          String? userId,
+          String? factId,
+          String? state,
+          String? stage,
+          Value<String?> message = const Value.absent(),
+          int? completedUnits,
+          int? totalUnits,
+          int? remainingTasks,
+          Value<String?> currentTaskId = const Value.absent(),
+          Value<String?> currentTaskType = const Value.absent(),
+          Value<String?> lastError = const Value.absent(),
+          int? createdAt,
+          int? updatedAt,
+          Value<int?> completedAt = const Value.absent()}) =>
+      AgentRun(
+        id: id ?? this.id,
+        userId: userId ?? this.userId,
+        factId: factId ?? this.factId,
+        state: state ?? this.state,
+        stage: stage ?? this.stage,
+        message: message.present ? message.value : this.message,
+        completedUnits: completedUnits ?? this.completedUnits,
+        totalUnits: totalUnits ?? this.totalUnits,
+        remainingTasks: remainingTasks ?? this.remainingTasks,
+        currentTaskId:
+            currentTaskId.present ? currentTaskId.value : this.currentTaskId,
+        currentTaskType: currentTaskType.present
+            ? currentTaskType.value
+            : this.currentTaskType,
+        lastError: lastError.present ? lastError.value : this.lastError,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        completedAt: completedAt.present ? completedAt.value : this.completedAt,
+      );
+  AgentRun copyWithCompanion(AgentRunsCompanion data) {
+    return AgentRun(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      factId: data.factId.present ? data.factId.value : this.factId,
+      state: data.state.present ? data.state.value : this.state,
+      stage: data.stage.present ? data.stage.value : this.stage,
+      message: data.message.present ? data.message.value : this.message,
+      completedUnits: data.completedUnits.present
+          ? data.completedUnits.value
+          : this.completedUnits,
+      totalUnits:
+          data.totalUnits.present ? data.totalUnits.value : this.totalUnits,
+      remainingTasks: data.remainingTasks.present
+          ? data.remainingTasks.value
+          : this.remainingTasks,
+      currentTaskId: data.currentTaskId.present
+          ? data.currentTaskId.value
+          : this.currentTaskId,
+      currentTaskType: data.currentTaskType.present
+          ? data.currentTaskType.value
+          : this.currentTaskType,
+      lastError: data.lastError.present ? data.lastError.value : this.lastError,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      completedAt:
+          data.completedAt.present ? data.completedAt.value : this.completedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AgentRun(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('factId: $factId, ')
+          ..write('state: $state, ')
+          ..write('stage: $stage, ')
+          ..write('message: $message, ')
+          ..write('completedUnits: $completedUnits, ')
+          ..write('totalUnits: $totalUnits, ')
+          ..write('remainingTasks: $remainingTasks, ')
+          ..write('currentTaskId: $currentTaskId, ')
+          ..write('currentTaskType: $currentTaskType, ')
+          ..write('lastError: $lastError, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('completedAt: $completedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      userId,
+      factId,
+      state,
+      stage,
+      message,
+      completedUnits,
+      totalUnits,
+      remainingTasks,
+      currentTaskId,
+      currentTaskType,
+      lastError,
+      createdAt,
+      updatedAt,
+      completedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AgentRun &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.factId == this.factId &&
+          other.state == this.state &&
+          other.stage == this.stage &&
+          other.message == this.message &&
+          other.completedUnits == this.completedUnits &&
+          other.totalUnits == this.totalUnits &&
+          other.remainingTasks == this.remainingTasks &&
+          other.currentTaskId == this.currentTaskId &&
+          other.currentTaskType == this.currentTaskType &&
+          other.lastError == this.lastError &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.completedAt == this.completedAt);
+}
+
+class AgentRunsCompanion extends UpdateCompanion<AgentRun> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<String> factId;
+  final Value<String> state;
+  final Value<String> stage;
+  final Value<String?> message;
+  final Value<int> completedUnits;
+  final Value<int> totalUnits;
+  final Value<int> remainingTasks;
+  final Value<String?> currentTaskId;
+  final Value<String?> currentTaskType;
+  final Value<String?> lastError;
+  final Value<int> createdAt;
+  final Value<int> updatedAt;
+  final Value<int?> completedAt;
+  final Value<int> rowid;
+  const AgentRunsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.factId = const Value.absent(),
+    this.state = const Value.absent(),
+    this.stage = const Value.absent(),
+    this.message = const Value.absent(),
+    this.completedUnits = const Value.absent(),
+    this.totalUnits = const Value.absent(),
+    this.remainingTasks = const Value.absent(),
+    this.currentTaskId = const Value.absent(),
+    this.currentTaskType = const Value.absent(),
+    this.lastError = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AgentRunsCompanion.insert({
+    required String id,
+    required String userId,
+    required String factId,
+    required String state,
+    required String stage,
+    this.message = const Value.absent(),
+    this.completedUnits = const Value.absent(),
+    this.totalUnits = const Value.absent(),
+    this.remainingTasks = const Value.absent(),
+    this.currentTaskId = const Value.absent(),
+    this.currentTaskType = const Value.absent(),
+    this.lastError = const Value.absent(),
+    required int createdAt,
+    required int updatedAt,
+    this.completedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        userId = Value(userId),
+        factId = Value(factId),
+        state = Value(state),
+        stage = Value(stage),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<AgentRun> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<String>? factId,
+    Expression<String>? state,
+    Expression<String>? stage,
+    Expression<String>? message,
+    Expression<int>? completedUnits,
+    Expression<int>? totalUnits,
+    Expression<int>? remainingTasks,
+    Expression<String>? currentTaskId,
+    Expression<String>? currentTaskType,
+    Expression<String>? lastError,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<int>? completedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (factId != null) 'fact_id': factId,
+      if (state != null) 'state': state,
+      if (stage != null) 'stage': stage,
+      if (message != null) 'message': message,
+      if (completedUnits != null) 'completed_units': completedUnits,
+      if (totalUnits != null) 'total_units': totalUnits,
+      if (remainingTasks != null) 'remaining_tasks': remainingTasks,
+      if (currentTaskId != null) 'current_task_id': currentTaskId,
+      if (currentTaskType != null) 'current_task_type': currentTaskType,
+      if (lastError != null) 'last_error': lastError,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AgentRunsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? userId,
+      Value<String>? factId,
+      Value<String>? state,
+      Value<String>? stage,
+      Value<String?>? message,
+      Value<int>? completedUnits,
+      Value<int>? totalUnits,
+      Value<int>? remainingTasks,
+      Value<String?>? currentTaskId,
+      Value<String?>? currentTaskType,
+      Value<String?>? lastError,
+      Value<int>? createdAt,
+      Value<int>? updatedAt,
+      Value<int?>? completedAt,
+      Value<int>? rowid}) {
+    return AgentRunsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      factId: factId ?? this.factId,
+      state: state ?? this.state,
+      stage: stage ?? this.stage,
+      message: message ?? this.message,
+      completedUnits: completedUnits ?? this.completedUnits,
+      totalUnits: totalUnits ?? this.totalUnits,
+      remainingTasks: remainingTasks ?? this.remainingTasks,
+      currentTaskId: currentTaskId ?? this.currentTaskId,
+      currentTaskType: currentTaskType ?? this.currentTaskType,
+      lastError: lastError ?? this.lastError,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      completedAt: completedAt ?? this.completedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (factId.present) {
+      map['fact_id'] = Variable<String>(factId.value);
+    }
+    if (state.present) {
+      map['state'] = Variable<String>(state.value);
+    }
+    if (stage.present) {
+      map['stage'] = Variable<String>(stage.value);
+    }
+    if (message.present) {
+      map['message'] = Variable<String>(message.value);
+    }
+    if (completedUnits.present) {
+      map['completed_units'] = Variable<int>(completedUnits.value);
+    }
+    if (totalUnits.present) {
+      map['total_units'] = Variable<int>(totalUnits.value);
+    }
+    if (remainingTasks.present) {
+      map['remaining_tasks'] = Variable<int>(remainingTasks.value);
+    }
+    if (currentTaskId.present) {
+      map['current_task_id'] = Variable<String>(currentTaskId.value);
+    }
+    if (currentTaskType.present) {
+      map['current_task_type'] = Variable<String>(currentTaskType.value);
+    }
+    if (lastError.present) {
+      map['last_error'] = Variable<String>(lastError.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<int>(completedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AgentRunsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('factId: $factId, ')
+          ..write('state: $state, ')
+          ..write('stage: $stage, ')
+          ..write('message: $message, ')
+          ..write('completedUnits: $completedUnits, ')
+          ..write('totalUnits: $totalUnits, ')
+          ..write('remainingTasks: $remainingTasks, ')
+          ..write('currentTaskId: $currentTaskId, ')
+          ..write('currentTaskType: $currentTaskType, ')
+          ..write('lastError: $lastError, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('completedAt: $completedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4058,6 +4828,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $TasksTable tasks = $TasksTable(this);
+  late final $AgentRunsTable agentRuns = $AgentRunsTable(this);
   late final $KvStoreTable kvStore = $KvStoreTable(this);
   late final $AgentActivityMessagesTable agentActivityMessages =
       $AgentActivityMessagesTable(this);
@@ -4076,6 +4847,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
         tasks,
+        agentRuns,
         kvStore,
         agentActivityMessages,
         cardCache,
@@ -4090,6 +4862,7 @@ typedef $$TasksTableCreateCompanionBuilder = TasksCompanion Function({
   required String id,
   required String type,
   Value<String?> payload,
+  Value<String?> runId,
   required String status,
   Value<int> priority,
   Value<int?> createdAt,
@@ -4108,6 +4881,7 @@ typedef $$TasksTableUpdateCompanionBuilder = TasksCompanion Function({
   Value<String> id,
   Value<String> type,
   Value<String?> payload,
+  Value<String?> runId,
   Value<String> status,
   Value<int> priority,
   Value<int?> createdAt,
@@ -4139,6 +4913,9 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<String> get payload => $composableBuilder(
       column: $table.payload, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get runId => $composableBuilder(
+      column: $table.runId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get status => $composableBuilder(
       column: $table.status, builder: (column) => ColumnFilters(column));
@@ -4195,6 +4972,9 @@ class $$TasksTableOrderingComposer
   ColumnOrderings<String> get payload => $composableBuilder(
       column: $table.payload, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get runId => $composableBuilder(
+      column: $table.runId, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get status => $composableBuilder(
       column: $table.status, builder: (column) => ColumnOrderings(column));
 
@@ -4250,6 +5030,9 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<String> get payload =>
       $composableBuilder(column: $table.payload, builder: (column) => column);
+
+  GeneratedColumn<String> get runId =>
+      $composableBuilder(column: $table.runId, builder: (column) => column);
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
@@ -4314,6 +5097,7 @@ class $$TasksTableTableManager extends RootTableManager<
             Value<String> id = const Value.absent(),
             Value<String> type = const Value.absent(),
             Value<String?> payload = const Value.absent(),
+            Value<String?> runId = const Value.absent(),
             Value<String> status = const Value.absent(),
             Value<int> priority = const Value.absent(),
             Value<int?> createdAt = const Value.absent(),
@@ -4332,6 +5116,7 @@ class $$TasksTableTableManager extends RootTableManager<
             id: id,
             type: type,
             payload: payload,
+            runId: runId,
             status: status,
             priority: priority,
             createdAt: createdAt,
@@ -4350,6 +5135,7 @@ class $$TasksTableTableManager extends RootTableManager<
             required String id,
             required String type,
             Value<String?> payload = const Value.absent(),
+            Value<String?> runId = const Value.absent(),
             required String status,
             Value<int> priority = const Value.absent(),
             Value<int?> createdAt = const Value.absent(),
@@ -4368,6 +5154,7 @@ class $$TasksTableTableManager extends RootTableManager<
             id: id,
             type: type,
             payload: payload,
+            runId: runId,
             status: status,
             priority: priority,
             createdAt: createdAt,
@@ -4400,6 +5187,328 @@ typedef $$TasksTableProcessedTableManager = ProcessedTableManager<
     $$TasksTableUpdateCompanionBuilder,
     (Task, BaseReferences<_$AppDatabase, $TasksTable, Task>),
     Task,
+    PrefetchHooks Function()>;
+typedef $$AgentRunsTableCreateCompanionBuilder = AgentRunsCompanion Function({
+  required String id,
+  required String userId,
+  required String factId,
+  required String state,
+  required String stage,
+  Value<String?> message,
+  Value<int> completedUnits,
+  Value<int> totalUnits,
+  Value<int> remainingTasks,
+  Value<String?> currentTaskId,
+  Value<String?> currentTaskType,
+  Value<String?> lastError,
+  required int createdAt,
+  required int updatedAt,
+  Value<int?> completedAt,
+  Value<int> rowid,
+});
+typedef $$AgentRunsTableUpdateCompanionBuilder = AgentRunsCompanion Function({
+  Value<String> id,
+  Value<String> userId,
+  Value<String> factId,
+  Value<String> state,
+  Value<String> stage,
+  Value<String?> message,
+  Value<int> completedUnits,
+  Value<int> totalUnits,
+  Value<int> remainingTasks,
+  Value<String?> currentTaskId,
+  Value<String?> currentTaskType,
+  Value<String?> lastError,
+  Value<int> createdAt,
+  Value<int> updatedAt,
+  Value<int?> completedAt,
+  Value<int> rowid,
+});
+
+class $$AgentRunsTableFilterComposer
+    extends Composer<_$AppDatabase, $AgentRunsTable> {
+  $$AgentRunsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get factId => $composableBuilder(
+      column: $table.factId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get state => $composableBuilder(
+      column: $table.state, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get stage => $composableBuilder(
+      column: $table.stage, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get message => $composableBuilder(
+      column: $table.message, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get completedUnits => $composableBuilder(
+      column: $table.completedUnits,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get totalUnits => $composableBuilder(
+      column: $table.totalUnits, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get remainingTasks => $composableBuilder(
+      column: $table.remainingTasks,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get currentTaskId => $composableBuilder(
+      column: $table.currentTaskId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get currentTaskType => $composableBuilder(
+      column: $table.currentTaskType,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get lastError => $composableBuilder(
+      column: $table.lastError, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get completedAt => $composableBuilder(
+      column: $table.completedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$AgentRunsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AgentRunsTable> {
+  $$AgentRunsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get factId => $composableBuilder(
+      column: $table.factId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get state => $composableBuilder(
+      column: $table.state, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get stage => $composableBuilder(
+      column: $table.stage, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get message => $composableBuilder(
+      column: $table.message, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get completedUnits => $composableBuilder(
+      column: $table.completedUnits,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get totalUnits => $composableBuilder(
+      column: $table.totalUnits, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get remainingTasks => $composableBuilder(
+      column: $table.remainingTasks,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get currentTaskId => $composableBuilder(
+      column: $table.currentTaskId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get currentTaskType => $composableBuilder(
+      column: $table.currentTaskType,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get lastError => $composableBuilder(
+      column: $table.lastError, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get completedAt => $composableBuilder(
+      column: $table.completedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$AgentRunsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AgentRunsTable> {
+  $$AgentRunsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get factId =>
+      $composableBuilder(column: $table.factId, builder: (column) => column);
+
+  GeneratedColumn<String> get state =>
+      $composableBuilder(column: $table.state, builder: (column) => column);
+
+  GeneratedColumn<String> get stage =>
+      $composableBuilder(column: $table.stage, builder: (column) => column);
+
+  GeneratedColumn<String> get message =>
+      $composableBuilder(column: $table.message, builder: (column) => column);
+
+  GeneratedColumn<int> get completedUnits => $composableBuilder(
+      column: $table.completedUnits, builder: (column) => column);
+
+  GeneratedColumn<int> get totalUnits => $composableBuilder(
+      column: $table.totalUnits, builder: (column) => column);
+
+  GeneratedColumn<int> get remainingTasks => $composableBuilder(
+      column: $table.remainingTasks, builder: (column) => column);
+
+  GeneratedColumn<String> get currentTaskId => $composableBuilder(
+      column: $table.currentTaskId, builder: (column) => column);
+
+  GeneratedColumn<String> get currentTaskType => $composableBuilder(
+      column: $table.currentTaskType, builder: (column) => column);
+
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get completedAt => $composableBuilder(
+      column: $table.completedAt, builder: (column) => column);
+}
+
+class $$AgentRunsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $AgentRunsTable,
+    AgentRun,
+    $$AgentRunsTableFilterComposer,
+    $$AgentRunsTableOrderingComposer,
+    $$AgentRunsTableAnnotationComposer,
+    $$AgentRunsTableCreateCompanionBuilder,
+    $$AgentRunsTableUpdateCompanionBuilder,
+    (AgentRun, BaseReferences<_$AppDatabase, $AgentRunsTable, AgentRun>),
+    AgentRun,
+    PrefetchHooks Function()> {
+  $$AgentRunsTableTableManager(_$AppDatabase db, $AgentRunsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AgentRunsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AgentRunsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AgentRunsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> userId = const Value.absent(),
+            Value<String> factId = const Value.absent(),
+            Value<String> state = const Value.absent(),
+            Value<String> stage = const Value.absent(),
+            Value<String?> message = const Value.absent(),
+            Value<int> completedUnits = const Value.absent(),
+            Value<int> totalUnits = const Value.absent(),
+            Value<int> remainingTasks = const Value.absent(),
+            Value<String?> currentTaskId = const Value.absent(),
+            Value<String?> currentTaskType = const Value.absent(),
+            Value<String?> lastError = const Value.absent(),
+            Value<int> createdAt = const Value.absent(),
+            Value<int> updatedAt = const Value.absent(),
+            Value<int?> completedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              AgentRunsCompanion(
+            id: id,
+            userId: userId,
+            factId: factId,
+            state: state,
+            stage: stage,
+            message: message,
+            completedUnits: completedUnits,
+            totalUnits: totalUnits,
+            remainingTasks: remainingTasks,
+            currentTaskId: currentTaskId,
+            currentTaskType: currentTaskType,
+            lastError: lastError,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            completedAt: completedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String userId,
+            required String factId,
+            required String state,
+            required String stage,
+            Value<String?> message = const Value.absent(),
+            Value<int> completedUnits = const Value.absent(),
+            Value<int> totalUnits = const Value.absent(),
+            Value<int> remainingTasks = const Value.absent(),
+            Value<String?> currentTaskId = const Value.absent(),
+            Value<String?> currentTaskType = const Value.absent(),
+            Value<String?> lastError = const Value.absent(),
+            required int createdAt,
+            required int updatedAt,
+            Value<int?> completedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              AgentRunsCompanion.insert(
+            id: id,
+            userId: userId,
+            factId: factId,
+            state: state,
+            stage: stage,
+            message: message,
+            completedUnits: completedUnits,
+            totalUnits: totalUnits,
+            remainingTasks: remainingTasks,
+            currentTaskId: currentTaskId,
+            currentTaskType: currentTaskType,
+            lastError: lastError,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            completedAt: completedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$AgentRunsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $AgentRunsTable,
+    AgentRun,
+    $$AgentRunsTableFilterComposer,
+    $$AgentRunsTableOrderingComposer,
+    $$AgentRunsTableAnnotationComposer,
+    $$AgentRunsTableCreateCompanionBuilder,
+    $$AgentRunsTableUpdateCompanionBuilder,
+    (AgentRun, BaseReferences<_$AppDatabase, $AgentRunsTable, AgentRun>),
+    AgentRun,
     PrefetchHooks Function()>;
 typedef $$KvStoreTableCreateCompanionBuilder = KvStoreCompanion Function({
   required String key,
@@ -6048,6 +7157,8 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$TasksTableTableManager get tasks =>
       $$TasksTableTableManager(_db, _db.tasks);
+  $$AgentRunsTableTableManager get agentRuns =>
+      $$AgentRunsTableTableManager(_db, _db.agentRuns);
   $$KvStoreTableTableManager get kvStore =>
       $$KvStoreTableTableManager(_db, _db.kvStore);
   $$AgentActivityMessagesTableTableManager get agentActivityMessages =>

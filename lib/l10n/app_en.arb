@@ -333,6 +333,59 @@
   "activityDetail": "Activity Detail",
   "noAgentActivityYet": "No agent activity yet",
   "processingEllipsis": "Processing...",
+  "agentBackgroundTitle": "Memex Agent",
+  "agentBackgroundPausedTitle": "Memex Agent paused",
+  "agentBackgroundNeedsAttentionTitle": "Memex Agent needs attention",
+  "agentBackgroundStageIdle": "Idle",
+  "agentBackgroundStageProcessing": "Processing",
+  "agentBackgroundStageQueued": "Queued",
+  "agentBackgroundStageRetrying": "Waiting to retry",
+  "agentBackgroundStagePaused": "Paused",
+  "agentBackgroundStageCompleted": "Completed",
+  "agentBackgroundStageNeedsAttention": "Needs attention",
+  "agentBackgroundStageAnalyzingMedia": "Analyzing media",
+  "agentBackgroundStageGeneratingCard": "Generating card",
+  "agentBackgroundStageUpdatingKnowledge": "Updating knowledge",
+  "agentBackgroundStagePreparingComment": "Preparing comment",
+  "agentBackgroundStageRoutingFollowUps": "Routing follow-ups",
+  "@agentBackgroundTaskSummary": {
+    "placeholders": {
+      "running": {},
+      "pending": {},
+      "retrying": {}
+    }
+  },
+  "agentBackgroundTaskSummary": "Running {running}, Pending {pending}, Retry {retrying}",
+  "@agentBackgroundTaskDetail": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "agentBackgroundTaskDetail": "Processing {count} queued task(s).",
+  "agentBackgroundNoTasks": "No background tasks.",
+  "agentBackgroundStarting": "Processing is starting.",
+  "agentBackgroundCompletedDetail": "All background tasks finished.",
+  "agentBackgroundFailedDetail": "Processing stopped with an error.",
+  "agentBackgroundPausedDetail": "Processing is paused and will continue later.",
+  "agentBackgroundQueuedDetail": "Waiting for the next processing step.",
+  "agentBackgroundRetryingDetail": "The current step will retry automatically.",
+  "agentBackgroundAnalyzeMediaDetail": "Reading attachments and local context.",
+  "agentBackgroundGeneratingCardDetail": "Turning the record into a timeline card.",
+  "agentBackgroundUpdatingKnowledgeDetail": "Updating local knowledge and memory.",
+  "agentBackgroundPreparingCommentDetail": "Preparing an assistant follow-up.",
+  "agentBackgroundRoutingFollowUpsDetail": "Checking follow-up actions for this card.",
+  "@agentBackgroundPausedStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "agentBackgroundPausedStatus": "Paused - {summary}",
+  "@agentBackgroundNeedsAttentionStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "agentBackgroundNeedsAttentionStatus": "Needs attention - {summary}",
   "settings": "Settings",
   "languageSettings": "Language",
   "languageSettingsDesc": "Change the app display language",
@@ -1494,24 +1547,6 @@
   "earlyUpdateCheckFailed": "Update check failed: {error}",
   "earlyUpdateDialogTitle": "Early update available",
   "earlyUpdateReleaseNotes": "Release notes",
-
-  "agentBackgroundTitle": "Memex Agent",
-  "agentBackgroundNeedsAttentionTitle": "Memex Agent needs attention",
-  "agentBackgroundProcessing": "Processing",
-  "agentBackgroundNeedsAttention": "Needs attention",
-  "agentBackgroundCompleted": "Completed",
-  "agentBackgroundIdle": "Idle",
-  "agentBackgroundProcessingStarting": "Processing is starting.",
-  "agentBackgroundStoppedWithError": "Processing stopped with an error.",
-  "agentBackgroundAllTasksFinished": "All background tasks finished.",
-  "agentBackgroundNoTasks": "No background tasks.",
-  "agentBackgroundQueuedTasks": "{count, plural, =1{Processing 1 queued task} other{Processing {count} queued tasks}}",
-  "@agentBackgroundQueuedTasks": {
-    "placeholders": {
-      "count": {}
-    }
-  },
-
   "dismissAllNotifications": "Clear all",
   "dismissByType": "Clear by type",
   "dismissTypeSystemAction": "Reminders & events",

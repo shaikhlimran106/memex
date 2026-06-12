@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
+import 'package:memex/data/services/agent_run_service.dart';
 import 'package:memex/db/app_database.dart';
 import 'package:memex/domain/models/task_exceptions.dart';
 import 'package:memex/utils/logger.dart';
@@ -164,6 +165,9 @@ class LocalTaskExecutor {
   static const Duration crashLikeExitWindow = Duration(minutes: 10);
   static const Duration _taskHeartbeatInterval = Duration(seconds: 10);
   static const Duration _backgroundStaleTaskAge = Duration(seconds: 30);
+  static const int _crashGuardDatabaseMaxAttempts = 5;
+  static const Duration _crashGuardDatabaseRetryDelay =
+      Duration(milliseconds: 120);
 
   /// Stream that emits true if there are any active (pending, processing, retrying) tasks in the DB.
   /// Useful for global UI loading indicators.
@@ -404,6 +408,7 @@ class LocalTaskExecutor {
     int maxRetries = 5,
     String? bizId,
     List<String>? dependencies,
+    String? runId,
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
@@ -417,6 +422,7 @@ class LocalTaskExecutor {
           id: taskId,
           type: taskType,
           payload: Value(jsonEncode(payload)),
+          runId: Value(runId ?? payload['run_id'] as String?),
           status: 'pending',
           priority: Value(priority),
           createdAt: Value(now),
@@ -735,11 +741,21 @@ class LocalTaskExecutor {
       }
 
       final payloadMap = _decodePayload(task);
+      final runId = task.runId ?? payloadMap['run_id'] as String?;
 
       final currentUserId = _currentUserId;
       if (currentUserId == null) {
         throw StateError(
           'Task execution failed: no active user ID in LocalTaskExecutor',
+        );
+      }
+
+      if (runId != null && runId.isNotEmpty) {
+        await AgentRunService.instance.resumePausedRunIfNeeded(runId);
+        await AgentRunService.instance.markTaskStarted(
+          runId: runId,
+          taskId: task.id,
+          taskType: task.type,
         );
       }
 
@@ -761,6 +777,14 @@ class LocalTaskExecutor {
           updatedAt: Value(DateTime.now().millisecondsSinceEpoch ~/ 1000),
         ),
       );
+
+      if (runId != null && runId.isNotEmpty) {
+        await AgentRunService.instance.markTaskCompleted(
+          runId: runId,
+          taskId: task.id,
+          taskType: task.type,
+        );
+      }
 
       _logger.info('Task ${task.id} completed');
     } catch (e, stack) {
@@ -787,6 +811,15 @@ class LocalTaskExecutor {
             error: Value(e.toString()),
           ),
         );
+        final retryRunId = task.runId ?? _tryDecodeRunId(task);
+        if (retryRunId != null && retryRunId.isNotEmpty) {
+          await AgentRunService.instance.markTaskRetrying(
+            runId: retryRunId,
+            taskId: task.id,
+            taskType: task.type,
+            error: e,
+          );
+        }
         _logger.info('Task ${task.id} scheduled for retry at $nextRun');
       } else {
         // Permanently failed
@@ -823,6 +856,15 @@ class LocalTaskExecutor {
             error: Value(e.toString()),
           ),
         );
+        final failedRunId = task.runId ?? _tryDecodeRunId(task);
+        if (failedRunId != null && failedRunId.isNotEmpty) {
+          await AgentRunService.instance.markTaskFailed(
+            runId: failedRunId,
+            taskId: task.id,
+            taskType: task.type,
+            error: e,
+          );
+        }
         _logger.severe('Task ${task.id} permanently failed');
       }
     } finally {
@@ -836,6 +878,14 @@ class LocalTaskExecutor {
       if (_isRunning) {
         _scheduleNextPoll(immediate: true);
       }
+    }
+  }
+
+  String? _tryDecodeRunId(Task task) {
+    try {
+      return _decodePayload(task)['run_id'] as String?;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -1076,21 +1126,31 @@ class LocalTaskExecutor {
   }
 
   Future<void> _deleteGracefulExitMarker() async {
-    await (_db.delete(_db.kvStore)
-          ..where((kv) => kv.key.equals(_gracefulExitMarkerKey)))
-        .go();
+    await _runCrashGuardDatabaseOperation(
+      'delete graceful exit marker',
+      () async {
+        await (_db.delete(_db.kvStore)
+              ..where((kv) => kv.key.equals(_gracefulExitMarkerKey)))
+            .go();
+      },
+    );
   }
 
   Future<void> _saveTaskExecutionMarker(_TaskExecutionMarker marker) async {
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    await _db.into(_db.kvStore).insertOnConflictUpdate(
-          KvStoreCompanion.insert(
-            key: _taskExecutionMarkerKey(marker.taskId),
-            value: Value(jsonEncode(marker.toJson())),
-            bucket: const Value(_crashGuardBucket),
-            updatedAt: Value(now),
-          ),
-        );
+    await _runCrashGuardDatabaseOperation(
+      'save task execution marker ${marker.taskId}',
+      () async {
+        await _db.into(_db.kvStore).insertOnConflictUpdate(
+              KvStoreCompanion.insert(
+                key: _taskExecutionMarkerKey(marker.taskId),
+                value: Value(jsonEncode(marker.toJson())),
+                bucket: const Value(_crashGuardBucket),
+                updatedAt: Value(now),
+              ),
+            );
+      },
+    );
   }
 
   Future<void> _deleteTaskExecutionMarker(String taskId) {
@@ -1098,6 +1158,13 @@ class LocalTaskExecutor {
   }
 
   Future<void> _deleteTaskExecutionMarkerByKey(String key) async {
+    await _runCrashGuardDatabaseOperation(
+      'delete task execution marker',
+      () => _deleteTaskExecutionMarkerByKeyRaw(key),
+    );
+  }
+
+  Future<void> _deleteTaskExecutionMarkerByKeyRaw(String key) async {
     await (_db.delete(
       _db.kvStore,
     )..where((kv) => kv.key.equals(key)))
@@ -1105,9 +1172,57 @@ class LocalTaskExecutor {
   }
 
   Future<void> _clearTaskExecutionMarker(String taskId) async {
-    final marker = await _loadTaskExecutionMarker(taskId);
-    if (marker == null || marker.taskId != taskId) return;
-    await _deleteTaskExecutionMarker(taskId);
+    await _runCrashGuardDatabaseOperation(
+      'clear task execution marker $taskId',
+      () async {
+        final marker = await _loadTaskExecutionMarker(taskId);
+        if (marker == null || marker.taskId != taskId) return;
+        await _deleteTaskExecutionMarkerByKeyRaw(
+          _taskExecutionMarkerKey(taskId),
+        );
+      },
+    );
+  }
+
+  Future<void> _runCrashGuardDatabaseOperation(
+    String operation,
+    Future<void> Function() action,
+  ) async {
+    for (var attempt = 1;
+        attempt <= _crashGuardDatabaseMaxAttempts;
+        attempt++) {
+      try {
+        await action();
+        return;
+      } catch (error, stackTrace) {
+        if (!_isDatabaseLocked(error)) rethrow;
+        if (attempt == _crashGuardDatabaseMaxAttempts) {
+          _logger.warning(
+            'Skipped crash guard operation after database stayed locked: $operation',
+            error,
+            stackTrace,
+          );
+          return;
+        }
+        _logger.info(
+          'Crash guard database locked during $operation '
+          '(attempt $attempt/$_crashGuardDatabaseMaxAttempts); retrying.',
+        );
+        await Future.delayed(
+          Duration(
+            milliseconds:
+                _crashGuardDatabaseRetryDelay.inMilliseconds * attempt,
+          ),
+        );
+      }
+    }
+  }
+
+  bool _isDatabaseLocked(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('database is locked') ||
+        message.contains('sqliteexception(5)') ||
+        message.contains('database_busy');
   }
 
   String _taskExecutionMarkerKey(String taskId) {

@@ -333,6 +333,59 @@
   "activityDetail": "活动详情",
   "noAgentActivityYet": "暂无 Agent 活动",
   "processingEllipsis": "处理中...",
+  "agentBackgroundTitle": "Memex Agent",
+  "agentBackgroundPausedTitle": "Memex Agent 已暂停",
+  "agentBackgroundNeedsAttentionTitle": "Memex Agent 需要处理",
+  "agentBackgroundStageIdle": "空闲",
+  "agentBackgroundStageProcessing": "处理中",
+  "agentBackgroundStageQueued": "排队中",
+  "agentBackgroundStageRetrying": "等待重试",
+  "agentBackgroundStagePaused": "已暂停",
+  "agentBackgroundStageCompleted": "已完成",
+  "agentBackgroundStageNeedsAttention": "需要处理",
+  "agentBackgroundStageAnalyzingMedia": "分析素材中",
+  "agentBackgroundStageGeneratingCard": "生成卡片中",
+  "agentBackgroundStageUpdatingKnowledge": "更新知识中",
+  "agentBackgroundStagePreparingComment": "准备评论中",
+  "agentBackgroundStageRoutingFollowUps": "分发后续任务中",
+  "@agentBackgroundTaskSummary": {
+    "placeholders": {
+      "running": {},
+      "pending": {},
+      "retrying": {}
+    }
+  },
+  "agentBackgroundTaskSummary": "执行中 {running}，排队中 {pending}，重试中 {retrying}",
+  "@agentBackgroundTaskDetail": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "agentBackgroundTaskDetail": "正在处理 {count} 个后台任务。",
+  "agentBackgroundNoTasks": "暂无后台任务。",
+  "agentBackgroundStarting": "后台处理正在启动。",
+  "agentBackgroundCompletedDetail": "所有后台任务已完成。",
+  "agentBackgroundFailedDetail": "后台处理遇到错误。",
+  "agentBackgroundPausedDetail": "后台处理已暂停，稍后会继续。",
+  "agentBackgroundQueuedDetail": "正在等待下一个处理步骤。",
+  "agentBackgroundRetryingDetail": "当前步骤将自动重试。",
+  "agentBackgroundAnalyzeMediaDetail": "正在读取附件和本地上下文。",
+  "agentBackgroundGeneratingCardDetail": "正在把记录生成时间线卡片。",
+  "agentBackgroundUpdatingKnowledgeDetail": "正在更新本地知识和记忆。",
+  "agentBackgroundPreparingCommentDetail": "正在准备助手跟进评论。",
+  "agentBackgroundRoutingFollowUpsDetail": "正在检查这张卡片的后续动作。",
+  "@agentBackgroundPausedStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "agentBackgroundPausedStatus": "已暂停 - {summary}",
+  "@agentBackgroundNeedsAttentionStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "agentBackgroundNeedsAttentionStatus": "需要处理 - {summary}",
   "settings": "设置",
   "languageSettings": "语言",
   "languageSettingsDesc": "更改应用显示语言",
@@ -1457,24 +1510,6 @@
   "earlyUpdateCheckFailed": "检查更新失败：{error}",
   "earlyUpdateDialogTitle": "发现 Early 更新",
   "earlyUpdateReleaseNotes": "更新说明",
-
-  "agentBackgroundTitle": "Memex Agent",
-  "agentBackgroundNeedsAttentionTitle": "Memex Agent 需要处理",
-  "agentBackgroundProcessing": "处理中",
-  "agentBackgroundNeedsAttention": "需要处理",
-  "agentBackgroundCompleted": "已完成",
-  "agentBackgroundIdle": "空闲",
-  "agentBackgroundProcessingStarting": "正在开始处理。",
-  "agentBackgroundStoppedWithError": "处理因错误停止。",
-  "agentBackgroundAllTasksFinished": "所有后台任务已完成。",
-  "agentBackgroundNoTasks": "当前没有后台任务。",
-  "agentBackgroundQueuedTasks": "{count, plural, other{正在处理 {count} 个后台任务}}",
-  "@agentBackgroundQueuedTasks": {
-    "placeholders": {
-      "count": {}
-    }
-  },
-
   "dismissAllNotifications": "清除全部",
   "dismissByType": "按类型清除",
   "dismissTypeSystemAction": "日程提醒",

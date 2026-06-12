@@ -723,6 +723,108 @@ class AppLocalizationsZh extends AppLocalizations {
   String get processingEllipsis => '处理中...';
 
   @override
+  String get agentBackgroundTitle => 'Memex Agent';
+
+  @override
+  String get agentBackgroundPausedTitle => 'Memex Agent 已暂停';
+
+  @override
+  String get agentBackgroundNeedsAttentionTitle => 'Memex Agent 需要处理';
+
+  @override
+  String get agentBackgroundStageIdle => '空闲';
+
+  @override
+  String get agentBackgroundStageProcessing => '处理中';
+
+  @override
+  String get agentBackgroundStageQueued => '排队中';
+
+  @override
+  String get agentBackgroundStageRetrying => '等待重试';
+
+  @override
+  String get agentBackgroundStagePaused => '已暂停';
+
+  @override
+  String get agentBackgroundStageCompleted => '已完成';
+
+  @override
+  String get agentBackgroundStageNeedsAttention => '需要处理';
+
+  @override
+  String get agentBackgroundStageAnalyzingMedia => '分析素材中';
+
+  @override
+  String get agentBackgroundStageGeneratingCard => '生成卡片中';
+
+  @override
+  String get agentBackgroundStageUpdatingKnowledge => '更新知识中';
+
+  @override
+  String get agentBackgroundStagePreparingComment => '准备评论中';
+
+  @override
+  String get agentBackgroundStageRoutingFollowUps => '分发后续任务中';
+
+  @override
+  String agentBackgroundTaskSummary(
+      Object running, Object pending, Object retrying) {
+    return '执行中 $running，排队中 $pending，重试中 $retrying';
+  }
+
+  @override
+  String agentBackgroundTaskDetail(Object count) {
+    return '正在处理 $count 个后台任务。';
+  }
+
+  @override
+  String get agentBackgroundNoTasks => '暂无后台任务。';
+
+  @override
+  String get agentBackgroundStarting => '后台处理正在启动。';
+
+  @override
+  String get agentBackgroundCompletedDetail => '所有后台任务已完成。';
+
+  @override
+  String get agentBackgroundFailedDetail => '后台处理遇到错误。';
+
+  @override
+  String get agentBackgroundPausedDetail => '后台处理已暂停，稍后会继续。';
+
+  @override
+  String get agentBackgroundQueuedDetail => '正在等待下一个处理步骤。';
+
+  @override
+  String get agentBackgroundRetryingDetail => '当前步骤将自动重试。';
+
+  @override
+  String get agentBackgroundAnalyzeMediaDetail => '正在读取附件和本地上下文。';
+
+  @override
+  String get agentBackgroundGeneratingCardDetail => '正在把记录生成时间线卡片。';
+
+  @override
+  String get agentBackgroundUpdatingKnowledgeDetail => '正在更新本地知识和记忆。';
+
+  @override
+  String get agentBackgroundPreparingCommentDetail => '正在准备助手跟进评论。';
+
+  @override
+  String get agentBackgroundRoutingFollowUpsDetail => '正在检查这张卡片的后续动作。';
+
+  @override
+  String agentBackgroundPausedStatus(Object summary) {
+    return '已暂停 - $summary';
+  }
+
+  @override
+  String agentBackgroundNeedsAttentionStatus(Object summary) {
+    return '需要处理 - $summary';
+  }
+
+  @override
   String get settings => '设置';
 
   @override
@@ -3164,46 +3266,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get earlyUpdateReleaseNotes => '更新说明';
-
-  @override
-  String get agentBackgroundTitle => 'Memex Agent';
-
-  @override
-  String get agentBackgroundNeedsAttentionTitle => 'Memex Agent 需要处理';
-
-  @override
-  String get agentBackgroundProcessing => '处理中';
-
-  @override
-  String get agentBackgroundNeedsAttention => '需要处理';
-
-  @override
-  String get agentBackgroundCompleted => '已完成';
-
-  @override
-  String get agentBackgroundIdle => '空闲';
-
-  @override
-  String get agentBackgroundProcessingStarting => '正在开始处理。';
-
-  @override
-  String get agentBackgroundStoppedWithError => '处理因错误停止。';
-
-  @override
-  String get agentBackgroundAllTasksFinished => '所有后台任务已完成。';
-
-  @override
-  String get agentBackgroundNoTasks => '当前没有后台任务。';
-
-  @override
-  String agentBackgroundQueuedTasks(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '正在处理 $count 个后台任务',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get dismissAllNotifications => '清除全部';

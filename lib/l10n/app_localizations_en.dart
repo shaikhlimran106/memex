@@ -744,6 +744,117 @@ class AppLocalizationsEn extends AppLocalizations {
   String get processingEllipsis => 'Processing...';
 
   @override
+  String get agentBackgroundTitle => 'Memex Agent';
+
+  @override
+  String get agentBackgroundPausedTitle => 'Memex Agent paused';
+
+  @override
+  String get agentBackgroundNeedsAttentionTitle =>
+      'Memex Agent needs attention';
+
+  @override
+  String get agentBackgroundStageIdle => 'Idle';
+
+  @override
+  String get agentBackgroundStageProcessing => 'Processing';
+
+  @override
+  String get agentBackgroundStageQueued => 'Queued';
+
+  @override
+  String get agentBackgroundStageRetrying => 'Waiting to retry';
+
+  @override
+  String get agentBackgroundStagePaused => 'Paused';
+
+  @override
+  String get agentBackgroundStageCompleted => 'Completed';
+
+  @override
+  String get agentBackgroundStageNeedsAttention => 'Needs attention';
+
+  @override
+  String get agentBackgroundStageAnalyzingMedia => 'Analyzing media';
+
+  @override
+  String get agentBackgroundStageGeneratingCard => 'Generating card';
+
+  @override
+  String get agentBackgroundStageUpdatingKnowledge => 'Updating knowledge';
+
+  @override
+  String get agentBackgroundStagePreparingComment => 'Preparing comment';
+
+  @override
+  String get agentBackgroundStageRoutingFollowUps => 'Routing follow-ups';
+
+  @override
+  String agentBackgroundTaskSummary(
+      Object running, Object pending, Object retrying) {
+    return 'Running $running, Pending $pending, Retry $retrying';
+  }
+
+  @override
+  String agentBackgroundTaskDetail(Object count) {
+    return 'Processing $count queued task(s).';
+  }
+
+  @override
+  String get agentBackgroundNoTasks => 'No background tasks.';
+
+  @override
+  String get agentBackgroundStarting => 'Processing is starting.';
+
+  @override
+  String get agentBackgroundCompletedDetail => 'All background tasks finished.';
+
+  @override
+  String get agentBackgroundFailedDetail => 'Processing stopped with an error.';
+
+  @override
+  String get agentBackgroundPausedDetail =>
+      'Processing is paused and will continue later.';
+
+  @override
+  String get agentBackgroundQueuedDetail =>
+      'Waiting for the next processing step.';
+
+  @override
+  String get agentBackgroundRetryingDetail =>
+      'The current step will retry automatically.';
+
+  @override
+  String get agentBackgroundAnalyzeMediaDetail =>
+      'Reading attachments and local context.';
+
+  @override
+  String get agentBackgroundGeneratingCardDetail =>
+      'Turning the record into a timeline card.';
+
+  @override
+  String get agentBackgroundUpdatingKnowledgeDetail =>
+      'Updating local knowledge and memory.';
+
+  @override
+  String get agentBackgroundPreparingCommentDetail =>
+      'Preparing an assistant follow-up.';
+
+  @override
+  String get agentBackgroundRoutingFollowUpsDetail =>
+      'Checking follow-up actions for this card.';
+
+  @override
+  String agentBackgroundPausedStatus(Object summary) {
+    return 'Paused - $summary';
+  }
+
+  @override
+  String agentBackgroundNeedsAttentionStatus(Object summary) {
+    return 'Needs attention - $summary';
+  }
+
+  @override
   String get settings => 'Settings';
 
   @override
@@ -3293,50 +3404,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get earlyUpdateReleaseNotes => 'Release notes';
-
-  @override
-  String get agentBackgroundTitle => 'Memex Agent';
-
-  @override
-  String get agentBackgroundNeedsAttentionTitle =>
-      'Memex Agent needs attention';
-
-  @override
-  String get agentBackgroundProcessing => 'Processing';
-
-  @override
-  String get agentBackgroundNeedsAttention => 'Needs attention';
-
-  @override
-  String get agentBackgroundCompleted => 'Completed';
-
-  @override
-  String get agentBackgroundIdle => 'Idle';
-
-  @override
-  String get agentBackgroundProcessingStarting => 'Processing is starting.';
-
-  @override
-  String get agentBackgroundStoppedWithError =>
-      'Processing stopped with an error.';
-
-  @override
-  String get agentBackgroundAllTasksFinished =>
-      'All background tasks finished.';
-
-  @override
-  String get agentBackgroundNoTasks => 'No background tasks.';
-
-  @override
-  String agentBackgroundQueuedTasks(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Processing $count queued tasks',
-      one: 'Processing 1 queued task',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get dismissAllNotifications => 'Clear all';

@@ -8,8 +8,10 @@ import 'package:memex/data/services/agent_background_platform.dart';
 import 'package:memex/data/services/agent_background_status.dart';
 import 'package:memex/data/services/agent_queue_background_worker.dart';
 import 'package:memex/data/services/agent_queue_drain_scheduler.dart';
+import 'package:memex/data/services/agent_run_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/db/app_database.dart';
+import 'package:memex/utils/user_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -20,8 +22,12 @@ void main() {
     late LocalTaskExecutor executor;
     late _FakeDrainScheduler scheduler;
 
-    setUp(() {
-      SharedPreferences.setMockInitialValues({'user_id': 'worker-user'});
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({
+        'user_id': 'worker-user',
+        'language': 'en',
+      });
+      await UserStorage.initL10n();
       db = AppDatabase.forTesting(NativeDatabase.memory());
       AppDatabase.setTestInstance(db);
       executor = LocalTaskExecutor.forTesting();
@@ -138,7 +144,9 @@ void main() {
 
     test('reschedules when only future retrying tasks remain', () async {
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      await db.into(db.tasks).insert(
+      await db
+          .into(db.tasks)
+          .insert(
             TasksCompanion.insert(
               id: 'future-retry',
               type: 'unknown_task',
@@ -170,6 +178,50 @@ void main() {
       expect(platform.stopCalls, 0);
     });
 
+    test(
+      'marks durable run paused when background slice ends with work left',
+      () async {
+        await AgentRunService.instance.createForSubmittedInput(
+          userId: 'worker-user',
+          factId: 'fact-paused',
+        );
+        final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+        await db
+            .into(db.tasks)
+            .insert(
+              TasksCompanion.insert(
+                id: 'future-retry',
+                type: 'card_agent_task',
+                payload: const Value('{}'),
+                runId: const Value('fact-paused'),
+                status: 'retrying',
+                createdAt: Value(now),
+                scheduledAt: Value(now + 600),
+              ),
+            );
+        final platform = _FakeBackgroundPlatform();
+
+        final completed = await AgentQueueBackgroundWorker.run(
+          initializeTaskQueue: (_) async {},
+          executor: executor,
+          scheduler: scheduler,
+          backgroundPlatform: platform,
+          databaseRetryDelay: Duration.zero,
+        );
+
+        final run = await (db.select(
+          db.agentRuns,
+        )..where((row) => row.id.equals('fact-paused'))).getSingle();
+
+        expect(completed, isTrue);
+        expect(run.state, 'paused_by_system');
+        expect(run.message, UserStorage.l10n.agentBackgroundQueuedDetail);
+        expect(platform.updates.single.state, AgentBackgroundRunState.paused);
+        expect(platform.updates.single.runId, 'fact-paused');
+        expect(scheduler.scheduleCalls, 1);
+      },
+    );
+
     test('drains handlers that publish agent activity after init', () async {
       executor.registerHandler('activity_task', (
         userId,
@@ -186,7 +238,9 @@ void main() {
         );
       });
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      await db.into(db.tasks).insert(
+      await db
+          .into(db.tasks)
+          .insert(
             TasksCompanion.insert(
               id: 'activity-task',
               type: 'activity_task',
@@ -209,8 +263,7 @@ void main() {
 
       final task = await (db.select(
         db.tasks,
-      )..where((t) => t.id.equals('activity-task')))
-          .getSingle();
+      )..where((t) => t.id.equals('activity-task'))).getSingle();
       final messages = await LocalAgentActivityService.instance.getHistory(
         limit: 1,
       );
@@ -242,7 +295,9 @@ void main() {
           await releaseHandler.future;
         });
         final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-        await db.into(db.tasks).insert(
+        await db
+            .into(db.tasks)
+            .insert(
               TasksCompanion.insert(
                 id: 'live-activity-task',
                 type: 'activity_task',
@@ -307,7 +362,9 @@ void main() {
           await releaseHandler.future;
         });
         final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-        await db.into(db.tasks).insert(
+        await db
+            .into(db.tasks)
+            .insert(
               TasksCompanion.insert(
                 id: 'multi-live-activity-task',
                 type: 'multi_activity_task',
@@ -368,7 +425,9 @@ void main() {
           );
         });
         final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-        await db.into(db.tasks).insert(
+        await db
+            .into(db.tasks)
+            .insert(
               TasksCompanion.insert(
                 id: 'activity-before-retry',
                 type: 'activity_task',
@@ -377,7 +436,9 @@ void main() {
                 createdAt: Value(now),
               ),
             );
-        await db.into(db.tasks).insert(
+        await db
+            .into(db.tasks)
+            .insert(
               TasksCompanion.insert(
                 id: 'future-retry-after-activity',
                 type: 'unknown_task',
