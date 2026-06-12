@@ -54,14 +54,37 @@ class HealthService {
         reportIntervalMinutes: 1,
       );
     } else {
-      // iOS: Use HealthKit for accurate step count data.
-      // Pedometer fallback removed — CMPedometer can crash on some devices/debug modes.
+      // iOS: HealthKit. Steps are checked frequently; the richer Apple Watch
+      // metrics below share the same fetch/aggregate/report pipeline (their
+      // aggregation already exists in HealthKitFetcher and main.dart). Data is
+      // aggregated per day, so a 30-min check cadence is ample for them.
       _configs[HealthDataType.STEPS] = HealthStrategyConfig(
         type: HealthDataType.STEPS,
         prefKeySuffix: 'steps',
         primaryFetcher: HealthKitFetcher(),
         reportIntervalMinutes: 1,
       );
+
+      const healthKitTypes = <HealthDataType, String>{
+        HealthDataType.HEART_RATE: 'heart_rate',
+        HealthDataType.RESTING_HEART_RATE: 'resting_heart_rate',
+        HealthDataType.BLOOD_OXYGEN: 'blood_oxygen',
+        HealthDataType.BLOOD_PRESSURE_SYSTOLIC: 'bp_systolic',
+        HealthDataType.BLOOD_PRESSURE_DIASTOLIC: 'bp_diastolic',
+        HealthDataType.BLOOD_GLUCOSE: 'blood_glucose',
+        HealthDataType.SLEEP_ASLEEP: 'sleep',
+        HealthDataType.ACTIVE_ENERGY_BURNED: 'active_energy',
+        HealthDataType.WEIGHT: 'weight',
+        HealthDataType.WORKOUT: 'workout',
+      };
+      healthKitTypes.forEach((type, suffix) {
+        _configs[type] = HealthStrategyConfig(
+          type: type,
+          prefKeySuffix: suffix,
+          primaryFetcher: HealthKitFetcher(),
+          reportIntervalMinutes: 30,
+        );
+      });
     }
 
     // Initialize Background Task for Pedometer (Ensure it's registered on app start)
