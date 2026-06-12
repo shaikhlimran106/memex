@@ -1430,6 +1430,193 @@ abstract class AppLocalizations {
   /// **'Processing...'**
   String get processingEllipsis;
 
+  /// No description provided for @agentBackgroundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex Agent'**
+  String get agentBackgroundTitle;
+
+  /// No description provided for @agentBackgroundPausedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex Agent paused'**
+  String get agentBackgroundPausedTitle;
+
+  /// No description provided for @agentBackgroundNeedsAttentionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex Agent needs attention'**
+  String get agentBackgroundNeedsAttentionTitle;
+
+  /// No description provided for @agentBackgroundStageIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Idle'**
+  String get agentBackgroundStageIdle;
+
+  /// No description provided for @agentBackgroundStageProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing'**
+  String get agentBackgroundStageProcessing;
+
+  /// No description provided for @agentBackgroundStageQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get agentBackgroundStageQueued;
+
+  /// No description provided for @agentBackgroundStageRetrying.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting to retry'**
+  String get agentBackgroundStageRetrying;
+
+  /// No description provided for @agentBackgroundStagePaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get agentBackgroundStagePaused;
+
+  /// No description provided for @agentBackgroundStageCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get agentBackgroundStageCompleted;
+
+  /// No description provided for @agentBackgroundStageNeedsAttention.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs attention'**
+  String get agentBackgroundStageNeedsAttention;
+
+  /// No description provided for @agentBackgroundStageAnalyzingMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzing media'**
+  String get agentBackgroundStageAnalyzingMedia;
+
+  /// No description provided for @agentBackgroundStageGeneratingCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating card'**
+  String get agentBackgroundStageGeneratingCard;
+
+  /// No description provided for @agentBackgroundStageUpdatingKnowledge.
+  ///
+  /// In en, this message translates to:
+  /// **'Updating knowledge'**
+  String get agentBackgroundStageUpdatingKnowledge;
+
+  /// No description provided for @agentBackgroundStagePreparingComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing comment'**
+  String get agentBackgroundStagePreparingComment;
+
+  /// No description provided for @agentBackgroundStageRoutingFollowUps.
+  ///
+  /// In en, this message translates to:
+  /// **'Routing follow-ups'**
+  String get agentBackgroundStageRoutingFollowUps;
+
+  /// No description provided for @agentBackgroundTaskSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Running {running}, Pending {pending}, Retry {retrying}'**
+  String agentBackgroundTaskSummary(
+      Object running, Object pending, Object retrying);
+
+  /// No description provided for @agentBackgroundTaskDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing {count} queued task(s).'**
+  String agentBackgroundTaskDetail(Object count);
+
+  /// No description provided for @agentBackgroundNoTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'No background tasks.'**
+  String get agentBackgroundNoTasks;
+
+  /// No description provided for @agentBackgroundStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing is starting.'**
+  String get agentBackgroundStarting;
+
+  /// No description provided for @agentBackgroundCompletedDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'All background tasks finished.'**
+  String get agentBackgroundCompletedDetail;
+
+  /// No description provided for @agentBackgroundFailedDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing stopped with an error.'**
+  String get agentBackgroundFailedDetail;
+
+  /// No description provided for @agentBackgroundPausedDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing is paused and will continue later.'**
+  String get agentBackgroundPausedDetail;
+
+  /// No description provided for @agentBackgroundQueuedDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the next processing step.'**
+  String get agentBackgroundQueuedDetail;
+
+  /// No description provided for @agentBackgroundRetryingDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'The current step will retry automatically.'**
+  String get agentBackgroundRetryingDetail;
+
+  /// No description provided for @agentBackgroundAnalyzeMediaDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading attachments and local context.'**
+  String get agentBackgroundAnalyzeMediaDetail;
+
+  /// No description provided for @agentBackgroundGeneratingCardDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Turning the record into a timeline card.'**
+  String get agentBackgroundGeneratingCardDetail;
+
+  /// No description provided for @agentBackgroundUpdatingKnowledgeDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Updating local knowledge and memory.'**
+  String get agentBackgroundUpdatingKnowledgeDetail;
+
+  /// No description provided for @agentBackgroundPreparingCommentDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing an assistant follow-up.'**
+  String get agentBackgroundPreparingCommentDetail;
+
+  /// No description provided for @agentBackgroundRoutingFollowUpsDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking follow-up actions for this card.'**
+  String get agentBackgroundRoutingFollowUpsDetail;
+
+  /// No description provided for @agentBackgroundPausedStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused - {summary}'**
+  String agentBackgroundPausedStatus(Object summary);
+
+  /// No description provided for @agentBackgroundNeedsAttentionStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs attention - {summary}'**
+  String agentBackgroundNeedsAttentionStatus(Object summary);
+
   /// No description provided for @settings.
   ///
   /// In en, this message translates to:

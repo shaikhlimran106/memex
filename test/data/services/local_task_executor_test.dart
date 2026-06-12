@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:memex/data/services/agent_run_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/db/app_database.dart';
 
@@ -256,6 +257,38 @@ void main() {
       );
       expect(snapshot.total, 3);
       expect(snapshot.hasActiveTasks, isTrue);
+    });
+
+    test('links payload run_id to task row and completes durable run',
+        () async {
+      final completed = Completer<void>();
+      await AgentRunService.instance.createForSubmittedInput(
+        userId: 'user-a',
+        factId: 'fact-run',
+      );
+      executor.registerHandler('runnable_task', (_, __, ___) async {
+        if (!completed.isCompleted) completed.complete();
+      });
+
+      final taskId = await executor.enqueueTask(
+        userId: 'user-a',
+        taskType: 'runnable_task',
+        payload: {'run_id': 'fact-run'},
+      );
+
+      var task = await _getTask(db, taskId);
+      expect(task.runId, 'fact-run');
+
+      await executor.start(userId: 'user-a');
+      await completed.future.timeout(const Duration(seconds: 3));
+      task = await _waitForTaskStatus(db, taskId, 'completed');
+      final run = await (db.select(db.agentRuns)
+            ..where((row) => row.id.equals('fact-run')))
+          .getSingle();
+
+      expect(task.status, 'completed');
+      expect(run.state, 'completed');
+      expect(run.completedUnits, 100);
     });
 
     test('does not double-claim a task under repeated immediate polls',

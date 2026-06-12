@@ -273,7 +273,7 @@ class AgentBackgroundTaskChannelHandler: NSObject {
             }
             let request = BGContinuedProcessingTaskRequest(
                 identifier: identifier,
-                title: "Memex Agent",
+                title: nonBlankString(snapshot["title"]) ?? "Memex Agent",
                 subtitle: subtitle(for: snapshot)
             )
             request.strategy = .queue
@@ -327,7 +327,9 @@ class AgentBackgroundTaskChannelHandler: NSObject {
     private func completeContinuedProcessingIfSupported(success: Bool) {
         if #available(iOS 26.0, *) {
             if success {
-                continuedProcessingTask?.progress.completedUnitCount = 100
+                if let task = continuedProcessingTask {
+                    task.progress.completedUnitCount = task.progress.totalUnitCount
+                }
             }
             continuedProcessingTask?.setTaskCompleted(success: success)
             continuedProcessingTask = nil
@@ -338,7 +340,7 @@ class AgentBackgroundTaskChannelHandler: NSObject {
     private func completeContinuedProcessingAfterExpiration() {
         if #available(iOS 26.0, *) {
             if let task = continuedProcessingTask {
-                task.updateTitle(task.title, subtitle: "Paused. Memex will continue later.")
+                task.updateTitle(task.title, subtitle: subtitle(for: activeSnapshot))
                 // The agent queue is durable and will resume from LocalTaskExecutor.
                 // Expiration means the current iOS visibility window ended, not that
                 // the Memex task failed.
@@ -350,11 +352,43 @@ class AgentBackgroundTaskChannelHandler: NSObject {
     }
 
     private func subtitle(for snapshot: [String: Any]) -> String {
+        if let statusText = nonBlankString(snapshot["statusText"]) {
+            return statusText
+        }
+        let state = snapshot["state"] as? String
         let total = snapshot["total"] as? Int ?? 0
+        let taskSummary = nonBlankString(snapshot["taskSummary"])
+        if state == "paused" {
+            if let taskSummary = taskSummary, total > 0 {
+                return "Paused - \(taskSummary)"
+            }
+            return "Paused. Memex will continue later."
+        }
+        if state == "failed" {
+            if let taskSummary = taskSummary, total > 0 {
+                return "Needs attention - \(taskSummary)"
+            }
+            return "Needs attention"
+        }
+        if let taskSummary = taskSummary, total > 0 {
+            return taskSummary
+        }
+        if let detail = nonBlankString(snapshot["detail"]) {
+            return detail
+        }
+        if let stage = nonBlankString(snapshot["stage"]) {
+            return stage
+        }
         if total <= 0 {
             return "Finishing current work"
         }
         return "Processing \(total) queued task\(total == 1 ? "" : "s")"
+    }
+
+    private func nonBlankString(_ value: Any?) -> String? {
+        guard let value = value as? String else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     private func int64Value(_ value: Any?) -> Int64? {

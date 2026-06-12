@@ -177,6 +177,7 @@ class MemexRouter {
         payloadBuilder: (_, event) {
           final p = event.payload as UserInputSubmittedPayload;
           return Future.value({
+            'run_id': p.factId,
             'fact_id': p.factId,
             'asset_paths': p.assetPaths,
           });
@@ -193,6 +194,7 @@ class MemexRouter {
         payloadBuilder: (_, event) {
           final p = event.payload as UserInputSubmittedPayload;
           return Future.value({
+            'run_id': p.factId,
             'fact_id': p.factId,
             'combined_text': p.combinedText,
             'markdown_entry': p.markdownEntry,
@@ -212,6 +214,7 @@ class MemexRouter {
         payloadBuilder: (_, event) {
           final p = event.payload as UserInputSubmittedPayload;
           return Future.value({
+            'run_id': p.factId,
             'fact_id': p.factId,
             'combined_text': p.combinedText,
             'created_at_ts': p.pkmCreatedAtTs,
@@ -235,6 +238,7 @@ class MemexRouter {
         payloadBuilder: (_, event) {
           final p = event.payload as UserInputSubmittedPayload;
           return Future.value({
+            'run_id': p.factId,
             'fact_id': p.factId,
             'combined_text': p.combinedText,
             'created_at_ts': p.createdAtTs,
@@ -254,6 +258,7 @@ class MemexRouter {
         payloadBuilder: (_, event) {
           final p = event.payload as UserInputSubmittedPayload;
           return Future.value({
+            'run_id': p.factId,
             'fact_id': p.factId,
             'combined_text': p.combinedText,
             'created_at_ts': p.createdAtTs,

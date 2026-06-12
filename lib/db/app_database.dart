@@ -14,6 +14,7 @@ part 'app_database.g.dart';
 @DriftDatabase(
   tables: [
     Tasks,
+    AgentRuns,
     KvStore,
     AgentActivityMessages,
     CardCache,
@@ -76,7 +77,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -89,6 +90,9 @@ class AppDatabase extends _$AppDatabase {
               'CREATE INDEX IF NOT EXISTS idx_tasks_scheduled_at ON tasks(scheduled_at)');
           await customStatement(
               'CREATE INDEX IF NOT EXISTS idx_tasks_type_biz_id ON tasks(type, biz_id)');
+          await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_tasks_run_id ON tasks(run_id)');
+          await _createAgentRunIndices();
           await customStatement(
               'CREATE INDEX IF NOT EXISTS idx_kv_bucket ON kv_store(bucket)');
           await customStatement(
@@ -188,8 +192,49 @@ class AppDatabase extends _$AppDatabase {
                   .info('message_type column may already exist, skipping: $e');
             }
           }
+          if (from < 15) {
+            await _addTaskRunIdColumn(m);
+            await _createAgentRunsTable(m);
+          }
         },
       );
+
+  Future<void> _addTaskRunIdColumn(Migrator m) async {
+    try {
+      await m.addColumn(tasks, tasks.runId);
+    } catch (e) {
+      final errorStr = e.toString().toLowerCase();
+      if (errorStr.contains('duplicate column') ||
+          (errorStr.contains('sqlite') && errorStr.contains('run_id'))) {
+        _logger.info('run_id column already exists on tasks, skipping');
+      } else {
+        rethrow;
+      }
+    }
+    await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_tasks_run_id ON tasks(run_id)');
+  }
+
+  Future<void> _createAgentRunsTable(Migrator m) async {
+    try {
+      await m.createTable(agentRuns);
+    } catch (e) {
+      if (_isAlreadyExistsError(e, 'agent_runs')) {
+        _logger.info('agent_runs table already exists, skipping migration');
+      } else {
+        rethrow;
+      }
+    }
+    await _createAgentRunIndices();
+  }
+
+  Future<void> _createAgentRunIndices() async {
+    await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_agent_runs_user_state_updated '
+        'ON agent_runs(user_id, state, updated_at)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_agent_runs_fact_id '
+        'ON agent_runs(fact_id)');
+  }
 
   Future<void> _createClarificationRequestsTable(Migrator m) async {
     try {

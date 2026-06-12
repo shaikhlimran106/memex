@@ -7,6 +7,7 @@ import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/data/services/agent_background_platform.dart';
 import 'package:memex/data/services/agent_background_status.dart';
 import 'package:memex/data/services/agent_queue_drain_scheduler.dart';
+import 'package:memex/data/services/agent_run_service.dart';
 import 'package:memex/data/services/file_logger_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/utils/logger.dart';
@@ -69,6 +70,12 @@ class AgentQueueBackgroundWorker {
       );
 
       if (result.snapshot.hasActiveTasks) {
+        await AgentRunService.instance.markActiveRunsPausedBySystem(
+          userId: userId,
+          message: result.timedOut
+              ? UserStorage.l10n.agentBackgroundPausedDetail
+              : UserStorage.l10n.agentBackgroundQueuedDetail,
+        );
         await queueScheduler.schedule(
           initialDelay: result.nextRunnableDelay ?? _defaultRetryDelay,
           expedited: false,
@@ -113,8 +120,12 @@ class AgentQueueBackgroundWorker {
     }
 
     try {
+      final runSnapshot = await AgentRunService.instance.getLatestVisibleRun();
       await platform.updateStatus(
-        AgentBackgroundStatus.fromActivity(taskSnapshot: snapshot),
+        AgentBackgroundStatus.fromActivity(
+          taskSnapshot: snapshot,
+          runSnapshot: runSnapshot,
+        ),
         isInBackground: true,
       );
     } catch (e, stackTrace) {

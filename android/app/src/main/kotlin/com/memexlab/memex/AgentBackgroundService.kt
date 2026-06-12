@@ -53,6 +53,7 @@ class AgentBackgroundService : Service() {
     private var workMonitorStartedAtMs = 0L
     private var workInfosLiveData: LiveData<List<WorkInfo>>? = null
     private var workInfoObserver: Observer<List<WorkInfo>>? = null
+    private var lastStatusIntent: Intent? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -74,6 +75,7 @@ class AgentBackgroundService : Service() {
             clearAndStop(startId)
             return START_NOT_STICKY
         }
+        lastStatusIntent = Intent(intent)
 
         watchBackgroundWork =
             state == "active" && intent.getBooleanExtra(EXTRA_WATCH_BACKGROUND_WORK, false)
@@ -112,6 +114,17 @@ class AgentBackgroundService : Service() {
         val stage = intent?.getStringExtra("stage") ?: "Processing"
         val detail = intent?.getStringExtra("detail") ?: ""
         val remainingTasks = intent?.getIntExtra("remainingTasks", 0) ?: 0
+        val taskSummary = intent?.getStringExtra("taskSummary")
+            ?.takeIf { it.isNotBlank() }
+            ?: taskSummaryFromCounts(
+                pending = intent?.getIntExtra("pending", 0) ?: 0,
+                processing = intent?.getIntExtra("processing", 0) ?: 0,
+                retrying = intent?.getIntExtra("retrying", 0) ?: 0,
+            )
+        val localizedStatusText = intent?.getStringExtra("statusText")
+            ?.takeIf { it.isNotBlank() }
+        val progressCompleted = intent?.getIntExtra("progressCompleted", 0) ?: 0
+        val progressTotal = intent?.getIntExtra("progressTotal", 0) ?: 0
 
         val openIntent = Intent(this, MainActivity::class.java).apply {
             action = AgentBackgroundChannelHandler.ACTION_OPEN_AGENT_ACTIVITY
@@ -125,12 +138,24 @@ class AgentBackgroundService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val subText = when (state) {
-            "failed" -> "Needs attention"
-            else -> {
-                val taskLabel = if (remainingTasks == 1) "task" else "tasks"
+        val subText = localizedStatusText ?: when (state) {
+            "failed" -> {
                 if (remainingTasks > 0) {
-                    "Processing $remainingTasks queued $taskLabel"
+                    "Needs attention - $taskSummary"
+                } else {
+                    "Needs attention"
+                }
+            }
+            "paused" -> {
+                if (remainingTasks <= 0) {
+                    "Paused - will continue later"
+                } else {
+                    "Paused - $taskSummary"
+                }
+            }
+            else -> {
+                if (remainingTasks > 0) {
+                    taskSummary
                 } else {
                     "Processing"
                 }
@@ -138,8 +163,9 @@ class AgentBackgroundService : Service() {
         }
         val body = listOf(
             stage,
+            taskSummary.takeIf { remainingTasks > 0 },
             detail,
-        ).filter { it.isNotBlank() }.joinToString("\n")
+        ).filterNotNull().filter { it.isNotBlank() }.joinToString("\n")
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_quick_note)
@@ -148,16 +174,22 @@ class AgentBackgroundService : Service() {
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setContentIntent(pendingIntent)
             .setOngoing(state == "active")
-            .setAutoCancel(state != "active")
+            .setAutoCancel(state == "failed")
             .setOnlyAlertOnce(true)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setPriority(NotificationCompat.PRIORITY_LOW)
 
-        if (state == "active" && remainingTasks > 0) {
+        if ((state == "active" || state == "paused") && progressTotal > 0) {
+            builder.setProgress(progressTotal, progressCompleted.coerceIn(0, progressTotal), false)
+        } else if (state == "active" && remainingTasks > 0) {
             builder.setProgress(0, 0, true)
         }
 
         return builder.build()
+    }
+
+    private fun taskSummaryFromCounts(pending: Int, processing: Int, retrying: Int): String {
+        return "Running $processing, Pending $pending, Retry $retrying"
     }
 
     private fun createNotificationChannel() {
@@ -210,7 +242,7 @@ class AgentBackgroundService : Service() {
                         System.currentTimeMillis() - workMonitorStartedAtMs >=
                             WORK_MONITOR_GRACE_MS
                     if (waitedLongEnough) {
-                        clearAndStop()
+                        pauseNotificationAfterDetachedWork()
                     } else {
                         scheduleOrCancelWorkMonitor()
                     }
@@ -243,6 +275,27 @@ class AgentBackgroundService : Service() {
         workInfosLiveData?.removeObserver(observer)
         workInfoObserver = null
         workInfosLiveData = null
+    }
+
+    private fun pauseNotificationAfterDetachedWork() {
+        val lastIntent = lastStatusIntent
+        val runId = lastIntent?.getStringExtra("runId").orEmpty()
+        if (runId.isBlank()) {
+            clearAndStop()
+            return
+        }
+
+        watchBackgroundWork = false
+        handler.removeCallbacks(workMonitorRunnable)
+        removeWorkInfoObserver()
+
+        val pausedIntent = Intent(lastIntent).apply {
+            putExtra("state", "paused")
+            putExtra("stage", "Paused")
+            putExtra("detail", "Background execution paused. Memex will continue later.")
+        }
+        lastStatusIntent = pausedIntent
+        startForegroundCompat(buildNotification(pausedIntent, "paused"))
     }
 
     private fun startForegroundCompat(notification: Notification) {

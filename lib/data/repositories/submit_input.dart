@@ -4,6 +4,8 @@ import 'package:memex/utils/logger.dart';
 import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/card_renderer.dart';
+import 'package:memex/data/services/agent_queue_drain_scheduler.dart';
+import 'package:memex/data/services/agent_run_service.dart';
 import 'package:memex/data/services/global_event_bus.dart';
 import 'package:memex/data/services/location_context_service.dart';
 import 'package:memex/domain/models/system_event.dart';
@@ -207,6 +209,19 @@ Future<Map<String, dynamic>> submitInput(
       // Continue anyway
     }
 
+    final agentRunService = AgentRunService.instance;
+    if (agentRunService.isAvailable) {
+      await agentRunService.createForSubmittedInput(
+        userId: userId,
+        factId: factId,
+      );
+    } else {
+      _logger.warning(
+        'Skipping durable agent run creation for $factId because the database '
+        'is not initialized',
+      );
+    }
+
     final publishTimestamp = now.millisecondsSinceEpoch ~/ 1000;
     String? locationContextReminder;
     String? locationContextStatus;
@@ -223,7 +238,7 @@ Future<Map<String, dynamic>> submitInput(
 
     // 5. Publish domain event.
     // Event subscriptions convert this event into persistent tasks and dependency chains.
-    await GlobalEventBus.instance.publish(
+    final enqueuedTaskIds = await GlobalEventBus.instance.publish(
       userId: userId,
       event: SystemEvent(
         type: SystemEventTypes.userInputSubmitted,
@@ -239,6 +254,16 @@ Future<Map<String, dynamic>> submitInput(
         ),
       ),
     );
+    if (agentRunService.isAvailable) {
+      await agentRunService.refreshRunFromTasks(factId);
+    }
+    if (enqueuedTaskIds.isNotEmpty) {
+      try {
+        await WorkmanagerAgentQueueDrainScheduler().schedule(expedited: true);
+      } catch (e) {
+        _logger.warning('Failed to kick agent queue drain after submit: $e');
+      }
+    }
 
     _logger.info('Published user input submitted event for fact $factId');
 

@@ -108,6 +108,8 @@ class LocalAgentActivityService implements AgentActivityService {
   final Logger _logger = Logger('LocalAgentActivityService');
   final _messageController =
       StreamController<AgentActivityMessageModel>.broadcast();
+  static const int _databaseMaxAttempts = 4;
+  static const Duration _databaseRetryDelay = Duration(milliseconds: 120);
 
   @override
   Stream<AgentActivityMessageModel> get messageStream =>
@@ -169,21 +171,18 @@ class LocalAgentActivityService implements AgentActivityService {
       if (type != AgentActivityType.thought_chunk &&
           type != AgentActivityType.output_chunk) {
         try {
-          final db = AppDatabase.instance;
-          id = await db.into(db.agentActivityMessages).insert(
-                AgentActivityMessagesCompanion.insert(
-                  type: type.name,
-                  title: title,
-                  content: Value(finalContent),
-                  icon: Value(icon),
-                  agentName: Value(agentName),
-                  agentId: Value(agentId),
-                  scene: Value(scene),
-                  sceneId: Value(sceneId),
-                  userId: Value(userId),
-                  timestamp: now,
-                ),
-              );
+          id = await _insertMessageWithRetry(
+            type: type,
+            title: title,
+            content: finalContent,
+            icon: icon,
+            agentName: agentName,
+            agentId: agentId,
+            scene: scene,
+            sceneId: sceneId,
+            userId: userId,
+            timestamp: now,
+          );
         } catch (e) {
           if (e.toString().contains("Database not initialized")) {
             // silent ignore
@@ -217,6 +216,58 @@ class LocalAgentActivityService implements AgentActivityService {
     } catch (e, stackTrace) {
       _logger.severe('Failed to push agent activity message', e, stackTrace);
     }
+  }
+
+  Future<int> _insertMessageWithRetry({
+    required AgentActivityType type,
+    required String title,
+    required String? content,
+    required String? icon,
+    required String agentName,
+    required String agentId,
+    required String? scene,
+    required String? sceneId,
+    required String? userId,
+    required DateTime timestamp,
+  }) async {
+    for (var attempt = 1; attempt <= _databaseMaxAttempts; attempt++) {
+      try {
+        final db = AppDatabase.instance;
+        return await db.into(db.agentActivityMessages).insert(
+              AgentActivityMessagesCompanion.insert(
+                type: type.name,
+                title: title,
+                content: Value(content),
+                icon: Value(icon),
+                agentName: Value(agentName),
+                agentId: Value(agentId),
+                scene: Value(scene),
+                sceneId: Value(sceneId),
+                userId: Value(userId),
+                timestamp: timestamp,
+              ),
+            );
+      } catch (error) {
+        if (!_isDatabaseLocked(error) || attempt == _databaseMaxAttempts) {
+          rethrow;
+        }
+        _logger.info(
+          'Agent activity database locked while persisting message '
+          '(attempt $attempt/$_databaseMaxAttempts); retrying.',
+        );
+        await Future.delayed(
+          Duration(milliseconds: _databaseRetryDelay.inMilliseconds * attempt),
+        );
+      }
+    }
+    return -1;
+  }
+
+  bool _isDatabaseLocked(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('database is locked') ||
+        message.contains('sqliteexception(5)') ||
+        message.contains('database_busy');
   }
 
   @override
