@@ -70,6 +70,7 @@ object AgentBackgroundChannelHandler {
             putExtra("title", args["title"] as? String ?: "Memex Agent")
             putExtra("stage", args["stage"] as? String ?: "Processing")
             putExtra("detail", args["detail"] as? String ?: "")
+            putExtra("summary", args["summary"] as? String ?: "")
             putExtra("taskSummary", args["taskSummary"] as? String ?: "")
             putExtra("statusText", args["statusText"] as? String ?: "")
             putExtra("runId", args["runId"] as? String ?: "")

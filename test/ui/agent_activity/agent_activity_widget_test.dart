@@ -212,6 +212,59 @@ void main() {
     await tester.pump();
     platform.dispose();
   });
+
+  testWidgets(
+    'notification action opens detail and renders live background activity',
+    (tester) async {
+      final platform = _FakePlatform();
+      final coordinator = AgentBackgroundCoordinator(
+        platform: platform,
+        scheduler: _NoopScheduler(),
+      );
+      setAgentBackgroundCoordinatorForTesting(coordinator);
+
+      await tester.pumpWidget(
+        buildHost(
+          initialTaskSnapshot: const TaskActivitySnapshot(
+            pending: 1,
+            processing: 1,
+            retrying: 0,
+          ),
+        ),
+      );
+      emitAgentBackgroundOpenActivityForTesting();
+      await tester.pump(const Duration(milliseconds: 350));
+
+      final taskSummary = formatAgentTaskSummary(
+        pending: 1,
+        processing: 1,
+        retrying: 0,
+      );
+
+      expect(find.text('Activity Detail'), findsOneWidget);
+      expect(find.text(taskSummary), findsWidgets);
+
+      await AgentActivityService.instance.pushMessage(
+        type: AgentActivityType.info,
+        title: 'Background notification step',
+        content: 'Live notification body',
+        agentName: 'Worker Agent',
+        agentId: 'worker-agent',
+        userId: 'agent-activity-test',
+      );
+      await tester.pump();
+
+      expect(find.text('Live notification body'), findsOneWidget);
+      expect(find.textContaining('Worker Agent'), findsOneWidget);
+      expect(find.text(taskSummary), findsWidgets);
+
+      Navigator.of(tester.element(find.text('Activity Detail'))).pop();
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      platform.dispose();
+    },
+  );
 }
 
 class _FakePlatform implements AgentBackgroundPlatform {

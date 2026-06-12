@@ -98,16 +98,20 @@ class _SystemAuthorizationPageState extends State<SystemAuthorizationPage> {
       final permission =
           Platform.isIOS ? Permission.sensors : Permission.activityRecognition;
       final status = await permission.request();
+
+      // 2. Request HealthKit / Health Connect data-type authorization.
+      // This is INDEPENDENT of the Motion & Fitness permission: a user who
+      // already granted Motion (so step 1 no longer re-prompts) must still be
+      // able to authorize Health data types. Previously this was gated behind
+      // `status.isGranted` AND only reachable from the not-yet-granted tap
+      // path, so HealthKit authorization could never be triggered once Motion
+      // was granted — leaving every type at "Authorization not determined".
+      // iOS only surfaces the authorization sheet for not-yet-determined types.
+      await HealthService().requestAllPermissions();
+
       if (status.isPermanentlyDenied) {
         _showSettingsDialog();
-        return;
       }
-
-      // 2. Also request HealthKit/Health Connect data type authorization
-      if (status.isGranted) {
-        await HealthService().requestAllPermissions();
-      }
-
       _checkAllPermissions();
     } catch (e) {
       if (mounted) {
@@ -151,6 +155,7 @@ class _SystemAuthorizationPageState extends State<SystemAuthorizationPage> {
     required PermissionStatus? status,
     required VoidCallback onTap,
     bool showBadge = false,
+    bool reauthorizeWhenGranted = false,
   }) {
     Color statusColor;
     String statusText;
@@ -198,9 +203,15 @@ class _SystemAuthorizationPageState extends State<SystemAuthorizationPage> {
         ],
       ),
       onTap: () {
-        if (status != null && !status.isGranted && !status.isLimited) {
+        final granted =
+            status != null && (status.isGranted || status.isLimited);
+        if (status != null && !granted) {
           onTap();
-        } else if (status != null && (status.isGranted || status.isLimited)) {
+        } else if (granted && reauthorizeWhenGranted) {
+          // The Fitness item also drives HealthKit data-type authorization,
+          // which may still be undetermined even when Motion is granted.
+          onTap();
+        } else if (granted) {
           // show toast or open settings
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(UserStorage.l10n.authorizedGoToSettings)),
@@ -293,6 +304,9 @@ class _SystemAuthorizationPageState extends State<SystemAuthorizationPage> {
                   showBadge: _fitnessStatus != null &&
                       !_fitnessStatus!.isGranted &&
                       !_fitnessStatus!.isLimited,
+                  // Tappable even when Motion is already granted, so HealthKit
+                  // data-type authorization can still be (re)triggered.
+                  reauthorizeWhenGranted: true,
                   onTap: () => _requestFitnessPermission(),
                 ),
                 const Divider(height: 1, indent: 56),

@@ -1510,7 +1510,6 @@
   "earlyUpdateCheckFailed": "检查更新失败：{error}",
   "earlyUpdateDialogTitle": "发现 Early 更新",
   "earlyUpdateReleaseNotes": "更新说明",
-
   "dismissAllNotifications": "清除全部",
   "dismissByType": "按类型清除",
   "dismissTypeSystemAction": "日程提醒",

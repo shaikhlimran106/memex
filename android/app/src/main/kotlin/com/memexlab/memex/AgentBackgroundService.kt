@@ -113,6 +113,7 @@ class AgentBackgroundService : Service() {
         val title = intent?.getStringExtra("title") ?: "Memex Agent"
         val stage = intent?.getStringExtra("stage") ?: "Processing"
         val detail = intent?.getStringExtra("detail") ?: ""
+        val summary = intent?.getStringExtra("summary") ?: ""
         val remainingTasks = intent?.getIntExtra("remainingTasks", 0) ?: 0
         val taskSummary = intent?.getStringExtra("taskSummary")
             ?.takeIf { it.isNotBlank() }
@@ -138,7 +139,7 @@ class AgentBackgroundService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val subText = localizedStatusText ?: when (state) {
+        val fallbackText = when (state) {
             "failed" -> {
                 if (remainingTasks > 0) {
                     "Needs attention - $taskSummary"
@@ -161,17 +162,21 @@ class AgentBackgroundService : Service() {
                 }
             }
         }
+        val contentText = localizedStatusText
+            ?: summary.takeIf { it.isNotBlank() }
+            ?: fallbackText
         val body = listOf(
             stage,
             taskSummary.takeIf { remainingTasks > 0 },
             detail,
         ).filterNotNull().filter { it.isNotBlank() }.joinToString("\n")
+        val bigText = body.ifBlank { contentText }
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_quick_note)
             .setContentTitle(title)
-            .setContentText(subText)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setContentText(contentText)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(bigText))
             .setContentIntent(pendingIntent)
             .setOngoing(state == "active")
             .setAutoCancel(state == "failed")

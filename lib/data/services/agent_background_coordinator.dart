@@ -8,6 +8,7 @@ import 'package:memex/data/services/agent_queue_drain_scheduler.dart';
 import 'package:memex/data/services/agent_run_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/utils/logger.dart';
+import 'package:memex/utils/user_storage.dart';
 
 class AgentBackgroundCoordinator with WidgetsBindingObserver {
   AgentBackgroundCoordinator({
@@ -15,10 +16,10 @@ class AgentBackgroundCoordinator with WidgetsBindingObserver {
     AgentQueueDrainScheduler? scheduler,
     AgentRunService? runService,
     AppLifecycleState? initialLifecycleState,
-  })  : _platform = platform ?? MethodChannelAgentBackgroundPlatform(),
-        _scheduler = scheduler ?? WorkmanagerAgentQueueDrainScheduler(),
-        _runService = runService ?? AgentRunService.instance,
-        _initialLifecycleState = initialLifecycleState;
+  }) : _platform = platform ?? MethodChannelAgentBackgroundPlatform(),
+       _scheduler = scheduler ?? WorkmanagerAgentQueueDrainScheduler(),
+       _runService = runService ?? AgentRunService.instance,
+       _initialLifecycleState = initialLifecycleState;
 
   static AgentBackgroundCoordinator? _instance;
   static AgentBackgroundCoordinator get instance {
@@ -37,8 +38,8 @@ class AgentBackgroundCoordinator with WidgetsBindingObserver {
   StreamSubscription<String>? _actionSubscription;
   late final StreamController<void> _openActivityController =
       StreamController<void>.broadcast(
-    onListen: _flushPendingOpenActivityRequest,
-  );
+        onListen: _flushPendingOpenActivityRequest,
+      );
 
   TaskActivitySnapshot _taskSnapshot = const TaskActivitySnapshot.empty();
   AgentActivityMessageModel? _latestMessage;
@@ -62,7 +63,8 @@ class AgentBackgroundCoordinator with WidgetsBindingObserver {
   }) {
     if (_started || !_platform.isSupported) return;
     _started = true;
-    _lifecycleState = _initialLifecycleState ??
+    _lifecycleState =
+        _initialLifecycleState ??
         WidgetsBinding.instance.lifecycleState ??
         AppLifecycleState.resumed;
     WidgetsBinding.instance.addObserver(this);
@@ -74,8 +76,8 @@ class AgentBackgroundCoordinator with WidgetsBindingObserver {
       _handleActivityMessage,
     );
     _runSubscription = _runService.watchLatestVisibleRun().listen(
-          _handleRunSnapshot,
-        );
+      _handleRunSnapshot,
+    );
     _actionSubscription = _platform.actionStream.listen(_handleAction);
 
     unawaited(_consumeInitialAction());
@@ -181,6 +183,7 @@ class AgentBackgroundCoordinator with WidgetsBindingObserver {
       taskSnapshot: _taskSnapshot,
       latestMessage: _latestMessage,
       runSnapshot: _runSnapshot,
+      labels: _statusLabels(),
     );
     final isInBackground = _lifecycleState != AppLifecycleState.resumed;
 
@@ -263,6 +266,14 @@ class AgentBackgroundCoordinator with WidgetsBindingObserver {
     } catch (e, stackTrace) {
       _drainWorkScheduledForCurrentRun = false;
       _logger.warning('Failed to schedule agent queue drain', e, stackTrace);
+    }
+  }
+
+  AgentBackgroundStatusLabels _statusLabels() {
+    try {
+      return AgentBackgroundStatusLabels.fromL10n(UserStorage.l10n);
+    } catch (_) {
+      return const AgentBackgroundStatusLabels();
     }
   }
 }

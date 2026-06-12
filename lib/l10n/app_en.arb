@@ -1547,7 +1547,6 @@
   "earlyUpdateCheckFailed": "Update check failed: {error}",
   "earlyUpdateDialogTitle": "Early update available",
   "earlyUpdateReleaseNotes": "Release notes",
-
   "dismissAllNotifications": "Clear all",
   "dismissByType": "Clear by type",
   "dismissTypeSystemAction": "Reminders & events",
