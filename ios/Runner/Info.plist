@@ -86,7 +86,7 @@
 		<key>NSRemindersFullAccessUsageDescription</key>
 		<string>Need reminders access to read, add and edit your todos</string>
 		<key>NSHealthShareUsageDescription</key>
-		<string>Memex reads your daily step count to generate personalized activity insights and trend analysis.</string>
+		<string>Memex reads your activity and health metrics — including steps, heart rate, resting heart rate, blood oxygen, blood pressure, blood glucose, sleep, active energy, body weight, and workouts — to generate personalized activity insights and trend analysis. Your health data stays on your device.</string>
 		<key>NSHealthUpdateUsageDescription</key>
 		<string>Memex does not write health data. This key is required by a third-party library.</string>
 		<key>NSFamilyControlsUsageDescription</key>
