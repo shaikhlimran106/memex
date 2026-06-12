@@ -252,7 +252,14 @@ def load_context(files: dict[str, str]) -> dict[str, Any]:
 
 def trigger_context(client: GitHubClient, *, trigger_run_id: int) -> dict[str, Any] | None:
     for target in TARGETS:
-        files = client.artifact_files(run_id=trigger_run_id, artifact_name=target.artifact_name)
+        try:
+            files = client.artifact_files(run_id=trigger_run_id, artifact_name=target.artifact_name)
+        except (urllib.error.URLError, KeyError, ValueError, zipfile.BadZipFile) as exc:
+            print(
+                f"::warning::Could not read {target.workflow_name} artifact "
+                f"from trigger run {trigger_run_id}: {exc}"
+            )
+            continue
         if not files:
             continue
         try:

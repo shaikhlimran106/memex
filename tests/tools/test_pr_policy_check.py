@@ -5,6 +5,7 @@ from scripts.pr_policy_check import (
     DECISION_HIGH_RISK,
     DECISION_LOW_RISK,
     DECISION_REJECT,
+    build_parser,
     evaluate_policy,
     result_to_dict,
     result_to_markdown,
@@ -25,6 +26,11 @@ def run_policy(changed_files, diff=""):
 
 
 class PolicyPreflightTest(unittest.TestCase):
+    def test_default_diff_budget_is_near_one_megabyte(self):
+        args = build_parser().parse_args([])
+
+        self.assertEqual(args.max_diff_bytes, 1_000_000)
+
     def test_secret_file_rejects(self):
         result = run_policy([ChangedFile(status="A", path="android/key.properties")])
 
@@ -58,6 +64,21 @@ class PolicyPreflightTest(unittest.TestCase):
         result = run_policy([ChangedFile(status="M", path=".github/workflows/build.yml")])
 
         self.assertEqual(result.decision, DECISION_HIGH_RISK)
+
+    def test_diff_truncation_remains_high_risk(self):
+        result = evaluate_policy(
+            base_ref="origin/main",
+            head_ref="HEAD",
+            head_sha="abc123",
+            merge_base="base123",
+            changed_files=[ChangedFile(status="M", path="lib/main.dart", additions=1)],
+            diff="+x",
+            diff_truncated=True,
+            diff_bytes=1_000_001,
+        )
+
+        self.assertEqual(result.decision, DECISION_HIGH_RISK)
+        self.assertTrue(any(finding.rule_id == "diff-truncated" for finding in result.findings))
 
     def test_unsafe_workflow_pattern_rejects(self):
         diff = (

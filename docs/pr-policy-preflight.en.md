@@ -89,7 +89,7 @@ These rules produce `high_risk`.
 | GitHub configuration or workflow | `.github/**` changed | CI, release, and repository automation can change the trust boundary. |
 | Analyzer/lint configuration | `analysis_options.yaml` changed | Lint configuration affects the trustworthiness of `flutter analyze`. |
 | Review policy control | Preflight docs, the preflight script, or CODEOWNERS-style files changed | Review rules themselves should receive maintainer eyes. |
-| Diff truncated | Diff exceeds the configured byte limit | Reviewers and AI cannot see the full change. |
+| Diff truncated | Diff exceeds the configured byte limit, currently 1,000,000 bytes by default | Reviewers and AI cannot see the full change. |
 | Binary file outside low-risk asset path | Binary file changed outside `assets/icons/**` | Binary content is hard to review from diff. |
 
 ## Out of Scope

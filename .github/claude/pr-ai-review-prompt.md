@@ -21,6 +21,7 @@ Read these files before judging the PR:
 - `pr-ai-review-input/pr-body.txt`
 - `pr-ai-review-input/pr-files.txt`
 - `pr-ai-review-input/pr-diff.patch`
+- `pr-ai-review-input/pr-diff-metadata.json`
 - `pr-ai-review-input/pr-context.json`
 - `pr-ai-review-input/pr-policy-preflight.json`
 - `pr-ai-review-input/pr-policy-preflight.md`
