@@ -445,7 +445,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--pr-body-file", type=Path)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--markdown-output", type=Path)
-    parser.add_argument("--max-diff-bytes", type=int, default=240_000)
+    parser.add_argument("--max-diff-bytes", type=int, default=1_000_000)
     parser.add_argument("--no-fail-on-decision", action="store_true")
     return parser
 
