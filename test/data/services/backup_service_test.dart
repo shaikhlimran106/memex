@@ -239,6 +239,20 @@ void main() {
       () => UserStorage.setAutoBackupRetentionDays('backup-service-user', 0),
       throwsArgumentError,
     );
+
+    expect(
+      await UserStorage.getAutoBackupMaxBytes('backup-service-user'),
+      UserStorage.defaultAutoBackupMaxBytes,
+    );
+
+    await UserStorage.setAutoBackupMaxBytes('backup-service-user', 1024);
+    expect(
+        await UserStorage.getAutoBackupMaxBytes('backup-service-user'), 1024);
+
+    expect(
+      () => UserStorage.setAutoBackupMaxBytes('backup-service-user', 0),
+      throwsArgumentError,
+    );
   });
 
   test(
@@ -302,17 +316,19 @@ void main() {
     expect(await oldest.exists(), isFalse);
   });
 
-  test('automatic backup retention still caps forever history by count',
+  test('automatic backup retention still caps forever history by total size',
       () async {
     final backupDir = await BackupService.resolveDefaultBackupDirectory();
     final now = DateTime(2026, 5, 15, 12);
     await UserStorage.setAutoBackupRetentionDays('backup-service-user', null);
+    await UserStorage.setAutoBackupMaxBytes('backup-service-user', 3);
 
-    for (var i = 0; i < BackupService.autoBackupMaxSnapshots + 2; i += 1) {
+    for (var i = 0; i < 5; i += 1) {
       await _writeStoredBackupFile(
         backupDir,
         'memex_auto_${i.toString().padLeft(2, '0')}.memex',
         modified: now.subtract(Duration(minutes: i)),
+        sizeBytes: 1,
       );
     }
 
@@ -320,11 +336,11 @@ void main() {
     final remainingNames = await _storedBackupNames(backupDir);
 
     expect(deleted, 2);
-    expect(remainingNames.length, BackupService.autoBackupMaxSnapshots);
+    expect(remainingNames.length, 3);
     expect(remainingNames, contains('memex_auto_00.memex'));
-    expect(remainingNames, contains('memex_auto_29.memex'));
-    expect(remainingNames, isNot(contains('memex_auto_30.memex')));
-    expect(remainingNames, isNot(contains('memex_auto_31.memex')));
+    expect(remainingNames, contains('memex_auto_02.memex'));
+    expect(remainingNames, isNot(contains('memex_auto_03.memex')));
+    expect(remainingNames, isNot(contains('memex_auto_04.memex')));
   });
 
   test('automatic backup skip still prunes expired snapshots', () async {

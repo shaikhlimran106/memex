@@ -52,6 +52,8 @@ void main() {
       find.text(UserStorage.l10n.autoBackupRetentionDays(30)),
       findsOneWidget,
     );
+    expect(find.text(UserStorage.l10n.autoBackupMaxSize), findsOneWidget);
+    expect(find.text('2.0 GB'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('auto-backup-retention-menu')));
     await tester.pumpAndSettle();
@@ -82,6 +84,18 @@ void main() {
       find.text(UserStorage.l10n.autoBackupRetentionForever),
       findsOneWidget,
     );
+
+    await tester.tap(find.byKey(const ValueKey('auto-backup-max-size-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('1.0 GB'));
+    await tester.pumpAndSettle();
+
+    expect(
+      await UserStorage.getAutoBackupMaxBytes('backup-test-user'),
+      1024 * 1024 * 1024,
+    );
+    expect(pruneCalls, 3);
+    expect(find.text('1.0 GB'), findsOneWidget);
   });
 
   testWidgets(
@@ -90,6 +104,7 @@ void main() {
       const autoName = 'memex_auto_2026-05-15T10-00-00.memex';
       const safetyName =
           'memex_safety_before_restore_2026-05-15T10-05-00.memex';
+      const manualName = 'memex_backup_2026-05-15T09-00-00.memex';
       final autoSnapshot = BackupSnapshot(
         id: 'auto',
         name: autoName,
@@ -104,15 +119,31 @@ void main() {
         sizeBytes: 3,
         filePath: '/tmp/$safetyName',
       );
+      final manualSnapshot = BackupSnapshot(
+        id: 'manual',
+        name: manualName,
+        createdAt: DateTime(2026, 5, 15, 9),
+        sizeBytes: 4,
+        filePath: '/tmp/$manualName',
+      );
 
       await _pumpBackupPage(
         tester,
-        listStoredBackups: () async => [safetySnapshot, autoSnapshot],
+        listStoredBackups: () async =>
+            [safetySnapshot, autoSnapshot, manualSnapshot],
       );
       await _scrollUntilVisible(tester, find.text(autoName));
+      await _scrollUntilVisible(tester, find.text(manualName));
 
       expect(find.text(autoName), findsOneWidget);
       expect(find.text(safetyName), findsOneWidget);
+      expect(find.text(manualName), findsOneWidget);
+      expect(find.textContaining(UserStorage.l10n.backupTypeAutoSnapshot),
+          findsOneWidget);
+      expect(find.textContaining(UserStorage.l10n.backupTypeSafetySnapshot),
+          findsOneWidget);
+      expect(find.textContaining(UserStorage.l10n.backupTypeManualBackup),
+          findsOneWidget);
       expect(find.textContaining('3 B'), findsWidgets);
       expect(find.byTooltip(UserStorage.l10n.restoreThisBackup), findsWidgets);
 

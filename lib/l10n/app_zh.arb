@@ -1040,13 +1040,13 @@
   },
   "autoBackupRetentionDays": "{days} 天",
   "autoBackupRetentionForever": "永久保留",
+  "autoBackupMaxSize": "空间上限",
   "@autoBackupRetentionLimitHint": {
     "placeholders": {
-      "count": {},
       "size": {}
     }
   },
-  "autoBackupRetentionLimitHint": "自动清理最多保留 {count} 份快照，总大小不超过 {size}。安全快照会单独保留。",
+  "autoBackupRetentionLimitHint": "自动清理会让自动快照总大小不超过 {size}。安全快照和手动导出备份会单独保留。",
   "createSnapshotNow": "立即备份",
   "backupLocationMenu": "更改位置",
   "defaultBackupLocation": "默认备份文件夹",
@@ -1055,6 +1055,9 @@
   "chooseBackupLocationAndroidDesc": "使用 Android 系统选择器选择文件夹，并授予 Memex 持久访问权限。",
   "storedBackups": "已保存备份",
   "noStoredBackups": "创建第一个自动快照后会显示在这里。",
+  "backupTypeAutoSnapshot": "自动快照",
+  "backupTypeSafetySnapshot": "安全快照",
+  "backupTypeManualBackup": "手动备份",
   "refresh": "刷新",
   "restoreThisBackup": "恢复此备份",
   "deleteThisBackup": "删除此备份",

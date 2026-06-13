@@ -69,6 +69,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
   BackupLocationInfo? _backupLocationInfo;
   DateTime? _lastAutoBackupAt;
   int? _autoBackupRetentionDays = UserStorage.defaultAutoBackupRetentionDays;
+  int _autoBackupMaxBytes = UserStorage.defaultAutoBackupMaxBytes;
   List<BackupSnapshot> _storedBackups = const [];
 
   @override
@@ -129,6 +130,9 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     final retentionDays = userId != null && userId.isNotEmpty
         ? await UserStorage.getAutoBackupRetentionDays(userId)
         : UserStorage.defaultAutoBackupRetentionDays;
+    final maxBytes = userId != null && userId.isNotEmpty
+        ? await UserStorage.getAutoBackupMaxBytes(userId)
+        : UserStorage.defaultAutoBackupMaxBytes;
 
     if (mounted) {
       setState(() {
@@ -140,6 +144,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
         _autoBackupEnabled = autoEnabled;
         _lastAutoBackupAt = lastAutoBackupAt;
         _autoBackupRetentionDays = retentionDays;
+        _autoBackupMaxBytes = maxBytes;
       });
     }
   }
@@ -166,6 +171,16 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     return days == null
         ? UserStorage.l10n.autoBackupRetentionForever
         : UserStorage.l10n.autoBackupRetentionDays(days);
+  }
+
+  String _backupTypeText(BackupSnapshot snapshot) {
+    if (snapshot.isSafetySnapshot) {
+      return UserStorage.l10n.backupTypeSafetySnapshot;
+    }
+    if (snapshot.isAutoSnapshot) {
+      return UserStorage.l10n.backupTypeAutoSnapshot;
+    }
+    return UserStorage.l10n.backupTypeManualBackup;
   }
 
   Future<BackupLocationInfo> _resolveBackupLocationInfo() async {
@@ -293,6 +308,32 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       await _loadPageData(includeEstimatedSize: false);
     } catch (e, stack) {
       _logger.warning('Failed to update auto backup retention: $e', e, stack);
+      if (mounted) {
+        ToastHelper.showError(
+          context,
+          UserStorage.l10n.backupFailed(e.toString()),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdatingRetention = false);
+      }
+    }
+  }
+
+  Future<void> _setAutoBackupMaxBytesValue(int bytes) async {
+    if (_isUpdatingRetention) return;
+    final userId = await UserStorage.getUserId();
+    if (userId == null || userId.isEmpty) return;
+
+    setState(() => _isUpdatingRetention = true);
+
+    try {
+      await UserStorage.setAutoBackupMaxBytes(userId, bytes);
+      await (widget.pruneAutoBackups ?? BackupService.pruneAutoBackups)();
+      await _loadPageData(includeEstimatedSize: false);
+    } catch (e, stack) {
+      _logger.warning('Failed to update auto backup max size: $e', e, stack);
       if (mounted) {
         ToastHelper.showError(
           context,
@@ -829,10 +870,11 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
           if (_estimatedSize.isNotEmpty) const SizedBox(height: 8),
           _retentionRow(isBusy),
           const SizedBox(height: 8),
+          _maxSizeRow(isBusy),
+          const SizedBox(height: 8),
           Text(
             UserStorage.l10n.autoBackupRetentionLimitHint(
-              BackupService.autoBackupMaxSnapshots,
-              _formatBytes(BackupService.autoBackupMaxBytes),
+              _formatBytes(_autoBackupMaxBytes),
             ),
             style: const TextStyle(
               fontSize: 12,
@@ -944,6 +986,67 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     );
   }
 
+  Widget _maxSizeRow(bool isBusy) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 96,
+          child: Text(
+            UserStorage.l10n.autoBackupMaxSize,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: PopupMenuButton<int>(
+              key: const ValueKey('auto-backup-max-size-menu'),
+              enabled: !isBusy,
+              tooltip: UserStorage.l10n.autoBackupMaxSize,
+              initialValue: _autoBackupMaxBytes,
+              onSelected: _setAutoBackupMaxBytesValue,
+              itemBuilder: (context) => [
+                for (final bytes in UserStorage.autoBackupMaxBytesOptions)
+                  PopupMenuItem<int>(
+                    value: bytes,
+                    child: Text(_formatBytes(bytes)),
+                  ),
+              ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      _formatBytes(_autoBackupMaxBytes),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  _isUpdatingRetention
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.expand_more, size: 16),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildStoredBackupsCard(bool isBusy) {
     return _settingsCard(
       child: Column(
@@ -988,6 +1091,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
             ..._storedBackups.map(
               (snapshot) => _StoredBackupTile(
                 snapshot: snapshot,
+                typeText: _backupTypeText(snapshot),
                 dateText: _formatDateTime(snapshot.createdAt),
                 sizeText: _formatBytes(snapshot.sizeBytes),
                 isDeleting: _deletingBackupId == snapshot.id,
@@ -1196,6 +1300,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
 
 class _StoredBackupTile extends StatelessWidget {
   final BackupSnapshot snapshot;
+  final String typeText;
   final String dateText;
   final String sizeText;
   final bool isDeleting;
@@ -1204,6 +1309,7 @@ class _StoredBackupTile extends StatelessWidget {
 
   const _StoredBackupTile({
     required this.snapshot,
+    required this.typeText,
     required this.dateText,
     required this.sizeText,
     required this.isDeleting,
@@ -1239,7 +1345,7 @@ class _StoredBackupTile extends StatelessWidget {
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
           subtitle: Text(
-            '$dateText - $sizeText',
+            '$typeText - $dateText - $sizeText',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 12),

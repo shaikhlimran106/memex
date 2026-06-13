@@ -25,8 +25,6 @@ const _backupExtension = '.memex';
 const _autoBackupPrefix = 'memex_auto';
 const _safetyBackupPrefix = 'memex_safety';
 const _autoBackupInterval = Duration(hours: 24);
-const _autoBackupMaxSnapshots = 30;
-const _autoBackupMaxBytes = 2 * 1024 * 1024 * 1024; // 2 GB
 const _backupStoreWithoutCompressionThreshold = 16 * 1024 * 1024; // 16 MB
 const _backupManifestFileName = 'manifest.json';
 const _backupFormat = 'memex.backup';
@@ -104,6 +102,7 @@ class BackupSnapshot {
   });
 
   bool get isAndroidDocument => documentUri != null;
+  bool get isAutoSnapshot => name.startsWith(_autoBackupPrefix);
   bool get isSafetySnapshot => name.startsWith(_safetyBackupPrefix);
 }
 
@@ -222,8 +221,6 @@ class BackupService {
   static final Lock _autoBackupLock = Lock();
   static const backupMimeType = 'application/x-memex-backup';
   static const currentBackupSchemaVersion = _currentBackupSchemaVersion;
-  static const autoBackupMaxSnapshots = _autoBackupMaxSnapshots;
-  static const autoBackupMaxBytes = _autoBackupMaxBytes;
 
   static const MethodChannel _backupStorageChannel = MethodChannel(
     'com.memexlab.memex/backup_storage',
@@ -582,6 +579,7 @@ class BackupService {
 
     final cleanupNow = now ?? DateTime.now();
     final retentionDays = await UserStorage.getAutoBackupRetentionDays(userId);
+    final maxBytes = await UserStorage.getAutoBackupMaxBytes(userId);
     var deleted = 0;
 
     try {
@@ -590,6 +588,7 @@ class BackupService {
         defaultDir,
         now: cleanupNow,
         retentionDays: retentionDays,
+        maxBytes: maxBytes,
       );
     } catch (e, st) {
       _logger.warning('Failed to prune default backups: $e', e, st);
@@ -603,6 +602,7 @@ class BackupService {
             treeUri,
             now: cleanupNow,
             retentionDays: retentionDays,
+            maxBytes: maxBytes,
           );
         } catch (e, st) {
           _logger.warning('Failed to prune Android backups: $e', e, st);
@@ -1033,6 +1033,7 @@ class BackupService {
     Directory dir, {
     required DateTime now,
     required int? retentionDays,
+    required int maxBytes,
   }) async {
     final snapshots = (await _listFileBackups(dir))
         .where((snapshot) => snapshot.name.startsWith(_autoBackupPrefix))
@@ -1047,6 +1048,7 @@ class BackupService {
         snapshot: snapshot,
         now: now,
         retentionDays: retentionDays,
+        maxBytes: maxBytes,
         keptCount: kept,
         keptBytes: keptBytes,
       );
@@ -1075,6 +1077,7 @@ class BackupService {
     String treeUri, {
     required DateTime now,
     required int? retentionDays,
+    required int maxBytes,
   }) async {
     final snapshots = (await _listAndroidTreeBackups(treeUri))
         .where((snapshot) => snapshot.name.startsWith(_autoBackupPrefix))
@@ -1089,6 +1092,7 @@ class BackupService {
         snapshot: snapshot,
         now: now,
         retentionDays: retentionDays,
+        maxBytes: maxBytes,
         keptCount: kept,
         keptBytes: keptBytes,
       );
@@ -1114,6 +1118,7 @@ class BackupService {
     required BackupSnapshot snapshot,
     required DateTime now,
     required int? retentionDays,
+    required int maxBytes,
     required int keptCount,
     required int keptBytes,
   }) {
@@ -1125,8 +1130,7 @@ class BackupService {
     final expiredByAge = cutoff != null && snapshot.createdAt.isBefore(cutoff);
     if (expiredByAge) return false;
 
-    if (keptCount >= _autoBackupMaxSnapshots) return false;
-    return keptBytes + snapshot.sizeBytes <= _autoBackupMaxBytes;
+    return keptBytes + snapshot.sizeBytes <= maxBytes;
   }
 
   static Future<void> _deleteAndroidDocument(String documentUri) async {

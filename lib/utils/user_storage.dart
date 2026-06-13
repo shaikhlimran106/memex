@@ -77,6 +77,8 @@ class UserStorage {
       'memex_auto_backup_enabled_';
   static const String _keyAutoBackupRetentionDaysPrefix =
       'memex_auto_backup_retention_days_';
+  static const String _keyAutoBackupMaxBytesPrefix =
+      'memex_auto_backup_max_bytes_';
   static const String _keyLastAutoBackupAtPrefix = 'memex_last_auto_backup_at_';
   static const String _keyLastAutoBackupFingerprintPrefix =
       'memex_last_auto_backup_fingerprint_';
@@ -88,6 +90,14 @@ class UserStorage {
   static const int defaultAutoBackupRetentionDays = 30;
   static const int autoBackupRetentionForever = -1;
   static const List<int> autoBackupRetentionDayOptions = <int>[7, 14, 30, 90];
+  static const int defaultAutoBackupMaxBytes = 2 * 1024 * 1024 * 1024;
+  static const List<int> autoBackupMaxBytesOptions = <int>[
+    512 * 1024 * 1024,
+    1024 * 1024 * 1024,
+    defaultAutoBackupMaxBytes,
+    5 * 1024 * 1024 * 1024,
+    10 * 1024 * 1024 * 1024,
+  ];
 
   static final Logger _logger = getLogger('UserStorage');
   static const MethodChannel _storageChannel =
@@ -919,6 +929,26 @@ class UserStorage {
       _keyAutoBackupRetentionDaysPrefix + userId,
       days ?? autoBackupRetentionForever,
     );
+  }
+
+  /// Total size cap for automatic backups. Invalid values fall back to 2 GB.
+  static Future<int> getAutoBackupMaxBytes(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getInt(_keyAutoBackupMaxBytesPrefix + userId);
+    if (value == null || value <= 0) return defaultAutoBackupMaxBytes;
+    return value;
+  }
+
+  static Future<void> setAutoBackupMaxBytes(
+    String userId,
+    int bytes,
+  ) async {
+    if (bytes <= 0) {
+      throw ArgumentError.value(bytes, 'bytes', 'must be positive');
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyAutoBackupMaxBytesPrefix + userId, bytes);
   }
 
   static Future<DateTime?> getLastAutoBackupAt(String userId) async {
