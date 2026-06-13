@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:logging/logging.dart';
 import 'package:drift/drift.dart';
+import 'package:memex/data/services/sqlite_busy_retry.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/db/app_database.dart';
 
@@ -16,7 +17,7 @@ enum AgentActivityType {
   warn,
   plan,
   thought_chunk,
-  output_chunk
+  output_chunk,
 }
 
 /// Model for UI consumption
@@ -73,7 +74,8 @@ abstract class AgentActivityService {
   static AgentActivityService get instance {
     if (_instance == null) {
       throw Exception(
-          'AgentActivityService not initialized. Use MemexRouter to initialize it.');
+        'AgentActivityService not initialized. Use MemexRouter to initialize it.',
+      );
     }
     return _instance!;
   }
@@ -211,7 +213,8 @@ class LocalAgentActivityService implements AgentActivityService {
       if (type != AgentActivityType.thought_chunk &&
           type != AgentActivityType.output_chunk) {
         _logger.info(
-            'Pushed agent activity: [$type] $title (Agent: $agentName, ID: $agentId)');
+          'Pushed agent activity: [$type] $title (Agent: $agentName, ID: $agentId)',
+        );
       }
     } catch (e, stackTrace) {
       _logger.severe('Failed to push agent activity message', e, stackTrace);
@@ -230,10 +233,16 @@ class LocalAgentActivityService implements AgentActivityService {
     required String? userId,
     required DateTime timestamp,
   }) async {
-    for (var attempt = 1; attempt <= _databaseMaxAttempts; attempt++) {
-      try {
+    return SqliteBusyRetry.run<int>(
+      operation: 'persist agent activity message',
+      logger: _logger,
+      maxAttempts: _databaseMaxAttempts,
+      retryDelay: _databaseRetryDelay,
+      action: () async {
         final db = AppDatabase.instance;
-        return await db.into(db.agentActivityMessages).insert(
+        return await db
+            .into(db.agentActivityMessages)
+            .insert(
               AgentActivityMessagesCompanion.insert(
                 type: type.name,
                 title: title,
@@ -247,27 +256,8 @@ class LocalAgentActivityService implements AgentActivityService {
                 timestamp: timestamp,
               ),
             );
-      } catch (error) {
-        if (!_isDatabaseLocked(error) || attempt == _databaseMaxAttempts) {
-          rethrow;
-        }
-        _logger.info(
-          'Agent activity database locked while persisting message '
-          '(attempt $attempt/$_databaseMaxAttempts); retrying.',
-        );
-        await Future.delayed(
-          Duration(milliseconds: _databaseRetryDelay.inMilliseconds * attempt),
-        );
-      }
-    }
-    return -1;
-  }
-
-  bool _isDatabaseLocked(Object error) {
-    final message = error.toString().toLowerCase();
-    return message.contains('database is locked') ||
-        message.contains('sqliteexception(5)') ||
-        message.contains('database_busy');
+      },
+    );
   }
 
   @override

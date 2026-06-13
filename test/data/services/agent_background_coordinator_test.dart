@@ -43,7 +43,7 @@ void main() {
   tearDown(() async {
     await coordinator.stop();
     await activityService.dispose();
-    executor.stop();
+    await executor.stop();
     await db.close();
   });
 

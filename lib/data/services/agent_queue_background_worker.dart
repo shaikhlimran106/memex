@@ -11,6 +11,7 @@ import 'package:memex/data/services/agent_queue_drain_scheduler.dart';
 import 'package:memex/data/services/agent_run_service.dart';
 import 'package:memex/data/services/file_logger_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
+import 'package:memex/data/services/sqlite_busy_retry.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/user_storage.dart';
 
@@ -57,11 +58,12 @@ class AgentQueueBackgroundWorker {
         executor: taskExecutor,
         labels: labels,
       );
-      final result = await _withDatabaseLockRetry(
-        logger,
+      final result = await SqliteBusyRetry.run(
+        operation: 'agent queue drain',
+        logger: logger,
         maxAttempts: _databaseMaxAttempts,
         retryDelay: databaseRetryDelay,
-        operation: () async {
+        action: () async {
           if (initializeTaskQueue != null) {
             await initializeTaskQueue(userId);
           } else {
@@ -109,7 +111,8 @@ class AgentQueueBackgroundWorker {
 
       logger.info(
         'Agent queue drain finished. '
-        'active=${result.snapshot.total}, timedOut=${result.timedOut}',
+        'active=${result.snapshot.total}, timedOut=${result.timedOut}, '
+        'deferred=${result.deferredToAnotherOwner}',
       );
       return true;
     } catch (e, stackTrace) {
@@ -178,38 +181,8 @@ class AgentQueueBackgroundWorker {
     }
   }
 
-  static Future<T> _withDatabaseLockRetry<T>(
-    Logger logger, {
-    required int maxAttempts,
-    required Duration retryDelay,
-    required Future<T> Function() operation,
-  }) async {
-    for (var attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        return await operation();
-      } catch (e, stackTrace) {
-        if (!_isDatabaseLocked(e) || attempt == maxAttempts) {
-          Error.throwWithStackTrace(e, stackTrace);
-        }
-        logger.warning(
-          'Agent queue drain hit a locked database '
-          '(attempt $attempt/$maxAttempts); retrying.',
-        );
-        await Future<void>.delayed(retryDelay * attempt);
-      }
-    }
-    throw StateError('unreachable database retry path');
-  }
-
   static bool isDatabaseLockedForTesting(Object error) =>
-      _isDatabaseLocked(error);
-
-  static bool _isDatabaseLocked(Object error) {
-    final message = error.toString().toLowerCase();
-    return message.contains('database is locked') ||
-        message.contains('sqliteexception(5)') ||
-        message.contains('code 5');
-  }
+      SqliteBusyRetry.isDatabaseLocked(error);
 
   static AgentBackgroundStatusLabels _statusLabels() {
     try {

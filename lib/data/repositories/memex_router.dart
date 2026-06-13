@@ -528,7 +528,7 @@ class MemexRouter {
     unawaited(AgentBackgroundTaskService.instance.stopMonitoring(
       reason: 'logout',
     ));
-    LocalTaskExecutor.instance.stop();
+    unawaited(LocalTaskExecutor.instance.stop());
     SearchService.instance.reset();
   }
 
@@ -537,7 +537,7 @@ class MemexRouter {
     unawaited(AgentBackgroundTaskService.instance.stopMonitoring(
       reason: 'router_dispose',
     ));
-    LocalTaskExecutor.instance.stop();
+    unawaited(LocalTaskExecutor.instance.stop());
   }
 
   AgentActivityService get agentActivityService =>
