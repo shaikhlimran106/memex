@@ -1047,6 +1047,21 @@
     }
   },
   "lastBackupAt": "Last backup: {time}",
+  "autoBackupRetention": "Retention",
+  "@autoBackupRetentionDays": {
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "autoBackupRetentionDays": "{days} days",
+  "autoBackupRetentionForever": "Keep forever",
+  "@autoBackupRetentionLimitHint": {
+    "placeholders": {
+      "count": {},
+      "size": {}
+    }
+  },
+  "autoBackupRetentionLimitHint": "Automatic cleanup keeps at most {count} snapshots and {size} total. Safety snapshots are kept separately.",
   "createSnapshotNow": "Back up now",
   "backupLocationMenu": "Change location",
   "defaultBackupLocation": "Default backup folder",

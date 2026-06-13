@@ -75,6 +75,8 @@ class UserStorage {
       'memex_custom_data_root_path_';
   static const String _keyAutoBackupEnabledPrefix =
       'memex_auto_backup_enabled_';
+  static const String _keyAutoBackupRetentionDaysPrefix =
+      'memex_auto_backup_retention_days_';
   static const String _keyLastAutoBackupAtPrefix = 'memex_last_auto_backup_at_';
   static const String _keyLastAutoBackupFingerprintPrefix =
       'memex_last_auto_backup_fingerprint_';
@@ -82,6 +84,10 @@ class UserStorage {
       'memex_android_backup_tree_uri_';
   static const String _keyAndroidBackupTreeNamePrefix =
       'memex_android_backup_tree_name_';
+
+  static const int defaultAutoBackupRetentionDays = 30;
+  static const int autoBackupRetentionForever = -1;
+  static const List<int> autoBackupRetentionDayOptions = <int>[7, 14, 30, 90];
 
   static final Logger _logger = getLogger('UserStorage');
   static const MethodChannel _storageChannel =
@@ -886,6 +892,33 @@ class UserStorage {
   static Future<void> setAutoBackupEnabled(String userId, bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyAutoBackupEnabledPrefix + userId, enabled);
+  }
+
+  /// Number of days to keep automatic backups for [userId].
+  ///
+  /// Returns `null` when the user explicitly chooses to keep automatic backups
+  /// forever. Missing or invalid values fall back to 30 days.
+  static Future<int?> getAutoBackupRetentionDays(String userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getInt(_keyAutoBackupRetentionDaysPrefix + userId);
+    if (value == autoBackupRetentionForever) return null;
+    if (value == null || value <= 0) return defaultAutoBackupRetentionDays;
+    return value;
+  }
+
+  static Future<void> setAutoBackupRetentionDays(
+    String userId,
+    int? days,
+  ) async {
+    if (days != null && days <= 0) {
+      throw ArgumentError.value(days, 'days', 'must be positive or null');
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(
+      _keyAutoBackupRetentionDaysPrefix + userId,
+      days ?? autoBackupRetentionForever,
+    );
   }
 
   static Future<DateTime?> getLastAutoBackupAt(String userId) async {

@@ -2227,6 +2227,22 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get autoBackupRetention => '保留';
+
+  @override
+  String autoBackupRetentionDays(Object days) {
+    return '$days 天';
+  }
+
+  @override
+  String get autoBackupRetentionForever => '永久保留';
+
+  @override
+  String autoBackupRetentionLimitHint(Object count, Object size) {
+    return '自动清理最多保留 $count 份快照，总大小不超过 $size。安全快照会单独保留。';
+  }
+
+  @override
   String get createSnapshotNow => '立即备份';
 
   @override

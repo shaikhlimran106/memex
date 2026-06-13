@@ -1032,6 +1032,21 @@
     }
   },
   "lastBackupAt": "上次备份：{time}",
+  "autoBackupRetention": "保留",
+  "@autoBackupRetentionDays": {
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "autoBackupRetentionDays": "{days} 天",
+  "autoBackupRetentionForever": "永久保留",
+  "@autoBackupRetentionLimitHint": {
+    "placeholders": {
+      "count": {},
+      "size": {}
+    }
+  },
+  "autoBackupRetentionLimitHint": "自动清理最多保留 {count} 份快照，总大小不超过 {size}。安全快照会单独保留。",
   "createSnapshotNow": "立即备份",
   "backupLocationMenu": "更改位置",
   "defaultBackupLocation": "默认备份文件夹",

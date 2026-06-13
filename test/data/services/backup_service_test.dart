@@ -217,69 +217,144 @@ void main() {
     },
   );
 
+  test('automatic backup retention preference defaults and persists', () async {
+    expect(
+      await UserStorage.getAutoBackupRetentionDays('backup-service-user'),
+      UserStorage.defaultAutoBackupRetentionDays,
+    );
+
+    await UserStorage.setAutoBackupRetentionDays('backup-service-user', 14);
+    expect(
+      await UserStorage.getAutoBackupRetentionDays('backup-service-user'),
+      14,
+    );
+
+    await UserStorage.setAutoBackupRetentionDays('backup-service-user', null);
+    expect(
+      await UserStorage.getAutoBackupRetentionDays('backup-service-user'),
+      isNull,
+    );
+
+    expect(
+      () => UserStorage.setAutoBackupRetentionDays('backup-service-user', 0),
+      throwsArgumentError,
+    );
+  });
+
   test(
-    'automatic backup retention keeps the newest seven daily snapshots',
+    'automatic backup retention deletes only expired automatic snapshots',
     () async {
       final backupDir = await BackupService.resolveDefaultBackupDirectory();
       final now = DateTime(2026, 5, 15, 12);
+      await UserStorage.setAutoBackupRetentionDays('backup-service-user', 7);
 
-      for (var i = 0; i < 9; i += 1) {
-        final file = File(
-          p.join(
-            backupDir.path,
-            'memex_auto_2026-05-${(i + 1).toString().padLeft(2, '0')}T00-00-00.memex',
-          ),
-        );
-        await file.writeAsBytes([i]);
-        await file.setLastModified(now.subtract(Duration(days: 9 - i)));
-      }
+      final recent = await _writeStoredBackupFile(
+        backupDir,
+        'memex_auto_recent.memex',
+        modified: now.subtract(const Duration(days: 6)),
+      );
+      final boundary = await _writeStoredBackupFile(
+        backupDir,
+        'memex_auto_boundary.memex',
+        modified: now.subtract(const Duration(days: 7)),
+      );
+      final expired = await _writeStoredBackupFile(
+        backupDir,
+        'memex_auto_expired.memex',
+        modified: now.subtract(const Duration(days: 8)),
+      );
+      final safety = await _writeStoredBackupFile(
+        backupDir,
+        'memex_safety_before_restore.memex',
+        modified: now.subtract(const Duration(days: 60)),
+      );
 
-      await BackupService.createStoredBackup();
+      final deleted = await BackupService.pruneAutoBackups(now: now);
 
-      final files = await backupDir
-          .list()
-          .where(
-            (entity) =>
-                entity is File &&
-                p.basename(entity.path).startsWith('memex_auto'),
-          )
-          .toList();
-
-      expect(files.length, lessThanOrEqualTo(7));
+      expect(deleted, 1);
+      expect(await recent.exists(), isTrue);
+      expect(await boundary.exists(), isTrue);
+      expect(await expired.exists(), isFalse);
+      expect(await safety.exists(), isTrue);
     },
   );
 
-  test('safety snapshots are kept outside automatic retention', () async {
+  test('automatic backup pruning always keeps the newest snapshot', () async {
     final backupDir = await BackupService.resolveDefaultBackupDirectory();
+    final now = DateTime(2026, 5, 15, 12);
+    await UserStorage.setAutoBackupRetentionDays('backup-service-user', 7);
 
-    for (var i = 0; i < 9; i += 1) {
-      final file = File(
-        p.join(
-          backupDir.path,
-          'memex_auto_2026-05-${(i + 1).toString().padLeft(2, '0')}T00-00-00.memex',
-        ),
+    final oldest = await _writeStoredBackupFile(
+      backupDir,
+      'memex_auto_oldest.memex',
+      modified: now.subtract(const Duration(days: 30)),
+    );
+    final newest = await _writeStoredBackupFile(
+      backupDir,
+      'memex_auto_newest.memex',
+      modified: now.subtract(const Duration(days: 20)),
+    );
+
+    final deleted = await BackupService.pruneAutoBackups(now: now);
+
+    expect(deleted, 1);
+    expect(await newest.exists(), isTrue);
+    expect(await oldest.exists(), isFalse);
+  });
+
+  test('automatic backup retention still caps forever history by count',
+      () async {
+    final backupDir = await BackupService.resolveDefaultBackupDirectory();
+    final now = DateTime(2026, 5, 15, 12);
+    await UserStorage.setAutoBackupRetentionDays('backup-service-user', null);
+
+    for (var i = 0; i < BackupService.autoBackupMaxSnapshots + 2; i += 1) {
+      await _writeStoredBackupFile(
+        backupDir,
+        'memex_auto_${i.toString().padLeft(2, '0')}.memex',
+        modified: now.subtract(Duration(minutes: i)),
       );
-      await file.writeAsBytes([i]);
     }
 
-    final safety = await BackupService.createSafetySnapshot(
-      reason: 'before_storage_switch',
+    final deleted = await BackupService.pruneAutoBackups(now: now);
+    final remainingNames = await _storedBackupNames(backupDir);
+
+    expect(deleted, 2);
+    expect(remainingNames.length, BackupService.autoBackupMaxSnapshots);
+    expect(remainingNames, contains('memex_auto_00.memex'));
+    expect(remainingNames, contains('memex_auto_29.memex'));
+    expect(remainingNames, isNot(contains('memex_auto_30.memex')));
+    expect(remainingNames, isNot(contains('memex_auto_31.memex')));
+  });
+
+  test('automatic backup skip still prunes expired snapshots', () async {
+    await UserStorage.setAutoBackupEnabled('backup-service-user', true);
+    await UserStorage.setAutoBackupRetentionDays('backup-service-user', 7);
+    await UserStorage.setLastAutoBackupMetadata(
+      'backup-service-user',
+      createdAt: DateTime.now().subtract(const Duration(hours: 1)),
+      fingerprint: 'previous',
     );
-    await BackupService.createStoredBackup();
 
-    expect(await File(safety.filePath!).exists(), isTrue);
-    final safetyFiles = await backupDir
-        .list()
-        .where(
-          (entity) =>
-              entity is File &&
-              p
-                  .basename(entity.path)
-                  .startsWith('memex_safety_before_storage_switch'),
-        )
-        .toList();
+    final backupDir = await BackupService.resolveDefaultBackupDirectory();
+    final keep = await _writeStoredBackupFile(
+      backupDir,
+      'memex_auto_recent_skip.memex',
+      modified: DateTime.now().subtract(const Duration(days: 1)),
+    );
+    final expired = await _writeStoredBackupFile(
+      backupDir,
+      'memex_auto_expired_skip.memex',
+      modified: DateTime.now().subtract(const Duration(days: 8)),
+    );
 
-    expect(safetyFiles, isNotEmpty);
+    final snapshot = await BackupService.maybeCreateAutoBackup(
+      trigger: 'skip-prune-test',
+    );
+
+    expect(snapshot, isNull);
+    expect(await keep.exists(), isTrue);
+    expect(await expired.exists(), isFalse);
   });
 
   test('deleteStoredBackup removes only the selected local snapshot', () async {
@@ -615,6 +690,26 @@ Future<File> _writeBackup(
   final file = File('${tempDir.path}/$fileName');
   await file.writeAsBytes(ZipEncoder().encode(archive));
   return file;
+}
+
+Future<File> _writeStoredBackupFile(
+  Directory backupDir,
+  String fileName, {
+  required DateTime modified,
+  int sizeBytes = 1,
+}) async {
+  final file = File(p.join(backupDir.path, fileName));
+  await file.writeAsBytes(List<int>.filled(sizeBytes, 1));
+  await file.setLastModified(modified);
+  return file;
+}
+
+Future<Set<String>> _storedBackupNames(Directory backupDir) async {
+  return backupDir
+      .list()
+      .where((entity) => entity is File && entity.path.endsWith('.memex'))
+      .map((entity) => p.basename(entity.path))
+      .toSet();
 }
 
 Future<void> _writeDeterministicBinaryFile(

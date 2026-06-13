@@ -2313,6 +2313,22 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get autoBackupRetention => 'Retention';
+
+  @override
+  String autoBackupRetentionDays(Object days) {
+    return '$days days';
+  }
+
+  @override
+  String get autoBackupRetentionForever => 'Keep forever';
+
+  @override
+  String autoBackupRetentionLimitHint(Object count, Object size) {
+    return 'Automatic cleanup keeps at most $count snapshots and $size total. Safety snapshots are kept separately.';
+  }
+
+  @override
   String get createSnapshotNow => 'Back up now';
 
   @override

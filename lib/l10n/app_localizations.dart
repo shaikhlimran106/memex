@@ -4209,6 +4209,30 @@ abstract class AppLocalizations {
   /// **'Last backup: {time}'**
   String lastBackupAt(Object time);
 
+  /// No description provided for @autoBackupRetention.
+  ///
+  /// In en, this message translates to:
+  /// **'Retention'**
+  String get autoBackupRetention;
+
+  /// No description provided for @autoBackupRetentionDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days'**
+  String autoBackupRetentionDays(Object days);
+
+  /// No description provided for @autoBackupRetentionForever.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep forever'**
+  String get autoBackupRetentionForever;
+
+  /// No description provided for @autoBackupRetentionLimitHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic cleanup keeps at most {count} snapshots and {size} total. Safety snapshots are kept separately.'**
+  String autoBackupRetentionLimitHint(Object count, Object size);
+
   /// No description provided for @createSnapshotNow.
   ///
   /// In en, this message translates to:
