@@ -6,6 +6,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:memex/data/services/agent_run_service.dart';
+import 'package:memex/data/services/sqlite_busy_retry.dart';
 import 'package:memex/db/app_database.dart';
 import 'package:memex/domain/models/task_exceptions.dart';
 import 'package:memex/utils/logger.dart';
@@ -16,11 +17,7 @@ class TaskContext {
   final String taskType;
   final String? bizId;
 
-  TaskContext({
-    required this.taskId,
-    required this.taskType,
-    this.bizId,
-  });
+  TaskContext({required this.taskId, required this.taskType, this.bizId});
 }
 
 /// Lightweight snapshot of active background task pressure.
@@ -38,10 +35,10 @@ class TaskActivitySnapshot {
   });
 
   const TaskActivitySnapshot.empty()
-      : pending = 0,
-        processing = 0,
-        retrying = 0,
-        activeTaskIds = const <String>{};
+    : pending = 0,
+      processing = 0,
+      retrying = 0,
+      activeTaskIds = const <String>{};
 
   int get total => pending + processing + retrying;
 
@@ -58,11 +55,11 @@ class TaskActivitySnapshot {
 
   @override
   int get hashCode => Object.hash(
-        pending,
-        processing,
-        retrying,
-        Object.hashAllUnordered(activeTaskIds),
-      );
+    pending,
+    processing,
+    retrying,
+    Object.hashAllUnordered(activeTaskIds),
+  );
 }
 
 class TaskQueueDrainResult {
@@ -70,22 +67,31 @@ class TaskQueueDrainResult {
     required this.snapshot,
     required this.timedOut,
     this.nextRunnableDelay,
+    this.deferredToAnotherOwner = false,
   });
 
   final TaskActivitySnapshot snapshot;
   final bool timedOut;
   final Duration? nextRunnableDelay;
+  final bool deferredToAnotherOwner;
 }
 
-/// Handler function type
-typedef TaskHandler = Future<void> Function(
-    String userId, Map<String, dynamic> payload, TaskContext context);
+enum TaskQueueOwnerKind { foreground, background }
 
-typedef TaskConcurrencyKeyBuilder = String Function(
-  String userId,
-  Map<String, dynamic> payload,
-  TaskContext context,
-);
+/// Handler function type
+typedef TaskHandler =
+    Future<void> Function(
+      String userId,
+      Map<String, dynamic> payload,
+      TaskContext context,
+    );
+
+typedef TaskConcurrencyKeyBuilder =
+    String Function(
+      String userId,
+      Map<String, dynamic> payload,
+      TaskContext context,
+    );
 
 /// Per-task-type concurrency policy. The executor prefixes the returned key
 /// with the task type, so [byUser] means "one task of this type per user".
@@ -115,12 +121,14 @@ class TaskConcurrencyPolicy {
 }
 
 /// Failure handler function type - called when all retries are exhausted
-typedef TaskFailureHandler = Future<void> Function(
-    String userId,
-    Map<String, dynamic> payload,
-    TaskContext context,
-    Object error,
-    StackTrace? stackTrace);
+typedef TaskFailureHandler =
+    Future<void> Function(
+      String userId,
+      Map<String, dynamic> payload,
+      TaskContext context,
+      Object error,
+      StackTrace? stackTrace,
+    );
 
 class LocalTaskExecutor {
   static LocalTaskExecutor? _instance;
@@ -129,13 +137,18 @@ class LocalTaskExecutor {
     return _instance!;
   }
 
-  LocalTaskExecutor._() : _testDb = null;
+  LocalTaskExecutor._()
+    : _testDb = null,
+      _queueOwnerId = _newQueueOwnerId('foreground');
 
   @visibleForTesting
-  LocalTaskExecutor.forTesting({AppDatabase? db}) : _testDb = db;
+  LocalTaskExecutor.forTesting({AppDatabase? db, String? queueOwnerId})
+    : _testDb = db,
+      _queueOwnerId = queueOwnerId ?? _newQueueOwnerId('test');
 
   final Logger _logger = getLogger('LocalTaskExecutor');
   final AppDatabase? _testDb;
+  final String _queueOwnerId;
   // Dynamic getter to ensure we always use the current active DB instance (handling user switches)
   AppDatabase get _db => _testDb ?? AppDatabase.instance;
   String? _currentUserId; // Track current user ID for worker context
@@ -155,9 +168,19 @@ class LocalTaskExecutor {
   Timer? _pollTimer;
   bool _isProcessing = false;
   bool _autoPollEnabled = true;
+  bool _ownsQueue = false;
+  bool _recoverStaleTasksWhenOwnerAcquired = true;
+  Duration? _minimumStaleTaskAgeWhenOwnerAcquired;
+  TaskQueueOwnerKind _queueOwnerKind = TaskQueueOwnerKind.foreground;
+  Timer? _queueLeaseHeartbeatTimer;
 
   // Polling interval
   static const Duration _pollInterval = Duration(seconds: 1);
+  static const String _queueLeaseBucket = 'agent_queue_lease';
+  static const String _queueLeaseKeyPrefix = 'agent_queue_lease:';
+  static const Duration _queueLeaseTtl = Duration(seconds: 45);
+  static const Duration _queueLeaseHeartbeatInterval = Duration(seconds: 10);
+  static const Duration _queueOwnershipRetryDelay = Duration(seconds: 30);
   static const String _crashGuardBucket = 'local_task_executor_crash_guard';
   static const String _activeTaskMarkerKeyPrefix = 'active_task_marker:';
   static const String _gracefulExitMarkerKey = 'graceful_exit_marker';
@@ -166,8 +189,13 @@ class LocalTaskExecutor {
   static const Duration _taskHeartbeatInterval = Duration(seconds: 10);
   static const Duration _backgroundStaleTaskAge = Duration(seconds: 30);
   static const int _crashGuardDatabaseMaxAttempts = 5;
-  static const Duration _crashGuardDatabaseRetryDelay =
-      Duration(milliseconds: 120);
+  static const Duration _crashGuardDatabaseRetryDelay = Duration(
+    milliseconds: 120,
+  );
+
+  static String _newQueueOwnerId(String prefix) {
+    return '$prefix-${DateTime.now().microsecondsSinceEpoch}';
+  }
 
   /// Stream that emits true if there are any active (pending, processing, retrying) tasks in the DB.
   /// Useful for global UI loading indicators.
@@ -197,6 +225,7 @@ class LocalTaskExecutor {
     Duration pollInterval = const Duration(milliseconds: 200),
     bool stopWhenDone = false,
     Duration minimumStaleTaskAge = _backgroundStaleTaskAge,
+    TaskQueueOwnerKind ownerKind = TaskQueueOwnerKind.background,
   }) async {
     final wasRunning = _isRunning;
     if (!wasRunning) {
@@ -205,6 +234,7 @@ class LocalTaskExecutor {
         recoverStaleTasks: true,
         autoPoll: false,
         minimumStaleTaskAge: minimumStaleTaskAge,
+        ownerKind: ownerKind,
       );
     } else {
       _currentUserId ??= userId;
@@ -213,6 +243,19 @@ class LocalTaskExecutor {
     final deadline = DateTime.now().add(maxDuration);
     var timedOut = false;
     try {
+      if (!await _ensureQueueOwnership()) {
+        _logger.info(
+          'Deferring agent queue drain for user $userId because another executor owns the queue.',
+        );
+        return TaskQueueDrainResult(
+          snapshot: await getTaskActivitySnapshot(),
+          timedOut: false,
+          nextRunnableDelay: _queueOwnershipRetryDelay,
+          deferredToAnotherOwner: true,
+        );
+      }
+      await _recoverStaleTasksAfterOwnershipIfNeeded();
+
       while (true) {
         await _workerLoop(
           scheduleNextPoll: false,
@@ -239,7 +282,7 @@ class LocalTaskExecutor {
       );
     } finally {
       if (stopWhenDone || !wasRunning) {
-        stop();
+        await stop();
       }
     }
   }
@@ -294,21 +337,21 @@ class LocalTaskExecutor {
     bool recoverStaleTasks = true,
     bool autoPoll = true,
     Duration? minimumStaleTaskAge,
+    TaskQueueOwnerKind ownerKind = TaskQueueOwnerKind.foreground,
   }) async {
     if (_isRunning) return;
     _currentUserId = userId; // Store for use in worker loop
     _autoPollEnabled = autoPoll;
+    _queueOwnerKind = ownerKind;
+    _recoverStaleTasksWhenOwnerAcquired = recoverStaleTasks;
+    _minimumStaleTaskAgeWhenOwnerAcquired = minimumStaleTaskAge;
 
-    if (recoverStaleTasks) {
-      // Detect whether the previous process exited while a task was running.
-      // This must happen before resetting stale tasks, otherwise we lose the only
-      // durable signal that a crash-like exit happened during task execution.
-      await _handlePreviousExecutionMarkers(
-        minimumStaleTaskAge: minimumStaleTaskAge,
+    if (await _ensureQueueOwnership()) {
+      await _recoverStaleTasksAfterOwnershipIfNeeded();
+    } else {
+      _logger.info(
+        'LocalTaskExecutor waiting for queue ownership for user $_currentUserId',
       );
-
-      // Reset any stale 'processing' tasks that might have been left over from a crash
-      await _resetStaleTasks(minimumStaleTaskAge: minimumStaleTaskAge);
     }
 
     _isRunning = true;
@@ -342,10 +385,12 @@ class LocalTaskExecutor {
         }
       }
 
-      final count = await update.write(TasksCompanion(
-        status: const Value('pending'),
-        updatedAt: Value(now.millisecondsSinceEpoch ~/ 1000),
-      ));
+      final count = await update.write(
+        TasksCompanion(
+          status: const Value('pending'),
+          updatedAt: Value(now.millisecondsSinceEpoch ~/ 1000),
+        ),
+      );
 
       if (count > 0) {
         _logger.info('Reset $count stale processing tasks to pending');
@@ -355,15 +400,173 @@ class LocalTaskExecutor {
     }
   }
 
+  Future<void> _recoverStaleTasksAfterOwnershipIfNeeded() async {
+    if (!_ownsQueue || !_recoverStaleTasksWhenOwnerAcquired) return;
+    _recoverStaleTasksWhenOwnerAcquired = false;
+
+    // Detect whether the previous process exited while a task was running.
+    // This must happen before resetting stale tasks, otherwise we lose the only
+    // durable signal that a crash-like exit happened during task execution.
+    await _handlePreviousExecutionMarkers(
+      minimumStaleTaskAge: _minimumStaleTaskAgeWhenOwnerAcquired,
+    );
+
+    await _resetStaleTasks(
+      minimumStaleTaskAge: _minimumStaleTaskAgeWhenOwnerAcquired,
+    );
+  }
+
+  Future<bool> _ensureQueueOwnership() async {
+    final userId = _currentUserId;
+    if (userId == null || userId.isEmpty) return true;
+    if (_ownsQueue) {
+      return _refreshQueueOwnership(userId);
+    }
+
+    final acquired = await _tryAcquireQueueOwnership(userId);
+    if (acquired) {
+      _ownsQueue = true;
+      _startQueueLeaseHeartbeat();
+      _logger.info(
+        'LocalTaskExecutor acquired queue ownership '
+        '(${_queueOwnerKind.name}) for user $userId',
+      );
+    }
+    return acquired;
+  }
+
+  Future<bool> _tryAcquireQueueOwnership(String userId) async {
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final staleBefore = now - _queueLeaseTtl.inSeconds;
+    final leaseKey = _queueLeaseKey(userId);
+    final leaseValue = _queueLeaseValue;
+
+    final updated = await SqliteBusyRetry.run<int>(
+      operation: 'acquire agent queue ownership',
+      logger: _logger,
+      action: () {
+        return _db.customUpdate(
+          'INSERT INTO kv_store (key, value, bucket, updated_at) '
+          'VALUES (?, ?, ?, ?) '
+          'ON CONFLICT(key) DO UPDATE SET '
+          'value = excluded.value, '
+          'bucket = excluded.bucket, '
+          'updated_at = excluded.updated_at '
+          'WHERE kv_store.value = ? '
+          'OR kv_store.value IS NULL '
+          'OR kv_store.updated_at IS NULL '
+          'OR kv_store.updated_at <= ?',
+          variables: [
+            Variable<String>(leaseKey),
+            Variable<String>(leaseValue),
+            const Variable<String>(_queueLeaseBucket),
+            Variable<int>(now),
+            Variable<String>(leaseValue),
+            Variable<int>(staleBefore),
+          ],
+          updates: {_db.kvStore},
+        );
+      },
+    );
+    return updated > 0;
+  }
+
+  Future<bool> _refreshQueueOwnership(String userId) async {
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final updated = await SqliteBusyRetry.run<int>(
+      operation: 'refresh agent queue ownership',
+      logger: _logger,
+      action: () {
+        return _db.customUpdate(
+          'UPDATE kv_store SET updated_at = ? '
+          'WHERE key = ? AND value = ?',
+          variables: [
+            Variable<int>(now),
+            Variable<String>(_queueLeaseKey(userId)),
+            Variable<String>(_queueLeaseValue),
+          ],
+          updates: {_db.kvStore},
+        );
+      },
+    );
+
+    if (updated > 0) return true;
+    _ownsQueue = false;
+    _queueLeaseHeartbeatTimer?.cancel();
+    _queueLeaseHeartbeatTimer = null;
+    _logger.warning('LocalTaskExecutor lost queue ownership for user $userId');
+    return false;
+  }
+
+  void _startQueueLeaseHeartbeat() {
+    _queueLeaseHeartbeatTimer?.cancel();
+    _queueLeaseHeartbeatTimer = Timer.periodic(_queueLeaseHeartbeatInterval, (
+      _,
+    ) {
+      final userId = _currentUserId;
+      if (userId == null || !_ownsQueue) return;
+      unawaited(
+        _refreshQueueOwnership(userId).catchError((
+          Object error,
+          StackTrace stackTrace,
+        ) {
+          _logger.warning(
+            'Failed to refresh agent queue ownership heartbeat',
+            error,
+            stackTrace,
+          );
+          return false;
+        }),
+      );
+    });
+  }
+
+  Future<void> _releaseQueueOwnership() async {
+    final userId = _currentUserId;
+    if (!_ownsQueue || userId == null || userId.isEmpty) return;
+
+    try {
+      await SqliteBusyRetry.run<void>(
+        operation: 'release agent queue ownership',
+        logger: _logger,
+        action: () async {
+          await _db.customUpdate(
+            'DELETE FROM kv_store WHERE key = ? AND value = ?',
+            variables: [
+              Variable<String>(_queueLeaseKey(userId)),
+              Variable<String>(_queueLeaseValue),
+            ],
+            updates: {_db.kvStore},
+          );
+        },
+      );
+    } catch (error, stackTrace) {
+      _logger.warning(
+        'Failed to release agent queue ownership for user $userId',
+        error,
+        stackTrace,
+      );
+    } finally {
+      _ownsQueue = false;
+    }
+  }
+
+  String _queueLeaseKey(String userId) => '$_queueLeaseKeyPrefix$userId';
+
+  String get _queueLeaseValue => '$_queueOwnerId:${_queueOwnerKind.name}';
+
   /// Stop the worker loop
-  void stop() {
+  Future<void> stop() async {
     _isRunning = false;
     _autoPollEnabled = true;
     _pollTimer?.cancel();
+    _queueLeaseHeartbeatTimer?.cancel();
+    _queueLeaseHeartbeatTimer = null;
     for (final timer in _taskHeartbeatTimers.values) {
       timer.cancel();
     }
     _taskHeartbeatTimers.clear();
+    await _releaseQueueOwnership();
     _logger.info('LocalTaskExecutor stopped');
   }
 
@@ -375,7 +578,9 @@ class LocalTaskExecutor {
       reason: reason,
     );
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    await _db.into(_db.kvStore).insertOnConflictUpdate(
+    await _db
+        .into(_db.kvStore)
+        .insertOnConflictUpdate(
           KvStoreCompanion.insert(
             key: _gracefulExitMarkerKey,
             value: Value(jsonEncode(marker.toJson())),
@@ -388,9 +593,9 @@ class LocalTaskExecutor {
   Future<void> clearGracefulShutdownMarker() async {
     if (!AppDatabase.isInitialized) return;
 
-    await (_db.delete(_db.kvStore)
-          ..where((kv) => kv.key.equals(_gracefulExitMarkerKey)))
-        .go();
+    await (_db.delete(
+      _db.kvStore,
+    )..where((kv) => kv.key.equals(_gracefulExitMarkerKey))).go();
   }
 
   // Max concurrent tasks
@@ -415,24 +620,30 @@ class LocalTaskExecutor {
     // We use a manual UUID or let Drift handle it?
     // Our schema defined ID as Text. Drift doesn't auto-generate Text IDs usually.
     // So we generate one.
-    final taskId =
-        DateTime.now().microsecondsSinceEpoch.toString(); // Simple ID for now
+    final taskId = DateTime.now().microsecondsSinceEpoch
+        .toString(); // Simple ID for now
 
-    await _db.into(_db.tasks).insert(TasksCompanion.insert(
-          id: taskId,
-          type: taskType,
-          payload: Value(jsonEncode(payload)),
-          runId: Value(runId ?? payload['run_id'] as String?),
-          status: 'pending',
-          priority: Value(priority),
-          createdAt: Value(now),
-          scheduledAt: Value(scheduledAt),
-          maxRetries: Value(maxRetries),
-          bizId: Value(bizId),
-          dependencies: Value(dependencies != null && dependencies.isNotEmpty
-              ? jsonEncode(dependencies)
-              : null),
-        ));
+    await _db
+        .into(_db.tasks)
+        .insert(
+          TasksCompanion.insert(
+            id: taskId,
+            type: taskType,
+            payload: Value(jsonEncode(payload)),
+            runId: Value(runId ?? payload['run_id'] as String?),
+            status: 'pending',
+            priority: Value(priority),
+            createdAt: Value(now),
+            scheduledAt: Value(scheduledAt),
+            maxRetries: Value(maxRetries),
+            bizId: Value(bizId),
+            dependencies: Value(
+              dependencies != null && dependencies.isNotEmpty
+                  ? jsonEncode(dependencies)
+                  : null,
+            ),
+          ),
+        );
 
     _logger.info('Enqueued task $taskId ($taskType)');
 
@@ -464,6 +675,15 @@ class LocalTaskExecutor {
     _isProcessing = true;
 
     try {
+      if (!await _ensureQueueOwnership()) {
+        _isProcessing = false;
+        if (scheduleNextPoll) {
+          _scheduleNextPoll();
+        }
+        return;
+      }
+      await _recoverStaleTasksAfterOwnershipIfNeeded();
+
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
       // 1. Check current active tasks count
@@ -586,8 +806,10 @@ class LocalTaskExecutor {
 
       final query = _db.select(_db.tasks)
         ..where((t) => t.status.isIn(['pending', 'retrying']))
-        ..where((t) =>
-            t.scheduledAt.isNull() | t.scheduledAt.isSmallerOrEqualValue(now))
+        ..where(
+          (t) =>
+              t.scheduledAt.isNull() | t.scheduledAt.isSmallerOrEqualValue(now),
+        )
         ..orderBy([
           (t) => OrderingTerm(expression: t.priority, mode: OrderingMode.desc),
           (t) => OrderingTerm(expression: t.rowId, mode: OrderingMode.asc),
@@ -607,10 +829,7 @@ class LocalTaskExecutor {
           if (concurrencyKey != null) {
             if (_activeConcurrencyKeys.contains(concurrencyKey) ||
                 reservedConcurrencyKeys.contains(concurrencyKey) ||
-                await _hasProcessingConcurrencyConflict(
-                  task,
-                  concurrencyKey,
-                )) {
+                await _hasProcessingConcurrencyConflict(task, concurrencyKey)) {
               continue;
             }
             reservedConcurrencyKeys.add(concurrencyKey);
@@ -622,7 +841,8 @@ class LocalTaskExecutor {
 
     if (tasksToRun.isEmpty && scanned >= _maxCandidateScan) {
       _logger.warning(
-          'No runnable tasks found after scanning $_maxCandidateScan candidates');
+        'No runnable tasks found after scanning $_maxCandidateScan candidates',
+      );
     }
 
     return tasksToRun;
@@ -762,11 +982,7 @@ class LocalTaskExecutor {
       await handler(
         currentUserId,
         payloadMap,
-        TaskContext(
-          taskId: task.id,
-          taskType: task.type,
-          bizId: task.bizId,
-        ),
+        TaskContext(taskId: task.id, taskType: task.type, bizId: task.bizId),
       );
 
       // Success
@@ -894,8 +1110,10 @@ class LocalTaskExecutor {
     int now, {
     String? concurrencyKey,
   }) async {
-    final guardSameType =
-        _usesSameTypeDatabaseConcurrencyGuard(task, concurrencyKey);
+    final guardSameType = _usesSameTypeDatabaseConcurrencyGuard(
+      task,
+      concurrencyKey,
+    );
     final sql = StringBuffer(
       'UPDATE tasks '
       'SET status = ?, updated_at = ? '
@@ -963,12 +1181,13 @@ class LocalTaskExecutor {
   }
 
   Future<void> _handlePreviousExecutionMarker(
-      _TaskExecutionMarker marker, _GracefulExitMarker? gracefulExitMarker,
-      {Duration? minimumStaleTaskAge}) async {
+    _TaskExecutionMarker marker,
+    _GracefulExitMarker? gracefulExitMarker, {
+    Duration? minimumStaleTaskAge,
+  }) async {
     final task = await (_db.select(
       _db.tasks,
-    )..where((t) => t.id.equals(marker.taskId)))
-        .getSingleOrNull();
+    )..where((t) => t.id.equals(marker.taskId))).getSingleOrNull();
     if (task == null || task.status != 'processing') {
       await _deleteTaskExecutionMarker(marker.taskId);
       return;
@@ -1064,10 +1283,10 @@ class LocalTaskExecutor {
   }
 
   Future<_TaskExecutionMarker?> _loadTaskExecutionMarker(String taskId) async {
-    final row = await (_db.select(
-      _db.kvStore,
-    )..where((kv) => kv.key.equals(_taskExecutionMarkerKey(taskId))))
-        .getSingleOrNull();
+    final row =
+        await (_db.select(_db.kvStore)
+              ..where((kv) => kv.key.equals(_taskExecutionMarkerKey(taskId))))
+            .getSingleOrNull();
     if (row?.value == null) return null;
 
     try {
@@ -1082,9 +1301,9 @@ class LocalTaskExecutor {
   }
 
   Future<List<_TaskExecutionMarker>> _loadTaskExecutionMarkers() async {
-    final rows = await (_db.select(_db.kvStore)
-          ..where((kv) => kv.key.like('$_activeTaskMarkerKeyPrefix%')))
-        .get();
+    final rows = await (_db.select(
+      _db.kvStore,
+    )..where((kv) => kv.key.like('$_activeTaskMarkerKeyPrefix%'))).get();
     final markers = <_TaskExecutionMarker>[];
 
     for (final row in rows) {
@@ -1109,9 +1328,9 @@ class LocalTaskExecutor {
   }
 
   Future<_GracefulExitMarker?> _loadGracefulExitMarker() async {
-    final row = await (_db.select(_db.kvStore)
-          ..where((kv) => kv.key.equals(_gracefulExitMarkerKey)))
-        .getSingleOrNull();
+    final row = await (_db.select(
+      _db.kvStore,
+    )..where((kv) => kv.key.equals(_gracefulExitMarkerKey))).getSingleOrNull();
     if (row?.value == null) return null;
 
     try {
@@ -1129,9 +1348,9 @@ class LocalTaskExecutor {
     await _runCrashGuardDatabaseOperation(
       'delete graceful exit marker',
       () async {
-        await (_db.delete(_db.kvStore)
-              ..where((kv) => kv.key.equals(_gracefulExitMarkerKey)))
-            .go();
+        await (_db.delete(
+          _db.kvStore,
+        )..where((kv) => kv.key.equals(_gracefulExitMarkerKey))).go();
       },
     );
   }
@@ -1141,7 +1360,9 @@ class LocalTaskExecutor {
     await _runCrashGuardDatabaseOperation(
       'save task execution marker ${marker.taskId}',
       () async {
-        await _db.into(_db.kvStore).insertOnConflictUpdate(
+        await _db
+            .into(_db.kvStore)
+            .insertOnConflictUpdate(
               KvStoreCompanion.insert(
                 key: _taskExecutionMarkerKey(marker.taskId),
                 value: Value(jsonEncode(marker.toJson())),
@@ -1165,10 +1386,7 @@ class LocalTaskExecutor {
   }
 
   Future<void> _deleteTaskExecutionMarkerByKeyRaw(String key) async {
-    await (_db.delete(
-      _db.kvStore,
-    )..where((kv) => kv.key.equals(key)))
-        .go();
+    await (_db.delete(_db.kvStore)..where((kv) => kv.key.equals(key))).go();
   }
 
   Future<void> _clearTaskExecutionMarker(String taskId) async {
@@ -1188,41 +1406,22 @@ class LocalTaskExecutor {
     String operation,
     Future<void> Function() action,
   ) async {
-    for (var attempt = 1;
-        attempt <= _crashGuardDatabaseMaxAttempts;
-        attempt++) {
-      try {
-        await action();
-        return;
-      } catch (error, stackTrace) {
-        if (!_isDatabaseLocked(error)) rethrow;
-        if (attempt == _crashGuardDatabaseMaxAttempts) {
-          _logger.warning(
-            'Skipped crash guard operation after database stayed locked: $operation',
-            error,
-            stackTrace,
-          );
-          return;
-        }
-        _logger.info(
-          'Crash guard database locked during $operation '
-          '(attempt $attempt/$_crashGuardDatabaseMaxAttempts); retrying.',
-        );
-        await Future.delayed(
-          Duration(
-            milliseconds:
-                _crashGuardDatabaseRetryDelay.inMilliseconds * attempt,
-          ),
-        );
-      }
+    try {
+      await SqliteBusyRetry.run<void>(
+        operation: 'crash guard $operation',
+        logger: _logger,
+        maxAttempts: _crashGuardDatabaseMaxAttempts,
+        retryDelay: _crashGuardDatabaseRetryDelay,
+        action: action,
+      );
+    } catch (error, stackTrace) {
+      if (!SqliteBusyRetry.isDatabaseLocked(error)) rethrow;
+      _logger.warning(
+        'Skipped crash guard operation after database stayed locked: $operation',
+        error,
+        stackTrace,
+      );
     }
-  }
-
-  bool _isDatabaseLocked(Object error) {
-    final message = error.toString().toLowerCase();
-    return message.contains('database is locked') ||
-        message.contains('sqliteexception(5)') ||
-        message.contains('database_busy');
   }
 
   String _taskExecutionMarkerKey(String taskId) {
@@ -1248,15 +1447,12 @@ class LocalTaskExecutor {
   @visibleForTesting
   Future<KvStoreData?> getTaskExecutionMarkerForTesting([String? taskId]) {
     if (taskId != null) {
-      return (_db.select(
-        _db.kvStore,
-      )..where((kv) => kv.key.equals(_taskExecutionMarkerKey(taskId))))
+      return (_db.select(_db.kvStore)
+            ..where((kv) => kv.key.equals(_taskExecutionMarkerKey(taskId))))
           .getSingleOrNull();
     }
 
-    return (_db.select(
-      _db.kvStore,
-    )
+    return (_db.select(_db.kvStore)
           ..where((kv) => kv.key.like('$_activeTaskMarkerKeyPrefix%'))
           ..limit(1))
         .getSingleOrNull();
@@ -1266,15 +1462,27 @@ class LocalTaskExecutor {
   Future<List<KvStoreData>> getTaskExecutionMarkersForTesting() {
     return (_db.select(
       _db.kvStore,
-    )..where((kv) => kv.key.like('$_activeTaskMarkerKeyPrefix%')))
-        .get();
+    )..where((kv) => kv.key.like('$_activeTaskMarkerKeyPrefix%'))).get();
   }
 
   @visibleForTesting
   Future<KvStoreData?> getGracefulExitMarkerForTesting() {
-    return (_db.select(_db.kvStore)
-          ..where((kv) => kv.key.equals(_gracefulExitMarkerKey)))
-        .getSingleOrNull();
+    return (_db.select(
+      _db.kvStore,
+    )..where((kv) => kv.key.equals(_gracefulExitMarkerKey))).getSingleOrNull();
+  }
+
+  @visibleForTesting
+  bool get ownsQueueForTesting => _ownsQueue;
+
+  @visibleForTesting
+  String get queueOwnerValueForTesting => _queueLeaseValue;
+
+  @visibleForTesting
+  Future<KvStoreData?> getQueueLeaseForTesting(String userId) {
+    return (_db.select(
+      _db.kvStore,
+    )..where((kv) => kv.key.equals(_queueLeaseKey(userId)))).getSingleOrNull();
   }
 
   /// Check if a task of [taskType] with [bizId] has failed.
@@ -1311,19 +1519,23 @@ class LocalTaskExecutor {
     final taskId = DateTime.now().microsecondsSinceEpoch.toString();
     final resultStr = jsonEncode(result);
 
-    await _db.into(_db.tasks).insert(TasksCompanion.insert(
-          id: taskId,
-          type: taskType,
-          payload: const Value("{}"),
-          status: 'completed',
-          priority: const Value(0),
-          createdAt: Value(now),
-          completedAt: Value(now),
-          updatedAt: Value(now),
-          maxRetries: const Value(1),
-          bizId: Value(bizId),
-          result: Value(resultStr),
-        ));
+    await _db
+        .into(_db.tasks)
+        .insert(
+          TasksCompanion.insert(
+            id: taskId,
+            type: taskType,
+            payload: const Value("{}"),
+            status: 'completed',
+            priority: const Value(0),
+            createdAt: Value(now),
+            completedAt: Value(now),
+            updatedAt: Value(now),
+            maxRetries: const Value(1),
+            bizId: Value(bizId),
+            result: Value(resultStr),
+          ),
+        );
   }
 
   /// Get task result by taskId (for resumption)
@@ -1343,13 +1555,16 @@ class LocalTaskExecutor {
 
   /// Get task result by bizId
   Future<Map<String, dynamic>?> getTaskResultByBizId(
-      String userId, String taskType, String bizId) async {
+    String userId,
+    String taskType,
+    String bizId,
+  ) async {
     final query = _db.select(_db.tasks)
       ..where((t) => t.type.equals(taskType))
       ..where((t) => t.bizId.equals(bizId))
       ..where((t) => t.status.equals('completed'))
       ..orderBy([
-        (t) => OrderingTerm(expression: t.completedAt, mode: OrderingMode.desc)
+        (t) => OrderingTerm(expression: t.completedAt, mode: OrderingMode.desc),
       ])
       ..limit(1);
 
@@ -1382,7 +1597,7 @@ class LocalTaskExecutor {
       ..addColumns([_db.tasks.id])
       ..where(_db.tasks.type.equals(taskType))
       ..orderBy([
-        OrderingTerm(expression: _db.tasks.createdAt, mode: OrderingMode.desc)
+        OrderingTerm(expression: _db.tasks.createdAt, mode: OrderingMode.desc),
       ])
       ..limit(1);
 
@@ -1452,10 +1667,7 @@ class _TaskExecutionMarker {
     };
   }
 
-  _TaskExecutionMarker copyWith({
-    int? crashCount,
-    DateTime? heartbeatAt,
-  }) {
+  _TaskExecutionMarker copyWith({int? crashCount, DateTime? heartbeatAt}) {
     return _TaskExecutionMarker(
       taskId: taskId,
       taskType: taskType,
@@ -1485,10 +1697,7 @@ class _TaskExecutionMarker {
 }
 
 class _GracefulExitMarker {
-  _GracefulExitMarker({
-    required this.markedAt,
-    required this.reason,
-  });
+  _GracefulExitMarker({required this.markedAt, required this.reason});
 
   final DateTime markedAt;
   final String reason;
@@ -1503,9 +1712,6 @@ class _GracefulExitMarker {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'marked_at_ms': markedAt.millisecondsSinceEpoch,
-      'reason': reason,
-    };
+    return {'marked_at_ms': markedAt.millisecondsSinceEpoch, 'reason': reason};
   }
 }

@@ -15,141 +15,175 @@ void main() {
   setUp(() async {
     db = AppDatabase.forTesting(NativeDatabase.memory());
     AppDatabase.setTestInstance(db);
-    executor = LocalTaskExecutor.forTesting();
+    executor = LocalTaskExecutor.forTesting(queueOwnerId: 'foreground-owner');
   });
 
   tearDown(() async {
-    executor.stop();
+    await executor.stop();
     await db.close();
   });
 
   group('LocalTaskExecutor scheduling', () {
-    test('scans past dependency-blocked queue head to run later tasks',
-        () async {
-      final completed = Completer<void>();
-      executor.registerHandler('runnable_task', (_, __, ___) async {
-        if (!completed.isCompleted) completed.complete();
-      });
+    test(
+      'scans past dependency-blocked queue head to run later tasks',
+      () async {
+        final completed = Completer<void>();
+        executor.registerHandler('runnable_task', (_, __, ___) async {
+          if (!completed.isCompleted) completed.complete();
+        });
 
-      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+        final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-      await db.into(db.tasks).insert(TasksCompanion.insert(
-            id: 'unresolved-dependency',
-            type: 'dependency_task',
-            payload: const Value('{}'),
-            status: 'retrying',
-            createdAt: Value(now),
-            scheduledAt: Value(now + 3600),
-          ));
+        await db
+            .into(db.tasks)
+            .insert(
+              TasksCompanion.insert(
+                id: 'unresolved-dependency',
+                type: 'dependency_task',
+                payload: const Value('{}'),
+                status: 'retrying',
+                createdAt: Value(now),
+                scheduledAt: Value(now + 3600),
+              ),
+            );
 
-      for (var i = 0; i < 50; i++) {
-        await db.into(db.tasks).insert(TasksCompanion.insert(
-              id: 'blocked-$i',
-              type: 'blocked_task',
-              payload: const Value('{}'),
-              status: 'pending',
-              createdAt: Value(now + i + 1),
-              dependencies: Value(jsonEncode(['unresolved-dependency'])),
-            ));
-      }
+        for (var i = 0; i < 50; i++) {
+          await db
+              .into(db.tasks)
+              .insert(
+                TasksCompanion.insert(
+                  id: 'blocked-$i',
+                  type: 'blocked_task',
+                  payload: const Value('{}'),
+                  status: 'pending',
+                  createdAt: Value(now + i + 1),
+                  dependencies: Value(jsonEncode(['unresolved-dependency'])),
+                ),
+              );
+        }
 
-      await db.into(db.tasks).insert(TasksCompanion.insert(
-            id: 'runnable',
-            type: 'runnable_task',
-            payload: const Value('{}'),
-            status: 'pending',
-            createdAt: Value(now + 100),
-          ));
+        await db
+            .into(db.tasks)
+            .insert(
+              TasksCompanion.insert(
+                id: 'runnable',
+                type: 'runnable_task',
+                payload: const Value('{}'),
+                status: 'pending',
+                createdAt: Value(now + 100),
+              ),
+            );
 
-      await executor.start(userId: 'user-a');
+        await executor.start(userId: 'user-a');
 
-      await completed.future.timeout(const Duration(seconds: 3));
+        await completed.future.timeout(const Duration(seconds: 3));
 
-      final runnable = await _waitForTaskStatus(db, 'runnable', 'completed');
-      expect(runnable.status, 'completed');
+        final runnable = await _waitForTaskStatus(db, 'runnable', 'completed');
+        expect(runnable.status, 'completed');
 
-      final blocked = await _getTask(db, 'blocked-0');
-      expect(blocked.status, 'pending');
-    });
+        final blocked = await _getTask(db, 'blocked-0');
+        expect(blocked.status, 'pending');
+      },
+    );
 
-    test('fails malformed dependencies and still runs a later valid task',
-        () async {
-      final completed = Completer<void>();
-      executor.registerHandler('runnable_task', (_, __, ___) async {
-        if (!completed.isCompleted) completed.complete();
-      });
+    test(
+      'fails malformed dependencies and still runs a later valid task',
+      () async {
+        final completed = Completer<void>();
+        executor.registerHandler('runnable_task', (_, __, ___) async {
+          if (!completed.isCompleted) completed.complete();
+        });
 
-      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+        final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-      await db.into(db.tasks).insert(TasksCompanion.insert(
-            id: 'bad-dependency',
-            type: 'blocked_task',
-            payload: const Value('{}'),
-            status: 'pending',
-            priority: const Value(10),
-            createdAt: Value(now),
-            dependencies: const Value('not-json'),
-          ));
+        await db
+            .into(db.tasks)
+            .insert(
+              TasksCompanion.insert(
+                id: 'bad-dependency',
+                type: 'blocked_task',
+                payload: const Value('{}'),
+                status: 'pending',
+                priority: const Value(10),
+                createdAt: Value(now),
+                dependencies: const Value('not-json'),
+              ),
+            );
 
-      await db.into(db.tasks).insert(TasksCompanion.insert(
-            id: 'runnable',
-            type: 'runnable_task',
-            payload: const Value('{}'),
-            status: 'pending',
-            createdAt: Value(now + 1),
-          ));
+        await db
+            .into(db.tasks)
+            .insert(
+              TasksCompanion.insert(
+                id: 'runnable',
+                type: 'runnable_task',
+                payload: const Value('{}'),
+                status: 'pending',
+                createdAt: Value(now + 1),
+              ),
+            );
 
-      await executor.start(userId: 'user-a');
+        await executor.start(userId: 'user-a');
 
-      await completed.future.timeout(const Duration(seconds: 3));
-      await _waitForTaskStatus(db, 'runnable', 'completed');
+        await completed.future.timeout(const Duration(seconds: 3));
+        await _waitForTaskStatus(db, 'runnable', 'completed');
 
-      final malformed = await _getTask(db, 'bad-dependency');
-      expect(malformed.status, 'failed');
-      expect(malformed.error, contains('Invalid task dependencies'));
-    });
+        final malformed = await _getTask(db, 'bad-dependency');
+        expect(malformed.status, 'failed');
+        expect(malformed.error, contains('Invalid task dependencies'));
+      },
+    );
 
-    test('uses only available concurrency slots while backlog remains queued',
-        () async {
-      final release = Completer<void>();
-      var startedCount = 0;
-      executor.registerHandler('runnable_task', (_, __, ___) async {
-        startedCount++;
-        await release.future;
-      });
+    test(
+      'uses only available concurrency slots while backlog remains queued',
+      () async {
+        final release = Completer<void>();
+        var startedCount = 0;
+        executor.registerHandler('runnable_task', (_, __, ___) async {
+          startedCount++;
+          await release.future;
+        });
 
-      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+        final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-      await executor.start(userId: 'user-a');
-      for (var i = 0; i < 4; i++) {
-        await db.into(db.tasks).insert(TasksCompanion.insert(
-              id: 'active-$i',
-              type: 'already_processing',
-              payload: const Value('{}'),
-              status: 'processing',
-              createdAt: Value(now + i),
-            ));
-      }
+        await executor.start(userId: 'user-a');
+        for (var i = 0; i < 4; i++) {
+          await db
+              .into(db.tasks)
+              .insert(
+                TasksCompanion.insert(
+                  id: 'active-$i',
+                  type: 'already_processing',
+                  payload: const Value('{}'),
+                  status: 'processing',
+                  createdAt: Value(now + i),
+                ),
+              );
+        }
 
-      for (var i = 0; i < 3; i++) {
-        await db.into(db.tasks).insert(TasksCompanion.insert(
-              id: 'runnable-$i',
-              type: 'runnable_task',
-              payload: const Value('{}'),
-              status: 'pending',
-              createdAt: Value(now + 10 + i),
-            ));
-      }
+        for (var i = 0; i < 3; i++) {
+          await db
+              .into(db.tasks)
+              .insert(
+                TasksCompanion.insert(
+                  id: 'runnable-$i',
+                  type: 'runnable_task',
+                  payload: const Value('{}'),
+                  status: 'pending',
+                  createdAt: Value(now + 10 + i),
+                ),
+              );
+        }
 
-      await _waitUntil(() => startedCount == 1);
-      await Future<void>.delayed(const Duration(milliseconds: 250));
+        await _waitUntil(() => startedCount == 1);
+        await Future<void>.delayed(const Duration(milliseconds: 250));
 
-      expect(startedCount, 1);
+        expect(startedCount, 1);
 
-      release.complete();
-      await _waitForTaskStatus(db, 'runnable-0', 'completed');
-      executor.stop();
-    });
+        release.complete();
+        await _waitForTaskStatus(db, 'runnable-0', 'completed');
+        await executor.stop();
+      },
+    );
 
     test('serializes tasks that share a concurrency policy key', () async {
       final firstStarted = Completer<void>();
@@ -157,18 +191,14 @@ void main() {
       final secondStarted = Completer<void>();
       final otherCompleted = Completer<void>();
 
-      executor.registerHandler(
-        'serial_task',
-        (_, __, context) async {
-          if (context.taskId == 'serial-1') {
-            if (!firstStarted.isCompleted) firstStarted.complete();
-            await releaseFirst.future;
-          } else if (context.taskId == 'serial-2') {
-            if (!secondStarted.isCompleted) secondStarted.complete();
-          }
-        },
-        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
-      );
+      executor.registerHandler('serial_task', (_, __, context) async {
+        if (context.taskId == 'serial-1') {
+          if (!firstStarted.isCompleted) firstStarted.complete();
+          await releaseFirst.future;
+        } else if (context.taskId == 'serial-2') {
+          if (!secondStarted.isCompleted) secondStarted.complete();
+        }
+      }, concurrencyPolicy: TaskConcurrencyPolicy.byUser());
       executor.registerHandler('other_task', (_, __, ___) async {
         if (!otherCompleted.isCompleted) otherCompleted.complete();
       });
@@ -211,34 +241,50 @@ void main() {
     test('reports active task activity snapshot', () async {
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-      await db.into(db.tasks).insert(TasksCompanion.insert(
-            id: 'pending-task',
-            type: 'task',
-            payload: const Value('{}'),
-            status: 'pending',
-            createdAt: Value(now),
-          ));
-      await db.into(db.tasks).insert(TasksCompanion.insert(
-            id: 'processing-task',
-            type: 'task',
-            payload: const Value('{}'),
-            status: 'processing',
-            createdAt: Value(now),
-          ));
-      await db.into(db.tasks).insert(TasksCompanion.insert(
-            id: 'retrying-task',
-            type: 'task',
-            payload: const Value('{}'),
-            status: 'retrying',
-            createdAt: Value(now),
-          ));
-      await db.into(db.tasks).insert(TasksCompanion.insert(
-            id: 'completed-task',
-            type: 'task',
-            payload: const Value('{}'),
-            status: 'completed',
-            createdAt: Value(now),
-          ));
+      await db
+          .into(db.tasks)
+          .insert(
+            TasksCompanion.insert(
+              id: 'pending-task',
+              type: 'task',
+              payload: const Value('{}'),
+              status: 'pending',
+              createdAt: Value(now),
+            ),
+          );
+      await db
+          .into(db.tasks)
+          .insert(
+            TasksCompanion.insert(
+              id: 'processing-task',
+              type: 'task',
+              payload: const Value('{}'),
+              status: 'processing',
+              createdAt: Value(now),
+            ),
+          );
+      await db
+          .into(db.tasks)
+          .insert(
+            TasksCompanion.insert(
+              id: 'retrying-task',
+              type: 'task',
+              payload: const Value('{}'),
+              status: 'retrying',
+              createdAt: Value(now),
+            ),
+          );
+      await db
+          .into(db.tasks)
+          .insert(
+            TasksCompanion.insert(
+              id: 'completed-task',
+              type: 'task',
+              payload: const Value('{}'),
+              status: 'completed',
+              createdAt: Value(now),
+            ),
+          );
 
       final snapshot = await executor.getTaskActivitySnapshot();
 
@@ -248,165 +294,169 @@ void main() {
           pending: 1,
           processing: 1,
           retrying: 1,
-          activeTaskIds: {
-            'pending-task',
-            'processing-task',
-            'retrying-task',
-          },
+          activeTaskIds: {'pending-task', 'processing-task', 'retrying-task'},
         ),
       );
       expect(snapshot.total, 3);
       expect(snapshot.hasActiveTasks, isTrue);
     });
 
-    test('links payload run_id to task row and completes durable run',
-        () async {
-      final completed = Completer<void>();
-      await AgentRunService.instance.createForSubmittedInput(
-        userId: 'user-a',
-        factId: 'fact-run',
-      );
-      executor.registerHandler('runnable_task', (_, __, ___) async {
-        if (!completed.isCompleted) completed.complete();
-      });
-
-      final taskId = await executor.enqueueTask(
-        userId: 'user-a',
-        taskType: 'runnable_task',
-        payload: {'run_id': 'fact-run'},
-      );
-
-      var task = await _getTask(db, taskId);
-      expect(task.runId, 'fact-run');
-
-      await executor.start(userId: 'user-a');
-      await completed.future.timeout(const Duration(seconds: 3));
-      task = await _waitForTaskStatus(db, taskId, 'completed');
-      final run = await (db.select(db.agentRuns)
-            ..where((row) => row.id.equals('fact-run')))
-          .getSingle();
-
-      expect(task.status, 'completed');
-      expect(run.state, 'completed');
-      expect(run.completedUnits, 100);
-    });
-
-    test('does not double-claim a task under repeated immediate polls',
-        () async {
-      final release = Completer<void>();
-      var runCount = 0;
-      executor.registerHandler('single_claim_task', (_, __, ___) async {
-        runCount++;
-        await release.future;
-      });
-
-      await _insertTask(
-        db,
-        id: 'single-claim',
-        type: 'single_claim_task',
-        status: 'pending',
-        payload: {'value': 1},
-      );
-
-      await executor.start(userId: 'user-a');
-      await _waitForTaskStatus(db, 'single-claim', 'processing');
-
-      for (var i = 0; i < 5; i++) {
-        await executor.drainAvailableTasks(
+    test(
+      'links payload run_id to task row and completes durable run',
+      () async {
+        final completed = Completer<void>();
+        await AgentRunService.instance.createForSubmittedInput(
           userId: 'user-a',
-          maxDuration: const Duration(milliseconds: 50),
-          pollInterval: const Duration(milliseconds: 10),
+          factId: 'fact-run',
         );
-      }
+        executor.registerHandler('runnable_task', (_, __, ___) async {
+          if (!completed.isCompleted) completed.complete();
+        });
 
-      expect(runCount, 1);
+        final taskId = await executor.enqueueTask(
+          userId: 'user-a',
+          taskType: 'runnable_task',
+          payload: {'run_id': 'fact-run'},
+        );
 
-      release.complete();
-      await _waitForTaskStatus(db, 'single-claim', 'completed');
-    });
+        var task = await _getTask(db, taskId);
+        expect(task.runId, 'fact-run');
 
-    test('background drain runs available tasks and leaves future retries',
-        () async {
-      final completedTaskIds = <String>[];
-      executor.registerHandler('drain_task', (_, __, context) async {
-        completedTaskIds.add(context.taskId);
-      });
+        await executor.start(userId: 'user-a');
+        await completed.future.timeout(const Duration(seconds: 3));
+        task = await _waitForTaskStatus(db, taskId, 'completed');
+        final run = await (db.select(
+          db.agentRuns,
+        )..where((row) => row.id.equals('fact-run'))).getSingle();
 
-      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      await _insertTask(
-        db,
-        id: 'available-drain',
-        type: 'drain_task',
-        status: 'pending',
-        payload: {'value': 1},
-      );
-      await _insertTask(
-        db,
-        id: 'future-retry',
-        type: 'drain_task',
-        status: 'retrying',
-        payload: {'value': 2},
-        scheduledAt: now + 3600,
-      );
+        expect(task.status, 'completed');
+        expect(run.state, 'completed');
+        expect(run.completedUnits, 100);
+      },
+    );
 
-      final result = await executor.drainAvailableTasks(
-        userId: 'user-a',
-        maxDuration: const Duration(seconds: 3),
-        pollInterval: const Duration(milliseconds: 25),
-      );
+    test(
+      'does not double-claim a task under repeated immediate polls',
+      () async {
+        final release = Completer<void>();
+        var runCount = 0;
+        executor.registerHandler('single_claim_task', (_, __, ___) async {
+          runCount++;
+          await release.future;
+        });
 
-      final available = await _getTask(db, 'available-drain');
-      final futureRetry = await _getTask(db, 'future-retry');
+        await _insertTask(
+          db,
+          id: 'single-claim',
+          type: 'single_claim_task',
+          status: 'pending',
+          payload: {'value': 1},
+        );
 
-      expect(completedTaskIds, ['available-drain']);
-      expect(available.status, 'completed');
-      expect(futureRetry.status, 'retrying');
-      expect(result.timedOut, isFalse);
-      expect(result.snapshot.retrying, 1);
-      expect(result.nextRunnableDelay, isNotNull);
-    });
+        await executor.start(userId: 'user-a');
+        await _waitForTaskStatus(db, 'single-claim', 'processing');
 
-    test('background drain waits for claimed task handlers before returning',
-        () async {
-      final started = Completer<void>();
-      final release = Completer<void>();
-      var drainCompleted = false;
-      executor.registerHandler('slow_drain_task', (_, __, context) async {
-        if (!started.isCompleted) started.complete();
-        await release.future;
-      });
+        for (var i = 0; i < 5; i++) {
+          await executor.drainAvailableTasks(
+            userId: 'user-a',
+            maxDuration: const Duration(milliseconds: 50),
+            pollInterval: const Duration(milliseconds: 10),
+          );
+        }
 
-      await _insertTask(
-        db,
-        id: 'slow-drain',
-        type: 'slow_drain_task',
-        status: 'pending',
-        payload: {'value': 1},
-      );
+        expect(runCount, 1);
 
-      final drainFuture = executor
-          .drainAvailableTasks(
-        userId: 'user-a',
-        maxDuration: const Duration(milliseconds: 100),
-        pollInterval: const Duration(milliseconds: 20),
-      )
-          .then((result) {
-        drainCompleted = true;
-        return result;
-      });
+        release.complete();
+        await _waitForTaskStatus(db, 'single-claim', 'completed');
+      },
+    );
 
-      await started.future.timeout(const Duration(seconds: 3));
-      await Future<void>.delayed(const Duration(milliseconds: 150));
+    test(
+      'background drain runs available tasks and leaves future retries',
+      () async {
+        final completedTaskIds = <String>[];
+        executor.registerHandler('drain_task', (_, __, context) async {
+          completedTaskIds.add(context.taskId);
+        });
 
-      expect(drainCompleted, isFalse);
-      expect((await _getTask(db, 'slow-drain')).status, 'processing');
+        final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+        await _insertTask(
+          db,
+          id: 'available-drain',
+          type: 'drain_task',
+          status: 'pending',
+          payload: {'value': 1},
+        );
+        await _insertTask(
+          db,
+          id: 'future-retry',
+          type: 'drain_task',
+          status: 'retrying',
+          payload: {'value': 2},
+          scheduledAt: now + 3600,
+        );
 
-      release.complete();
-      final result = await drainFuture.timeout(const Duration(seconds: 3));
+        final result = await executor.drainAvailableTasks(
+          userId: 'user-a',
+          maxDuration: const Duration(seconds: 3),
+          pollInterval: const Duration(milliseconds: 25),
+        );
 
-      expect(result.timedOut, isFalse);
-      expect((await _getTask(db, 'slow-drain')).status, 'completed');
-    });
+        final available = await _getTask(db, 'available-drain');
+        final futureRetry = await _getTask(db, 'future-retry');
+
+        expect(completedTaskIds, ['available-drain']);
+        expect(available.status, 'completed');
+        expect(futureRetry.status, 'retrying');
+        expect(result.timedOut, isFalse);
+        expect(result.snapshot.retrying, 1);
+        expect(result.nextRunnableDelay, isNotNull);
+      },
+    );
+
+    test(
+      'background drain waits for claimed task handlers before returning',
+      () async {
+        final started = Completer<void>();
+        final release = Completer<void>();
+        var drainCompleted = false;
+        executor.registerHandler('slow_drain_task', (_, __, context) async {
+          if (!started.isCompleted) started.complete();
+          await release.future;
+        });
+
+        await _insertTask(
+          db,
+          id: 'slow-drain',
+          type: 'slow_drain_task',
+          status: 'pending',
+          payload: {'value': 1},
+        );
+
+        final drainFuture = executor
+            .drainAvailableTasks(
+              userId: 'user-a',
+              maxDuration: const Duration(milliseconds: 100),
+              pollInterval: const Duration(milliseconds: 20),
+            )
+            .then((result) {
+              drainCompleted = true;
+              return result;
+            });
+
+        await started.future.timeout(const Duration(seconds: 3));
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+
+        expect(drainCompleted, isFalse);
+        expect((await _getTask(db, 'slow-drain')).status, 'processing');
+
+        release.complete();
+        final result = await drainFuture.timeout(const Duration(seconds: 3));
+
+        expect(result.timedOut, isFalse);
+        expect((await _getTask(db, 'slow-drain')).status, 'completed');
+      },
+    );
 
     test('background drain does not reset already processing tasks', () async {
       await _insertTask(
@@ -501,19 +551,15 @@ void main() {
       final secondStarted = Completer<void>();
       final completedTaskIds = <String>[];
 
-      executor.registerHandler(
-        'serial_drain_task',
-        (_, __, context) async {
-          if (context.taskId == 'serial-1') {
-            if (!firstStarted.isCompleted) firstStarted.complete();
-            await releaseFirst.future;
-          } else {
-            if (!secondStarted.isCompleted) secondStarted.complete();
-          }
-          completedTaskIds.add(context.taskId);
-        },
-        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
-      );
+      executor.registerHandler('serial_drain_task', (_, __, context) async {
+        if (context.taskId == 'serial-1') {
+          if (!firstStarted.isCompleted) firstStarted.complete();
+          await releaseFirst.future;
+        } else {
+          if (!secondStarted.isCompleted) secondStarted.complete();
+        }
+        completedTaskIds.add(context.taskId);
+      }, concurrencyPolicy: TaskConcurrencyPolicy.byUser());
 
       await _insertTask(
         db,
@@ -549,67 +595,212 @@ void main() {
       expect(completedTaskIds, ['serial-1', 'serial-2']);
     });
 
-    test('background drain respects user-level concurrency across executors',
-        () async {
-      final foregroundExecutor = executor;
-      final backgroundExecutor = LocalTaskExecutor.forTesting();
-      final foregroundStarted = Completer<void>();
-      final releaseForeground = Completer<void>();
-      final backgroundStarted = Completer<void>();
+    test(
+      'background drain respects user-level concurrency across executors',
+      () async {
+        final foregroundExecutor = executor;
+        final backgroundExecutor = LocalTaskExecutor.forTesting(
+          queueOwnerId: 'background-owner',
+        );
+        final foregroundStarted = Completer<void>();
+        final releaseForeground = Completer<void>();
+        final backgroundStarted = Completer<void>();
 
-      foregroundExecutor.registerHandler(
-        'serial_cross_task',
-        (_, __, context) async {
+        foregroundExecutor.registerHandler('serial_cross_task', (
+          _,
+          __,
+          context,
+        ) async {
           if (context.taskId == 'serial-cross-1' &&
               !foregroundStarted.isCompleted) {
             foregroundStarted.complete();
             await releaseForeground.future;
           }
-        },
-        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
-      );
-      backgroundExecutor.registerHandler(
-        'serial_cross_task',
-        (_, __, context) async {
+        }, concurrencyPolicy: TaskConcurrencyPolicy.byUser());
+        backgroundExecutor.registerHandler('serial_cross_task', (
+          _,
+          __,
+          context,
+        ) async {
           if (!backgroundStarted.isCompleted) {
             backgroundStarted.complete();
           }
-        },
-        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
-      );
+        }, concurrencyPolicy: TaskConcurrencyPolicy.byUser());
 
+        await _insertTask(
+          db,
+          id: 'serial-cross-1',
+          type: 'serial_cross_task',
+          status: 'pending',
+          payload: {'value': 1},
+        );
+        await _insertTask(
+          db,
+          id: 'serial-cross-2',
+          type: 'serial_cross_task',
+          status: 'pending',
+          payload: {'value': 2},
+        );
+
+        await foregroundExecutor.start(userId: 'user-a');
+        await foregroundStarted.future.timeout(const Duration(seconds: 3));
+
+        final result = await backgroundExecutor.drainAvailableTasks(
+          userId: 'user-a',
+          maxDuration: const Duration(milliseconds: 120),
+          pollInterval: const Duration(milliseconds: 20),
+        );
+
+        await foregroundExecutor.stop();
+        releaseForeground.complete();
+        await _waitForTaskStatus(db, 'serial-cross-1', 'completed');
+        await backgroundExecutor.stop();
+
+        expect(result.timedOut, isFalse);
+        expect(result.deferredToAnotherOwner, isTrue);
+        expect((await _getTask(db, 'serial-cross-2')).status, 'pending');
+        expect(backgroundStarted.isCompleted, isFalse);
+      },
+    );
+
+    test(
+      'background drain defers while a fresh foreground owner exists',
+      () async {
+        final foregroundExecutor = executor;
+        final backgroundExecutor = LocalTaskExecutor.forTesting(
+          queueOwnerId: 'background-owner',
+        );
+        var backgroundStarted = false;
+
+        backgroundExecutor.registerHandler('owned_task', (_, __, ___) async {
+          backgroundStarted = true;
+        });
+        await foregroundExecutor.start(userId: 'user-a', autoPoll: false);
+        await _insertTask(
+          db,
+          id: 'owned-pending',
+          type: 'owned_task',
+          status: 'pending',
+          payload: {'value': 1},
+        );
+
+        final result = await backgroundExecutor.drainAvailableTasks(
+          userId: 'user-a',
+          maxDuration: const Duration(seconds: 3),
+          pollInterval: const Duration(milliseconds: 20),
+        );
+
+        expect(result.deferredToAnotherOwner, isTrue);
+        expect(result.timedOut, isFalse);
+        expect(result.nextRunnableDelay, const Duration(seconds: 30));
+        expect(backgroundStarted, isFalse);
+        expect((await _getTask(db, 'owned-pending')).status, 'pending');
+        expect(
+          (await foregroundExecutor.getQueueLeaseForTesting('user-a'))?.value,
+          foregroundExecutor.queueOwnerValueForTesting,
+        );
+
+        await backgroundExecutor.stop();
+      },
+    );
+
+    test(
+      'background drain does not reset stale processing without ownership',
+      () async {
+        final foregroundExecutor = executor;
+        final backgroundExecutor = LocalTaskExecutor.forTesting(
+          queueOwnerId: 'background-owner',
+        );
+        final task = await _insertTask(
+          db,
+          id: 'owned-processing',
+          type: 'owned_task',
+          status: 'processing',
+          payload: {'value': 1},
+        );
+        await backgroundExecutor.markTaskExecutionStartedForTesting(task);
+        await foregroundExecutor.start(
+          userId: 'user-a',
+          autoPoll: false,
+          recoverStaleTasks: false,
+        );
+
+        final result = await backgroundExecutor.drainAvailableTasks(
+          userId: 'user-a',
+          maxDuration: const Duration(seconds: 3),
+          pollInterval: const Duration(milliseconds: 20),
+          minimumStaleTaskAge: Duration.zero,
+        );
+
+        expect(result.deferredToAnotherOwner, isTrue);
+        expect((await _getTask(db, 'owned-processing')).status, 'processing');
+        expect(
+          await backgroundExecutor.getTaskExecutionMarkerForTesting(
+            'owned-processing',
+          ),
+          isNotNull,
+        );
+
+        await backgroundExecutor.stop();
+      },
+    );
+
+    test('background drain takes over an expired owner lease', () async {
+      final backgroundExecutor = LocalTaskExecutor.forTesting(
+        queueOwnerId: 'background-owner',
+      );
+      final completedTaskIds = <String>[];
+      backgroundExecutor.registerHandler('takeover_task', (
+        _,
+        __,
+        context,
+      ) async {
+        completedTaskIds.add(context.taskId);
+      });
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      await db
+          .into(db.kvStore)
+          .insert(
+            KvStoreCompanion.insert(
+              key: 'agent_queue_lease:user-a',
+              value: const Value('old-owner:background'),
+              bucket: const Value('agent_queue_lease'),
+              updatedAt: Value(now - 120),
+            ),
+          );
       await _insertTask(
         db,
-        id: 'serial-cross-1',
-        type: 'serial_cross_task',
+        id: 'takeover-pending',
+        type: 'takeover_task',
         status: 'pending',
         payload: {'value': 1},
       );
-      await _insertTask(
-        db,
-        id: 'serial-cross-2',
-        type: 'serial_cross_task',
-        status: 'pending',
-        payload: {'value': 2},
-      );
-
-      await foregroundExecutor.start(userId: 'user-a');
-      await foregroundStarted.future.timeout(const Duration(seconds: 3));
 
       final result = await backgroundExecutor.drainAvailableTasks(
         userId: 'user-a',
-        maxDuration: const Duration(milliseconds: 120),
+        maxDuration: const Duration(seconds: 3),
         pollInterval: const Duration(milliseconds: 20),
       );
 
-      foregroundExecutor.stop();
-      releaseForeground.complete();
-      await _waitForTaskStatus(db, 'serial-cross-1', 'completed');
-      backgroundExecutor.stop();
+      expect(result.deferredToAnotherOwner, isFalse);
+      expect(result.timedOut, isFalse);
+      expect(completedTaskIds, ['takeover-pending']);
+      expect((await _getTask(db, 'takeover-pending')).status, 'completed');
+      expect(
+        await backgroundExecutor.getQueueLeaseForTesting('user-a'),
+        isNull,
+      );
+    });
 
-      expect(result.timedOut, isTrue);
-      expect((await _getTask(db, 'serial-cross-2')).status, 'pending');
-      expect(backgroundStarted.isCompleted, isFalse);
+    test('stop releases queue ownership for the same user', () async {
+      await executor.start(userId: 'user-a', autoPoll: false);
+
+      expect(await executor.getQueueLeaseForTesting('user-a'), isNotNull);
+
+      await executor.stop();
+
+      expect(executor.ownsQueueForTesting, isFalse);
+      expect(await executor.getQueueLeaseForTesting('user-a'), isNull);
     });
   });
 
@@ -672,7 +863,7 @@ void main() {
       await executor.markTaskExecutionStartedForTesting(task);
 
       await executor.start(userId: 'user-a');
-      executor.stop();
+      await executor.stop();
 
       final updated = await _getTask(db, task.id);
       final marker = await executor.getTaskExecutionMarkerForTesting(task.id);
@@ -696,7 +887,7 @@ void main() {
       await executor.recordGracefulShutdown(reason: 'test_manual_exit');
 
       await executor.start(userId: 'user-a');
-      executor.stop();
+      await executor.stop();
 
       final updated = await _getTask(db, task.id);
 
@@ -705,103 +896,107 @@ void main() {
       expect(await executor.getGracefulExitMarkerForTesting(), isNull);
     });
 
-    test('keeps separate crash markers for concurrent processing tasks',
-        () async {
-      final taskA = await _insertTask(
-        db,
-        id: 'task-concurrent-a',
-        type: 'dangerous_task_a',
-        status: 'processing',
-        payload: {'asset': 'large-image-a'},
-      );
-      final taskB = await _insertTask(
-        db,
-        id: 'task-concurrent-b',
-        type: 'dangerous_task_b',
-        status: 'processing',
-        payload: {'asset': 'large-image-b'},
-      );
-      await executor.markTaskExecutionStartedForTesting(taskA);
-      await executor.markTaskExecutionStartedForTesting(taskB);
+    test(
+      'keeps separate crash markers for concurrent processing tasks',
+      () async {
+        final taskA = await _insertTask(
+          db,
+          id: 'task-concurrent-a',
+          type: 'dangerous_task_a',
+          status: 'processing',
+          payload: {'asset': 'large-image-a'},
+        );
+        final taskB = await _insertTask(
+          db,
+          id: 'task-concurrent-b',
+          type: 'dangerous_task_b',
+          status: 'processing',
+          payload: {'asset': 'large-image-b'},
+        );
+        await executor.markTaskExecutionStartedForTesting(taskA);
+        await executor.markTaskExecutionStartedForTesting(taskB);
 
-      await executor.start(userId: 'user-a');
-      executor.stop();
+        await executor.start(userId: 'user-a');
+        await executor.stop();
 
-      final updatedA = await _getTask(db, taskA.id);
-      final updatedB = await _getTask(db, taskB.id);
-      final markerRows = await executor.getTaskExecutionMarkersForTesting();
-      final crashCounts = {
-        for (final row in markerRows)
-          (jsonDecode(row.value!) as Map<String, dynamic>)['task_id']:
-              (jsonDecode(row.value!) as Map<String, dynamic>)['crash_count'],
-      };
+        final updatedA = await _getTask(db, taskA.id);
+        final updatedB = await _getTask(db, taskB.id);
+        final markerRows = await executor.getTaskExecutionMarkersForTesting();
+        final crashCounts = {
+          for (final row in markerRows)
+            (jsonDecode(row.value!) as Map<String, dynamic>)['task_id']:
+                (jsonDecode(row.value!) as Map<String, dynamic>)['crash_count'],
+        };
 
-      expect(updatedA.status, 'pending');
-      expect(updatedB.status, 'pending');
-      expect(markerRows, hasLength(2));
-      expect(crashCounts[taskA.id], 1);
-      expect(crashCounts[taskB.id], 1);
-    });
+        expect(updatedA.status, 'pending');
+        expect(updatedB.status, 'pending');
+        expect(markerRows, hasLength(2));
+        expect(crashCounts[taskA.id], 1);
+        expect(crashCounts[taskB.id], 1);
+      },
+    );
 
-    test('simulates process death while a real task execution is in progress',
-        () async {
-      final firstHandlerStarted = Completer<void>();
-      final firstNeverCompletes = Completer<void>();
-      executor.registerHandler('native_crash_task', (
-        userId,
-        payload,
-        context,
-      ) async {
-        if (!firstHandlerStarted.isCompleted) {
-          firstHandlerStarted.complete();
-        }
-        await firstNeverCompletes.future;
-      });
-
-      await executor.start(userId: 'user-a');
-      final taskId = await executor.enqueueTask(
-        userId: 'user-a',
-        taskType: 'native_crash_task',
-        payload: {'asset': 'oversized-image'},
-      );
-      await firstHandlerStarted.future.timeout(const Duration(seconds: 3));
-      await _waitForTaskStatus(db, taskId, 'processing');
-      await _waitForMarkerCrashCount(executor, taskId, 0);
-
-      // Simulate process death: the task is still in progress, so the marker
-      // remains and Dart finally/catch never gets a chance to clean it up.
-      executor.stop();
-
-      final secondHandlerStarted = Completer<void>();
-      final secondNeverCompletes = Completer<void>();
-      executor = LocalTaskExecutor.forTesting()
-        ..registerHandler('native_crash_task', (
+    test(
+      'simulates process death while a real task execution is in progress',
+      () async {
+        final firstHandlerStarted = Completer<void>();
+        final firstNeverCompletes = Completer<void>();
+        executor.registerHandler('native_crash_task', (
           userId,
           payload,
           context,
         ) async {
-          if (!secondHandlerStarted.isCompleted) {
-            secondHandlerStarted.complete();
+          if (!firstHandlerStarted.isCompleted) {
+            firstHandlerStarted.complete();
           }
-          await secondNeverCompletes.future;
+          await firstNeverCompletes.future;
         });
 
-      await executor.start(userId: 'user-a');
-      await secondHandlerStarted.future.timeout(const Duration(seconds: 3));
-      await _waitForTaskStatus(db, taskId, 'processing');
-      await _waitForMarkerCrashCount(executor, taskId, 1);
-      executor.stop();
+        await executor.start(userId: 'user-a');
+        final taskId = await executor.enqueueTask(
+          userId: 'user-a',
+          taskType: 'native_crash_task',
+          payload: {'asset': 'oversized-image'},
+        );
+        await firstHandlerStarted.future.timeout(const Duration(seconds: 3));
+        await _waitForTaskStatus(db, taskId, 'processing');
+        await _waitForMarkerCrashCount(executor, taskId, 0);
 
-      executor = LocalTaskExecutor.forTesting();
-      await executor.start(userId: 'user-a');
-      executor.stop();
+        // Simulate process death: the task is still in progress, so the marker
+        // remains and Dart finally/catch never gets a chance to clean it up.
+        await executor.stop();
 
-      final updated = await _getTask(db, taskId);
+        final secondHandlerStarted = Completer<void>();
+        final secondNeverCompletes = Completer<void>();
+        executor = LocalTaskExecutor.forTesting()
+          ..registerHandler('native_crash_task', (
+            userId,
+            payload,
+            context,
+          ) async {
+            if (!secondHandlerStarted.isCompleted) {
+              secondHandlerStarted.complete();
+            }
+            await secondNeverCompletes.future;
+          });
 
-      expect(updated.status, 'failed');
-      expect(updated.error, contains('crash-like exits'));
-      expect(await executor.getTaskExecutionMarkerForTesting(taskId), isNull);
-    });
+        await executor.start(userId: 'user-a');
+        await secondHandlerStarted.future.timeout(const Duration(seconds: 3));
+        await _waitForTaskStatus(db, taskId, 'processing');
+        await _waitForMarkerCrashCount(executor, taskId, 1);
+        await executor.stop();
+
+        executor = LocalTaskExecutor.forTesting();
+        await executor.start(userId: 'user-a');
+        await executor.stop();
+
+        final updated = await _getTask(db, taskId);
+
+        expect(updated.status, 'failed');
+        expect(updated.error, contains('crash-like exits'));
+        expect(await executor.getTaskExecutionMarkerForTesting(taskId), isNull);
+      },
+    );
 
     test('second crash-like restart fails task and clears marker', () async {
       final task = await _insertTask(
@@ -815,7 +1010,7 @@ void main() {
       await _setMarkerCrashCount(db, executor, task.id, 1);
 
       await executor.start(userId: 'user-a');
-      executor.stop();
+      await executor.stop();
 
       final updated = await _getTask(db, task.id);
 
@@ -857,7 +1052,9 @@ Future<Task> _insertTask(
   int? scheduledAt,
 }) async {
   final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-  await db.into(db.tasks).insert(
+  await db
+      .into(db.tasks)
+      .insert(
         TasksCompanion.insert(
           id: id,
           type: type,

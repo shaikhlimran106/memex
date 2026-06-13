@@ -13,6 +13,7 @@ import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/db/app_database.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:workmanager/workmanager.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +36,7 @@ void main() {
     });
 
     tearDown(() async {
-      executor.stop();
+      await executor.stop();
       await db.close();
     });
 
@@ -57,6 +58,13 @@ void main() {
           'workmanager.background.task',
         ),
         isFalse,
+      );
+    });
+
+    test('uses KEEP for unique WorkManager drain scheduling', () {
+      expect(
+        WorkmanagerAgentQueueDrainScheduler.existingWorkPolicy,
+        ExistingWorkPolicy.keep,
       );
     });
 
@@ -123,6 +131,48 @@ void main() {
       expect(attempts, 2);
       expect(scheduler.scheduleCalls, 0);
       expect(platform.stopCalls, 1);
+    });
+
+    test('reschedules soon when another executor owns the queue', () async {
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      await db
+          .into(db.kvStore)
+          .insert(
+            KvStoreCompanion.insert(
+              key: 'agent_queue_lease:worker-user',
+              value: const Value('foreground-owner:foreground'),
+              bucket: const Value('agent_queue_lease'),
+              updatedAt: Value(now),
+            ),
+          );
+      await db
+          .into(db.tasks)
+          .insert(
+            TasksCompanion.insert(
+              id: 'foreground-owned-task',
+              type: 'owned_task',
+              payload: const Value('{}'),
+              status: 'pending',
+              createdAt: Value(now),
+            ),
+          );
+
+      final completed = await AgentQueueBackgroundWorker.run(
+        initializeTaskQueue: (_) async {},
+        executor: executor,
+        scheduler: scheduler,
+        backgroundPlatform: _FakeBackgroundPlatform(),
+        databaseRetryDelay: Duration.zero,
+      );
+
+      expect(completed, isTrue);
+      expect(scheduler.scheduleCalls, 1);
+      expect(scheduler.initialDelays.single, const Duration(seconds: 30));
+      expect(scheduler.expeditedValues.single, isFalse);
+      final task = await (db.select(
+        db.tasks,
+      )..where((row) => row.id.equals('foreground-owned-task'))).getSingle();
+      expect(task.status, 'pending');
     });
 
     test('does not retry non-database initialization failures', () async {

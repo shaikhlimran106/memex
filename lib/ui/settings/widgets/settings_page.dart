@@ -776,7 +776,7 @@ class _SettingsPageState extends State<SettingsPage> {
     // Perform deletion
     try {
       // 1. Stop background services that use the database
-      LocalTaskExecutor.instance.stop();
+      await LocalTaskExecutor.instance.stop();
       await EventBusService.instance.disconnect();
 
       // 2. Close and delete database
