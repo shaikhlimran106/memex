@@ -25,6 +25,39 @@ REQUIRED_KEYS = {
     "confidence",
 }
 
+RECOVERABLE_DEFAULTS = {
+    "confidence": "not_provided",
+}
+
+REVIEW_SIGNAL_KEYS = REQUIRED_KEYS.difference({"schema_version"})
+
+
+def _candidate_review(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+
+    missing = REQUIRED_KEYS.difference(value)
+    unrecoverable = missing.difference(RECOVERABLE_DEFAULTS)
+    if unrecoverable:
+        if len(REVIEW_SIGNAL_KEYS.intersection(value)) >= 2:
+            print(
+                "::warning::Claude PR review JSON missing unrecoverable "
+                f"required keys: {', '.join(sorted(unrecoverable))}.",
+            )
+        return None
+
+    if not missing:
+        return value
+
+    recovered = dict(value)
+    for key in sorted(missing):
+        recovered[key] = RECOVERABLE_DEFAULTS[key]
+    print(
+        "::warning::Claude PR review JSON missing required keys: "
+        f"{', '.join(sorted(missing))}; marked recoverable fields as not_provided.",
+    )
+    return recovered
+
 
 def parse_json_object(text: str) -> dict[str, Any] | None:
     text = text.strip()
@@ -43,8 +76,9 @@ def parse_json_object(text: str) -> dict[str, Any] | None:
             value, _ = decoder.raw_decode(text[index:])
         except json.JSONDecodeError:
             continue
-        if isinstance(value, dict) and REQUIRED_KEYS.issubset(value):
-            return value
+        review = _candidate_review(value)
+        if review is not None:
+            return review
     return None
 
 

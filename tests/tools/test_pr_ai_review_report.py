@@ -49,7 +49,7 @@ class PrAiReviewReportTest(unittest.TestCase):
         self.assertEqual(review["risk_level"], "critical")
         self.assertTrue(review["human_review_required"])
         self.assertEqual(review["golden_path_impact"]["level"], "confirmed")
-        self.assertEqual(review["confidence"], "low")
+        self.assertEqual(review["confidence"], "not_provided")
 
     def test_build_markdown_includes_bilingual_decision_and_findings(self):
         review = normalize_review(
@@ -97,6 +97,32 @@ class PrAiReviewReportTest(unittest.TestCase):
         self.assertIn("`agent_pipeline`", markdown)
         self.assertIn("Service 边界需要确认", markdown)
         self.assertIn("Service boundary needs confirmation", markdown)
+
+    def test_build_markdown_labels_missing_confidence_honestly(self):
+        review = normalize_review(
+            {
+                "risk_level": "low",
+                "human_review_required": False,
+                "golden_path_impact": {
+                    "level": "none",
+                    "paths": ["none"],
+                    "reason_zh": "仅 CI 工具变化。",
+                    "reason_en": "CI tooling only.",
+                },
+                "summary_zh": "低风险。",
+                "summary_en": "Low risk.",
+                "affected_areas": ["ci"],
+                "findings": [],
+                "test_gaps": [],
+                "confidence": "not_provided",
+            },
+            context={"pr_number": 15, "head_sha": "jkl", "run_id": "101"},
+        )
+
+        markdown = build_markdown(review)
+
+        self.assertIn("置信度：`模型未输出`", markdown)
+        self.assertIn("Confidence: `not provided`", markdown)
 
 
 if __name__ == "__main__":
