@@ -992,6 +992,74 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiService => 'Memex Model Service';
 
   @override
+  String get aiModelHubTitle => 'AI models and services';
+
+  @override
+  String get aiModelHubSubtitle =>
+      'Manage model providers, API keys, and the models Memex uses for text and media in one place.';
+
+  @override
+  String get modelRolesTitle => 'Choose model roles';
+
+  @override
+  String get modelRolesDescription =>
+      'Most users only need a text model and a vision-capable model. Advanced agent overrides stay available below.';
+
+  @override
+  String get textModelRoleTitle => 'Text model';
+
+  @override
+  String get textModelRoleDescription =>
+      'Used for cards, knowledge, insights, chat, comments, schedule, and memory.';
+
+  @override
+  String get visionModelRoleTitle => 'Vision model';
+
+  @override
+  String get visionModelRoleDescription =>
+      'Used for image/media analysis and cloud audio transcription when enabled.';
+
+  @override
+  String get followTextModel => 'Follow text model';
+
+  @override
+  String get modelConnectionsTitle => 'Model providers and API keys';
+
+  @override
+  String get modelConnectionsDescription =>
+      'Connect Memex\'s official service or add your own provider credentials.';
+
+  @override
+  String get relatedAiCapabilitiesTitle => 'Advanced and related capabilities';
+
+  @override
+  String get relatedAiCapabilitiesDescription =>
+      'Fine-tune agent assignments, location provider, and speech transcription behavior.';
+
+  @override
+  String get locationProviderSettings => 'Location provider';
+
+  @override
+  String get speechProviderSettings => 'Speech transcription';
+
+  @override
+  String get advancedAgentModelAssignments => 'Agent model assignments';
+
+  @override
+  String get openAdvancedAgentModelAssignments => 'Override individual agents';
+
+  @override
+  String get noConfiguredModelOptions =>
+      'Add a provider or API key before choosing model roles.';
+
+  @override
+  String get modelSlotUpdated => 'Model role updated';
+
+  @override
+  String get visionModelNonMultimodalWarning =>
+      'This model is not known to support image input. Media analysis may fail unless the provider supports vision.';
+
+  @override
   String get aiServiceMemexRouteTitle => 'Connect through Memex';
 
   @override

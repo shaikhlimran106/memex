@@ -961,6 +961,69 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiService => 'Memex 模型服务';
 
   @override
+  String get aiModelHubTitle => 'AI 模型与服务';
+
+  @override
+  String get aiModelHubSubtitle => '在一个入口管理模型服务商、API Key，以及 Memex 用于文字和媒体的模型。';
+
+  @override
+  String get modelRolesTitle => '选择模型用途';
+
+  @override
+  String get modelRolesDescription =>
+      '大多数用户只需要一个文本模型和一个支持视觉的模型。需要时仍可在下方为单个 Agent 高级覆盖。';
+
+  @override
+  String get textModelRoleTitle => '文本模型';
+
+  @override
+  String get textModelRoleDescription => '用于卡片、知识库、洞察、聊天、评论、日程和记忆总结。';
+
+  @override
+  String get visionModelRoleTitle => '视觉模型';
+
+  @override
+  String get visionModelRoleDescription => '用于图片/媒体分析；关闭本地语音识别时，也用于云端音频转写。';
+
+  @override
+  String get followTextModel => '跟随文本模型';
+
+  @override
+  String get modelConnectionsTitle => '模型服务商与 API Key';
+
+  @override
+  String get modelConnectionsDescription => '可以连接 Memex 官方服务，也可以添加你自己的服务商凭证。';
+
+  @override
+  String get relatedAiCapabilitiesTitle => '高级与相关能力';
+
+  @override
+  String get relatedAiCapabilitiesDescription =>
+      '调整单个 Agent 的模型分配、位置服务商和语音识别方式。';
+
+  @override
+  String get locationProviderSettings => '位置服务商';
+
+  @override
+  String get speechProviderSettings => '语音识别';
+
+  @override
+  String get advancedAgentModelAssignments => 'Agent 模型分配';
+
+  @override
+  String get openAdvancedAgentModelAssignments => '为单个 Agent 覆盖模型';
+
+  @override
+  String get noConfiguredModelOptions => '请先添加模型服务商或 API Key，再选择模型用途。';
+
+  @override
+  String get modelSlotUpdated => '模型用途已更新';
+
+  @override
+  String get visionModelNonMultimodalWarning =>
+      '当前模型未被识别为支持图片输入；除非服务商实际支持视觉，否则媒体分析可能失败。';
+
+  @override
   String get aiServiceMemexRouteTitle => '通过 Memex 连接';
 
   @override
