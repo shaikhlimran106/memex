@@ -101,6 +101,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reprocessCardsTaskCreated => '重新处理卡片任务已创建，正在后台处理中';
 
   @override
+  String get reprocessCardsDownstreamMode => '下游重跑';
+
+  @override
+  String get reprocessCardsCardOnly => '只重新生成卡片';
+
+  @override
+  String get reprocessCardsCardOnlyDesc =>
+      '默认选项。只重建 card YAML/template，不触发下游 agent。';
+
+  @override
+  String get reprocessCardsRerunDownstream => '同时重跑下游 agent';
+
+  @override
+  String get reprocessCardsRerunDownstreamDesc =>
+      '每张卡片成功后重放 post-card routing，由路由按需触发日程聚合。';
+
+  @override
   String get regenerateComments => '重新生成评论';
 
   @override

@@ -9,6 +9,7 @@ import 'package:memex/utils/logger.dart';
 import 'package:memex/ui/settings/widgets/ai_service_setup_page.dart';
 import 'package:memex/ui/settings/widgets/system_authorization_page.dart';
 import 'package:memex/ui/settings/widgets/debug_settings_page.dart';
+import 'package:memex/ui/settings/widgets/reprocess_cards_dialog.dart';
 import 'package:memex/ui/settings/widgets/settings_page.dart';
 import 'package:memex/ui/settings/widgets/settings_search_screen.dart';
 import 'package:memex/ui/settings/view_models/settings_search_viewmodel.dart';
@@ -141,111 +142,8 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
   Future<void> _reprocessCards() async {
     if (_isReprocessingCards) return;
 
-    // show dialog for user to choose params
-    DateTime? dateFrom;
-    DateTime? dateTo;
-    int? limit;
-    var reanalyzeAssets = false;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(UserStorage.l10n.reprocessCards),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(UserStorage.l10n.selectDateRangeOptional),
-                const SizedBox(height: 8),
-                ListTile(
-                  title: Text(UserStorage.l10n.startDate),
-                  trailing: TextButton(
-                    onPressed: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now(),
-                      );
-                      if (date != null) {
-                        setDialogState(() {
-                          dateFrom = date;
-                        });
-                      }
-                    },
-                    child: Text(
-                      dateFrom == null
-                          ? UserStorage.l10n.select
-                          : '${dateFrom!.year}-${dateFrom!.month.toString().padLeft(2, '0')}-${dateFrom!.day.toString().padLeft(2, '0')}',
-                    ),
-                  ),
-                ),
-                ListTile(
-                  title: Text(UserStorage.l10n.endDate),
-                  trailing: TextButton(
-                    onPressed: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: dateTo ?? DateTime.now(),
-                        firstDate: dateFrom ?? DateTime(2020),
-                        lastDate: DateTime.now(),
-                      );
-                      if (date != null) {
-                        setDialogState(() {
-                          dateTo = date;
-                        });
-                      }
-                    },
-                    child: Text(
-                      dateTo == null
-                          ? UserStorage.l10n.select
-                          : '${dateTo!.year}-${dateTo!.month.toString().padLeft(2, '0')}-${dateTo!.day.toString().padLeft(2, '0')}',
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  decoration: InputDecoration(
-                    labelText: UserStorage.l10n.processLimitOptional,
-                    hintText: UserStorage.l10n.leaveEmptyForAll,
-                  ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    limit = int.tryParse(value);
-                  },
-                ),
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: reanalyzeAssets,
-                  title: Text(UserStorage.l10n.reanalyzeMediaAssets),
-                  subtitle: Text(UserStorage.l10n.reanalyzeMediaAssetsDesc),
-                  onChanged: (value) {
-                    setDialogState(() {
-                      reanalyzeAssets = value;
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(UserStorage.l10n.cancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(UserStorage.l10n.startProcessing),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (confirmed != true) return;
+    final options = await showReprocessCardsDialog(context);
+    if (options == null) return;
 
     setState(() {
       _isReprocessingCards = true;
@@ -266,23 +164,7 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
         return;
       }
 
-      // build payload
-      final payload = <String, dynamic>{};
-      final dateFromValue = dateFrom;
-      if (dateFromValue != null) {
-        payload['date_from'] = dateFromValue.toIso8601String().substring(0, 10);
-      }
-      final dateToValue = dateTo;
-      if (dateToValue != null) {
-        payload['date_to'] = dateToValue.toIso8601String().substring(0, 10);
-      }
-      final limitValue = limit;
-      if (limitValue != null && limitValue > 0) {
-        payload['limit'] = limitValue;
-      }
-      if (reanalyzeAssets) {
-        payload['reanalyze_assets'] = true;
-      }
+      final payload = options.toTaskPayload();
 
       // enqueue task
       await _memexRouter.enqueueTask(

@@ -105,6 +105,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'Reprocess cards task created, running in background';
 
   @override
+  String get reprocessCardsDownstreamMode => 'Downstream rerun';
+
+  @override
+  String get reprocessCardsCardOnly => 'Regenerate cards only';
+
+  @override
+  String get reprocessCardsCardOnlyDesc =>
+      'Default. Rebuild card YAML/templates without touching downstream agents.';
+
+  @override
+  String get reprocessCardsRerunDownstream => 'Also rerun downstream agents';
+
+  @override
+  String get reprocessCardsRerunDownstreamDesc =>
+      'After each card succeeds, replay post-card routing so schedule aggregation can run when selected.';
+
+  @override
   String get regenerateComments => 'Regenerate comments';
 
   @override

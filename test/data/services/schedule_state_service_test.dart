@@ -306,6 +306,85 @@ void main() {
     });
 
     test(
+        'addPendingItem allows distinct pending items from one fact by default',
+        () async {
+      const userId = 'test_user';
+      const factId = '2026/05/26.md#ts_1';
+
+      await ScheduleStateService.instance.addPendingItem(
+        userId: userId,
+        kind: SchedulePendingItem.kindTodo,
+        title: 'Submit visa documents',
+        sourceFactId: factId,
+        now: DateTime.parse('2026-05-26T10:00:00'),
+      );
+
+      final state = await ScheduleStateService.instance.addPendingItem(
+        userId: userId,
+        kind: SchedulePendingItem.kindEvent,
+        title: 'Visa appointment',
+        sourceFactId: factId,
+        startTime: DateTime.parse('2099-05-28T09:00:00'),
+        now: DateTime.parse('2026-05-26T10:05:00'),
+      );
+
+      expect(state.pending, hasLength(2));
+      expect(
+        state.pending.map((item) => item.sourceFactIds.single).toSet(),
+        {factId},
+      );
+    });
+
+    test(
+      'addPendingItem can dedupe existing source fact during debug rerun',
+      () async {
+        const userId = 'test_user';
+        const factId = '2026/05/26.md#ts_1';
+
+        final initial = await ScheduleStateService.instance.addPendingItem(
+          userId: userId,
+          kind: SchedulePendingItem.kindTodo,
+          title: 'Submit visa documents',
+          sourceFactId: factId,
+          dueAt: DateTime.parse('2099-05-27T09:00:00'),
+          now: DateTime.parse('2026-05-26T10:00:00'),
+          syncDeviceAction: true,
+        );
+
+        final updated = await ScheduleStateService.instance.addPendingItem(
+          userId: userId,
+          kind: SchedulePendingItem.kindTodo,
+          title: 'Submit passport documents',
+          sourceFactId: factId,
+          dueAt: DateTime.parse('2099-05-28T09:00:00'),
+          subtasks: const [ScheduleSubtask(title: 'Print forms')],
+          now: DateTime.parse('2026-05-26T10:05:00'),
+          syncDeviceAction: true,
+          dedupeBySourceFactId: true,
+        );
+
+        expect(updated.pending, hasLength(1));
+        expect(updated.pending.single.id, initial.pending.single.id);
+        expect(updated.pending.single.title, 'Submit passport documents');
+        expect(
+          updated.pending.single.dueAt,
+          DateTime.parse('2099-05-28T09:00:00'),
+        );
+        expect(updated.pending.single.subtasks.single.title, 'Print forms');
+
+        final actions = await db.select(db.systemActions).get();
+        expect(
+          actions.where((action) => action.status == 'pending'),
+          hasLength(1),
+        );
+        expect(
+          actions.where((action) => action.factId == factId),
+          hasLength(actions.length),
+        );
+      },
+    );
+
+    test(
       'syncDeviceAction controls device action creation and cancellation',
       () async {
         const userId = 'test_user';

@@ -158,7 +158,8 @@ Tool buildAddPendingItemTool() {
       bool? syncDeviceAction,
       String sourceFactId,
     ) async {
-      final userId = AgentCallToolContext.current!.state.metadata['userId'];
+      final metadata = AgentCallToolContext.current!.state.metadata;
+      final userId = metadata['userId'];
       final state = await ScheduleStateService.instance.addPendingItem(
         userId: userId,
         kind: kind,
@@ -172,6 +173,8 @@ Tool buildAddPendingItemTool() {
         subtasks: _parseScheduleSubtasks(subtasks),
         sourceFactId: sourceFactId,
         syncDeviceAction: syncDeviceAction == true,
+        dedupeBySourceFactId:
+            metadata['dedupe_schedule_items_by_source_fact'] == true,
       );
       final item = _latestPendingItemForSource(
         state,
