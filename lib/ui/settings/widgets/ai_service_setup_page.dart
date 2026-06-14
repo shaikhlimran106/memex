@@ -1,10 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:memex/config/app_config.dart';
 import 'package:memex/data/repositories/memex_router.dart';
-import 'package:memex/data/services/memex_cloud_service.dart';
-import 'package:memex/data/services/model_role_config_service.dart';
 import 'package:memex/domain/models/llm_config.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
+import 'package:memex/ui/settings/view_models/ai_service_setup_viewmodel.dart';
 import 'package:memex/ui/settings/widgets/agent_config_list_page.dart';
 import 'package:memex/ui/settings/widgets/location_context_settings_page.dart';
 import 'package:memex/ui/settings/widgets/memex_auth_section.dart';
@@ -17,98 +18,46 @@ class AiServiceSetupPage extends StatefulWidget {
     super.key,
     this.onComplete,
     this.onboardingMode = false,
+    this.viewModel,
   });
 
   final VoidCallback? onComplete;
   final bool onboardingMode;
+  final AiServiceSetupViewModel? viewModel;
 
   @override
   State<AiServiceSetupPage> createState() => _AiServiceSetupPageState();
 }
 
 class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
-  static const String _followTextSelectionValue = '__memex_follow_text_model__';
-
-  String _baseUrl = '';
-  String _apiKey = '';
-  List<String> _models = const [];
-  bool _isSaving = false;
-  bool _isMemexLoggedIn = false;
-  bool _showMemexSetup = false;
-  bool _isMemexConfigLoading = false;
-  bool _isRoleLoading = true;
-  bool _isUpdatingTextModel = false;
-  bool _isUpdatingVisionModel = false;
-  bool _useLocalSpeechToText = true;
-  List<LLMConfig> _llmConfigs = const [];
-  ModelRoleSelection? _roleSelection;
-  MemexTopUpConfig? _memexTopUpConfig;
-
-  bool get _hasReadyCredentials =>
-      _baseUrl.trim().isNotEmpty && _apiKey.trim().isNotEmpty;
+  late final AiServiceSetupViewModel _viewModel;
+  late final bool _ownsViewModel;
 
   @override
   void initState() {
     super.initState();
-    _loadModelRoles();
+    _ownsViewModel = widget.viewModel == null;
+    _viewModel =
+        widget.viewModel ?? AiServiceSetupViewModel(router: MemexRouter());
+    unawaited(_viewModel.loadModelRoles());
   }
 
-  Future<void> _loadModelRoles({bool showLoading = true}) async {
-    if (showLoading && mounted) {
-      setState(() => _isRoleLoading = true);
+  @override
+  void dispose() {
+    if (_ownsViewModel) {
+      _viewModel.dispose();
     }
-
-    final router = MemexRouter();
-    final configs = await router.getLLMConfigs();
-    final selection = await ModelRoleConfigService.loadSelection();
-    final useLocalSpeech = await UserStorage.getUseLocalSpeechToText();
-
-    if (!mounted) return;
-    setState(() {
-      _llmConfigs = configs;
-      _roleSelection = selection;
-      _useLocalSpeechToText = useLocalSpeech;
-      _isRoleLoading = false;
-    });
+    super.dispose();
   }
 
   Future<void> _saveMemexService({
     bool finish = true,
     bool showToast = true,
   }) async {
-    if (!_hasReadyCredentials || _isSaving) return;
-
-    setState(() => _isSaving = true);
+    if (!_viewModel.hasReadyCredentials || _viewModel.isSaving) return;
     try {
-      final router = MemexRouter();
-      final configs = await router.getLLMConfigs();
-      final modelId = _models.isNotEmpty
-          ? _models.first
-          : LLMConfig.recommendedModels(LLMConfig.typeMemex).firstOrNull ??
-              'memex-default';
-      final memexConfig = LLMConfig(
-        key: LLMConfig.defaultClientKey,
-        type: LLMConfig.typeMemex,
-        modelId: modelId,
-        apiKey: _apiKey,
-        baseUrl: _baseUrl,
-        maxTokens: 65536,
-      );
-
-      final nextConfigs = [...configs];
-      final index = nextConfigs.indexWhere(
-        (c) => c.key == LLMConfig.defaultClientKey,
-      );
-      if (index >= 0) {
-        nextConfigs[index] = memexConfig;
-      } else {
-        nextConfigs.insert(0, memexConfig);
-      }
-      await router.saveLLMConfigs(nextConfigs);
-      await router.setDefaultLLMConfigKey(LLMConfig.defaultClientKey);
-
-      if (!mounted) return;
-      await _loadModelRoles(showLoading: false);
+      final saved = await _viewModel.saveMemexService();
+      if (!saved) return;
       if (!mounted) return;
       if (showToast) {
         ToastHelper.showSuccess(context, UserStorage.l10n.aiServiceReadyToast);
@@ -122,40 +71,12 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
       if (mounted) {
         ToastHelper.showError(context, e);
       }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
     }
   }
 
   Future<void> _clearMemexService() async {
-    setState(() {
-      _baseUrl = '';
-      _apiKey = '';
-      _models = const [];
-      _isMemexLoggedIn = false;
-    });
-
     try {
-      final router = MemexRouter();
-      final configs = await router.getLLMConfigs();
-      final nextConfigs = [...configs];
-      final index = nextConfigs.indexWhere(
-        (c) => c.key == LLMConfig.defaultClientKey,
-      );
-      if (index < 0 || nextConfigs[index].type != LLMConfig.typeMemex) {
-        return;
-      }
-
-      nextConfigs[index] = LLMConfig.createDefaultClientConfig();
-      await router.saveLLMConfigs(nextConfigs);
-
-      final fallback = nextConfigs
-          .where((c) => c.key != LLMConfig.defaultClientKey && c.isValid)
-          .firstOrNull;
-      if (fallback != null) {
-        await router.setDefaultLLMConfigKey(fallback.key);
-      }
-      await _loadModelRoles(showLoading: false);
+      await _viewModel.clearMemexService();
     } catch (e) {
       if (mounted) {
         ToastHelper.showError(context, e);
@@ -164,24 +85,11 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
   }
 
   Future<void> _showMemexServiceSetup() async {
-    if (_isMemexConfigLoading) return;
-
-    setState(() => _isMemexConfigLoading = true);
     try {
-      final config = await MemexCloudService.instance.getAppConfig(
-        locale: UserStorage.l10n.localeName,
-      );
-      if (!mounted) return;
-      setState(() {
-        _memexTopUpConfig = config?.content.aiService.memexConnection.topUp;
-        _showMemexSetup = true;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _showMemexSetup = true);
-    } finally {
+      await _viewModel.showMemexServiceSetup();
+    } catch (e) {
       if (mounted) {
-        setState(() => _isMemexConfigLoading = false);
+        ToastHelper.showError(context, e);
       }
     }
   }
@@ -197,7 +105,7 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
       ),
     );
     if (mounted) {
-      await _loadModelRoles(showLoading: false);
+      await _viewModel.loadModelRoles(showLoading: false);
     }
     if (configured == true && mounted && widget.onboardingMode) {
       widget.onComplete?.call();
@@ -213,7 +121,7 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
       MaterialPageRoute(builder: (context) => const AgentConfigListPage()),
     );
     if (mounted) {
-      await _loadModelRoles(showLoading: false);
+      await _viewModel.loadModelRoles(showLoading: false);
     }
   }
 
@@ -227,42 +135,34 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
   }
 
   Future<void> _updateTextModel(String? configKey) async {
-    if (configKey == null || _isUpdatingTextModel) return;
-    setState(() => _isUpdatingTextModel = true);
+    if (configKey == null || _viewModel.isUpdatingTextModel) return;
     try {
-      await ModelRoleConfigService.setTextModel(configKey);
-      await _loadModelRoles(showLoading: false);
+      await _viewModel.setTextModel(configKey);
       if (mounted) {
         ToastHelper.showSuccess(context, UserStorage.l10n.modelSlotUpdated);
       }
     } catch (e) {
       if (mounted) ToastHelper.showError(context, e);
-    } finally {
-      if (mounted) setState(() => _isUpdatingTextModel = false);
     }
   }
 
   Future<void> _updateVisionModel(String? configKey) async {
-    if (configKey == null || _isUpdatingVisionModel) return;
-    final nextKey = configKey == _followTextSelectionValue ? null : configKey;
-    setState(() => _isUpdatingVisionModel = true);
+    if (configKey == null || _viewModel.isUpdatingVisionModel) return;
     try {
-      await ModelRoleConfigService.setVisionModel(nextKey);
-      await _loadModelRoles(showLoading: false);
+      await _viewModel.setVisionModel(configKey);
       if (mounted) {
         ToastHelper.showSuccess(context, UserStorage.l10n.modelSlotUpdated);
       }
     } catch (e) {
       if (mounted) ToastHelper.showError(context, e);
-    } finally {
-      if (mounted) setState(() => _isUpdatingVisionModel = false);
     }
   }
 
   Future<void> _updateUseLocalSpeechToText(bool value) async {
-    await UserStorage.setUseLocalSpeechToText(value);
-    if (mounted) {
-      setState(() => _useLocalSpeechToText = value);
+    try {
+      await _viewModel.setUseLocalSpeechToText(value);
+    } catch (e) {
+      if (mounted) ToastHelper.showError(context, e);
     }
   }
 
@@ -277,41 +177,46 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
   Widget build(BuildContext context) {
     final l10n = UserStorage.l10n;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9F9FC),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFF9F9FC),
-        surfaceTintColor: const Color(0xFFF9F9FC),
-        elevation: 0,
-        automaticallyImplyLeading: !widget.onboardingMode,
-        title: widget.onboardingMode ? null : Text(l10n.aiModelHubTitle),
-        actions: [
-          if (widget.onboardingMode)
-            TextButton(
-              onPressed: _isSaving ? null : _skip,
-              child: Text(l10n.skipForNow),
-            ),
-        ],
-      ),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
-              children: [
-                _buildSetupHeader(),
-                const SizedBox(height: 22),
-                _buildModelRolesSection(),
-                const SizedBox(height: 14),
-                _buildSetupOptions(),
-                const SizedBox(height: 14),
-                _buildRelatedCapabilitiesSection(),
-              ],
+    return ListenableBuilder(
+      listenable: _viewModel,
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFF9F9FC),
+          appBar: AppBar(
+            backgroundColor: const Color(0xFFF9F9FC),
+            surfaceTintColor: const Color(0xFFF9F9FC),
+            elevation: 0,
+            automaticallyImplyLeading: !widget.onboardingMode,
+            title: widget.onboardingMode ? null : Text(l10n.aiModelHubTitle),
+            actions: [
+              if (widget.onboardingMode)
+                TextButton(
+                  onPressed: _viewModel.isSaving ? null : _skip,
+                  child: Text(l10n.skipForNow),
+                ),
+            ],
+          ),
+          body: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 430),
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
+                  children: [
+                    _buildSetupHeader(),
+                    const SizedBox(height: 22),
+                    _buildModelRolesSection(),
+                    const SizedBox(height: 14),
+                    _buildSetupOptions(),
+                    const SizedBox(height: 14),
+                    _buildRelatedCapabilitiesSection(),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -392,7 +297,7 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
   }
 
   Widget _buildModelRolesSection() {
-    if (_isRoleLoading || _roleSelection == null) {
+    if (_viewModel.isRoleLoading || _viewModel.roleSelection == null) {
       return _buildOptionCard(
         icon: Icons.tune_rounded,
         iconColor: AppColors.primary,
@@ -405,20 +310,7 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
       );
     }
 
-    final selection = _roleSelection!;
-    final textConfig = ModelRoleConfigService.findConfig(
-      _llmConfigs,
-      selection.textConfigKey,
-    );
-    final effectiveVisionConfig = ModelRoleConfigService.findConfig(
-      _llmConfigs,
-      selection.effectiveVisionConfigKey(),
-    );
-    final shouldWarnVision = effectiveVisionConfig != null &&
-        !LLMConfig.isKnownMultimodal(
-          effectiveVisionConfig.type,
-          effectiveVisionConfig.modelId,
-        );
+    final selection = _viewModel.roleSelection!;
 
     return _buildOptionCard(
       icon: Icons.tune_rounded,
@@ -433,8 +325,8 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
             icon: Icons.notes_rounded,
             title: UserStorage.l10n.textModelRoleTitle,
             description: UserStorage.l10n.textModelRoleDescription,
-            value: textConfig?.key,
-            isUpdating: _isUpdatingTextModel,
+            value: _viewModel.textConfig?.key,
+            isUpdating: _viewModel.isUpdatingTextModel,
             onChanged: _updateTextModel,
           ),
           const SizedBox(height: 14),
@@ -444,12 +336,13 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
             icon: Icons.photo_library_outlined,
             title: UserStorage.l10n.visionModelRoleTitle,
             description: UserStorage.l10n.visionModelRoleDescription,
-            value: selection.visionConfigKey ?? _followTextSelectionValue,
+            value: selection.visionConfigKey ??
+                AiServiceSetupViewModel.followTextSelectionValue,
             includeFollowText: true,
-            isUpdating: _isUpdatingVisionModel,
+            isUpdating: _viewModel.isUpdatingVisionModel,
             onChanged: _updateVisionModel,
           ),
-          if (shouldWarnVision) ...[
+          if (_viewModel.shouldWarnVision) ...[
             const SizedBox(height: 10),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -473,7 +366,7 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
               ],
             ),
           ],
-          if (_llmConfigs.every((config) => !config.isValid)) ...[
+          if (!_viewModel.hasConfiguredModelOptions) ...[
             const SizedBox(height: 10),
             Text(
               UserStorage.l10n.noConfiguredModelOptions,
@@ -500,7 +393,6 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
     required ValueChanged<String?> onChanged,
     bool includeFollowText = false,
   }) {
-    final hasSelectableModels = _llmConfigs.any((config) => config.isValid);
     final dropdownValue = _dropdownValueFor(value, includeFollowText);
 
     return Container(
@@ -574,7 +466,9 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
               ),
             ),
             items: _buildModelRoleDropdownItems(includeFollowText),
-            onChanged: hasSelectableModels && !isUpdating ? onChanged : null,
+            onChanged: _viewModel.hasSelectableModels && !isUpdating
+                ? onChanged
+                : null,
           ),
         ],
       ),
@@ -582,15 +476,19 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
   }
 
   String? _dropdownValueFor(String? value, bool includeFollowText) {
-    if (includeFollowText && value == _followTextSelectionValue) {
-      return _followTextSelectionValue;
+    if (includeFollowText &&
+        value == AiServiceSetupViewModel.followTextSelectionValue) {
+      return AiServiceSetupViewModel.followTextSelectionValue;
     }
-    if (value != null && _llmConfigs.any((config) => config.key == value)) {
+    if (value != null &&
+        _viewModel.llmConfigs.any((config) => config.key == value)) {
       return value;
     }
-    if (includeFollowText) return _followTextSelectionValue;
-    if (_llmConfigs.isEmpty) return null;
-    return _llmConfigs.first.key;
+    if (includeFollowText) {
+      return AiServiceSetupViewModel.followTextSelectionValue;
+    }
+    if (_viewModel.llmConfigs.isEmpty) return null;
+    return _viewModel.llmConfigs.first.key;
   }
 
   List<DropdownMenuItem<String>> _buildModelRoleDropdownItems(
@@ -600,13 +498,13 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
     if (includeFollowText) {
       items.add(
         DropdownMenuItem<String>(
-          value: _followTextSelectionValue,
+          value: AiServiceSetupViewModel.followTextSelectionValue,
           child: Text(UserStorage.l10n.followTextModel),
         ),
       );
     }
 
-    for (final config in _llmConfigs) {
+    for (final config in _viewModel.llmConfigs) {
       items.add(
         DropdownMenuItem<String>(
           value: config.key,
@@ -683,31 +581,35 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
             onTap: _openLocationSettings,
           ),
           const Divider(height: 18),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            secondary: const Icon(
-              Icons.graphic_eq,
-              color: AppColors.primary,
-              size: 22,
-            ),
-            title: Text(
-              UserStorage.l10n.speechProviderSettings,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1A1C1E),
+          Material(
+            color: Colors.transparent,
+            child: SwitchListTile(
+              key: const ValueKey('ai-service-speech-local-switch'),
+              contentPadding: EdgeInsets.zero,
+              secondary: const Icon(
+                Icons.graphic_eq,
+                color: AppColors.primary,
+                size: 22,
               ),
-            ),
-            subtitle: Text(
-              UserStorage.l10n.useLocalSpeechToTextDesc,
-              style: const TextStyle(
-                fontSize: 12,
-                height: 1.35,
-                color: Color(0xFF5F6272),
+              title: Text(
+                UserStorage.l10n.speechProviderSettings,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1A1C1E),
+                ),
               ),
+              subtitle: Text(
+                UserStorage.l10n.useLocalSpeechToTextDesc,
+                style: const TextStyle(
+                  fontSize: 12,
+                  height: 1.35,
+                  color: Color(0xFF5F6272),
+                ),
+              ),
+              value: _viewModel.useLocalSpeechToText,
+              onChanged: _updateUseLocalSpeechToText,
             ),
-            value: _useLocalSpeechToText,
-            onChanged: _updateUseLocalSpeechToText,
           ),
         ],
       ),
@@ -720,27 +622,30 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon, color: AppColors.primary, size: 22),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
-          color: Color(0xFF1A1C1E),
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(icon, color: AppColors.primary, size: 22),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1A1C1E),
+          ),
         ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(
-          fontSize: 12,
-          height: 1.35,
-          color: Color(0xFF5F6272),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(
+            fontSize: 12,
+            height: 1.35,
+            color: Color(0xFF5F6272),
+          ),
         ),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: onTap,
       ),
-      trailing: const Icon(Icons.chevron_right_rounded),
-      onTap: onTap,
     );
   }
 
@@ -868,16 +773,17 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!_showMemexSetup) ...[
+          if (!_viewModel.showMemexSetup) ...[
             SizedBox(
               height: 48,
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: (_isSaving || _isMemexConfigLoading)
-                    ? null
-                    : _showMemexServiceSetup,
+                onPressed:
+                    (_viewModel.isSaving || _viewModel.isMemexConfigLoading)
+                        ? null
+                        : _showMemexServiceSetup,
                 iconAlignment: IconAlignment.end,
-                icon: _isMemexConfigLoading
+                icon: _viewModel.isMemexConfigLoading
                     ? const SizedBox(
                         width: 18,
                         height: 18,
@@ -900,33 +806,30 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
             ),
           ] else ...[
             MemexAuthSection(
-              topUpConfig: _memexTopUpConfig,
+              topUpConfig: _viewModel.memexTopUpConfig,
               onCredentialsReady: (baseUrl, apiKey, models) {
-                setState(() {
-                  _baseUrl = baseUrl;
-                  _apiKey = apiKey;
-                  _models = models;
-                });
-                _saveMemexService(finish: false, showToast: false);
+                _viewModel.setMemexCredentials(baseUrl, apiKey, models);
+                unawaited(_saveMemexService(finish: false, showToast: false));
               },
               onLoginStateChanged: (isLoggedIn) {
-                if (mounted) {
-                  setState(() => _isMemexLoggedIn = isLoggedIn);
-                }
+                _viewModel.setMemexLoginState(isLoggedIn);
               },
               onLogout: _clearMemexService,
             ),
-            if (_isMemexLoggedIn || _hasReadyCredentials || _isSaving) ...[
+            if (_viewModel.isMemexLoggedIn ||
+                _viewModel.hasReadyCredentials ||
+                _viewModel.isSaving) ...[
               const SizedBox(height: 12),
               SizedBox(
                 height: 50,
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: _hasReadyCredentials && !_isSaving
-                      ? _saveMemexService
-                      : null,
+                  onPressed:
+                      _viewModel.hasReadyCredentials && !_viewModel.isSaving
+                          ? _saveMemexService
+                          : null,
                   iconAlignment: IconAlignment.end,
-                  icon: _isSaving
+                  icon: _viewModel.isSaving
                       ? const SizedBox(
                           width: 16,
                           height: 16,

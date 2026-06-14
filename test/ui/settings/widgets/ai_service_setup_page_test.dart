@@ -103,6 +103,81 @@ void main() {
       AgentDefinitions.analyzeAssets,
     );
     expect(mediaConfig.llmConfigKey, visionConfig.key);
+
+    await tester.ensureVisible(visionDropdown);
+    await tester.tap(visionDropdown);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(UserStorage.l10n.followTextModel).last);
+    await tester.pumpAndSettle();
+
+    final resetMediaConfig = await UserStorage.getAgentConfig(
+      AgentDefinitions.analyzeAssets,
+    );
+    expect(resetMediaConfig.llmConfigKey, isNull);
+  });
+
+  testWidgets('vision selector warns when selected model is not multimodal', (
+    tester,
+  ) async {
+    const multimodalConfig = LLMConfig(
+      key: 'vision-ready',
+      type: LLMConfig.typeChatCompletion,
+      modelId: 'gpt-4o',
+      apiKey: 'sk-vision',
+      baseUrl: 'https://api.openai.com/v1',
+    );
+    const textOnlyConfig = LLMConfig(
+      key: 'text-only',
+      type: LLMConfig.typeDeepSeek,
+      modelId: 'deepseek-v4-flash',
+      apiKey: 'sk-text',
+      baseUrl: 'https://api.deepseek.com',
+    );
+    await UserStorage.saveLLMConfigs([
+      LLMConfig.createDefaultClientConfig(),
+      multimodalConfig,
+      textOnlyConfig,
+    ]);
+    await UserStorage.setDefaultLLMConfigKey(multimodalConfig.key);
+
+    await _pumpPage(tester, const AiServiceSetupPage());
+
+    expect(
+      find.text(UserStorage.l10n.visionModelNonMultimodalWarning),
+      findsNothing,
+    );
+
+    final visionDropdown = find.byKey(
+      const ValueKey('ai-model-vision-slot-dropdown'),
+    );
+    await tester.ensureVisible(visionDropdown);
+    await tester.tap(visionDropdown);
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining(textOnlyConfig.key).last);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(UserStorage.l10n.visionModelNonMultimodalWarning),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('speech transcription switch persists the local setting', (
+    tester,
+  ) async {
+    await UserStorage.setUseLocalSpeechToText(true);
+    await _pumpPage(tester, const AiServiceSetupPage());
+
+    final speechSwitch = find.byKey(
+      const ValueKey('ai-service-speech-local-switch'),
+    );
+    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await tester.pumpAndSettle();
+    expect(speechSwitch, findsOneWidget);
+    await tester.tap(speechSwitch);
+    await tester.pumpAndSettle();
+
+    expect(await UserStorage.getUseLocalSpeechToText(), isFalse);
   });
 
   testWidgets('Memex service action expands auth form', (tester) async {

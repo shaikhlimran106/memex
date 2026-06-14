@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:memex/domain/models/agent_config.dart';
@@ -127,6 +129,46 @@ void main() {
           AgentDefinitions.analyzeAssets,
         );
         expect(resetSelection.visionConfigKey, isNull);
+        expect(resetMediaConfig.llmConfigKey, isNull);
+      },
+    );
+
+    test(
+      'model role service normalizes blank vision model keys',
+      () async {
+        final defaultConfig = LLMConfig.createDefaultClientConfig();
+        await UserStorage.saveLLMConfigs([defaultConfig]);
+        final prefs = await SharedPreferences.getInstance();
+        const agentConfigKey =
+            'agent_configs_${AgentDefinitions.analyzeAssets}';
+
+        await prefs.setString(
+          agentConfigKey,
+          jsonEncode(const AgentConfig(llmConfigKey: '').toJson()),
+        );
+        final emptySelection = await ModelRoleConfigService.loadSelection();
+        expect(emptySelection.visionConfigKey, isNull);
+        expect(
+          emptySelection.effectiveVisionConfigKey(),
+          emptySelection.textConfigKey,
+        );
+
+        await prefs.setString(
+          agentConfigKey,
+          jsonEncode(const AgentConfig(llmConfigKey: '   ').toJson()),
+        );
+        final whitespaceSelection =
+            await ModelRoleConfigService.loadSelection();
+        expect(whitespaceSelection.visionConfigKey, isNull);
+        expect(
+          whitespaceSelection.effectiveVisionConfigKey(),
+          whitespaceSelection.textConfigKey,
+        );
+
+        await ModelRoleConfigService.setVisionModel('   ');
+        final resetMediaConfig = await UserStorage.getAgentConfig(
+          AgentDefinitions.analyzeAssets,
+        );
         expect(resetMediaConfig.llmConfigKey, isNull);
       },
     );
