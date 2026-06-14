@@ -1751,6 +1751,14 @@ class MemexRouter {
     return LocalTaskExecutor.instance.getTaskActivitySnapshot();
   }
 
+  Future<bool> hasActiveTaskForCard(String cardId) async {
+    await _ensureInitialized();
+    return LocalTaskExecutor.instance.hasActiveTaskForFactId(
+      cardId,
+      taskTypes: const {'handle_analyze_assets', 'card_agent_task'},
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Card-detail notification helpers
   // ---------------------------------------------------------------------------

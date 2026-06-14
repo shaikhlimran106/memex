@@ -68,4 +68,73 @@ void main() {
     expect(retryCount, 0);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
+
+  testWidgets('processing banner is hidden for stale processing card', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: CardProcessingStatusBanner(
+            status: 'processing',
+            failureReason: null,
+            hasActiveTask: false,
+            isRetrying: false,
+            onRetry: null,
+            onShowReason: null,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text(UserStorage.l10n.cardRegeneratingTitle), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
+  testWidgets('processing banner is shown while card has active task', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: CardProcessingStatusBanner(
+            status: 'processing',
+            failureReason: null,
+            hasActiveTask: true,
+            isRetrying: false,
+            onRetry: null,
+            onShowReason: null,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text(UserStorage.l10n.cardRegeneratingTitle), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+  });
+
+  testWidgets('failed status still shows recovery even without active task', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: CardProcessingStatusBanner(
+            status: 'failed',
+            failureReason: '模型服务超时',
+            hasActiveTask: false,
+            isRetrying: false,
+            onRetry: null,
+            onShowReason: null,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.text(UserStorage.l10n.cardGenerationFailedTitle),
+      findsOneWidget,
+    );
+    expect(find.text(UserStorage.l10n.failureReason), findsOneWidget);
+  });
 }

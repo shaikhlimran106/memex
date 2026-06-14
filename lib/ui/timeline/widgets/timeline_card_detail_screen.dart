@@ -57,6 +57,7 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
   String? _replyToCommentId;
   String? _replyToCommentName;
   bool _isRetryingCard = false;
+  bool _hasActiveCardTask = false;
 
   @override
   void initState() {
@@ -144,10 +145,16 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
     }
 
     try {
-      final detail = await _memexRouter.fetchCardDetail(widget.cardId);
+      final detailFuture = _memexRouter.fetchCardDetail(widget.cardId);
+      final activeTaskFuture = _memexRouter.hasActiveTaskForCard(
+        widget.cardId,
+      );
+      final detail = await detailFuture;
+      final hasActiveCardTask = await activeTaskFuture.catchError((_) => false);
       if (!mounted) return;
       setState(() {
         _detail = detail;
+        _hasActiveCardTask = hasActiveCardTask;
       });
       _resolveFirstImageAspectRatio(detail);
 
@@ -1124,16 +1131,17 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const SizedBox(height: 16),
-                                  if (detail.status == 'failed') ...[
-                                    FailedCardRecoveryBanner(
-                                      failureReason: detail.failureReason,
-                                      isRetrying: _isRetryingCard,
-                                      onRetry: _retryCardGeneration,
-                                      onShowReason: _showFailureReason,
-                                    ),
-                                    const SizedBox(height: 16),
-                                  ] else if (detail.status == 'processing') ...[
-                                    const CardRegeneratingBanner(),
+                                  CardProcessingStatusBanner(
+                                    status: detail.status,
+                                    failureReason: detail.failureReason,
+                                    hasActiveTask: _hasActiveCardTask,
+                                    isRetrying: _isRetryingCard,
+                                    onRetry: _retryCardGeneration,
+                                    onShowReason: _showFailureReason,
+                                  ),
+                                  if (detail.status == 'failed' ||
+                                      (detail.status == 'processing' &&
+                                          _hasActiveCardTask)) ...[
                                     const SizedBox(height: 16),
                                   ],
                                   // Title

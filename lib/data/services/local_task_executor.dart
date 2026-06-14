@@ -35,10 +35,10 @@ class TaskActivitySnapshot {
   });
 
   const TaskActivitySnapshot.empty()
-    : pending = 0,
-      processing = 0,
-      retrying = 0,
-      activeTaskIds = const <String>{};
+      : pending = 0,
+        processing = 0,
+        retrying = 0,
+        activeTaskIds = const <String>{};
 
   int get total => pending + processing + retrying;
 
@@ -55,11 +55,11 @@ class TaskActivitySnapshot {
 
   @override
   int get hashCode => Object.hash(
-    pending,
-    processing,
-    retrying,
-    Object.hashAllUnordered(activeTaskIds),
-  );
+        pending,
+        processing,
+        retrying,
+        Object.hashAllUnordered(activeTaskIds),
+      );
 }
 
 class TaskQueueDrainResult {
@@ -79,19 +79,17 @@ class TaskQueueDrainResult {
 enum TaskQueueOwnerKind { foreground, background }
 
 /// Handler function type
-typedef TaskHandler =
-    Future<void> Function(
-      String userId,
-      Map<String, dynamic> payload,
-      TaskContext context,
-    );
+typedef TaskHandler = Future<void> Function(
+  String userId,
+  Map<String, dynamic> payload,
+  TaskContext context,
+);
 
-typedef TaskConcurrencyKeyBuilder =
-    String Function(
-      String userId,
-      Map<String, dynamic> payload,
-      TaskContext context,
-    );
+typedef TaskConcurrencyKeyBuilder = String Function(
+  String userId,
+  Map<String, dynamic> payload,
+  TaskContext context,
+);
 
 /// Per-task-type concurrency policy. The executor prefixes the returned key
 /// with the task type, so [byUser] means "one task of this type per user".
@@ -121,14 +119,13 @@ class TaskConcurrencyPolicy {
 }
 
 /// Failure handler function type - called when all retries are exhausted
-typedef TaskFailureHandler =
-    Future<void> Function(
-      String userId,
-      Map<String, dynamic> payload,
-      TaskContext context,
-      Object error,
-      StackTrace? stackTrace,
-    );
+typedef TaskFailureHandler = Future<void> Function(
+  String userId,
+  Map<String, dynamic> payload,
+  TaskContext context,
+  Object error,
+  StackTrace? stackTrace,
+);
 
 class LocalTaskExecutor {
   static LocalTaskExecutor? _instance;
@@ -138,13 +135,13 @@ class LocalTaskExecutor {
   }
 
   LocalTaskExecutor._()
-    : _testDb = null,
-      _queueOwnerId = _newQueueOwnerId('foreground');
+      : _testDb = null,
+        _queueOwnerId = _newQueueOwnerId('foreground');
 
   @visibleForTesting
   LocalTaskExecutor.forTesting({AppDatabase? db, String? queueOwnerId})
-    : _testDb = db,
-      _queueOwnerId = queueOwnerId ?? _newQueueOwnerId('test');
+      : _testDb = db,
+        _queueOwnerId = queueOwnerId ?? _newQueueOwnerId('test');
 
   final Logger _logger = getLogger('LocalTaskExecutor');
   final AppDatabase? _testDb;
@@ -217,6 +214,31 @@ class LocalTaskExecutor {
     final query = _db.select(_db.tasks)
       ..where((t) => t.status.isIn(['pending', 'processing', 'retrying']));
     return _snapshotFromTasks(await query.get());
+  }
+
+  Future<bool> hasActiveTaskForFactId(
+    String factId, {
+    Set<String>? taskTypes,
+  }) async {
+    final query = _db.select(_db.tasks)
+      ..where((t) => t.status.isIn(['pending', 'processing', 'retrying']));
+    final tasks = await query.get();
+    for (final task in tasks) {
+      if (taskTypes != null && !taskTypes.contains(task.type)) {
+        continue;
+      }
+      if (task.runId == factId) return true;
+      try {
+        final payload = _decodePayload(task);
+        if (payload['run_id'] == factId || payload['fact_id'] == factId) {
+          return true;
+        }
+      } catch (_) {
+        // Ignore malformed payloads here. The executor's dependency and
+        // execution paths own validation/failure handling.
+      }
+    }
+    return false;
   }
 
   Future<TaskQueueDrainResult> drainAvailableTasks({
@@ -578,9 +600,7 @@ class LocalTaskExecutor {
       reason: reason,
     );
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    await _db
-        .into(_db.kvStore)
-        .insertOnConflictUpdate(
+    await _db.into(_db.kvStore).insertOnConflictUpdate(
           KvStoreCompanion.insert(
             key: _gracefulExitMarkerKey,
             value: Value(jsonEncode(marker.toJson())),
@@ -595,7 +615,8 @@ class LocalTaskExecutor {
 
     await (_db.delete(
       _db.kvStore,
-    )..where((kv) => kv.key.equals(_gracefulExitMarkerKey))).go();
+    )..where((kv) => kv.key.equals(_gracefulExitMarkerKey)))
+        .go();
   }
 
   // Max concurrent tasks
@@ -620,12 +641,10 @@ class LocalTaskExecutor {
     // We use a manual UUID or let Drift handle it?
     // Our schema defined ID as Text. Drift doesn't auto-generate Text IDs usually.
     // So we generate one.
-    final taskId = DateTime.now().microsecondsSinceEpoch
-        .toString(); // Simple ID for now
+    final taskId =
+        DateTime.now().microsecondsSinceEpoch.toString(); // Simple ID for now
 
-    await _db
-        .into(_db.tasks)
-        .insert(
+    await _db.into(_db.tasks).insert(
           TasksCompanion.insert(
             id: taskId,
             type: taskType,
@@ -1038,49 +1057,7 @@ class LocalTaskExecutor {
         }
         _logger.info('Task ${task.id} scheduled for retry at $nextRun');
       } else {
-        // Permanently failed
-        final failureHandler = _failureHandlers[task.type];
-        if (failureHandler != null) {
-          try {
-            final payloadMap = task.payload != null
-                ? jsonDecode(task.payload!) as Map<String, dynamic>
-                : <String, dynamic>{};
-            final currentUserId = _currentUserId;
-            if (currentUserId != null) {
-              await failureHandler(
-                currentUserId,
-                payloadMap,
-                TaskContext(
-                  taskId: task.id,
-                  taskType: task.type,
-                  bizId: task.bizId,
-                ),
-                e,
-                stack,
-              );
-            }
-          } catch (fhError, fhStack) {
-            _logger.severe('Failure handler error', fhError, fhStack);
-          }
-        }
-
-        await (_db.update(_db.tasks)..where((t) => t.id.equals(task.id))).write(
-          TasksCompanion(
-            status: const Value('failed'),
-            completedAt: Value(DateTime.now().millisecondsSinceEpoch ~/ 1000),
-            updatedAt: Value(now),
-            error: Value(e.toString()),
-          ),
-        );
-        final failedRunId = task.runId ?? _tryDecodeRunId(task);
-        if (failedRunId != null && failedRunId.isNotEmpty) {
-          await AgentRunService.instance.markTaskFailed(
-            runId: failedRunId,
-            taskId: task.id,
-            taskType: task.type,
-            error: e,
-          );
-        }
+        await _failTask(task, e, stack);
         _logger.severe('Task ${task.id} permanently failed');
       }
     } finally {
@@ -1187,7 +1164,8 @@ class LocalTaskExecutor {
   }) async {
     final task = await (_db.select(
       _db.tasks,
-    )..where((t) => t.id.equals(marker.taskId))).getSingleOrNull();
+    )..where((t) => t.id.equals(marker.taskId)))
+        .getSingleOrNull();
     if (task == null || task.status != 'processing') {
       await _deleteTaskExecutionMarker(marker.taskId);
       return;
@@ -1283,10 +1261,9 @@ class LocalTaskExecutor {
   }
 
   Future<_TaskExecutionMarker?> _loadTaskExecutionMarker(String taskId) async {
-    final row =
-        await (_db.select(_db.kvStore)
-              ..where((kv) => kv.key.equals(_taskExecutionMarkerKey(taskId))))
-            .getSingleOrNull();
+    final row = await (_db.select(_db.kvStore)
+          ..where((kv) => kv.key.equals(_taskExecutionMarkerKey(taskId))))
+        .getSingleOrNull();
     if (row?.value == null) return null;
 
     try {
@@ -1303,7 +1280,8 @@ class LocalTaskExecutor {
   Future<List<_TaskExecutionMarker>> _loadTaskExecutionMarkers() async {
     final rows = await (_db.select(
       _db.kvStore,
-    )..where((kv) => kv.key.like('$_activeTaskMarkerKeyPrefix%'))).get();
+    )..where((kv) => kv.key.like('$_activeTaskMarkerKeyPrefix%')))
+        .get();
     final markers = <_TaskExecutionMarker>[];
 
     for (final row in rows) {
@@ -1330,7 +1308,8 @@ class LocalTaskExecutor {
   Future<_GracefulExitMarker?> _loadGracefulExitMarker() async {
     final row = await (_db.select(
       _db.kvStore,
-    )..where((kv) => kv.key.equals(_gracefulExitMarkerKey))).getSingleOrNull();
+    )..where((kv) => kv.key.equals(_gracefulExitMarkerKey)))
+        .getSingleOrNull();
     if (row?.value == null) return null;
 
     try {
@@ -1350,7 +1329,8 @@ class LocalTaskExecutor {
       () async {
         await (_db.delete(
           _db.kvStore,
-        )..where((kv) => kv.key.equals(_gracefulExitMarkerKey))).go();
+        )..where((kv) => kv.key.equals(_gracefulExitMarkerKey)))
+            .go();
       },
     );
   }
@@ -1360,9 +1340,7 @@ class LocalTaskExecutor {
     await _runCrashGuardDatabaseOperation(
       'save task execution marker ${marker.taskId}',
       () async {
-        await _db
-            .into(_db.kvStore)
-            .insertOnConflictUpdate(
+        await _db.into(_db.kvStore).insertOnConflictUpdate(
               KvStoreCompanion.insert(
                 key: _taskExecutionMarkerKey(marker.taskId),
                 value: Value(jsonEncode(marker.toJson())),
@@ -1428,16 +1406,66 @@ class LocalTaskExecutor {
     return '$_activeTaskMarkerKeyPrefix$taskId';
   }
 
-  Future<void> _failTask(Task task, String error) async {
+  Future<void> _failTask(
+    Task task,
+    Object error, [
+    StackTrace? stackTrace,
+  ]) async {
+    final payloadMap = _safeDecodePayload(task);
+    final context = TaskContext(
+      taskId: task.id,
+      taskType: task.type,
+      bizId: task.bizId,
+    );
+    final failureHandler = _failureHandlers[task.type];
+    final currentUserId = _currentUserId;
+
+    if (failureHandler != null && currentUserId != null) {
+      try {
+        await failureHandler(
+          currentUserId,
+          payloadMap,
+          context,
+          error,
+          stackTrace,
+        );
+      } catch (fhError, fhStack) {
+        _logger.severe('Failure handler error', fhError, fhStack);
+      }
+    }
+
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     await (_db.update(_db.tasks)..where((t) => t.id.equals(task.id))).write(
       TasksCompanion(
         status: const Value('failed'),
         completedAt: Value(now),
         updatedAt: Value(now),
-        error: Value(error),
+        error: Value(error.toString()),
       ),
     );
+
+    final runId = task.runId ?? payloadMap['run_id'] as String?;
+    if (runId != null && runId.isNotEmpty) {
+      await AgentRunService.instance.markTaskFailed(
+        runId: runId,
+        taskId: task.id,
+        taskType: task.type,
+        error: error,
+      );
+    }
+  }
+
+  Map<String, dynamic> _safeDecodePayload(Task task) {
+    try {
+      return _decodePayload(task);
+    } catch (e, stackTrace) {
+      _logger.warning(
+        'Failed to decode payload for failed task ${task.id}',
+        e,
+        stackTrace,
+      );
+      return <String, dynamic>{};
+    }
   }
 
   @visibleForTesting
@@ -1462,14 +1490,16 @@ class LocalTaskExecutor {
   Future<List<KvStoreData>> getTaskExecutionMarkersForTesting() {
     return (_db.select(
       _db.kvStore,
-    )..where((kv) => kv.key.like('$_activeTaskMarkerKeyPrefix%'))).get();
+    )..where((kv) => kv.key.like('$_activeTaskMarkerKeyPrefix%')))
+        .get();
   }
 
   @visibleForTesting
   Future<KvStoreData?> getGracefulExitMarkerForTesting() {
     return (_db.select(
       _db.kvStore,
-    )..where((kv) => kv.key.equals(_gracefulExitMarkerKey))).getSingleOrNull();
+    )..where((kv) => kv.key.equals(_gracefulExitMarkerKey)))
+        .getSingleOrNull();
   }
 
   @visibleForTesting
@@ -1482,7 +1512,8 @@ class LocalTaskExecutor {
   Future<KvStoreData?> getQueueLeaseForTesting(String userId) {
     return (_db.select(
       _db.kvStore,
-    )..where((kv) => kv.key.equals(_queueLeaseKey(userId)))).getSingleOrNull();
+    )..where((kv) => kv.key.equals(_queueLeaseKey(userId))))
+        .getSingleOrNull();
   }
 
   /// Check if a task of [taskType] with [bizId] has failed.
@@ -1519,9 +1550,7 @@ class LocalTaskExecutor {
     final taskId = DateTime.now().microsecondsSinceEpoch.toString();
     final resultStr = jsonEncode(result);
 
-    await _db
-        .into(_db.tasks)
-        .insert(
+    await _db.into(_db.tasks).insert(
           TasksCompanion.insert(
             id: taskId,
             type: taskType,
