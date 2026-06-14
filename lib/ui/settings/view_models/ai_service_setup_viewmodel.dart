@@ -124,8 +124,10 @@ class AiServiceSetupViewModel extends ChangeNotifier {
       await loadModelRoles(showLoading: false);
       return true;
     } finally {
-      isSaving = false;
-      _notify();
+      if (!_isDisposed) {
+        isSaving = false;
+        _notify();
+      }
     }
   }
 
@@ -171,8 +173,10 @@ class AiServiceSetupViewModel extends ChangeNotifier {
     } catch (_) {
       showMemexSetup = true;
     } finally {
-      isMemexConfigLoading = false;
-      _notify();
+      if (!_isDisposed) {
+        isMemexConfigLoading = false;
+        _notify();
+      }
     }
   }
 
@@ -200,8 +204,10 @@ class AiServiceSetupViewModel extends ChangeNotifier {
       await ModelRoleConfigService.setTextModel(configKey);
       await loadModelRoles(showLoading: false);
     } finally {
-      isUpdatingTextModel = false;
-      _notify();
+      if (!_isDisposed) {
+        isUpdatingTextModel = false;
+        _notify();
+      }
     }
   }
 
@@ -214,8 +220,10 @@ class AiServiceSetupViewModel extends ChangeNotifier {
       await ModelRoleConfigService.setVisionModel(nextKey);
       await loadModelRoles(showLoading: false);
     } finally {
-      isUpdatingVisionModel = false;
-      _notify();
+      if (!_isDisposed) {
+        isUpdatingVisionModel = false;
+        _notify();
+      }
     }
   }
 

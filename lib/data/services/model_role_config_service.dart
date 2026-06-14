@@ -32,8 +32,10 @@ class ModelRoleConfigService {
     );
   }
 
-  static Future<void> setTextModel(String configKey) {
-    return UserStorage.setDefaultLLMConfigKey(configKey);
+  static Future<void> setTextModel(String configKey) async {
+    final normalizedKey = _normalizeOptionalKey(configKey);
+    if (normalizedKey == null) return;
+    await UserStorage.setDefaultLLMConfigKey(normalizedKey);
   }
 
   static Future<void> setVisionModel(String? configKey) async {
@@ -44,9 +46,10 @@ class ModelRoleConfigService {
   }
 
   static LLMConfig? findConfig(List<LLMConfig> configs, String? configKey) {
-    if (configKey == null || configKey.isEmpty) return null;
+    final normalizedKey = _normalizeOptionalKey(configKey);
+    if (normalizedKey == null) return null;
     for (final config in configs) {
-      if (config.key == configKey) return config;
+      if (config.key == normalizedKey) return config;
     }
     return null;
   }
