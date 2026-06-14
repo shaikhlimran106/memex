@@ -108,69 +108,7 @@ class _AsyncTaskListPageState extends State<AsyncTaskListPage> {
   void _showTaskDetail(Task task) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        title: Text('${task.type} Details'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SelectableText('ID: ${task.id}'),
-              const SizedBox(height: 8),
-              SelectableText('BizID: ${task.bizId ?? "N/A"}'),
-              const SizedBox(height: 8),
-              SelectableText('Status: ${task.status}'),
-              const SizedBox(height: 8),
-              SelectableText('Created: ${_formatDate(task.createdAt)}'),
-              SelectableText('Scheduled: ${_formatDate(task.scheduledAt)}'),
-              SelectableText('Updated: ${_formatDate(task.updatedAt)}'),
-              SelectableText('Completed: ${_formatDate(task.completedAt)}'),
-              const SizedBox(height: 12),
-              const Text('Payload:',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(8),
-                color: Colors.grey[100],
-                child: SelectableText(task.payload ?? 'null'),
-              ),
-              if (task.error != null && task.error!.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                const Text('Last error:',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.red)),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(8),
-                  color: Colors.red[50],
-                  child: SelectableText(
-                    task.error!,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                ),
-              ],
-              if (task.result != null && task.result!.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                const Text('Result:',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(8),
-                  color: Colors.green[50],
-                  child: SelectableText(task.result!),
-                ),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
+      builder: (context) => AsyncTaskDetailDialog(task: task),
     );
   }
 
@@ -233,8 +171,8 @@ class _AsyncTaskListPageState extends State<AsyncTaskListPage> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                             color: hasError
-                                ? Colors.red.withOpacity(0.3)
-                                : Colors.grey.withOpacity(0.2)),
+                                ? Colors.red.withValues(alpha: 0.3)
+                                : Colors.grey.withValues(alpha: 0.2)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -260,7 +198,7 @@ class _AsyncTaskListPageState extends State<AsyncTaskListPage> {
                                 ),
                                 decoration: BoxDecoration(
                                   color: _getStatusColor(task.status)
-                                      .withOpacity(0.1),
+                                      .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -392,6 +330,94 @@ class _AsyncTaskListPageState extends State<AsyncTaskListPage> {
                 },
               ),
       ),
+    );
+  }
+}
+
+class AsyncTaskDetailDialog extends StatelessWidget {
+  const AsyncTaskDetailDialog({super.key, required this.task});
+
+  final Task task;
+
+  String _formatDate(int? timestamp) {
+    if (timestamp == null) return '-';
+    return DateFormat('yyyy-MM-dd HH:mm:ss').format(
+      DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.white,
+      title: Text('${task.type} Details'),
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SelectableText('ID: ${task.id}'),
+            const SizedBox(height: 8),
+            SelectableText('BizID: ${task.bizId ?? "N/A"}'),
+            const SizedBox(height: 8),
+            SelectableText('Status: ${task.status}'),
+            const SizedBox(height: 8),
+            SelectableText('Created: ${_formatDate(task.createdAt)}'),
+            SelectableText('Scheduled: ${_formatDate(task.scheduledAt)}'),
+            SelectableText('Updated: ${_formatDate(task.updatedAt)}'),
+            SelectableText('Completed: ${_formatDate(task.completedAt)}'),
+            const SizedBox(height: 12),
+            const Text(
+              'Payload:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(8),
+              color: Colors.grey[100],
+              child: SelectableText(task.payload ?? 'null'),
+            ),
+            if (task.error != null && task.error!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Text(
+                'Last error:',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(8),
+                color: Colors.red[50],
+                child: SelectableText(
+                  task.error!,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+            if (task.result != null && task.result!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Text(
+                'Result:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(8),
+                color: Colors.green[50],
+                child: SelectableText(task.result!),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Close'),
+        ),
+      ],
     );
   }
 }

@@ -129,6 +129,8 @@ class ScheduleAggregatorAgent {
     state.metadata['sceneId'] = effectiveRunId;
     state.metadata['run_id'] = effectiveRunId;
     state.metadata['run_started_at'] ??= now.toIso8601String();
+    state.metadata['dedupe_schedule_items_by_source_fact'] =
+        routerHint?['dedupe_schedule_items_by_source_fact'] == true;
 
     final agent = await _createAgent(
       client: client,

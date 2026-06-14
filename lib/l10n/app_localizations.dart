@@ -266,6 +266,36 @@ abstract class AppLocalizations {
   /// **'Reprocess cards task created, running in background'**
   String get reprocessCardsTaskCreated;
 
+  /// No description provided for @reprocessCardsDownstreamMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Downstream rerun'**
+  String get reprocessCardsDownstreamMode;
+
+  /// No description provided for @reprocessCardsCardOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerate cards only'**
+  String get reprocessCardsCardOnly;
+
+  /// No description provided for @reprocessCardsCardOnlyDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Default. Rebuild card YAML/templates without touching downstream agents.'**
+  String get reprocessCardsCardOnlyDesc;
+
+  /// No description provided for @reprocessCardsRerunDownstream.
+  ///
+  /// In en, this message translates to:
+  /// **'Also rerun downstream agents'**
+  String get reprocessCardsRerunDownstream;
+
+  /// No description provided for @reprocessCardsRerunDownstreamDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'After each card succeeds, replay post-card routing so schedule aggregation can run when selected.'**
+  String get reprocessCardsRerunDownstreamDesc;
+
   /// No description provided for @regenerateComments.
   ///
   /// In en, this message translates to:

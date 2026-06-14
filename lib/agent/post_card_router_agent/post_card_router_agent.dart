@@ -21,10 +21,7 @@ class PostCardRouterTargets {
   static const String scheduleAggregator = 'schedule_aggregator';
   static const String askClarification = 'ask_clarification';
 
-  static const Set<String> all = {
-    scheduleAggregator,
-    askClarification,
-  };
+  static const Set<String> all = {scheduleAggregator, askClarification};
 }
 
 class PostCardRouteResult {
@@ -32,11 +29,13 @@ class PostCardRouteResult {
     required this.activatedAgents,
     required this.reason,
     this.confidence,
+    this.enqueuedTaskIds = const [],
   });
 
   final List<String> activatedAgents;
   final String reason;
   final double? confidence;
+  final List<String> enqueuedTaskIds;
 }
 
 /// Lightweight selector agent. Decides which downstream agents should run
@@ -50,6 +49,7 @@ class PostCardRouterAgent {
     required String combinedText,
     required String inputMarkdown,
     required Map<String, dynamic> scheduleStateContext,
+    bool dedupeScheduleItemsBySourceFactId = false,
   }) async {
     PostCardRouteResult? toolDecision;
 
@@ -73,6 +73,7 @@ class PostCardRouterAgent {
         combinedText: combinedText,
         inputMarkdown: inputMarkdown,
         scheduleStateContext: scheduleStateContext,
+        dedupeScheduleItemsBySourceFactId: dedupeScheduleItemsBySourceFactId,
         onDecision: (decision) => toolDecision = decision,
       ),
     ];
@@ -170,6 +171,7 @@ Tool _buildActivateTool({
   required String combinedText,
   required String inputMarkdown,
   required Map<String, dynamic> scheduleStateContext,
+  required bool dedupeScheduleItemsBySourceFactId,
   required void Function(PostCardRouteResult decision) onDecision,
 }) {
   return Tool(
@@ -205,24 +207,25 @@ Tool _buildActivateTool({
       },
       'required': ['agents', 'reason'],
     },
-    executable: (
-      List<dynamic>? agents,
-      String reason,
-      num? confidence,
-    ) async {
+    executable: (List<dynamic>? agents, String reason, num? confidence) async {
       final normalized = _normalizeAgents(agents);
+      final enqueuedTaskIds = <String>[];
 
       // Enqueue the corresponding downstream tasks. Best-effort: a failure
       // to enqueue one branch should not stop the others.
       for (final agentName in normalized) {
         try {
-          await _enqueueDownstream(
-            agentName: agentName,
-            userId: userId,
-            factId: factId,
-            combinedText: combinedText,
-            inputMarkdown: inputMarkdown,
-            reason: reason,
+          enqueuedTaskIds.addAll(
+            await _enqueueDownstream(
+              agentName: agentName,
+              userId: userId,
+              factId: factId,
+              combinedText: combinedText,
+              inputMarkdown: inputMarkdown,
+              reason: reason,
+              dedupeScheduleItemsBySourceFactId:
+                  dedupeScheduleItemsBySourceFactId,
+            ),
           );
         } catch (e, st) {
           _logger.severe(
@@ -238,6 +241,7 @@ Tool _buildActivateTool({
           activatedAgents: normalized,
           reason: reason,
           confidence: confidence?.toDouble(),
+          enqueuedTaskIds: List.unmodifiable(enqueuedTaskIds),
         ),
       );
 
@@ -247,21 +251,19 @@ Tool _buildActivateTool({
 
       // The routing decision is final once this tool returns. Stop the
       // agent immediately so the model does not produce a follow-up turn.
-      return AgentToolResult(
-        content: TextPart(summary),
-        stopFlag: true,
-      );
+      return AgentToolResult(content: TextPart(summary), stopFlag: true);
     },
   );
 }
 
-Future<void> _enqueueDownstream({
+Future<List<String>> _enqueueDownstream({
   required String agentName,
   required String userId,
   required String factId,
   required String combinedText,
   required String inputMarkdown,
   required String reason,
+  required bool dedupeScheduleItemsBySourceFactId,
 }) async {
   final basePayload = <String, dynamic>{
     'fact_id': factId,
@@ -274,7 +276,7 @@ Future<void> _enqueueDownstream({
     case PostCardRouterTargets.scheduleAggregator:
       // Reuse the existing scheduleAggregationRequested event so the
       // aggregator queue collapses repeated requests across inputs.
-      await GlobalEventBus.instance.publish(
+      return GlobalEventBus.instance.publish(
         userId: userId,
         event: SystemEvent(
           type: SystemEventTypes.scheduleAggregationRequested,
@@ -285,18 +287,20 @@ Future<void> _enqueueDownstream({
             'fact_id': factId,
             'combined_text': combinedText,
             'input_markdown': inputMarkdown,
+            if (dedupeScheduleItemsBySourceFactId)
+              'dedupe_schedule_items_by_source_fact': true,
           },
         ),
       );
-      return;
     case PostCardRouterTargets.askClarification:
-      await LocalTaskExecutor.instance.enqueueTask(
+      final taskId = await LocalTaskExecutor.instance.enqueueTask(
         userId: userId,
         taskType: 'ask_clarification_task',
         payload: basePayload,
       );
-      return;
+      return [taskId];
   }
+  return const [];
 }
 
 List<String> _normalizeAgents(List<dynamic>? raw) {
@@ -323,6 +327,7 @@ Future<PostCardRouteResult> runPostCardRouter({
   String? locationContextReminder,
   required LLMClient client,
   required ModelConfig modelConfig,
+  bool dedupeScheduleItemsBySourceFactId = false,
 }) async {
   final scheduleState = await ScheduleStateService.instance.ensureInitialized(
     userId,
@@ -343,6 +348,7 @@ Future<PostCardRouteResult> runPostCardRouter({
     combinedText: combinedText,
     inputMarkdown: inputMarkdown,
     scheduleStateContext: scheduleStateContext,
+    dedupeScheduleItemsBySourceFactId: dedupeScheduleItemsBySourceFactId,
   );
 }
 
@@ -371,7 +377,8 @@ String buildPostCardRouterInputMarkdown({
   buffer.writeln('### Raw Input Content');
   final trimmed = combinedText.trim();
   buffer.writeln(
-      trimmed.isEmpty ? '(No text content.)' : _truncate(trimmed, 4000));
+    trimmed.isEmpty ? '(No text content.)' : _truncate(trimmed, 4000),
+  );
   buffer.write(formatAssetAnalysis(assetAnalyses, includeExif: true));
   return buffer.toString().trimRight();
 }
