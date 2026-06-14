@@ -64,6 +64,18 @@ GOLDEN_EN = {
     "likely": "LIKELY",
     "confirmed": "CONFIRMED",
 }
+CONFIDENCE_ZH = {
+    "low": "low",
+    "medium": "medium",
+    "high": "high",
+    "not_provided": "模型未输出",
+}
+CONFIDENCE_EN = {
+    "low": "low",
+    "medium": "medium",
+    "high": "high",
+    "not_provided": "not provided",
+}
 
 
 @dataclass(frozen=True)
@@ -242,10 +254,10 @@ def normalize_review(raw: dict[str, Any], *, context: dict[str, Any]) -> dict[st
         "affected_areas": raw.get("affected_areas") if isinstance(raw.get("affected_areas"), list) else [],
         "findings": raw.get("findings") if isinstance(raw.get("findings"), list) else [],
         "test_gaps": raw.get("test_gaps") if isinstance(raw.get("test_gaps"), list) else [],
-        "confidence": require_string(raw.get("confidence"), default="low"),
+        "confidence": require_string(raw.get("confidence"), default="not_provided"),
     }
-    if normalized["confidence"] not in {"low", "medium", "high"}:
-        normalized["confidence"] = "low"
+    if normalized["confidence"] not in CONFIDENCE_ZH:
+        normalized["confidence"] = "not_provided"
     return normalized
 
 
@@ -337,6 +349,7 @@ def build_markdown(review: dict[str, Any]) -> str:
     run_id = review.get("run_id")
     run_line = f"- Workflow run：`{run_id}`" if run_id else "- Workflow run：unknown"
     run_line_en = f"- Workflow run: `{run_id}`" if run_id else "- Workflow run: unknown"
+    confidence = review["confidence"]
 
     lines = [
         COMMENT_MARKER,
@@ -347,7 +360,7 @@ def build_markdown(review: dict[str, Any]) -> str:
         f"- 风险等级：`{RISK_ZH[risk]}`",
         f"- 需要人工审核：`{bool_zh(review['human_review_required'])}`",
         f"- 黄金链路影响：`{GOLDEN_ZH[golden['level']]}`",
-        f"- 置信度：`{review['confidence']}`",
+        f"- 置信度：`{CONFIDENCE_ZH[confidence]}`",
         run_line,
         "",
         review["summary_zh"],
@@ -370,7 +383,7 @@ def build_markdown(review: dict[str, Any]) -> str:
         f"- Risk level: `{RISK_EN[risk]}`",
         f"- Human review required: `{bool_en(review['human_review_required'])}`",
         f"- Golden path impact: `{GOLDEN_EN[golden['level']]}`",
-        f"- Confidence: `{review['confidence']}`",
+        f"- Confidence: `{CONFIDENCE_EN[confidence]}`",
         run_line_en,
         "",
         review["summary_en"],
