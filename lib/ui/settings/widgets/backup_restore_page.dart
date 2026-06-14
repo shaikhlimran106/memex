@@ -15,12 +15,11 @@ import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/utils/user_storage.dart';
 
-typedef AutoBackupCreator =
-    Future<BackupSnapshot?> Function({
-      String trigger,
-      bool force,
-      void Function(String status)? onProgress,
-    });
+typedef AutoBackupCreator = Future<BackupSnapshot?> Function({
+  String trigger,
+  bool force,
+  void Function(String status)? onProgress,
+});
 
 typedef StoredBackupDeleter = Future<void> Function(BackupSnapshot snapshot);
 
@@ -32,6 +31,7 @@ class BackupRestorePage extends StatefulWidget {
   final Future<List<BackupSnapshot>> Function()? listStoredBackups;
   final AutoBackupCreator? createAutoBackup;
   final StoredBackupDeleter? deleteStoredBackup;
+  final Future<void> Function()? pruneAutoBackups;
   final Future<void> Function()? useDefaultBackupDirectory;
   final Future<AndroidBackupDirectory?> Function()? pickAndroidBackupDirectory;
 
@@ -44,6 +44,7 @@ class BackupRestorePage extends StatefulWidget {
     this.listStoredBackups,
     this.createAutoBackup,
     this.deleteStoredBackup,
+    this.pruneAutoBackups,
     this.useDefaultBackupDirectory,
     this.pickAndroidBackupDirectory,
   });
@@ -60,12 +61,15 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
   bool _isRestoring = false;
   bool _isCreatingSnapshot = false;
   bool _isPickingLocation = false;
+  bool _isUpdatingRetention = false;
   String? _deletingBackupId;
   bool _autoBackupEnabled = false;
   String _statusText = '';
   String _estimatedSize = '';
   BackupLocationInfo? _backupLocationInfo;
   DateTime? _lastAutoBackupAt;
+  int? _autoBackupRetentionDays = UserStorage.defaultAutoBackupRetentionDays;
+  int _autoBackupMaxBytes = UserStorage.defaultAutoBackupMaxBytes;
   List<BackupSnapshot> _storedBackups = const [];
 
   @override
@@ -100,6 +104,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
       _isRestoring ||
       _isCreatingSnapshot ||
       _isPickingLocation ||
+      _isUpdatingRetention ||
       _deletingBackupId != null;
 
   void _handleBackupDataChanged(EventBusMessage message) {
@@ -111,7 +116,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     final userId = await UserStorage.getUserId();
     final size = includeEstimatedSize
         ? await (widget.estimateBackupSize ??
-              BackupService.estimateBackupSize)()
+            BackupService.estimateBackupSize)()
         : null;
     final location = await _resolveBackupLocationInfo();
     final snapshots =
@@ -122,6 +127,12 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     final lastAutoBackupAt = userId != null && userId.isNotEmpty
         ? await UserStorage.getLastAutoBackupAt(userId)
         : null;
+    final retentionDays = userId != null && userId.isNotEmpty
+        ? await UserStorage.getAutoBackupRetentionDays(userId)
+        : UserStorage.defaultAutoBackupRetentionDays;
+    final maxBytes = userId != null && userId.isNotEmpty
+        ? await UserStorage.getAutoBackupMaxBytes(userId)
+        : UserStorage.defaultAutoBackupMaxBytes;
 
     if (mounted) {
       setState(() {
@@ -132,6 +143,8 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
         _storedBackups = snapshots;
         _autoBackupEnabled = autoEnabled;
         _lastAutoBackupAt = lastAutoBackupAt;
+        _autoBackupRetentionDays = retentionDays;
+        _autoBackupMaxBytes = maxBytes;
       });
     }
   }
@@ -149,6 +162,25 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     return DateFormat.yMd(
       UserStorage.l10n.localeName,
     ).add_Hm().format(dateTime);
+  }
+
+  int get _autoBackupRetentionMenuValue =>
+      _autoBackupRetentionDays ?? UserStorage.autoBackupRetentionForever;
+
+  String _formatAutoBackupRetention(int? days) {
+    return days == null
+        ? UserStorage.l10n.autoBackupRetentionForever
+        : UserStorage.l10n.autoBackupRetentionDays(days);
+  }
+
+  String _backupTypeText(BackupSnapshot snapshot) {
+    if (snapshot.isSafetySnapshot) {
+      return UserStorage.l10n.backupTypeSafetySnapshot;
+    }
+    if (snapshot.isAutoSnapshot) {
+      return UserStorage.l10n.backupTypeAutoSnapshot;
+    }
+    return UserStorage.l10n.backupTypeManualBackup;
   }
 
   Future<BackupLocationInfo> _resolveBackupLocationInfo() async {
@@ -259,6 +291,59 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
     await UserStorage.setAutoBackupEnabled(userId, enabled);
     if (mounted) {
       setState(() => _autoBackupEnabled = enabled);
+    }
+  }
+
+  Future<void> _setAutoBackupRetentionValue(int value) async {
+    if (_isUpdatingRetention) return;
+    final userId = await UserStorage.getUserId();
+    if (userId == null || userId.isEmpty) return;
+
+    final days = value == UserStorage.autoBackupRetentionForever ? null : value;
+    setState(() => _isUpdatingRetention = true);
+
+    try {
+      await UserStorage.setAutoBackupRetentionDays(userId, days);
+      await (widget.pruneAutoBackups ?? BackupService.pruneAutoBackups)();
+      await _loadPageData(includeEstimatedSize: false);
+    } catch (e, stack) {
+      _logger.warning('Failed to update auto backup retention: $e', e, stack);
+      if (mounted) {
+        ToastHelper.showError(
+          context,
+          UserStorage.l10n.backupFailed(e.toString()),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdatingRetention = false);
+      }
+    }
+  }
+
+  Future<void> _setAutoBackupMaxBytesValue(int bytes) async {
+    if (_isUpdatingRetention) return;
+    final userId = await UserStorage.getUserId();
+    if (userId == null || userId.isEmpty) return;
+
+    setState(() => _isUpdatingRetention = true);
+
+    try {
+      await UserStorage.setAutoBackupMaxBytes(userId, bytes);
+      await (widget.pruneAutoBackups ?? BackupService.pruneAutoBackups)();
+      await _loadPageData(includeEstimatedSize: false);
+    } catch (e, stack) {
+      _logger.warning('Failed to update auto backup max size: $e', e, stack);
+      if (mounted) {
+        ToastHelper.showError(
+          context,
+          UserStorage.l10n.backupFailed(e.toString()),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdatingRetention = false);
+      }
     }
   }
 
@@ -779,6 +864,24 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
           _backupLocationRow(),
           const SizedBox(height: 8),
           _infoRow(UserStorage.l10n.autoBackupStatus, lastBackupText),
+          const SizedBox(height: 8),
+          if (_estimatedSize.isNotEmpty)
+            _infoRow(UserStorage.l10n.estimatedSize, _estimatedSize),
+          if (_estimatedSize.isNotEmpty) const SizedBox(height: 8),
+          _retentionRow(isBusy),
+          const SizedBox(height: 8),
+          _maxSizeRow(isBusy),
+          const SizedBox(height: 8),
+          Text(
+            UserStorage.l10n.autoBackupRetentionLimitHint(
+              _formatBytes(_autoBackupMaxBytes),
+            ),
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -815,6 +918,132 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _retentionRow(bool isBusy) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 96,
+          child: Text(
+            UserStorage.l10n.autoBackupRetention,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: PopupMenuButton<int>(
+              key: const ValueKey('auto-backup-retention-menu'),
+              enabled: !isBusy,
+              tooltip: UserStorage.l10n.autoBackupRetention,
+              initialValue: _autoBackupRetentionMenuValue,
+              onSelected: _setAutoBackupRetentionValue,
+              itemBuilder: (context) => [
+                for (final days in UserStorage.autoBackupRetentionDayOptions)
+                  PopupMenuItem<int>(
+                    value: days,
+                    child: Text(UserStorage.l10n.autoBackupRetentionDays(days)),
+                  ),
+                PopupMenuItem<int>(
+                  value: UserStorage.autoBackupRetentionForever,
+                  child: Text(UserStorage.l10n.autoBackupRetentionForever),
+                ),
+              ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      _formatAutoBackupRetention(_autoBackupRetentionDays),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  _isUpdatingRetention
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.expand_more, size: 16),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _maxSizeRow(bool isBusy) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 96,
+          child: Text(
+            UserStorage.l10n.autoBackupMaxSize,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: PopupMenuButton<int>(
+              key: const ValueKey('auto-backup-max-size-menu'),
+              enabled: !isBusy,
+              tooltip: UserStorage.l10n.autoBackupMaxSize,
+              initialValue: _autoBackupMaxBytes,
+              onSelected: _setAutoBackupMaxBytesValue,
+              itemBuilder: (context) => [
+                for (final bytes in UserStorage.autoBackupMaxBytesOptions)
+                  PopupMenuItem<int>(
+                    value: bytes,
+                    child: Text(_formatBytes(bytes)),
+                  ),
+              ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      _formatBytes(_autoBackupMaxBytes),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  _isUpdatingRetention
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.expand_more, size: 16),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -862,6 +1091,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
             ..._storedBackups.map(
               (snapshot) => _StoredBackupTile(
                 snapshot: snapshot,
+                typeText: _backupTypeText(snapshot),
                 dateText: _formatDateTime(snapshot.createdAt),
                 sizeText: _formatBytes(snapshot.sizeBytes),
                 isDeleting: _deletingBackupId == snapshot.id,
@@ -1070,6 +1300,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
 
 class _StoredBackupTile extends StatelessWidget {
   final BackupSnapshot snapshot;
+  final String typeText;
   final String dateText;
   final String sizeText;
   final bool isDeleting;
@@ -1078,6 +1309,7 @@ class _StoredBackupTile extends StatelessWidget {
 
   const _StoredBackupTile({
     required this.snapshot,
+    required this.typeText,
     required this.dateText,
     required this.sizeText,
     required this.isDeleting,
@@ -1113,7 +1345,7 @@ class _StoredBackupTile extends StatelessWidget {
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
           subtitle: Text(
-            '$dateText - $sizeText',
+            '$typeText - $dateText - $sizeText',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 12),

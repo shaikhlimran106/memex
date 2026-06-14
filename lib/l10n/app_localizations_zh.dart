@@ -2227,6 +2227,25 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get autoBackupRetention => '保留';
+
+  @override
+  String autoBackupRetentionDays(Object days) {
+    return '$days 天';
+  }
+
+  @override
+  String get autoBackupRetentionForever => '永久保留';
+
+  @override
+  String get autoBackupMaxSize => '空间上限';
+
+  @override
+  String autoBackupRetentionLimitHint(Object size) {
+    return '自动清理会让自动快照总大小不超过 $size。安全快照和手动导出备份会单独保留。';
+  }
+
+  @override
   String get createSnapshotNow => '立即备份';
 
   @override
@@ -2250,6 +2269,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get noStoredBackups => '创建第一个自动快照后会显示在这里。';
+
+  @override
+  String get backupTypeAutoSnapshot => '自动快照';
+
+  @override
+  String get backupTypeSafetySnapshot => '安全快照';
+
+  @override
+  String get backupTypeManualBackup => '手动备份';
 
   @override
   String get refresh => '刷新';

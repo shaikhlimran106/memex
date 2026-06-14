@@ -33,12 +33,78 @@ void main() {
     expect(await UserStorage.isAutoBackupEnabled('backup-test-user'), isTrue);
   });
 
+  testWidgets('shows estimated backup size and persists retention policy', (
+    tester,
+  ) async {
+    var pruneCalls = 0;
+
+    await _pumpBackupPage(
+      tester,
+      estimateBackupSize: () async => 5 * 1024 * 1024,
+      pruneAutoBackups: () async {
+        pruneCalls += 1;
+      },
+    );
+
+    expect(find.text(UserStorage.l10n.estimatedSize), findsOneWidget);
+    expect(find.text('5.0 MB'), findsWidgets);
+    expect(
+      find.text(UserStorage.l10n.autoBackupRetentionDays(30)),
+      findsOneWidget,
+    );
+    expect(find.text(UserStorage.l10n.autoBackupMaxSize), findsOneWidget);
+    expect(find.text('2.0 GB'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('auto-backup-retention-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(UserStorage.l10n.autoBackupRetentionDays(14)));
+    await tester.pumpAndSettle();
+
+    expect(
+      await UserStorage.getAutoBackupRetentionDays('backup-test-user'),
+      14,
+    );
+    expect(pruneCalls, 1);
+    expect(
+      find.text(UserStorage.l10n.autoBackupRetentionDays(14)),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('auto-backup-retention-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(UserStorage.l10n.autoBackupRetentionForever));
+    await tester.pumpAndSettle();
+
+    expect(
+      await UserStorage.getAutoBackupRetentionDays('backup-test-user'),
+      isNull,
+    );
+    expect(pruneCalls, 2);
+    expect(
+      find.text(UserStorage.l10n.autoBackupRetentionForever),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('auto-backup-max-size-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('1.0 GB'));
+    await tester.pumpAndSettle();
+
+    expect(
+      await UserStorage.getAutoBackupMaxBytes('backup-test-user'),
+      1024 * 1024 * 1024,
+    );
+    expect(pruneCalls, 3);
+    expect(find.text('1.0 GB'), findsOneWidget);
+  });
+
   testWidgets(
     'shows stored automatic and safety snapshots with restore confirmation',
     (tester) async {
       const autoName = 'memex_auto_2026-05-15T10-00-00.memex';
       const safetyName =
           'memex_safety_before_restore_2026-05-15T10-05-00.memex';
+      const manualName = 'memex_backup_2026-05-15T09-00-00.memex';
       final autoSnapshot = BackupSnapshot(
         id: 'auto',
         name: autoName,
@@ -53,15 +119,32 @@ void main() {
         sizeBytes: 3,
         filePath: '/tmp/$safetyName',
       );
+      final manualSnapshot = BackupSnapshot(
+        id: 'manual',
+        name: manualName,
+        createdAt: DateTime(2026, 5, 15, 9),
+        sizeBytes: 4,
+        filePath: '/tmp/$manualName',
+      );
 
       await _pumpBackupPage(
         tester,
-        listStoredBackups: () async => [safetySnapshot, autoSnapshot],
+        listStoredBackups: () async =>
+            [safetySnapshot, autoSnapshot, manualSnapshot],
       );
       await _scrollUntilVisible(tester, find.text(autoName));
+      await _scrollUntilVisible(tester, find.text(manualName));
 
       expect(find.text(autoName), findsOneWidget);
       expect(find.text(safetyName), findsOneWidget);
+      expect(find.text(manualName), findsOneWidget);
+      expect(find.textContaining(UserStorage.l10n.backupTypeAutoSnapshot),
+          findsOneWidget);
+      expect(find.textContaining(UserStorage.l10n.backupTypeSafetySnapshot),
+          findsOneWidget);
+      expect(find.textContaining(UserStorage.l10n.backupTypeManualBackup),
+          findsOneWidget);
+      expect(find.textContaining('3 B'), findsWidgets);
       expect(find.byTooltip(UserStorage.l10n.restoreThisBackup), findsWidgets);
 
       await tester.ensureVisible(find.text(autoName));
@@ -175,18 +258,17 @@ void main() {
     await _pumpBackupPage(
       tester,
       listStoredBackups: () async => List<BackupSnapshot>.of(snapshots),
-      createAutoBackup:
-          ({
-            String trigger = 'automatic',
-            bool force = false,
-            void Function(String status)? onProgress,
-          }) async {
-            expect(trigger, 'manual');
-            expect(force, isTrue);
-            onProgress?.call('Compressing...');
-            snapshots.add(snapshot);
-            return snapshot;
-          },
+      createAutoBackup: ({
+        String trigger = 'automatic',
+        bool force = false,
+        void Function(String status)? onProgress,
+      }) async {
+        expect(trigger, 'manual');
+        expect(force, isTrue);
+        onProgress?.call('Compressing...');
+        snapshots.add(snapshot);
+        return snapshot;
+      },
     );
 
     await tester.tap(find.text(UserStorage.l10n.createSnapshotNow));
@@ -223,15 +305,14 @@ void main() {
         return 42;
       },
       listStoredBackups: () async => List<BackupSnapshot>.of(snapshots),
-      createAutoBackup:
-          ({
-            String trigger = 'automatic',
-            bool force = false,
-            void Function(String status)? onProgress,
-          }) async {
-            snapshots.add(snapshot);
-            return snapshot;
-          },
+      createAutoBackup: ({
+        String trigger = 'automatic',
+        bool force = false,
+        void Function(String status)? onProgress,
+      }) async {
+        snapshots.add(snapshot);
+        return snapshot;
+      },
     );
 
     expect(estimateCalls, 1);
@@ -343,8 +424,7 @@ void main() {
   });
 
   testWidgets('shows Android SAF folder name and URI details', (tester) async {
-    const treeUri =
-        'content://com.android.externalstorage.documents/tree/'
+    const treeUri = 'content://com.android.externalstorage.documents/tree/'
         'primary%3ADownload%2FMemexBackups';
 
     await _pumpBackupPage(
@@ -382,6 +462,7 @@ Future<void> _pumpBackupPage(
   Future<List<BackupSnapshot>> Function()? listStoredBackups,
   AutoBackupCreator? createAutoBackup,
   StoredBackupDeleter? deleteStoredBackup,
+  Future<void> Function()? pruneAutoBackups,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -395,6 +476,7 @@ Future<void> _pumpBackupPage(
         listStoredBackups: listStoredBackups ?? () async => const [],
         createAutoBackup: createAutoBackup,
         deleteStoredBackup: deleteStoredBackup,
+        pruneAutoBackups: pruneAutoBackups,
       ),
     ),
   );

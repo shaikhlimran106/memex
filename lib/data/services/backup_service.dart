@@ -25,8 +25,6 @@ const _backupExtension = '.memex';
 const _autoBackupPrefix = 'memex_auto';
 const _safetyBackupPrefix = 'memex_safety';
 const _autoBackupInterval = Duration(hours: 24);
-const _autoBackupKeepRecent = 7;
-const _autoBackupMaxBytes = 2 * 1024 * 1024 * 1024; // 2 GB
 const _backupStoreWithoutCompressionThreshold = 16 * 1024 * 1024; // 16 MB
 const _backupManifestFileName = 'manifest.json';
 const _backupFormat = 'memex.backup';
@@ -104,6 +102,7 @@ class BackupSnapshot {
   });
 
   bool get isAndroidDocument => documentUri != null;
+  bool get isAutoSnapshot => name.startsWith(_autoBackupPrefix);
   bool get isSafetySnapshot => name.startsWith(_safetyBackupPrefix);
 }
 
@@ -141,14 +140,12 @@ class BackupManifest {
         ? appVersion.split('+')
         : const <String>[];
     return BackupManifest(
-      format:
-          json['format'] as String? ??
+      format: json['format'] as String? ??
           (formatVersion == null ? '' : _backupFormat),
       formatVersion: formatVersion ?? 1,
       backupSchemaVersion:
           (json['backupSchemaVersion'] as num?)?.toInt() ?? formatVersion ?? 0,
-      createdAt:
-          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
       userId: json['userId'] as String?,
       appVersion: splitVersion.isEmpty ? appVersion : splitVersion.first,
@@ -158,25 +155,25 @@ class BackupManifest {
       platform: json['platform'] as String? ?? '',
       entries: rawEntries is List
           ? rawEntries
-                .whereType<Map>()
-                .map((entry) => entry.cast<String, dynamic>())
-                .toList()
+              .whereType<Map>()
+              .map((entry) => entry.cast<String, dynamic>())
+              .toList()
           : const [],
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'format': format,
-    'formatVersion': formatVersion,
-    'backupSchemaVersion': backupSchemaVersion,
-    'createdAt': createdAt.toUtc().toIso8601String(),
-    if (userId != null) 'userId': userId,
-    'appVersion': appVersion,
-    'buildNumber': buildNumber,
-    'flavor': flavor,
-    'platform': platform,
-    'entries': entries,
-  };
+        'format': format,
+        'formatVersion': formatVersion,
+        'backupSchemaVersion': backupSchemaVersion,
+        'createdAt': createdAt.toUtc().toIso8601String(),
+        if (userId != null) 'userId': userId,
+        'appVersion': appVersion,
+        'buildNumber': buildNumber,
+        'flavor': flavor,
+        'platform': platform,
+        'entries': entries,
+      };
 }
 
 class BackupFileInfo {
@@ -257,8 +254,7 @@ class BackupService {
     final workspacePath = fs.getWorkspacePath(userId);
     final appDir = await getApplicationDocumentsDirectory();
     final createdAt = DateTime.now();
-    final fileName =
-        '${filePrefix}_${_timestampForFile(createdAt)}'
+    final fileName = '${filePrefix}_${_timestampForFile(createdAt)}'
         '$_backupExtension';
 
     final targetDir = outputDirectory == null
@@ -470,12 +466,13 @@ class BackupService {
         userId,
       );
 
-      if (!force &&
-          lastBackupAt != null &&
-          now.difference(lastBackupAt) < _autoBackupInterval) {
-        return null;
-      }
-      if (!force && lastFingerprint == fingerprint) {
+      final shouldSkip = !force &&
+          ((lastBackupAt != null &&
+                  now.difference(lastBackupAt) < _autoBackupInterval) ||
+              lastFingerprint == fingerprint);
+
+      if (shouldSkip) {
+        await pruneAutoBackups(now: now);
         return null;
       }
 
@@ -498,9 +495,8 @@ class BackupService {
     required String reason,
     void Function(String status)? onProgress,
   }) {
-    final sanitizedReason = reason
-        .replaceAll(RegExp(r'[^a-zA-Z0-9_-]+'), '_')
-        .toLowerCase();
+    final sanitizedReason =
+        reason.replaceAll(RegExp(r'[^a-zA-Z0-9_-]+'), '_').toLowerCase();
     return createStoredBackup(
       filePrefix: '${_safetyBackupPrefix}_$sanitizedReason',
       onProgress: onProgress,
@@ -535,7 +531,7 @@ class BackupService {
           );
           final snapshot = _snapshotFromAndroidInfo(info);
           if (pruneAutoBackups) {
-            await _pruneAndroidTreeBackups(treeUri);
+            await BackupService.pruneAutoBackups(emitEvent: false);
           }
           _emitBackupSnapshotsChanged('created', snapshotId: snapshot.id);
           return snapshot;
@@ -564,10 +560,60 @@ class BackupService {
       filePath: backupPath,
     );
     if (pruneAutoBackups) {
-      await _pruneFileBackups(backupDir);
+      await BackupService.pruneAutoBackups(emitEvent: false);
     }
     _emitBackupSnapshotsChanged('created', snapshotId: snapshot.id);
     return snapshot;
+  }
+
+  /// Apply the automatic backup retention policy without creating a new backup.
+  ///
+  /// Only snapshots created by the automatic system are removed. Safety
+  /// snapshots and manually exported files are intentionally left alone.
+  static Future<int> pruneAutoBackups({
+    DateTime? now,
+    bool emitEvent = true,
+  }) async {
+    final userId = await UserStorage.getUserId();
+    if (userId == null || userId.isEmpty) return 0;
+
+    final cleanupNow = now ?? DateTime.now();
+    final retentionDays = await UserStorage.getAutoBackupRetentionDays(userId);
+    final maxBytes = await UserStorage.getAutoBackupMaxBytes(userId);
+    var deleted = 0;
+
+    try {
+      final defaultDir = await resolveDefaultBackupDirectory();
+      deleted += await _pruneFileBackups(
+        defaultDir,
+        now: cleanupNow,
+        retentionDays: retentionDays,
+        maxBytes: maxBytes,
+      );
+    } catch (e, st) {
+      _logger.warning('Failed to prune default backups: $e', e, st);
+    }
+
+    if (Platform.isAndroid) {
+      final treeUri = await UserStorage.getAndroidBackupTreeUri(userId);
+      if (treeUri != null && treeUri.isNotEmpty) {
+        try {
+          deleted += await _pruneAndroidTreeBackups(
+            treeUri,
+            now: cleanupNow,
+            retentionDays: retentionDays,
+            maxBytes: maxBytes,
+          );
+        } catch (e, st) {
+          _logger.warning('Failed to prune Android backups: $e', e, st);
+        }
+      }
+    }
+
+    if (deleted > 0 && emitEvent) {
+      _emitBackupSnapshotsChanged('pruned');
+    }
+    return deleted;
   }
 
   /// Restore a stored snapshot. Android SAF snapshots are copied to a temp file
@@ -746,12 +792,10 @@ class BackupService {
     String rootPath;
 
     if (Platform.isIOS) {
-      rootPath =
-          await UserStorage.resolveICloudDocumentsPath() ??
+      rootPath = await UserStorage.resolveICloudDocumentsPath() ??
           (await getApplicationDocumentsDirectory()).path;
     } else if (Platform.isAndroid) {
-      rootPath =
-          (await getExternalStorageDirectory())?.path ??
+      rootPath = (await getExternalStorageDirectory())?.path ??
           (await getApplicationDocumentsDirectory()).path;
     } else {
       rootPath = (await getApplicationDocumentsDirectory()).path;
@@ -855,8 +899,8 @@ class BackupService {
             fileCount += 1;
             latestModifiedMs =
                 latestModifiedMs > stat.modified.millisecondsSinceEpoch
-                ? latestModifiedMs
-                : stat.modified.millisecondsSinceEpoch;
+                    ? latestModifiedMs
+                    : stat.modified.millisecondsSinceEpoch;
           } catch (_) {}
         }
       }
@@ -876,8 +920,8 @@ class BackupService {
         fileCount += 1;
         latestModifiedMs =
             latestModifiedMs > stat.modified.millisecondsSinceEpoch
-            ? latestModifiedMs
-            : stat.modified.millisecondsSinceEpoch;
+                ? latestModifiedMs
+                : stat.modified.millisecondsSinceEpoch;
         break;
       }
     }
@@ -985,19 +1029,29 @@ class BackupService {
     return result;
   }
 
-  static Future<void> _pruneFileBackups(Directory dir) async {
-    final snapshots =
-        (await _listFileBackups(dir))
-            .where((snapshot) => snapshot.name.startsWith(_autoBackupPrefix))
-            .toList()
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  static Future<int> _pruneFileBackups(
+    Directory dir, {
+    required DateTime now,
+    required int? retentionDays,
+    required int maxBytes,
+  }) async {
+    final snapshots = (await _listFileBackups(dir))
+        .where((snapshot) => snapshot.name.startsWith(_autoBackupPrefix))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     var kept = 0;
     var keptBytes = 0;
+    var deleted = 0;
     for (final snapshot in snapshots) {
-      final shouldKeep =
-          kept < _autoBackupKeepRecent &&
-          keptBytes + snapshot.sizeBytes <= _autoBackupMaxBytes;
+      final shouldKeep = _shouldKeepAutoBackup(
+        snapshot: snapshot,
+        now: now,
+        retentionDays: retentionDays,
+        maxBytes: maxBytes,
+        keptCount: kept,
+        keptBytes: keptBytes,
+      );
       if (shouldKeep) {
         kept += 1;
         keptBytes += snapshot.sizeBytes;
@@ -1010,26 +1064,38 @@ class BackupService {
         final file = File(filePath);
         if (await file.exists()) {
           await file.delete();
+          deleted += 1;
         }
       } catch (e) {
         _logger.warning('Failed to delete old backup $filePath: $e');
       }
     }
+    return deleted;
   }
 
-  static Future<void> _pruneAndroidTreeBackups(String treeUri) async {
-    final snapshots =
-        (await _listAndroidTreeBackups(treeUri))
-            .where((snapshot) => snapshot.name.startsWith(_autoBackupPrefix))
-            .toList()
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  static Future<int> _pruneAndroidTreeBackups(
+    String treeUri, {
+    required DateTime now,
+    required int? retentionDays,
+    required int maxBytes,
+  }) async {
+    final snapshots = (await _listAndroidTreeBackups(treeUri))
+        .where((snapshot) => snapshot.name.startsWith(_autoBackupPrefix))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     var kept = 0;
     var keptBytes = 0;
+    var deleted = 0;
     for (final snapshot in snapshots) {
-      final shouldKeep =
-          kept < _autoBackupKeepRecent &&
-          keptBytes + snapshot.sizeBytes <= _autoBackupMaxBytes;
+      final shouldKeep = _shouldKeepAutoBackup(
+        snapshot: snapshot,
+        now: now,
+        retentionDays: retentionDays,
+        maxBytes: maxBytes,
+        keptCount: kept,
+        keptBytes: keptBytes,
+      );
       if (shouldKeep) {
         kept += 1;
         keptBytes += snapshot.sizeBytes;
@@ -1040,10 +1106,31 @@ class BackupService {
       if (documentUri == null) continue;
       try {
         await _deleteAndroidDocument(documentUri);
+        deleted += 1;
       } catch (e) {
         _logger.warning('Failed to delete old Android backup $documentUri: $e');
       }
     }
+    return deleted;
+  }
+
+  static bool _shouldKeepAutoBackup({
+    required BackupSnapshot snapshot,
+    required DateTime now,
+    required int? retentionDays,
+    required int maxBytes,
+    required int keptCount,
+    required int keptBytes,
+  }) {
+    if (keptCount == 0) return true;
+
+    final cutoff = retentionDays == null
+        ? null
+        : now.subtract(Duration(days: retentionDays));
+    final expiredByAge = cutoff != null && snapshot.createdAt.isBefore(cutoff);
+    if (expiredByAge) return false;
+
+    return keptBytes + snapshot.sizeBytes <= maxBytes;
   }
 
   static Future<void> _deleteAndroidDocument(String documentUri) async {
@@ -1179,9 +1266,8 @@ Future<_StagedRestoreResult> _stageBackupRestoreArchive({
       archive,
       _backupManifestFileName,
     );
-    final manifest = manifestFile == null
-        ? null
-        : BackupService._readManifest(manifestFile);
+    final manifest =
+        manifestFile == null ? null : BackupService._readManifest(manifestFile);
     if (manifest != null) {
       _validateBackupManifestHeader(manifest);
     }

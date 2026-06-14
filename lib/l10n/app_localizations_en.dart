@@ -2313,6 +2313,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get autoBackupRetention => 'Retention';
+
+  @override
+  String autoBackupRetentionDays(Object days) {
+    return '$days days';
+  }
+
+  @override
+  String get autoBackupRetentionForever => 'Keep forever';
+
+  @override
+  String get autoBackupMaxSize => 'Storage cap';
+
+  @override
+  String autoBackupRetentionLimitHint(Object size) {
+    return 'Automatic cleanup keeps automatic snapshots under $size. Safety snapshots and manual exports are kept separately.';
+  }
+
+  @override
   String get createSnapshotNow => 'Back up now';
 
   @override
@@ -2338,6 +2357,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noStoredBackups =>
       'Automatic backups will appear here after the first snapshot.';
+
+  @override
+  String get backupTypeAutoSnapshot => 'Automatic snapshot';
+
+  @override
+  String get backupTypeSafetySnapshot => 'Safety snapshot';
+
+  @override
+  String get backupTypeManualBackup => 'Manual backup';
 
   @override
   String get refresh => 'Refresh';

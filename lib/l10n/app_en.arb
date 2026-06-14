@@ -1047,6 +1047,21 @@
     }
   },
   "lastBackupAt": "Last backup: {time}",
+  "autoBackupRetention": "Retention",
+  "@autoBackupRetentionDays": {
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "autoBackupRetentionDays": "{days} days",
+  "autoBackupRetentionForever": "Keep forever",
+  "autoBackupMaxSize": "Storage cap",
+  "@autoBackupRetentionLimitHint": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "autoBackupRetentionLimitHint": "Automatic cleanup keeps automatic snapshots under {size}. Safety snapshots and manual exports are kept separately.",
   "createSnapshotNow": "Back up now",
   "backupLocationMenu": "Change location",
   "defaultBackupLocation": "Default backup folder",
@@ -1055,6 +1070,9 @@
   "chooseBackupLocationAndroidDesc": "Pick a folder with Android's system picker and grant Memex persistent access.",
   "storedBackups": "Stored Backups",
   "noStoredBackups": "Automatic backups will appear here after the first snapshot.",
+  "backupTypeAutoSnapshot": "Automatic snapshot",
+  "backupTypeSafetySnapshot": "Safety snapshot",
+  "backupTypeManualBackup": "Manual backup",
   "refresh": "Refresh",
   "restoreThisBackup": "Restore this backup",
   "deleteThisBackup": "Delete this backup",

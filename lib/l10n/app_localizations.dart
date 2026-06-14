@@ -4209,6 +4209,36 @@ abstract class AppLocalizations {
   /// **'Last backup: {time}'**
   String lastBackupAt(Object time);
 
+  /// No description provided for @autoBackupRetention.
+  ///
+  /// In en, this message translates to:
+  /// **'Retention'**
+  String get autoBackupRetention;
+
+  /// No description provided for @autoBackupRetentionDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days'**
+  String autoBackupRetentionDays(Object days);
+
+  /// No description provided for @autoBackupRetentionForever.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep forever'**
+  String get autoBackupRetentionForever;
+
+  /// No description provided for @autoBackupMaxSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage cap'**
+  String get autoBackupMaxSize;
+
+  /// No description provided for @autoBackupRetentionLimitHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic cleanup keeps automatic snapshots under {size}. Safety snapshots and manual exports are kept separately.'**
+  String autoBackupRetentionLimitHint(Object size);
+
   /// No description provided for @createSnapshotNow.
   ///
   /// In en, this message translates to:
@@ -4256,6 +4286,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Automatic backups will appear here after the first snapshot.'**
   String get noStoredBackups;
+
+  /// No description provided for @backupTypeAutoSnapshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic snapshot'**
+  String get backupTypeAutoSnapshot;
+
+  /// No description provided for @backupTypeSafetySnapshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety snapshot'**
+  String get backupTypeSafetySnapshot;
+
+  /// No description provided for @backupTypeManualBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual backup'**
+  String get backupTypeManualBackup;
 
   /// No description provided for @refresh.
   ///
