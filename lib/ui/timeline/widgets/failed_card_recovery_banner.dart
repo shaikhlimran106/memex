@@ -2,6 +2,43 @@ import 'package:flutter/material.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
 import 'package:memex/utils/user_storage.dart';
 
+class CardProcessingStatusBanner extends StatelessWidget {
+  const CardProcessingStatusBanner({
+    super.key,
+    required this.status,
+    required this.failureReason,
+    required this.hasActiveTask,
+    required this.isRetrying,
+    required this.onRetry,
+    required this.onShowReason,
+  });
+
+  final String status;
+  final String? failureReason;
+  final bool hasActiveTask;
+  final bool isRetrying;
+  final VoidCallback? onRetry;
+  final VoidCallback? onShowReason;
+
+  @override
+  Widget build(BuildContext context) {
+    if (status == 'failed') {
+      return FailedCardRecoveryBanner(
+        failureReason: failureReason,
+        isRetrying: isRetrying,
+        onRetry: onRetry,
+        onShowReason: onShowReason,
+      );
+    }
+
+    if (status == 'processing' && hasActiveTask) {
+      return const CardRegeneratingBanner();
+    }
+
+    return const SizedBox.shrink();
+  }
+}
+
 class FailedCardRecoveryBanner extends StatelessWidget {
   const FailedCardRecoveryBanner({
     super.key,

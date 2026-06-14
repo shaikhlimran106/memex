@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' hide isNotNull;
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/data/services/agent_run_service.dart';
@@ -141,6 +141,91 @@ void main() {
       expect(run.completedAt, isNotNull);
     });
 
+    test(
+      'new successful attempt resolves old failed activity for same fact',
+      () async {
+        await service.createForSubmittedInput(
+          userId: 'user-a',
+          factId: 'fact-retry',
+        );
+        await _insertTask(
+          db,
+          id: 'old-card-failed',
+          runId: 'fact-retry',
+          type: 'card_agent_task',
+          status: 'failed',
+        );
+        await service.markTaskFailed(
+          runId: 'fact-retry',
+          taskId: 'old-card-failed',
+          taskType: 'card_agent_task',
+          error: StateError('old provider crash'),
+        );
+        await _setTaskTerminalTimestamp(db, 'old-card-failed', 1);
+
+        await _insertTask(
+          db,
+          id: 'new-card-active',
+          runId: 'fact-retry',
+          type: 'card_agent_task',
+          status: 'processing',
+        );
+        await service.refreshRunFromTasks('fact-retry');
+
+        var run = await _getRun(db, 'fact-retry');
+        expect(run.state, 'running');
+        expect(run.stage, 'Generating card');
+        expect(run.currentTaskId, 'new-card-active');
+
+        await _setTaskStatus(db, 'new-card-active', 'completed');
+        await service.markTaskCompleted(
+          runId: 'fact-retry',
+          taskId: 'new-card-active',
+          taskType: 'card_agent_task',
+        );
+
+        run = await _getRun(db, 'fact-retry');
+        expect(run.state, 'completed');
+        expect(run.stage, 'Completed');
+        expect(run.currentTaskId, isNull);
+        expect(run.lastError, isNull);
+        expect(await service.getLatestVisibleRun(userId: 'user-a'), isNull);
+      },
+    );
+
+    test(
+      'latest failed attempt remains visible when it is newer than success',
+      () async {
+        await service.createForSubmittedInput(
+          userId: 'user-a',
+          factId: 'fact-latest-failed',
+        );
+        await _insertTask(
+          db,
+          id: 'old-completed-card',
+          runId: 'fact-latest-failed',
+          type: 'card_agent_task',
+          status: 'completed',
+        );
+        await _setTaskTerminalTimestamp(db, 'old-completed-card', 1);
+        await _insertTask(
+          db,
+          id: 'new-failed-card',
+          runId: 'fact-latest-failed',
+          type: 'card_agent_task',
+          status: 'failed',
+        );
+        await _setTaskTerminalTimestamp(db, 'new-failed-card', 2);
+
+        await service.refreshRunFromTasks('fact-latest-failed');
+
+        final run = await _getRun(db, 'fact-latest-failed');
+        expect(run.state, 'failed');
+        expect(run.stage, 'Needs attention');
+        expect(run.currentTaskId, 'new-failed-card');
+      },
+    );
+
     test('marks active runs paused when the OS background window closes',
         () async {
       await service.createForSubmittedInput(userId: 'user-a', factId: 'fact-4');
@@ -199,6 +284,19 @@ Future<void> _setTaskStatus(
     TasksCompanion(
       status: Value(status),
       updatedAt: Value(DateTime.now().millisecondsSinceEpoch ~/ 1000),
+    ),
+  );
+}
+
+Future<void> _setTaskTerminalTimestamp(
+  AppDatabase db,
+  String id,
+  int timestamp,
+) async {
+  await (db.update(db.tasks)..where((task) => task.id.equals(id))).write(
+    TasksCompanion(
+      updatedAt: Value(timestamp),
+      completedAt: Value(timestamp),
     ),
   );
 }

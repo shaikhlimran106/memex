@@ -1,12 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/data/services/agent_run_service.dart';
+import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
+import 'package:memex/data/services/task_handlers/card_agent_handler.dart';
 import 'package:memex/db/app_database.dart';
+import 'package:memex/domain/models/card_model.dart';
+import 'package:memex/utils/user_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   late AppDatabase db;
@@ -34,9 +40,7 @@ void main() {
 
         final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-        await db
-            .into(db.tasks)
-            .insert(
+        await db.into(db.tasks).insert(
               TasksCompanion.insert(
                 id: 'unresolved-dependency',
                 type: 'dependency_task',
@@ -48,9 +52,7 @@ void main() {
             );
 
         for (var i = 0; i < 50; i++) {
-          await db
-              .into(db.tasks)
-              .insert(
+          await db.into(db.tasks).insert(
                 TasksCompanion.insert(
                   id: 'blocked-$i',
                   type: 'blocked_task',
@@ -62,9 +64,7 @@ void main() {
               );
         }
 
-        await db
-            .into(db.tasks)
-            .insert(
+        await db.into(db.tasks).insert(
               TasksCompanion.insert(
                 id: 'runnable',
                 type: 'runnable_task',
@@ -96,9 +96,7 @@ void main() {
 
         final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-        await db
-            .into(db.tasks)
-            .insert(
+        await db.into(db.tasks).insert(
               TasksCompanion.insert(
                 id: 'bad-dependency',
                 type: 'blocked_task',
@@ -110,9 +108,7 @@ void main() {
               ),
             );
 
-        await db
-            .into(db.tasks)
-            .insert(
+        await db.into(db.tasks).insert(
               TasksCompanion.insert(
                 id: 'runnable',
                 type: 'runnable_task',
@@ -133,6 +129,62 @@ void main() {
       },
     );
 
+    test('detects active tasks for a fact from run id or payload', () async {
+      await _insertTask(
+        db,
+        id: 'active-run-id',
+        type: 'card_agent_task',
+        status: 'pending',
+        payload: {'value': 1},
+        runId: '2026/06/13.md#ts_1',
+      );
+      await _insertTask(
+        db,
+        id: 'active-payload-fact',
+        type: 'legacy_card_agent_task',
+        status: 'retrying',
+        payload: {'fact_id': '2026/06/13.md#ts_2'},
+      );
+      await _insertTask(
+        db,
+        id: 'old-failed',
+        type: 'card_agent_task',
+        status: 'failed',
+        payload: {'fact_id': '2026/06/13.md#ts_3'},
+      );
+      await _insertTask(
+        db,
+        id: 'active-pkm-same-fact',
+        type: 'pkm_agent_task',
+        status: 'processing',
+        payload: {'fact_id': '2026/06/13.md#ts_4'},
+      );
+
+      expect(
+        await executor.hasActiveTaskForFactId('2026/06/13.md#ts_1'),
+        isTrue,
+      );
+      expect(
+        await executor.hasActiveTaskForFactId('2026/06/13.md#ts_2'),
+        isTrue,
+      );
+      expect(
+        await executor.hasActiveTaskForFactId('2026/06/13.md#ts_3'),
+        isFalse,
+      );
+      expect(
+        await executor.hasActiveTaskForFactId('2026/06/13.md#ts_4'),
+        isTrue,
+      );
+      expect(
+        await executor.hasActiveTaskForFactId(
+          '2026/06/13.md#ts_4',
+          taskTypes: const {'handle_analyze_assets', 'card_agent_task'},
+        ),
+        isFalse,
+      );
+    });
+
     test(
       'uses only available concurrency slots while backlog remains queued',
       () async {
@@ -147,9 +199,7 @@ void main() {
 
         await executor.start(userId: 'user-a');
         for (var i = 0; i < 4; i++) {
-          await db
-              .into(db.tasks)
-              .insert(
+          await db.into(db.tasks).insert(
                 TasksCompanion.insert(
                   id: 'active-$i',
                   type: 'already_processing',
@@ -161,9 +211,7 @@ void main() {
         }
 
         for (var i = 0; i < 3; i++) {
-          await db
-              .into(db.tasks)
-              .insert(
+          await db.into(db.tasks).insert(
                 TasksCompanion.insert(
                   id: 'runnable-$i',
                   type: 'runnable_task',
@@ -241,9 +289,7 @@ void main() {
     test('reports active task activity snapshot', () async {
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-      await db
-          .into(db.tasks)
-          .insert(
+      await db.into(db.tasks).insert(
             TasksCompanion.insert(
               id: 'pending-task',
               type: 'task',
@@ -252,9 +298,7 @@ void main() {
               createdAt: Value(now),
             ),
           );
-      await db
-          .into(db.tasks)
-          .insert(
+      await db.into(db.tasks).insert(
             TasksCompanion.insert(
               id: 'processing-task',
               type: 'task',
@@ -263,9 +307,7 @@ void main() {
               createdAt: Value(now),
             ),
           );
-      await db
-          .into(db.tasks)
-          .insert(
+      await db.into(db.tasks).insert(
             TasksCompanion.insert(
               id: 'retrying-task',
               type: 'task',
@@ -274,9 +316,7 @@ void main() {
               createdAt: Value(now),
             ),
           );
-      await db
-          .into(db.tasks)
-          .insert(
+      await db.into(db.tasks).insert(
             TasksCompanion.insert(
               id: 'completed-task',
               type: 'task',
@@ -327,7 +367,8 @@ void main() {
         task = await _waitForTaskStatus(db, taskId, 'completed');
         final run = await (db.select(
           db.agentRuns,
-        )..where((row) => row.id.equals('fact-run'))).getSingle();
+        )..where((row) => row.id.equals('fact-run')))
+            .getSingle();
 
         expect(task.status, 'completed');
         expect(run.state, 'completed');
@@ -435,14 +476,14 @@ void main() {
 
         final drainFuture = executor
             .drainAvailableTasks(
-              userId: 'user-a',
-              maxDuration: const Duration(milliseconds: 100),
-              pollInterval: const Duration(milliseconds: 20),
-            )
+          userId: 'user-a',
+          maxDuration: const Duration(milliseconds: 100),
+          pollInterval: const Duration(milliseconds: 20),
+        )
             .then((result) {
-              drainCompleted = true;
-              return result;
-            });
+          drainCompleted = true;
+          return result;
+        });
 
         await started.future.timeout(const Duration(seconds: 3));
         await Future<void>.delayed(const Duration(milliseconds: 150));
@@ -758,9 +799,7 @@ void main() {
         completedTaskIds.add(context.taskId);
       });
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      await db
-          .into(db.kvStore)
-          .insert(
+      await db.into(db.kvStore).insert(
             KvStoreCompanion.insert(
               key: 'agent_queue_lease:user-a',
               value: const Value('old-owner:background'),
@@ -1020,6 +1059,86 @@ void main() {
     });
 
     test(
+      'crash loop failure invokes card agent failure handler and marks card failed',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        await UserStorage.initL10n();
+        final tempDir = await Directory.systemTemp.createTemp(
+          'memex_card_agent_crash_failure_',
+        );
+        addTearDown(() async {
+          if (await tempDir.exists()) {
+            await tempDir.delete(recursive: true);
+          }
+        });
+        await FileSystemService.init(tempDir.path);
+
+        const userId = 'user-a';
+        const factId = '2026/06/13.md#ts_13';
+        await AgentRunService.instance.createForSubmittedInput(
+          userId: userId,
+          factId: factId,
+        );
+        await FileSystemService.instance.safeWriteCardFile(
+          userId,
+          factId,
+          CardData(
+            factId: factId,
+            timestamp: DateTime(2026, 6, 13, 9).millisecondsSinceEpoch ~/ 1000,
+            status: 'processing',
+            tags: const [],
+            uiConfigs: const [
+              UiConfig(
+                templateId: 'classic_card',
+                data: {'content': 'stale card'},
+              ),
+            ],
+          ),
+        );
+
+        executor.registerFailureHandler(
+          'card_agent_task',
+          handleCardAgentFailureImpl,
+        );
+        final task = await _insertTask(
+          db,
+          id: 'card-agent-crash-loop',
+          type: 'card_agent_task',
+          status: 'processing',
+          payload: {
+            'run_id': factId,
+            'fact_id': factId,
+            'combined_text': '原始记录内容',
+          },
+        );
+        await executor.markTaskExecutionStartedForTesting(task);
+        await _setMarkerCrashCount(db, executor, task.id, 1);
+
+        await executor.start(userId: userId);
+        await executor.stop();
+
+        final updatedTask = await _getTask(db, task.id);
+        final updatedCard = await FileSystemService.instance.readCardFile(
+          userId,
+          factId,
+        );
+        final run = await (db.select(
+          db.agentRuns,
+        )..where((r) => r.id.equals(factId)))
+            .getSingle();
+
+        expect(updatedTask.status, 'failed');
+        expect(updatedTask.error, contains('crash-like exits'));
+        expect(updatedCard?.status, 'failed');
+        expect(updatedCard?.failureReason, isNotNull);
+        expect(updatedCard?.failureReason, isNotEmpty);
+        expect(run.state, 'failed');
+        expect(run.stage, 'Needs attention');
+        expect(await executor.getTaskExecutionMarkerForTesting(), isNull);
+      },
+    );
+
+    test(
       'bad dependency JSON fails task instead of leaving it pending forever',
       () async {
         await _insertTask(
@@ -1048,17 +1167,17 @@ Future<Task> _insertTask(
   required String type,
   required String status,
   required Map<String, dynamic> payload,
+  String? runId,
   String? dependencies,
   int? scheduledAt,
 }) async {
   final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-  await db
-      .into(db.tasks)
-      .insert(
+  await db.into(db.tasks).insert(
         TasksCompanion.insert(
           id: id,
           type: type,
           payload: Value(jsonEncode(payload)),
+          runId: Value(runId),
           status: status,
           createdAt: Value(now),
           updatedAt: Value(now),

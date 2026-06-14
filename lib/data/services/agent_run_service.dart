@@ -234,7 +234,7 @@ class AgentRunService {
     required String taskType,
   }) async {
     final run = await _getRun(runId);
-    if (run == null || run.state == _dbState(AgentRunState.failed)) return;
+    if (run == null) return;
     final stage = _stageForTask(taskType);
     final now = _nowSeconds();
     await (_db.update(_db.agentRuns)..where((r) => r.id.equals(runId))).write(
@@ -307,26 +307,37 @@ class AgentRunService {
     final failedTasks = tasks.where((task) => task.status == 'failed').toList();
     final now = _nowSeconds();
 
-    if (failedTasks.isNotEmpty) {
-      final failed = failedTasks.first;
-      await (_db.update(_db.agentRuns)..where((r) => r.id.equals(run.id)))
-          .write(
-        AgentRunsCompanion(
-          state: Value(_dbState(AgentRunState.failed)),
-          stage: const Value('Needs attention'),
-          message: Value(_trimNullable(failed.error) ?? 'Processing failed.'),
-          lastError: Value(_trimNullable(failed.error)),
-          currentTaskId: Value(failed.id),
-          currentTaskType: Value(failed.type),
-          remainingTasks: Value(activeTasks.length),
-          updatedAt: Value(now),
-          completedAt: Value(now),
-        ),
-      );
-      return;
-    }
-
     if (activeTasks.isEmpty) {
+      final latestFailed = _latestTask(failedTasks);
+      final latestCompleted = _latestTask(
+        tasks.where((task) => task.status == 'completed').toList(),
+      );
+      final latestFailedTs =
+          latestFailed == null ? -1 : _taskTerminalTimestamp(latestFailed);
+      final latestCompletedTs = latestCompleted == null
+          ? -1
+          : _taskTerminalTimestamp(latestCompleted);
+
+      if (latestFailed != null && latestFailedTs >= latestCompletedTs) {
+        await (_db.update(_db.agentRuns)..where((r) => r.id.equals(run.id)))
+            .write(
+          AgentRunsCompanion(
+            state: Value(_dbState(AgentRunState.failed)),
+            stage: const Value('Needs attention'),
+            message: Value(
+              _trimNullable(latestFailed.error) ?? 'Processing failed.',
+            ),
+            lastError: Value(_trimNullable(latestFailed.error)),
+            currentTaskId: Value(latestFailed.id),
+            currentTaskType: Value(latestFailed.type),
+            remainingTasks: const Value(0),
+            updatedAt: Value(now),
+            completedAt: Value(now),
+          ),
+        );
+        return;
+      }
+
       await (_db.update(_db.agentRuns)..where((r) => r.id.equals(run.id)))
           .write(
         AgentRunsCompanion(
@@ -337,6 +348,7 @@ class AgentRunService {
           remainingTasks: const Value(0),
           currentTaskId: const Value(null),
           currentTaskType: const Value(null),
+          lastError: const Value(null),
           updatedAt: Value(now),
           completedAt: Value(now),
         ),
@@ -495,6 +507,17 @@ bool _sameSnapshot(AgentRunSnapshot? a, AgentRunSnapshot? b) {
 int _nowSeconds() => DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
 int _maxUnit(int left, int right) => left > right ? left : right;
+
+Task? _latestTask(List<Task> tasks) {
+  if (tasks.isEmpty) return null;
+  return tasks.reduce((a, b) {
+    return _taskTerminalTimestamp(a) >= _taskTerminalTimestamp(b) ? a : b;
+  });
+}
+
+int _taskTerminalTimestamp(Task task) {
+  return task.completedAt ?? task.updatedAt ?? task.createdAt ?? 0;
+}
 
 String _trimError(Object error) {
   return _trimNullable(error.toString()) ?? 'Processing failed.';
