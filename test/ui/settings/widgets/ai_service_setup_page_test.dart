@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/config/app_flavor.dart';
+import 'package:memex/data/services/settings_registry.dart';
 import 'package:memex/domain/models/agent_definitions.dart';
 import 'package:memex/domain/models/llm_config.dart';
 import 'package:memex/ui/settings/widgets/ai_service_setup_page.dart';
@@ -52,6 +53,28 @@ void main() {
     expect(find.text(UserStorage.l10n.aiServiceLongDescription), findsNothing);
     expect(find.text(UserStorage.l10n.memexUsername), findsNothing);
     expect(find.text(UserStorage.l10n.memexPassword), findsNothing);
+  });
+
+  testWidgets('settings registry model config entry opens AI model hub', (
+    tester,
+  ) async {
+    final item = SettingsRegistry.allItems.firstWhere(
+      (item) => item.id == 'model_config',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => item.navigationTarget.pageBuilder(context),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(item.title, UserStorage.l10n.aiModelHubTitle);
+    expect(item.description, UserStorage.l10n.aiModelHubSubtitle);
+    expect(find.byType(AiServiceSetupPage), findsOneWidget);
+    expect(find.text(UserStorage.l10n.aiModelHubTitle), findsWidgets);
   });
 
   testWidgets('model role selectors update default and media agent model', (
