@@ -50,8 +50,10 @@ void main() {
     _clearPathProviderChannelMock();
     _clearBackupStorageChannelMock();
     PathProviderPlatform.instance = originalPathProvider;
-    if (await tempDir.exists()) {
+    try {
       await tempDir.delete(recursive: true);
+    } on PathNotFoundException {
+      // Some restore paths can remove the fake temp root before tearDown runs.
     }
   });
 

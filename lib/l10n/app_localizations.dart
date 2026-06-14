@@ -1863,6 +1863,126 @@ abstract class AppLocalizations {
   /// **'Memex Model Service'**
   String get aiService;
 
+  /// No description provided for @aiModelHubTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI models and services'**
+  String get aiModelHubTitle;
+
+  /// No description provided for @aiModelHubSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage model providers, API keys, and the models Memex uses for text and media in one place.'**
+  String get aiModelHubSubtitle;
+
+  /// No description provided for @modelRolesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose model roles'**
+  String get modelRolesTitle;
+
+  /// No description provided for @modelRolesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Most users only need a text model and a vision-capable model. Advanced agent overrides stay available below.'**
+  String get modelRolesDescription;
+
+  /// No description provided for @textModelRoleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Text model'**
+  String get textModelRoleTitle;
+
+  /// No description provided for @textModelRoleDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Used for cards, knowledge, insights, chat, comments, schedule, and memory.'**
+  String get textModelRoleDescription;
+
+  /// No description provided for @visionModelRoleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vision model'**
+  String get visionModelRoleTitle;
+
+  /// No description provided for @visionModelRoleDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Used for image/media analysis and cloud audio transcription when enabled.'**
+  String get visionModelRoleDescription;
+
+  /// No description provided for @followTextModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow text model'**
+  String get followTextModel;
+
+  /// No description provided for @modelConnectionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Model providers and API keys'**
+  String get modelConnectionsTitle;
+
+  /// No description provided for @modelConnectionsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect Memex\'s official service or add your own provider credentials.'**
+  String get modelConnectionsDescription;
+
+  /// No description provided for @relatedAiCapabilitiesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced and related capabilities'**
+  String get relatedAiCapabilitiesTitle;
+
+  /// No description provided for @relatedAiCapabilitiesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Fine-tune agent assignments, location provider, and speech transcription behavior.'**
+  String get relatedAiCapabilitiesDescription;
+
+  /// No description provided for @locationProviderSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Location provider'**
+  String get locationProviderSettings;
+
+  /// No description provided for @speechProviderSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Speech transcription'**
+  String get speechProviderSettings;
+
+  /// No description provided for @advancedAgentModelAssignments.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent model assignments'**
+  String get advancedAgentModelAssignments;
+
+  /// No description provided for @openAdvancedAgentModelAssignments.
+  ///
+  /// In en, this message translates to:
+  /// **'Override individual agents'**
+  String get openAdvancedAgentModelAssignments;
+
+  /// No description provided for @noConfiguredModelOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a provider or API key before choosing model roles.'**
+  String get noConfiguredModelOptions;
+
+  /// No description provided for @modelSlotUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Model role updated'**
+  String get modelSlotUpdated;
+
+  /// No description provided for @visionModelNonMultimodalWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'This model is not known to support image input. Media analysis may fail unless the provider supports vision.'**
+  String get visionModelNonMultimodalWarning;
+
   /// No description provided for @aiServiceMemexRouteTitle.
   ///
   /// In en, this message translates to:
