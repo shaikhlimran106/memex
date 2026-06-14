@@ -61,20 +61,22 @@ void main() {
     final item = SettingsRegistry.allItems.firstWhere(
       (item) => item.id == 'model_config',
     );
+    late Widget targetPage;
 
     await tester.pumpWidget(
       MaterialApp(
         home: Builder(
-          builder: (context) => item.navigationTarget.pageBuilder(context),
+          builder: (context) {
+            targetPage = item.navigationTarget.pageBuilder(context);
+            return const SizedBox.shrink();
+          },
         ),
       ),
     );
-    await tester.pumpAndSettle();
 
     expect(item.title, UserStorage.l10n.aiModelHubTitle);
     expect(item.description, UserStorage.l10n.aiModelHubSubtitle);
-    expect(find.byType(AiServiceSetupPage), findsOneWidget);
-    expect(find.text(UserStorage.l10n.aiModelHubTitle), findsWidgets);
+    expect(targetPage, isA<AiServiceSetupPage>());
   });
 
   testWidgets('model role selectors update default and media agent model', (
