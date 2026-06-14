@@ -75,7 +75,7 @@ Future<void> handlePostCardRouter(
       'agents=${decision.activatedAgents}',
     );
   } catch (e, st) {
-    if (e is NonRetryableLlmException) {
+    if (e is NonRetryableLlmException || e is PostCardRouterProtocolException) {
       rethrow;
     }
     _logger.warning(

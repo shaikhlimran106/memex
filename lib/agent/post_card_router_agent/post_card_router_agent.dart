@@ -21,10 +21,7 @@ class PostCardRouterTargets {
   static const String scheduleAggregator = 'schedule_aggregator';
   static const String askClarification = 'ask_clarification';
 
-  static const Set<String> all = {
-    scheduleAggregator,
-    askClarification,
-  };
+  static const Set<String> all = {scheduleAggregator, askClarification};
 }
 
 class PostCardRouteResult {
@@ -37,6 +34,25 @@ class PostCardRouteResult {
   final List<String> activatedAgents;
   final String reason;
   final double? confidence;
+}
+
+/// Retryable protocol failure for router turns that stop for tool use without
+/// exposing a structured tool call to the agent runtime.
+class PostCardRouterProtocolException implements Exception {
+  PostCardRouterProtocolException({
+    required this.factId,
+    required this.stopReason,
+  });
+
+  final String factId;
+  final String stopReason;
+
+  @override
+  String toString() {
+    return 'PostCardRouterProtocolException: model stopped for tool use '
+        'without a structured select_downstream_agents call '
+        '(factId=$factId, stopReason=$stopReason)';
+  }
 }
 
 /// Lightweight selector agent. Decides which downstream agents should run
@@ -135,6 +151,18 @@ class PostCardRouterAgent {
       return decision;
     }
 
+    final malformedToolUse = _toolUseStopWithoutFunctionCalls(state);
+    if (malformedToolUse != null) {
+      _logger.warning(
+        'Router model stopped for tool use without structured function calls '
+        'for $factId; retrying. stopReason=${malformedToolUse.stopReason}',
+      );
+      throw PostCardRouterProtocolException(
+        factId: factId,
+        stopReason: malformedToolUse.stopReason!,
+      );
+    }
+
     _logger.warning(
       'Router did not call select_downstream_agents for $factId; treating '
       'as no-op.',
@@ -144,6 +172,28 @@ class PostCardRouterAgent {
       reason: 'router_no_decision',
     );
   }
+}
+
+ModelMessage? _toolUseStopWithoutFunctionCalls(AgentState state) {
+  for (final message in state.history.messages.reversed) {
+    if (message is! ModelMessage) continue;
+    final stopReason = message.stopReason;
+    if (stopReason == null || !_isToolUseStopReason(stopReason)) return null;
+    if (message.functionCalls.isNotEmpty) return null;
+    return message;
+  }
+  return null;
+}
+
+bool _isToolUseStopReason(String stopReason) {
+  final normalized = stopReason.toLowerCase().replaceAll(
+        RegExp(r'[^a-z0-9]+'),
+        '_',
+      );
+  return normalized == 'tool_use' ||
+      normalized == 'tool_calls' ||
+      normalized == 'function_call' ||
+      normalized == 'function_calls';
 }
 
 /// Build the structured context that the router LLM receives.
@@ -205,11 +255,7 @@ Tool _buildActivateTool({
       },
       'required': ['agents', 'reason'],
     },
-    executable: (
-      List<dynamic>? agents,
-      String reason,
-      num? confidence,
-    ) async {
+    executable: (List<dynamic>? agents, String reason, num? confidence) async {
       final normalized = _normalizeAgents(agents);
 
       // Enqueue the corresponding downstream tasks. Best-effort: a failure
@@ -247,10 +293,7 @@ Tool _buildActivateTool({
 
       // The routing decision is final once this tool returns. Stop the
       // agent immediately so the model does not produce a follow-up turn.
-      return AgentToolResult(
-        content: TextPart(summary),
-        stopFlag: true,
-      );
+      return AgentToolResult(content: TextPart(summary), stopFlag: true);
     },
   );
 }
@@ -371,7 +414,8 @@ String buildPostCardRouterInputMarkdown({
   buffer.writeln('### Raw Input Content');
   final trimmed = combinedText.trim();
   buffer.writeln(
-      trimmed.isEmpty ? '(No text content.)' : _truncate(trimmed, 4000));
+    trimmed.isEmpty ? '(No text content.)' : _truncate(trimmed, 4000),
+  );
   buffer.write(formatAssetAnalysis(assetAnalyses, includeExif: true));
   return buffer.toString().trimRight();
 }
