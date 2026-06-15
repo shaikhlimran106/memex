@@ -1013,7 +1013,60 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiModelHubSubtitle =>
-      'Manage model providers, API keys, and the models Memex uses for text and media in one place.';
+      'Choose Memex\'s official service or bring your own provider. Advanced model routing stays available when you need it.';
+
+  @override
+  String get aiSetupCurrentStatusTitle => 'Current setup';
+
+  @override
+  String get aiSetupStatusNotConfiguredTitle => 'AI service is not configured';
+
+  @override
+  String get aiSetupStatusNotConfiguredDescription =>
+      'Choose one connection method to enable AI organization for records, media, and insights.';
+
+  @override
+  String get aiSetupStatusMemexTitle => 'Using MemeX official service';
+
+  @override
+  String get aiSetupStatusMemexDescription =>
+      'Memex will use the official connection and API credentials managed by your MemeX account.';
+
+  @override
+  String get aiSetupStatusCustomTitle => 'Using custom provider settings';
+
+  @override
+  String get aiSetupStatusCustomDescription =>
+      'Memex will use your configured provider credentials and model role selections.';
+
+  @override
+  String get aiSetupChooseConnectionTitle => 'Choose a connection method';
+
+  @override
+  String get aiSetupChooseConnectionDescription =>
+      'Start with the path that matches how you want Memex to access AI models.';
+
+  @override
+  String get aiSetupOfficialRouteDescription =>
+      'Sign in to MemeX and use the official service without choosing providers, keys, or agent-level models.';
+
+  @override
+  String get aiSetupCustomRouteDescription =>
+      'Add your own provider credentials, choose text and vision models, and optionally override models per agent.';
+
+  @override
+  String get aiSetupCustomPageTitle => 'Custom AI service';
+
+  @override
+  String get aiSetupCustomPageSubtitle =>
+      'Configure provider credentials first, then choose the text and vision models Memex should use.';
+
+  @override
+  String get aiSetupProviderCredentialsTitle => 'Provider and API keys';
+
+  @override
+  String get aiSetupProviderCredentialsDescription =>
+      'Add or edit OpenAI, Anthropic, DeepSeek, Gemini, OpenRouter, Ollama, or another compatible provider.';
 
   @override
   String get modelRolesTitle => 'Choose model roles';
@@ -1052,6 +1105,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get relatedAiCapabilitiesDescription =>
       'Fine-tune agent assignments, location provider, and speech transcription behavior.';
+
+  @override
+  String get aiSetupServiceCapabilitiesTitle => 'Service capabilities';
+
+  @override
+  String get aiSetupServiceCapabilitiesDescription =>
+      'Choose the providers Memex uses for adjacent AI-powered capabilities such as speech and reverse geocoding.';
+
+  @override
+  String get aiSetupAdvancedCustomizationTitle => 'Advanced model routing';
+
+  @override
+  String get aiSetupAdvancedCustomizationDescription =>
+      'For power users who want individual agents to use different providers or model configs.';
 
   @override
   String get locationProviderSettings => 'Location provider';

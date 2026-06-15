@@ -8,6 +8,12 @@ import 'package:memex/utils/user_storage.dart';
 typedef AppConfigFetcher = Future<AppConfigResult?> Function(
     {required String locale});
 
+enum AiServiceConnectionMode {
+  notConfigured,
+  memexOfficial,
+  customProvider,
+}
+
 class AiServiceSetupViewModel extends ChangeNotifier {
   AiServiceSetupViewModel({
     required MemexRouter router,
@@ -61,6 +67,26 @@ class AiServiceSetupViewModel extends ChangeNotifier {
 
   bool get hasConfiguredModelOptions =>
       llmConfigs.any((config) => config.isValid);
+
+  bool get isUsingMemexOfficialService {
+    final config = textConfig;
+    return config != null &&
+        config.isValid &&
+        config.type == LLMConfig.typeMemex;
+  }
+
+  bool get hasValidCustomProviderConfig => llmConfigs
+      .any((config) => config.isValid && config.type != LLMConfig.typeMemex);
+
+  AiServiceConnectionMode get connectionMode {
+    if (isUsingMemexOfficialService) {
+      return AiServiceConnectionMode.memexOfficial;
+    }
+    if (hasValidCustomProviderConfig || (textConfig?.isValid ?? false)) {
+      return AiServiceConnectionMode.customProvider;
+    }
+    return AiServiceConnectionMode.notConfigured;
+  }
 
   @override
   void dispose() {

@@ -80,6 +80,36 @@ void main() {
     expect(viewModel.useLocalSpeechToText, isFalse);
     expect(viewModel.textConfig?.key, textConfig.key);
     expect(viewModel.effectiveVisionConfig?.key, visionConfig.key);
+    expect(viewModel.connectionMode, AiServiceConnectionMode.customProvider);
+  });
+
+  test('connectionMode separates unconfigured official and custom states',
+      () async {
+    final emptyViewModel = buildViewModel();
+    await emptyViewModel.loadModelRoles();
+    expect(
+        emptyViewModel.connectionMode, AiServiceConnectionMode.notConfigured);
+
+    final memexViewModel = buildViewModel();
+    memexViewModel.setMemexCredentials(
+      'https://memex.example/v1',
+      'memex-key',
+      const ['memex-fast'],
+    );
+    await memexViewModel.saveMemexService();
+    expect(
+      memexViewModel.connectionMode,
+      AiServiceConnectionMode.memexOfficial,
+    );
+
+    await UserStorage.saveLLMConfigs(const [textConfig, visionConfig]);
+    await UserStorage.setDefaultLLMConfigKey(textConfig.key);
+    final customViewModel = buildViewModel();
+    await customViewModel.loadModelRoles();
+    expect(
+      customViewModel.connectionMode,
+      AiServiceConnectionMode.customProvider,
+    );
   });
 
   test('saveMemexService persists official provider and refreshes roles',
