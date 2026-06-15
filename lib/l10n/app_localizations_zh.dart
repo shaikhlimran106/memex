@@ -981,7 +981,60 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiModelHubTitle => 'AI 模型与服务';
 
   @override
-  String get aiModelHubSubtitle => '在一个入口管理模型服务商、API Key，以及 Memex 用于文字和媒体的模型。';
+  String get aiModelHubSubtitle => '先选择使用 MemeX 官方服务，或接入自己的服务商；需要时再进入高级模型分配。';
+
+  @override
+  String get aiSetupCurrentStatusTitle => '当前配置';
+
+  @override
+  String get aiSetupStatusNotConfiguredTitle => '尚未配置 AI 服务';
+
+  @override
+  String get aiSetupStatusNotConfiguredDescription =>
+      '选择一种连接方式后，Memex 才能开始整理记录、分析媒体并生成洞察。';
+
+  @override
+  String get aiSetupStatusMemexTitle => '正在使用 MemeX 官方服务';
+
+  @override
+  String get aiSetupStatusMemexDescription =>
+      'Memex 会使用 MemeX 账号管理的官方连接和 API 凭证。';
+
+  @override
+  String get aiSetupStatusCustomTitle => '正在使用自定义服务商';
+
+  @override
+  String get aiSetupStatusCustomDescription =>
+      'Memex 会使用你配置的服务商凭证，以及文本/视觉模型用途选择。';
+
+  @override
+  String get aiSetupChooseConnectionTitle => '选择连接方式';
+
+  @override
+  String get aiSetupChooseConnectionDescription =>
+      '先选择你希望 Memex 通过哪条路径访问 AI 模型。';
+
+  @override
+  String get aiSetupOfficialRouteDescription =>
+      '登录 MemeX 后直接使用官方服务，不需要理解 provider、API Key 或单个 Agent 模型。';
+
+  @override
+  String get aiSetupCustomRouteDescription =>
+      '添加自己的服务商凭证，选择文本模型和视觉模型；需要时可进一步为单个 Agent 覆盖模型。';
+
+  @override
+  String get aiSetupCustomPageTitle => '自定义 AI 服务';
+
+  @override
+  String get aiSetupCustomPageSubtitle =>
+      '先配置服务商和 API Key，再选择 Memex 用于文本和视觉的模型。';
+
+  @override
+  String get aiSetupProviderCredentialsTitle => '服务商与 API Key';
+
+  @override
+  String get aiSetupProviderCredentialsDescription =>
+      '添加或编辑 OpenAI、Anthropic、DeepSeek、Gemini、OpenRouter、Ollama 等兼容服务商。';
 
   @override
   String get modelRolesTitle => '选择模型用途';
@@ -1017,6 +1070,20 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get relatedAiCapabilitiesDescription =>
       '调整单个 Agent 的模型分配、位置服务商和语音识别方式。';
+
+  @override
+  String get aiSetupServiceCapabilitiesTitle => '服务能力';
+
+  @override
+  String get aiSetupServiceCapabilitiesDescription =>
+      '配置语音识别、逆地理编码等相邻 AI 能力使用的服务方式。';
+
+  @override
+  String get aiSetupAdvancedCustomizationTitle => '高级模型路由';
+
+  @override
+  String get aiSetupAdvancedCustomizationDescription =>
+      '适合希望不同 Agent 使用不同服务商或模型配置的高级用户。';
 
   @override
   String get locationProviderSettings => '位置服务商';

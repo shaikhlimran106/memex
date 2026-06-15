@@ -1902,8 +1902,98 @@ abstract class AppLocalizations {
   /// No description provided for @aiModelHubSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Manage model providers, API keys, and the models Memex uses for text and media in one place.'**
+  /// **'Choose Memex\'s official service or bring your own provider. Advanced model routing stays available when you need it.'**
   String get aiModelHubSubtitle;
+
+  /// No description provided for @aiSetupCurrentStatusTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Current setup'**
+  String get aiSetupCurrentStatusTitle;
+
+  /// No description provided for @aiSetupStatusNotConfiguredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI service is not configured'**
+  String get aiSetupStatusNotConfiguredTitle;
+
+  /// No description provided for @aiSetupStatusNotConfiguredDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose one connection method to enable AI organization for records, media, and insights.'**
+  String get aiSetupStatusNotConfiguredDescription;
+
+  /// No description provided for @aiSetupStatusMemexTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Using MemeX official service'**
+  String get aiSetupStatusMemexTitle;
+
+  /// No description provided for @aiSetupStatusMemexDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex will use the official connection and API credentials managed by your MemeX account.'**
+  String get aiSetupStatusMemexDescription;
+
+  /// No description provided for @aiSetupStatusCustomTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Using custom provider settings'**
+  String get aiSetupStatusCustomTitle;
+
+  /// No description provided for @aiSetupStatusCustomDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex will use your configured provider credentials and model role selections.'**
+  String get aiSetupStatusCustomDescription;
+
+  /// No description provided for @aiSetupChooseConnectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a connection method'**
+  String get aiSetupChooseConnectionTitle;
+
+  /// No description provided for @aiSetupChooseConnectionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Start with the path that matches how you want Memex to access AI models.'**
+  String get aiSetupChooseConnectionDescription;
+
+  /// No description provided for @aiSetupOfficialRouteDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to MemeX and use the official service without choosing providers, keys, or agent-level models.'**
+  String get aiSetupOfficialRouteDescription;
+
+  /// No description provided for @aiSetupCustomRouteDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your own provider credentials, choose text and vision models, and optionally override models per agent.'**
+  String get aiSetupCustomRouteDescription;
+
+  /// No description provided for @aiSetupCustomPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom AI service'**
+  String get aiSetupCustomPageTitle;
+
+  /// No description provided for @aiSetupCustomPageSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure provider credentials first, then choose the text and vision models Memex should use.'**
+  String get aiSetupCustomPageSubtitle;
+
+  /// No description provided for @aiSetupProviderCredentialsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider and API keys'**
+  String get aiSetupProviderCredentialsTitle;
+
+  /// No description provided for @aiSetupProviderCredentialsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Add or edit OpenAI, Anthropic, DeepSeek, Gemini, OpenRouter, Ollama, or another compatible provider.'**
+  String get aiSetupProviderCredentialsDescription;
 
   /// No description provided for @modelRolesTitle.
   ///
@@ -1970,6 +2060,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Fine-tune agent assignments, location provider, and speech transcription behavior.'**
   String get relatedAiCapabilitiesDescription;
+
+  /// No description provided for @aiSetupServiceCapabilitiesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Service capabilities'**
+  String get aiSetupServiceCapabilitiesTitle;
+
+  /// No description provided for @aiSetupServiceCapabilitiesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the providers Memex uses for adjacent AI-powered capabilities such as speech and reverse geocoding.'**
+  String get aiSetupServiceCapabilitiesDescription;
+
+  /// No description provided for @aiSetupAdvancedCustomizationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced model routing'**
+  String get aiSetupAdvancedCustomizationTitle;
+
+  /// No description provided for @aiSetupAdvancedCustomizationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'For power users who want individual agents to use different providers or model configs.'**
+  String get aiSetupAdvancedCustomizationDescription;
 
   /// No description provided for @locationProviderSettings.
   ///

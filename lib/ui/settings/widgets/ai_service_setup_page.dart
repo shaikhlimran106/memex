@@ -39,7 +39,199 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
     _ownsViewModel = widget.viewModel == null;
     _viewModel =
         widget.viewModel ?? AiServiceSetupViewModel(router: MemexRouter());
-    unawaited(_viewModel.loadModelRoles());
+    unawaited(_viewModel.loadModelRoles(showLoading: _ownsViewModel));
+  }
+
+  @override
+  void dispose() {
+    if (_ownsViewModel) {
+      _viewModel.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _openOfficialService() async {
+    await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MemexOfficialServicePage(
+          viewModel: _viewModel,
+          onboardingMode: widget.onboardingMode,
+          onComplete: _completeSetup,
+        ),
+      ),
+    );
+    if (mounted) {
+      await _viewModel.loadModelRoles(showLoading: false);
+    }
+  }
+
+  Future<void> _openCustomService() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CustomAiServiceSetupPage(
+          viewModel: _viewModel,
+          onboardingMode: widget.onboardingMode,
+          onComplete: _completeSetup,
+        ),
+      ),
+    );
+    if (mounted) {
+      await _viewModel.loadModelRoles(showLoading: false);
+    }
+  }
+
+  void _completeSetup() {
+    widget.onComplete?.call();
+    if (widget.onComplete == null && mounted) {
+      Navigator.of(context).pop(true);
+    }
+  }
+
+  void _skip() {
+    widget.onComplete?.call();
+    if (widget.onComplete == null && Navigator.of(context).canPop()) {
+      Navigator.of(context).pop(false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = UserStorage.l10n;
+
+    return ListenableBuilder(
+      listenable: _viewModel,
+      builder: (context, _) {
+        return _AiServicePageScaffold(
+          title: widget.onboardingMode ? null : l10n.aiModelHubTitle,
+          automaticallyImplyLeading: !widget.onboardingMode,
+          actions: [
+            if (widget.onboardingMode)
+              TextButton(
+                onPressed: _viewModel.isSaving ? null : _skip,
+                child: Text(l10n.skipForNow),
+              ),
+          ],
+          children: [
+            _AiServiceHeader(
+              icon: Icons.auto_awesome_rounded,
+              title: l10n.aiModelHubTitle,
+              description: l10n.aiModelHubSubtitle,
+            ),
+            const SizedBox(height: 18),
+            _buildStatusCard(),
+            const SizedBox(height: 18),
+            _AiServiceSectionHeader(
+              title: l10n.aiSetupChooseConnectionTitle,
+              description: l10n.aiSetupChooseConnectionDescription,
+            ),
+            const SizedBox(height: 12),
+            if (AppConfig.enableMemexModelService) ...[
+              _AiServiceRouteCard(
+                key: const ValueKey('ai-service-official-route-card'),
+                icon: Icons.verified_outlined,
+                iconColor: AppColors.primary,
+                title: l10n.aiServiceMemexRouteTitle,
+                description: l10n.aiSetupOfficialRouteDescription,
+                onTap: _openOfficialService,
+              ),
+              const SizedBox(height: 12),
+            ],
+            _AiServiceRouteCard(
+              key: const ValueKey('ai-service-custom-route-card'),
+              icon: Icons.key_rounded,
+              iconColor: AppColors.success,
+              title: l10n.aiServiceCustomApiRouteTitle,
+              description: l10n.aiSetupCustomRouteDescription,
+              onTap: _openCustomService,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildStatusCard() {
+    return _AiServiceOptionCard(
+      icon: Icons.radio_button_checked_rounded,
+      iconColor: _statusColor(_viewModel.connectionMode),
+      title: UserStorage.l10n.aiSetupCurrentStatusTitle,
+      description: _statusTitle(_viewModel.connectionMode),
+      child: Text(
+        _statusDescription(_viewModel.connectionMode),
+        style: const TextStyle(
+          fontSize: 13,
+          height: 1.45,
+          color: AppColors.textSecondary,
+        ),
+      ),
+    );
+  }
+
+  Color _statusColor(AiServiceConnectionMode mode) {
+    switch (mode) {
+      case AiServiceConnectionMode.memexOfficial:
+        return AppColors.primary;
+      case AiServiceConnectionMode.customProvider:
+        return AppColors.success;
+      case AiServiceConnectionMode.notConfigured:
+        return AppColors.warning;
+    }
+  }
+
+  String _statusTitle(AiServiceConnectionMode mode) {
+    final l10n = UserStorage.l10n;
+    switch (mode) {
+      case AiServiceConnectionMode.memexOfficial:
+        return l10n.aiSetupStatusMemexTitle;
+      case AiServiceConnectionMode.customProvider:
+        return l10n.aiSetupStatusCustomTitle;
+      case AiServiceConnectionMode.notConfigured:
+        return l10n.aiSetupStatusNotConfiguredTitle;
+    }
+  }
+
+  String _statusDescription(AiServiceConnectionMode mode) {
+    final l10n = UserStorage.l10n;
+    switch (mode) {
+      case AiServiceConnectionMode.memexOfficial:
+        return l10n.aiSetupStatusMemexDescription;
+      case AiServiceConnectionMode.customProvider:
+        return l10n.aiSetupStatusCustomDescription;
+      case AiServiceConnectionMode.notConfigured:
+        return l10n.aiSetupStatusNotConfiguredDescription;
+    }
+  }
+}
+
+class MemexOfficialServicePage extends StatefulWidget {
+  const MemexOfficialServicePage({
+    super.key,
+    this.onComplete,
+    this.onboardingMode = false,
+    this.viewModel,
+  });
+
+  final VoidCallback? onComplete;
+  final bool onboardingMode;
+  final AiServiceSetupViewModel? viewModel;
+
+  @override
+  State<MemexOfficialServicePage> createState() =>
+      _MemexOfficialServicePageState();
+}
+
+class _MemexOfficialServicePageState extends State<MemexOfficialServicePage> {
+  late final AiServiceSetupViewModel _viewModel;
+  late final bool _ownsViewModel;
+
+  @override
+  void initState() {
+    super.initState();
+    _ownsViewModel = widget.viewModel == null;
+    _viewModel =
+        widget.viewModel ?? AiServiceSetupViewModel(router: MemexRouter());
   }
 
   @override
@@ -63,10 +255,7 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
         ToastHelper.showSuccess(context, UserStorage.l10n.aiServiceReadyToast);
       }
       if (!finish) return;
-      widget.onComplete?.call();
-      if (widget.onComplete == null && mounted) {
-        Navigator.of(context).pop(true);
-      }
+      _finishSetup();
     } catch (e) {
       if (mounted) {
         ToastHelper.showError(context, e);
@@ -94,6 +283,196 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
     }
   }
 
+  void _finishSetup() {
+    if (widget.onComplete != null) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop(true);
+      }
+      widget.onComplete?.call();
+      return;
+    }
+    Navigator.of(context).pop(true);
+  }
+
+  void _skip() {
+    if (widget.onComplete != null) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop(false);
+      }
+      widget.onComplete?.call();
+      return;
+    }
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop(false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = UserStorage.l10n;
+    return ListenableBuilder(
+      listenable: _viewModel,
+      builder: (context, _) {
+        return _AiServicePageScaffold(
+          title: l10n.aiServiceMemexRouteTitle,
+          actions: [
+            if (widget.onboardingMode)
+              TextButton(
+                onPressed: _viewModel.isSaving ? null : _skip,
+                child: Text(l10n.skipForNow),
+              ),
+          ],
+          children: [
+            _AiServiceHeader(
+              icon: Icons.verified_outlined,
+              title: l10n.aiServiceMemexRouteTitle,
+              description: l10n.aiServiceSettingsDescription,
+            ),
+            const SizedBox(height: 18),
+            _buildMemexServiceCard(),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMemexServiceCard() {
+    final l10n = UserStorage.l10n;
+    return _AiServiceOptionCard(
+      icon: Icons.auto_awesome_rounded,
+      iconColor: AppColors.primary,
+      title: l10n.aiServiceMemexRouteTitle,
+      description: l10n.aiServiceSettingsDescription,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!_viewModel.showMemexSetup) ...[
+            SizedBox(
+              height: 48,
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed:
+                    (_viewModel.isSaving || _viewModel.isMemexConfigLoading)
+                        ? null
+                        : _showMemexServiceSetup,
+                iconAlignment: IconAlignment.end,
+                icon: _viewModel.isMemexConfigLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.arrow_forward_rounded, size: 20),
+                label: Text(l10n.enableAiService),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  side: const BorderSide(color: AppColors.primary),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ] else ...[
+            MemexAuthSection(
+              topUpConfig: _viewModel.memexTopUpConfig,
+              onCredentialsReady: (baseUrl, apiKey, models) {
+                _viewModel.setMemexCredentials(baseUrl, apiKey, models);
+                unawaited(_saveMemexService(finish: false, showToast: false));
+              },
+              onLoginStateChanged: (isLoggedIn) {
+                _viewModel.setMemexLoginState(isLoggedIn);
+              },
+              onLogout: _clearMemexService,
+            ),
+            if (_viewModel.isMemexLoggedIn ||
+                _viewModel.hasReadyCredentials ||
+                _viewModel.isSaving) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 50,
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed:
+                      _viewModel.hasReadyCredentials && !_viewModel.isSaving
+                          ? _saveMemexService
+                          : null,
+                  iconAlignment: IconAlignment.end,
+                  icon: _viewModel.isSaving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.arrow_forward_rounded, size: 22),
+                  label: Text(l10n.setupModelConfigComplete),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    disabledBackgroundColor: const Color(0xFFE2E2E5),
+                    disabledForegroundColor: AppColors.textTertiary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class CustomAiServiceSetupPage extends StatefulWidget {
+  const CustomAiServiceSetupPage({
+    super.key,
+    this.onComplete,
+    this.onboardingMode = false,
+    this.viewModel,
+  });
+
+  final VoidCallback? onComplete;
+  final bool onboardingMode;
+  final AiServiceSetupViewModel? viewModel;
+
+  @override
+  State<CustomAiServiceSetupPage> createState() =>
+      _CustomAiServiceSetupPageState();
+}
+
+class _CustomAiServiceSetupPageState extends State<CustomAiServiceSetupPage> {
+  late final AiServiceSetupViewModel _viewModel;
+  late final bool _ownsViewModel;
+
+  @override
+  void initState() {
+    super.initState();
+    _ownsViewModel = widget.viewModel == null;
+    _viewModel =
+        widget.viewModel ?? AiServiceSetupViewModel(router: MemexRouter());
+    unawaited(_viewModel.loadModelRoles(showLoading: _ownsViewModel));
+  }
+
+  @override
+  void dispose() {
+    if (_ownsViewModel) {
+      _viewModel.dispose();
+    }
+    super.dispose();
+  }
+
   Future<void> _openAdvancedConfig() async {
     final configured = await Navigator.push<bool>(
       context,
@@ -108,10 +487,7 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
       await _viewModel.loadModelRoles(showLoading: false);
     }
     if (configured == true && mounted && widget.onboardingMode) {
-      widget.onComplete?.call();
-      if (widget.onComplete == null) {
-        Navigator.of(context).pop(true);
-      }
+      _finishSetup();
     }
   }
 
@@ -166,139 +542,79 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
     }
   }
 
-  void _skip() {
-    widget.onComplete?.call();
-    if (widget.onComplete == null) {
-      Navigator.of(context).pop(false);
+  void _finishSetup() {
+    if (widget.onComplete != null) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop(true);
+      }
+      widget.onComplete?.call();
+      return;
     }
+    Navigator.of(context).pop(true);
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = UserStorage.l10n;
-
     return ListenableBuilder(
       listenable: _viewModel,
       builder: (context, _) {
-        return Scaffold(
-          backgroundColor: const Color(0xFFF9F9FC),
-          appBar: AppBar(
-            backgroundColor: const Color(0xFFF9F9FC),
-            surfaceTintColor: const Color(0xFFF9F9FC),
-            elevation: 0,
-            automaticallyImplyLeading: !widget.onboardingMode,
-            title: widget.onboardingMode ? null : Text(l10n.aiModelHubTitle),
-            actions: [
-              if (widget.onboardingMode)
-                TextButton(
-                  onPressed: _viewModel.isSaving ? null : _skip,
-                  child: Text(l10n.skipForNow),
-                ),
-            ],
-          ),
-          body: SafeArea(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 430),
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
-                  children: [
-                    _buildSetupHeader(),
-                    const SizedBox(height: 22),
-                    _buildModelRolesSection(),
-                    const SizedBox(height: 14),
-                    _buildSetupOptions(),
-                    const SizedBox(height: 14),
-                    _buildRelatedCapabilitiesSection(),
-                  ],
-                ),
-              ),
+        return _AiServicePageScaffold(
+          title: l10n.aiSetupCustomPageTitle,
+          children: [
+            _AiServiceHeader(
+              icon: Icons.key_rounded,
+              title: l10n.aiSetupCustomPageTitle,
+              description: l10n.aiSetupCustomPageSubtitle,
             ),
-          ),
+            const SizedBox(height: 18),
+            _buildProviderSection(),
+            const SizedBox(height: 14),
+            _buildModelRolesSection(),
+            const SizedBox(height: 14),
+            _buildServiceCapabilitiesSection(),
+            const SizedBox(height: 14),
+            _buildAdvancedAgentSection(),
+          ],
         );
       },
     );
   }
 
-  Widget _buildSetupHeader() {
+  Widget _buildProviderSection() {
     final l10n = UserStorage.l10n;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+    return _AiServiceOptionCard(
+      icon: Icons.vpn_key_outlined,
+      iconColor: AppColors.success,
+      title: l10n.aiSetupProviderCredentialsTitle,
+      description: l10n.aiSetupProviderCredentialsDescription,
+      child: SizedBox(
+        height: 48,
+        width: double.infinity,
+        child: FilledButton.icon(
+          key: const ValueKey('ai-model-custom-config-button'),
+          onPressed: _openAdvancedConfig,
+          iconAlignment: IconAlignment.end,
+          label: Text(l10n.advancedModelConfiguration),
+          icon: const Icon(Icons.chevron_right_rounded, size: 20),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
-              Icons.memory_rounded,
-              color: AppColors.primary,
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: 18),
-          Text(
-            l10n.aiModelHubTitle,
-            style: const TextStyle(
-              fontSize: 28,
-              height: 1.15,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF1A1C1E),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            l10n.aiModelHubSubtitle,
-            style: const TextStyle(
+            textStyle: const TextStyle(
               fontSize: 15,
-              height: 1.55,
-              color: Color(0xFF454655),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader({
-    required String title,
-    required String description,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 17,
-              height: 1.25,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF1A1C1E),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            description,
-            style: const TextStyle(
-              fontSize: 13,
-              height: 1.45,
-              color: Color(0xFF5F6272),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildModelRolesSection() {
     if (_viewModel.isRoleLoading || _viewModel.roleSelection == null) {
-      return _buildOptionCard(
+      return _AiServiceOptionCard(
         icon: Icons.tune_rounded,
         iconColor: AppColors.primary,
         title: UserStorage.l10n.modelRolesTitle,
@@ -312,7 +628,7 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
 
     final selection = _viewModel.roleSelection!;
 
-    return _buildOptionCard(
+    return _AiServiceOptionCard(
       icon: Icons.tune_rounded,
       iconColor: AppColors.primary,
       title: UserStorage.l10n.modelRolesTitle,
@@ -350,7 +666,7 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
                 const Icon(
                   Icons.info_outline_rounded,
                   size: 16,
-                  color: Color(0xFFD97706),
+                  color: AppColors.warning,
                 ),
                 const SizedBox(width: 6),
                 Expanded(
@@ -359,7 +675,7 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
                     style: const TextStyle(
                       fontSize: 12,
                       height: 1.35,
-                      color: Color(0xFFD97706),
+                      color: AppColors.warning,
                     ),
                   ),
                 ),
@@ -373,7 +689,7 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
               style: const TextStyle(
                 fontSize: 12,
                 height: 1.35,
-                color: Color(0xFF757687),
+                color: AppColors.textTertiary,
               ),
             ),
           ],
@@ -399,7 +715,7 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
       key: key,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
@@ -421,7 +737,7 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
                         fontSize: 15,
                         height: 1.25,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A1C1E),
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -430,7 +746,7 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
                       style: const TextStyle(
                         fontSize: 12,
                         height: 1.35,
-                        color: Color(0xFF5F6272),
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -525,14 +841,14 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.1),
+                    color: AppColors.success.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     UserStorage.l10n.visionBadge,
                     style: const TextStyle(
                       fontSize: 10,
-                      color: Colors.green,
+                      color: AppColors.success,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -543,7 +859,7 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
                   child: Icon(
                     Icons.warning_amber_rounded,
                     size: 16,
-                    color: Color(0xFFD97706),
+                    color: AppColors.warning,
                   ),
                 ),
             ],
@@ -559,22 +875,15 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
     return '${config.key} / $provider / ${config.modelId}';
   }
 
-  Widget _buildRelatedCapabilitiesSection() {
-    return _buildOptionCard(
+  Widget _buildServiceCapabilitiesSection() {
+    return _AiServiceOptionCard(
       icon: Icons.hub_outlined,
-      iconColor: const Color(0xFF006397),
-      title: UserStorage.l10n.relatedAiCapabilitiesTitle,
-      description: UserStorage.l10n.relatedAiCapabilitiesDescription,
+      iconColor: AppColors.primary,
+      title: UserStorage.l10n.aiSetupServiceCapabilitiesTitle,
+      description: UserStorage.l10n.aiSetupServiceCapabilitiesDescription,
       child: Column(
         children: [
-          _buildActionTile(
-            icon: Icons.people_outline,
-            title: UserStorage.l10n.advancedAgentModelAssignments,
-            subtitle: UserStorage.l10n.openAdvancedAgentModelAssignments,
-            onTap: _openAdvancedAgentConfig,
-          ),
-          const Divider(height: 18),
-          _buildActionTile(
+          _AiServiceActionTile(
             icon: Icons.my_location_outlined,
             title: UserStorage.l10n.locationProviderSettings,
             subtitle: UserStorage.l10n.locationContextDescription,
@@ -596,7 +905,7 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF1A1C1E),
+                  color: AppColors.textPrimary,
                 ),
               ),
               subtitle: Text(
@@ -604,7 +913,7 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
                 style: const TextStyle(
                   fontSize: 12,
                   height: 1.35,
-                  color: Color(0xFF5F6272),
+                  color: AppColors.textSecondary,
                 ),
               ),
               value: _viewModel.useLocalSpeechToText,
@@ -616,73 +925,220 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
     );
   }
 
-  Widget _buildActionTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(icon, color: AppColors.primary, size: 22),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF1A1C1E),
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(
-            fontSize: 12,
-            height: 1.35,
-            color: Color(0xFF5F6272),
-          ),
-        ),
-        trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: onTap,
+  Widget _buildAdvancedAgentSection() {
+    return _AiServiceOptionCard(
+      icon: Icons.manage_accounts_outlined,
+      iconColor: AppColors.warning,
+      title: UserStorage.l10n.aiSetupAdvancedCustomizationTitle,
+      description: UserStorage.l10n.aiSetupAdvancedCustomizationDescription,
+      child: _AiServiceActionTile(
+        icon: Icons.people_outline,
+        title: UserStorage.l10n.advancedAgentModelAssignments,
+        subtitle: UserStorage.l10n.openAdvancedAgentModelAssignments,
+        onTap: _openAdvancedAgentConfig,
       ),
     );
   }
+}
 
-  Widget _buildSetupOptions() {
-    return Column(
-      children: [
-        _buildSectionHeader(
-          title: UserStorage.l10n.modelConnectionsTitle,
-          description: UserStorage.l10n.modelConnectionsDescription,
+class _AiServicePageScaffold extends StatelessWidget {
+  const _AiServicePageScaffold({
+    required this.children,
+    this.title,
+    this.automaticallyImplyLeading = true,
+    this.actions,
+  });
+
+  final String? title;
+  final bool automaticallyImplyLeading;
+  final List<Widget>? actions;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        surfaceTintColor: AppColors.background,
+        elevation: 0,
+        automaticallyImplyLeading: automaticallyImplyLeading,
+        title: title == null ? null : Text(title!),
+        actions: actions,
+      ),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 430),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
+              children: children,
+            ),
+          ),
         ),
-        if (AppConfig.enableMemexModelService) ...[
-          const SizedBox(height: 12),
-          _buildMemexServiceCard(),
-        ],
-        const SizedBox(height: 14),
-        _buildCustomModelCard(),
-      ],
+      ),
     );
   }
+}
 
-  Widget _buildOptionCard({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String description,
-    required Widget child,
-  }) {
+class _AiServiceHeader extends StatelessWidget {
+  const _AiServiceHeader({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 24),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 28,
+              height: 1.15,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            description,
+            style: const TextStyle(
+              fontSize: 15,
+              height: 1.55,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AiServiceSectionHeader extends StatelessWidget {
+  const _AiServiceSectionHeader({
+    required this.title,
+    required this.description,
+  });
+
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 17,
+              height: 1.25,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            description,
+            style: const TextStyle(
+              fontSize: 13,
+              height: 1.45,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AiServiceRouteCard extends StatelessWidget {
+  const _AiServiceRouteCard({
+    super.key,
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.description,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String description;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: _AiServiceOptionCard(
+          icon: icon,
+          iconColor: iconColor,
+          title: title,
+          description: description,
+          trailing: const Icon(Icons.chevron_right_rounded),
+          child: const SizedBox.shrink(),
+        ),
+      ),
+    );
+  }
+}
+
+class _AiServiceOptionCard extends StatelessWidget {
+  const _AiServiceOptionCard({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.description,
+    required this.child,
+    this.trailing,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String description;
+  final Widget child;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasChild = child is! SizedBox || (child as SizedBox).child != null;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFE2E2E5)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0F000000),
+            color: AppColors.shadowLight,
             blurRadius: 12,
             offset: Offset(0, 3),
           ),
@@ -710,10 +1166,14 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
                     fontSize: 18,
                     height: 1.25,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF1A1C1E),
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ),
+              if (trailing != null) ...[
+                const SizedBox(width: 8),
+                trailing!,
+              ],
             ],
           ),
           const SizedBox(height: 12),
@@ -722,141 +1182,57 @@ class _AiServiceSetupPageState extends State<AiServiceSetupPage> {
             style: const TextStyle(
               fontSize: 14,
               height: 1.55,
-              color: Color(0xFF454655),
+              color: AppColors.textSecondary,
             ),
           ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCustomModelCard() {
-    final l10n = UserStorage.l10n;
-    return _buildOptionCard(
-      icon: Icons.key_rounded,
-      iconColor: const Color(0xFF006397),
-      title: l10n.aiServiceCustomApiRouteTitle,
-      description: l10n.aiServiceCustomModelDescription,
-      child: SizedBox(
-        height: 48,
-        width: double.infinity,
-        child: FilledButton.icon(
-          key: const ValueKey('ai-model-custom-config-button'),
-          onPressed: _openAdvancedConfig,
-          iconAlignment: IconAlignment.end,
-          label: Text(l10n.advancedModelConfiguration),
-          icon: const Icon(Icons.chevron_right_rounded, size: 20),
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            textStyle: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMemexServiceCard() {
-    final l10n = UserStorage.l10n;
-    return _buildOptionCard(
-      icon: Icons.auto_awesome_rounded,
-      iconColor: AppColors.primary,
-      title: l10n.aiServiceMemexRouteTitle,
-      description: l10n.aiServiceSettingsDescription,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!_viewModel.showMemexSetup) ...[
-            SizedBox(
-              height: 48,
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed:
-                    (_viewModel.isSaving || _viewModel.isMemexConfigLoading)
-                        ? null
-                        : _showMemexServiceSetup,
-                iconAlignment: IconAlignment.end,
-                icon: _viewModel.isMemexConfigLoading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.arrow_forward_rounded, size: 20),
-                label: Text(l10n.enableAiService),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  side: const BorderSide(color: AppColors.primary),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  textStyle: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ),
-          ] else ...[
-            MemexAuthSection(
-              topUpConfig: _viewModel.memexTopUpConfig,
-              onCredentialsReady: (baseUrl, apiKey, models) {
-                _viewModel.setMemexCredentials(baseUrl, apiKey, models);
-                unawaited(_saveMemexService(finish: false, showToast: false));
-              },
-              onLoginStateChanged: (isLoggedIn) {
-                _viewModel.setMemexLoginState(isLoggedIn);
-              },
-              onLogout: _clearMemexService,
-            ),
-            if (_viewModel.isMemexLoggedIn ||
-                _viewModel.hasReadyCredentials ||
-                _viewModel.isSaving) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 50,
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed:
-                      _viewModel.hasReadyCredentials && !_viewModel.isSaving
-                          ? _saveMemexService
-                          : null,
-                  iconAlignment: IconAlignment.end,
-                  icon: _viewModel.isSaving
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.arrow_forward_rounded, size: 22),
-                  label: Text(l10n.setupModelConfigComplete),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    disabledBackgroundColor: const Color(0xFFE2E2E5),
-                    disabledForegroundColor: const Color(0xFF757687),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          if (hasChild) ...[
+            const SizedBox(height: 16),
+            child,
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _AiServiceActionTile extends StatelessWidget {
+  const _AiServiceActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(icon, color: AppColors.primary, size: 22),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(
+            fontSize: 12,
+            height: 1.35,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: onTap,
       ),
     );
   }
