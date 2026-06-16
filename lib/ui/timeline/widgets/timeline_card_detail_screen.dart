@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -33,12 +34,29 @@ import 'package:memex/ui/character/widgets/persona_chat_screen.dart';
 import 'package:memex/utils/share_service.dart';
 import 'package:memex/ui/core/cards/native_card_factory.dart';
 import 'package:memex/ui/timeline/widgets/failed_card_recovery_banner.dart';
+import 'package:memex/utils/logger.dart';
+
+typedef CardDetailFetcher = Future<CardDetailModel> Function(String cardId);
+typedef ActiveCardTaskFetcher = Future<bool> Function(String cardId);
 
 /// Timeline card detail screen - plays full card detail
 class TimelineCardDetailScreen extends StatefulWidget {
   final String cardId;
+  final CardDetailFetcher? fetchCardDetail;
+  final ActiveCardTaskFetcher? hasActiveTaskForCard;
+  final Duration activeTaskQueryTimeout;
+  final bool enableRouterSideEffects;
 
-  const TimelineCardDetailScreen({super.key, required this.cardId});
+  const TimelineCardDetailScreen({
+    super.key,
+    required this.cardId,
+    this.fetchCardDetail,
+    this.hasActiveTaskForCard,
+    this.activeTaskQueryTimeout = defaultActiveTaskQueryTimeout,
+    this.enableRouterSideEffects = true,
+  });
+
+  static const Duration defaultActiveTaskQueryTimeout = Duration(seconds: 2);
 
   @override
   State<TimelineCardDetailScreen> createState() =>
@@ -49,7 +67,7 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
   CardDetailModel? _detail;
   bool _isLoading = true;
   String? _errorMessage;
-  late final MemexRouter _memexRouter;
+  MemexRouter? _memexRouter;
   String _userName = 'User';
   String? _userAvatar;
   double? _firstImageAspectRatio;
@@ -58,14 +76,21 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
   String? _replyToCommentName;
   bool _isRetryingCard = false;
   bool _hasActiveCardTask = false;
+  int _detailFetchGeneration = 0;
+  final _logger = getLogger('TimelineCardDetailScreen');
+
+  MemexRouter get _router => _memexRouter ??= MemexRouter();
 
   @override
   void initState() {
     super.initState();
-    _memexRouter = MemexRouter();
-    _memexRouter.registerCardDetailForeground(widget.cardId);
+    if (widget.enableRouterSideEffects) {
+      _router.registerCardDetailForeground(widget.cardId);
+    }
     _fetchDetail();
-    _loadUserInfo();
+    if (widget.enableRouterSideEffects) {
+      _loadUserInfo();
+    }
     _setupEventBus();
   }
 
@@ -98,8 +123,8 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
 
   Future<void> _loadUserInfo() async {
     final name = await UserStorage.getUserId();
-    final avatar = await _memexRouter.getUserAvatar();
-    final settings = await _memexRouter.getCommentSettings();
+    final avatar = await _router.getUserAvatar();
+    final settings = await _router.getCommentSettings();
     if (mounted) {
       setState(() {
         _userName = name ?? 'User';
@@ -124,7 +149,10 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
 
   @override
   void dispose() {
-    _memexRouter.unregisterCardDetailForeground(widget.cardId);
+    _detailFetchGeneration++;
+    if (widget.enableRouterSideEffects) {
+      _memexRouter?.unregisterCardDetailForeground(widget.cardId);
+    }
     EventBusService.instance.removeHandler(
       EventBusMessageType.cardDetailUpdated,
       _handleCardDetailUpdated,
@@ -137,6 +165,7 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
   }
 
   Future<void> _fetchDetail() async {
+    final generation = ++_detailFetchGeneration;
     if (_detail == null) {
       setState(() {
         _isLoading = true;
@@ -145,34 +174,49 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
     }
 
     try {
-      final detailFuture = _memexRouter.fetchCardDetail(widget.cardId);
-      final activeTaskFuture = _memexRouter.hasActiveTaskForCard(
-        widget.cardId,
-      );
-      final detail = await detailFuture;
-      final hasActiveCardTask = await activeTaskFuture.catchError((_) => false);
-      if (!mounted) return;
+      final fetchDetail = widget.fetchCardDetail ?? _router.fetchCardDetail;
+      final detail = await fetchDetail(widget.cardId);
+      if (!mounted || generation != _detailFetchGeneration) return;
       setState(() {
         _detail = detail;
-        _hasActiveCardTask = hasActiveCardTask;
+        _hasActiveCardTask = false;
+        _isLoading = false;
+        _errorMessage = null;
       });
       _resolveFirstImageAspectRatio(detail);
 
       // Dismiss any pending card-detail notification for this card.
-      _memexRouter.dismissCardDetailOnViewed(widget.cardId);
+      if (widget.enableRouterSideEffects) {
+        unawaited(_router.dismissCardDetailOnViewed(widget.cardId));
+      }
+      unawaited(_refreshActiveCardTask(generation));
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || generation != _detailFetchGeneration) return;
       setState(() {
         _errorMessage = UserStorage.l10n.loadDetailFailedRetryShort;
+        _isLoading = false;
       });
       ToastHelper.showError(context, e);
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
+  }
+
+  Future<void> _refreshActiveCardTask(int generation) async {
+    final fetchActiveTask =
+        widget.hasActiveTaskForCard ?? _router.hasActiveTaskForCard;
+    var hasActiveCardTask = false;
+    try {
+      hasActiveCardTask = await fetchActiveTask(
+        widget.cardId,
+      ).timeout(widget.activeTaskQueryTimeout);
+    } on TimeoutException catch (e, st) {
+      _logger.warning('hasActiveTaskForCard timed out', e, st);
+    } catch (e, st) {
+      _logger.warning('hasActiveTaskForCard failed', e, st);
+    }
+    if (!mounted || generation != _detailFetchGeneration) return;
+    setState(() {
+      _hasActiveCardTask = hasActiveCardTask;
+    });
   }
 
   void _showChatDialog() {
@@ -234,7 +278,7 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
     if (_isRetryingCard) return;
 
     setState(() => _isRetryingCard = true);
-    final success = await _memexRouter.retryCardGeneration(widget.cardId);
+    final success = await _router.retryCardGeneration(widget.cardId);
     if (!mounted) return;
 
     setState(() => _isRetryingCard = false);
@@ -368,7 +412,8 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
       // API call
       // Server expects unix timestamp in seconds
       final timestamp = newDateTime.millisecondsSinceEpoch ~/ 1000;
-      await _memexRouter.updateCardTime(widget.cardId, timestamp);
+      await _router.updateCardTime(widget.cardId, timestamp);
+      if (!mounted) return;
       ToastHelper.showSuccess(context, UserStorage.l10n.timeUpdated);
     } catch (e) {
       if (!mounted) return;
@@ -410,12 +455,13 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
       });
 
       try {
-        await _memexRouter.updateCardLocation(
+        await _router.updateCardLocation(
           widget.cardId,
           result.point.latitude,
           result.point.longitude,
           result.name ?? result.address ?? '',
         );
+        if (!mounted) return;
         ToastHelper.showSuccess(context, UserStorage.l10n.locationUpdated);
       } catch (e) {
         if (!mounted) return;
@@ -459,7 +505,7 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
 
     try {
       // call delete API
-      await _memexRouter.deleteCard(widget.cardId);
+      await _router.deleteCard(widget.cardId);
 
       if (mounted) {
         ToastHelper.showSuccess(context, UserStorage.l10n.deleteSuccess);

@@ -18,6 +18,23 @@ import 'package:memex/utils/command.dart';
 
 enum TimelineViewMode { timeline, insight }
 
+typedef TimelineCardsFetcher = Future<Result<List<TimelineCardModel>>>
+    Function({
+  int page,
+  int limit,
+  List<String>? tags,
+  DateTime? dateFrom,
+  DateTime? dateTo,
+});
+
+typedef TimelineTagsFetcher = Future<Result<List<TagModel>>> Function();
+typedef ScheduleBriefingCardFetcher = Future<Result<TimelineCardModel?>>
+    Function();
+typedef TimelineAttachmentFetcher = Future<List<CardAttachmentData>> Function(
+    String factId);
+typedef PendingAttachmentsFetcher = Future<List<CardAttachmentData>> Function();
+typedef FailedCardCountFetcher = Future<int> Function();
+
 /// Upserts a card into a timeline list by stable card id.
 ///
 /// New local submissions and card-added events can describe the same fact, so
@@ -75,13 +92,113 @@ List<TimelineCardModel> dedupeTimelineCardsById(List<TimelineCardModel> cards) {
 /// ViewModel for the Timeline page. Holds cards, tags, loading state, and
 /// delegates data access to [MemexRouter]. Call [init] once after creation.
 class TimelineViewModel extends ChangeNotifier {
-  TimelineViewModel({required MemexRouter router}) : _router = router;
+  TimelineViewModel({
+    required MemexRouter router,
+    TimelineCardsFetcher? fetchTimelineCards,
+    TimelineTagsFetcher? fetchTags,
+    ScheduleBriefingCardFetcher? fetchScheduleBriefingCard,
+    TimelineAttachmentFetcher? fetchAttachmentForCard,
+    PendingAttachmentsFetcher? fetchPendingAttachments,
+    FailedCardCountFetcher? countFailedCardGenerations,
+    Duration auxiliaryQueryTimeout = defaultAuxiliaryQueryTimeout,
+    bool autoLoad = true,
+  }) : this._(
+          fetchTimelineCards: fetchTimelineCards ??
+              (({
+                int page = 1,
+                int limit = pageLimit,
+                List<String>? tags,
+                DateTime? dateFrom,
+                DateTime? dateTo,
+              }) =>
+                  router.fetchTimelineCards(
+                    page: page,
+                    limit: limit,
+                    tags: tags,
+                    dateFrom: dateFrom,
+                    dateTo: dateTo,
+                  )),
+          fetchTags: fetchTags ?? router.fetchTags,
+          fetchScheduleBriefingCard:
+              fetchScheduleBriefingCard ?? router.fetchScheduleBriefingCard,
+          fetchAttachmentForCard: fetchAttachmentForCard ??
+              CardAttachmentService.instance.getAttachments,
+          fetchPendingAttachments: fetchPendingAttachments ??
+              CardAttachmentService.instance.getPendingAttachments,
+          countFailedCardGenerations:
+              countFailedCardGenerations ?? router.countFailedCardGenerations,
+          auxiliaryQueryTimeout: auxiliaryQueryTimeout,
+          autoLoad: autoLoad,
+        );
 
-  final MemexRouter _router;
+  @visibleForTesting
+  factory TimelineViewModel.forTest({
+    TimelineCardsFetcher? fetchTimelineCards,
+    TimelineTagsFetcher? fetchTags,
+    ScheduleBriefingCardFetcher? fetchScheduleBriefingCard,
+    TimelineAttachmentFetcher? fetchAttachmentForCard,
+    PendingAttachmentsFetcher? fetchPendingAttachments,
+    FailedCardCountFetcher? countFailedCardGenerations,
+    Duration auxiliaryQueryTimeout = defaultAuxiliaryQueryTimeout,
+    bool autoLoad = false,
+  }) {
+    return TimelineViewModel._(
+      fetchTimelineCards: fetchTimelineCards ??
+          ({
+            int page = 1,
+            int limit = pageLimit,
+            List<String>? tags,
+            DateTime? dateFrom,
+            DateTime? dateTo,
+          }) async =>
+              const Ok(<TimelineCardModel>[]),
+      fetchTags: fetchTags ?? () async => const Ok(<TagModel>[]),
+      fetchScheduleBriefingCard:
+          fetchScheduleBriefingCard ?? () async => const Ok(null),
+      fetchAttachmentForCard:
+          fetchAttachmentForCard ?? (_) async => const <CardAttachmentData>[],
+      fetchPendingAttachments:
+          fetchPendingAttachments ?? () async => const <CardAttachmentData>[],
+      countFailedCardGenerations: countFailedCardGenerations ?? () async => 0,
+      auxiliaryQueryTimeout: auxiliaryQueryTimeout,
+      autoLoad: autoLoad,
+    );
+  }
+
+  TimelineViewModel._({
+    required TimelineCardsFetcher fetchTimelineCards,
+    required TimelineTagsFetcher fetchTags,
+    required ScheduleBriefingCardFetcher fetchScheduleBriefingCard,
+    required TimelineAttachmentFetcher fetchAttachmentForCard,
+    required PendingAttachmentsFetcher fetchPendingAttachments,
+    required FailedCardCountFetcher countFailedCardGenerations,
+    required Duration auxiliaryQueryTimeout,
+    required bool autoLoad,
+  })  : _fetchTimelineCards = fetchTimelineCards,
+        _fetchTags = fetchTags,
+        _fetchScheduleBriefingCard = fetchScheduleBriefingCard,
+        _fetchAttachmentForCard = fetchAttachmentForCard,
+        _fetchPendingAttachments = fetchPendingAttachments,
+        _countFailedCardGenerations = countFailedCardGenerations,
+        _auxiliaryQueryTimeout = auxiliaryQueryTimeout {
+    load = Command0<void>(_loadInitial);
+    if (autoLoad) {
+      unawaited(load.execute());
+    }
+  }
+
   final Logger _logger = getLogger('TimelineViewModel');
+  final TimelineCardsFetcher _fetchTimelineCards;
+  final TimelineTagsFetcher _fetchTags;
+  final ScheduleBriefingCardFetcher _fetchScheduleBriefingCard;
+  final TimelineAttachmentFetcher _fetchAttachmentForCard;
+  final PendingAttachmentsFetcher _fetchPendingAttachments;
+  final FailedCardCountFetcher _countFailedCardGenerations;
+  final Duration _auxiliaryQueryTimeout;
 
   static const int pageLimit = 20;
   static const Duration pollingInterval = Duration(seconds: 5);
+  static const Duration defaultAuxiliaryQueryTimeout = Duration(seconds: 2);
 
   // Timeline list state
   List<TimelineCardModel> cards = [];
@@ -90,6 +207,7 @@ class TimelineViewModel extends ChangeNotifier {
   bool hasMore = true;
   int _currentPage = 1;
   int _loadGeneration = 0;
+  int? _visibleLoadGeneration;
   String? errorMessage;
   bool isSubmitting = false;
 
@@ -107,17 +225,16 @@ class TimelineViewModel extends ChangeNotifier {
   Timer? _pollingTimer;
   bool _eventBusSetup = false;
 
-  late final Command0<void> load = Command0<void>(_loadInitial)..execute();
+  late final Command0<void> load;
 
   Future<Result<void>> _loadInitial({bool notifyLoading = false}) async {
     final generation = ++_loadGeneration;
     final filter = activeFilter;
     final viewModeAtRequest = viewMode;
     if (notifyLoading) {
-      isLoading = true;
-      notifyListeners();
+      _beginVisibleLoad(generation);
     }
-    final cardsResult = await _router.fetchTimelineCards(
+    final cardsResult = await _fetchTimelineCards(
       page: 1,
       limit: pageLimit,
       tags: filter == 'all' ? null : [filter],
@@ -125,6 +242,7 @@ class TimelineViewModel extends ChangeNotifier {
     return cardsResult.when(
       onOk: (list) async {
         if (_isStaleTimelineLoad(generation, filter)) {
+          _finishVisibleLoadIfCurrent(generation);
           return const Ok.v();
         }
         _currentPage = 1;
@@ -136,30 +254,28 @@ class TimelineViewModel extends ChangeNotifier {
               viewModeAtRequest == TimelineViewMode.timeline && filter == 'all',
         );
         if (_isStaleTimelineLoad(generation, filter)) {
+          _finishVisibleLoadIfCurrent(generation);
           return const Ok.v();
         }
         cards = nextCards;
         hasMore = loadedHasMore;
-        isLoading = false;
+        _finishVisibleLoadIfCurrent(generation, notify: false);
         errorMessage = null;
         _startPollingIfNeeded();
-        // Load attachments for all cards in parallel
-        await _loadAttachmentsForCards(list);
-        if (_isStaleTimelineLoad(generation, filter)) {
-          return const Ok.v();
-        }
-        await _refreshPendingCount();
-        if (_isStaleTimelineLoad(generation, filter)) {
-          return const Ok.v();
-        }
         notifyListeners();
+        _refreshAuxiliaryTimelineState(
+          generation: generation,
+          filter: filter,
+          cardList: list,
+        );
         return const Ok.v();
       },
       onError: (error, stackTrace) {
         if (_isStaleTimelineLoad(generation, filter)) {
+          _finishVisibleLoadIfCurrent(generation);
           return const Ok.v();
         }
-        isLoading = false;
+        _finishVisibleLoadIfCurrent(generation, notify: false);
         errorMessage = UserStorage.l10n.timelineLoadFailedRetry;
         notifyListeners();
         return Error<void>(error, stackTrace);
@@ -249,39 +365,107 @@ class TimelineViewModel extends ChangeNotifier {
       final factId = message.factId;
       if (factId != null && cards.any((c) => c.id == factId)) {
         // Refresh attachments for the specific card
-        _refreshAttachments(factId);
+        unawaited(_refreshAttachments(factId));
       } else {
         // Global change (no factId) — refresh all
-        _loadAttachmentsForCards(cards);
+        unawaited(_loadAttachmentsForCards(cards, notify: true));
       }
-      _refreshPendingCount();
+      unawaited(_refreshPendingCount());
     }
   }
 
-  Future<void> _loadAttachmentsForCards(
-    List<TimelineCardModel> cardList,
-  ) async {
-    if (cardList.isEmpty) return;
+  Future<bool> _loadAttachmentsForCards(
+    List<TimelineCardModel> cardList, {
+    int? generation,
+    String? filter,
+    bool notify = false,
+  }) async {
+    if (cardList.isEmpty) return false;
     final factIds = cardList.map((c) => c.id).toList();
-    final map = await CardAttachmentService.instance.getAttachmentsForFacts(
-      factIds,
+    final entries = await Future.wait(
+      factIds.map((factId) async {
+        final data = await _runAuxiliaryQuery<List<CardAttachmentData>>(
+          label: 'load attachments for $factId',
+          query: () => _fetchAttachmentForCard(factId),
+        );
+        return data == null ? null : MapEntry(factId, data);
+      }),
     );
+    if (generation != null &&
+        filter != null &&
+        _isStaleTimelineLoad(generation, filter)) {
+      return false;
+    }
+    final map = <String, List<CardAttachmentData>>{};
+    for (final entry in entries) {
+      if (entry != null) {
+        map[entry.key] = entry.value;
+      }
+    }
+    if (map.isEmpty) return false;
     attachments.addAll(map);
-    // Don't call notifyListeners here — caller is responsible.
+    if (notify) notifyListeners();
+    return true;
   }
 
   Future<void> _refreshAttachments(String factId) async {
-    final data = await CardAttachmentService.instance.getAttachments(factId);
+    final data = await _runAuxiliaryQuery<List<CardAttachmentData>>(
+      label: 'refresh attachments for $factId',
+      query: () => _fetchAttachmentForCard(factId),
+    );
+    if (data == null) return;
     attachments[factId] = data;
     notifyListeners();
   }
 
-  Future<void> _refreshPendingCount() async {
-    final pending =
-        await CardAttachmentService.instance.getPendingAttachments();
-    final failedCardCount = await _router.countFailedCardGenerations();
+  Future<bool> _refreshPendingCount({bool notify = true}) async {
+    final pending = await _runAuxiliaryQuery<List<CardAttachmentData>>(
+      label: 'refresh pending attachment count',
+      query: _fetchPendingAttachments,
+    );
+    final failedCardCount = await _runAuxiliaryQuery<int>(
+      label: 'refresh failed card generation count',
+      query: _countFailedCardGenerations,
+    );
+    if (pending == null || failedCardCount == null) {
+      return false;
+    }
     pendingAttachmentCount = pending.length + (failedCardCount > 0 ? 1 : 0);
-    notifyListeners();
+    if (notify) notifyListeners();
+    return true;
+  }
+
+  void _refreshAuxiliaryTimelineState({
+    required int generation,
+    required String filter,
+    required List<TimelineCardModel> cardList,
+  }) {
+    unawaited(() async {
+      final attachmentChanged = await _loadAttachmentsForCards(
+        cardList,
+        generation: generation,
+        filter: filter,
+      );
+      final pendingChanged = await _refreshPendingCount(notify: false);
+      if (_isStaleTimelineLoad(generation, filter)) return;
+      if (attachmentChanged || pendingChanged) {
+        notifyListeners();
+      }
+    }());
+  }
+
+  Future<T?> _runAuxiliaryQuery<T>({
+    required String label,
+    required Future<T> Function() query,
+  }) async {
+    try {
+      return await query().timeout(_auxiliaryQueryTimeout);
+    } on TimeoutException catch (e, st) {
+      _logger.warning('$label timed out', e, st);
+    } catch (e, st) {
+      _logger.warning('$label failed', e, st);
+    }
+    return null;
   }
 
   void _handleScheduleBriefingChanged(EventBusMessage message) {
@@ -337,7 +521,7 @@ class TimelineViewModel extends ChangeNotifier {
   /// Refresh timeline and tags (e.g. after pull-to-refresh or scroll-to-top).
   Future<void> refresh() async {
     await load.execute();
-    await fetchTags();
+    unawaited(fetchTags());
   }
 
   void addCard(TimelineCardModel card) {
@@ -364,6 +548,7 @@ class TimelineViewModel extends ChangeNotifier {
   void setActiveFilter(String tag) {
     if (activeFilter == tag) return;
     _loadGeneration++;
+    _visibleLoadGeneration = null;
     activeFilter = tag;
     cards = [];
     attachments.clear();
@@ -388,37 +573,46 @@ class TimelineViewModel extends ChangeNotifier {
     final generation = _loadGeneration;
     final filter = activeFilter;
     final viewModeAtRequest = viewMode;
-    isLoading = true;
-    notifyListeners();
-    final result = await _router.fetchTimelineCards(
+    _beginVisibleLoad(generation);
+    final result = await _fetchTimelineCards(
       page: _currentPage,
       limit: pageLimit,
       tags: filter == 'all' ? null : [filter],
     );
     switch (result) {
       case Ok(:final value):
-        if (_isStaleTimelineLoad(generation, filter)) return;
+        if (_isStaleTimelineLoad(generation, filter)) {
+          _finishVisibleLoadIfCurrent(generation);
+          return;
+        }
         final newCards = value;
         _currentPage++;
         final loadedHasMore = newCards.length >= pageLimit;
-        final nextCards = await _withScheduleBriefingCard([
-          ...cards,
-          ...newCards,
-        ],
-            hasMoreAfterList: loadedHasMore,
-            showScheduleBriefing:
-                viewModeAtRequest == TimelineViewMode.timeline &&
-                    filter == 'all');
-        if (_isStaleTimelineLoad(generation, filter)) return;
+        final nextCards = await _withScheduleBriefingCard(
+          [...cards, ...newCards],
+          hasMoreAfterList: loadedHasMore,
+          showScheduleBriefing:
+              viewModeAtRequest == TimelineViewMode.timeline && filter == 'all',
+        );
+        if (_isStaleTimelineLoad(generation, filter)) {
+          _finishVisibleLoadIfCurrent(generation);
+          return;
+        }
         cards = nextCards;
         hasMore = loadedHasMore;
         _startPollingIfNeeded();
-        await _loadAttachmentsForCards(newCards);
-        if (_isStaleTimelineLoad(generation, filter)) return;
+        _finishVisibleLoadIfCurrent(generation, notify: false);
+        notifyListeners();
+        _refreshAuxiliaryTimelineState(
+          generation: generation,
+          filter: filter,
+          cardList: newCards,
+        );
+        return;
       case Error():
         break;
     }
-    isLoading = false;
+    _finishVisibleLoadIfCurrent(generation, notify: false);
     notifyListeners();
   }
 
@@ -434,7 +628,7 @@ class TimelineViewModel extends ChangeNotifier {
       return withoutBriefing;
     }
 
-    final briefingResult = await _router.fetchScheduleBriefingCard();
+    final briefingResult = await _fetchScheduleBriefingCard();
     return briefingResult.when(
       onOk: (briefing) {
         return mergeScheduleBriefingInTimelineOrder(
@@ -464,36 +658,45 @@ class TimelineViewModel extends ChangeNotifier {
     final generation = _loadGeneration;
     final filter = activeFilter;
     final viewModeAtRequest = viewMode;
-    isLoading = true;
-    notifyListeners();
-    final result = await _router.fetchTimelineCards(
+    _beginVisibleLoad(generation);
+    final result = await _fetchTimelineCards(
       page: _currentPage + 1,
       limit: pageLimit,
       tags: filter == 'all' ? null : [filter],
     );
     switch (result) {
       case Ok(:final value):
-        if (_isStaleTimelineLoad(generation, filter)) return;
+        if (_isStaleTimelineLoad(generation, filter)) {
+          _finishVisibleLoadIfCurrent(generation);
+          return;
+        }
         final newCards = value;
         _currentPage++;
         final loadedHasMore = newCards.length >= pageLimit;
-        final nextCards = await _withScheduleBriefingCard([
-          ...cards,
-          ...newCards,
-        ],
-            hasMoreAfterList: loadedHasMore,
-            showScheduleBriefing:
-                viewModeAtRequest == TimelineViewMode.timeline &&
-                    filter == 'all');
-        if (_isStaleTimelineLoad(generation, filter)) return;
+        final nextCards = await _withScheduleBriefingCard(
+          [...cards, ...newCards],
+          hasMoreAfterList: loadedHasMore,
+          showScheduleBriefing:
+              viewModeAtRequest == TimelineViewMode.timeline && filter == 'all',
+        );
+        if (_isStaleTimelineLoad(generation, filter)) {
+          _finishVisibleLoadIfCurrent(generation);
+          return;
+        }
         cards = nextCards;
         hasMore = loadedHasMore;
-        await _loadAttachmentsForCards(newCards);
-        if (_isStaleTimelineLoad(generation, filter)) return;
+        _finishVisibleLoadIfCurrent(generation, notify: false);
+        notifyListeners();
+        _refreshAuxiliaryTimelineState(
+          generation: generation,
+          filter: filter,
+          cardList: newCards,
+        );
+        return;
       case Error():
         break;
     }
-    isLoading = false;
+    _finishVisibleLoadIfCurrent(generation, notify: false);
     notifyListeners();
   }
 
@@ -502,9 +705,27 @@ class TimelineViewModel extends ChangeNotifier {
   }
 
   Future<void> fetchTags() async {
-    final result = await _router.fetchTags();
-    tags = result.when(onOk: (t) => t, onError: (_, __) => <TagModel>[]);
+    try {
+      final result = await _fetchTags();
+      tags = result.when(onOk: (t) => t, onError: (_, __) => <TagModel>[]);
+    } catch (e, stackTrace) {
+      _logger.warning('Failed to fetch timeline tags: $e', e, stackTrace);
+      tags = <TagModel>[];
+    }
     notifyListeners();
+  }
+
+  void _beginVisibleLoad(int generation) {
+    _visibleLoadGeneration = generation;
+    isLoading = true;
+    notifyListeners();
+  }
+
+  void _finishVisibleLoadIfCurrent(int generation, {bool notify = true}) {
+    if (_visibleLoadGeneration != generation) return;
+    _visibleLoadGeneration = null;
+    isLoading = false;
+    if (notify) notifyListeners();
   }
 
   @override
