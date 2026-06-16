@@ -705,8 +705,13 @@ class TimelineViewModel extends ChangeNotifier {
   }
 
   Future<void> fetchTags() async {
-    final result = await _fetchTags();
-    tags = result.when(onOk: (t) => t, onError: (_, __) => <TagModel>[]);
+    try {
+      final result = await _fetchTags();
+      tags = result.when(onOk: (t) => t, onError: (_, __) => <TagModel>[]);
+    } catch (e, stackTrace) {
+      _logger.warning('Failed to fetch timeline tags: $e', e, stackTrace);
+      tags = <TagModel>[];
+    }
     notifyListeners();
   }
 

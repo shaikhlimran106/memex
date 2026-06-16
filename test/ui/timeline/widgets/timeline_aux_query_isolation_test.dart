@@ -153,6 +153,36 @@ void main() {
     },
   );
 
+  testWidgets(
+    'refresh keeps timeline usable when unawaited fetchTags throws',
+    (tester) async {
+      final vm = _timelineViewModel(
+        fetchTimelineCards: ({
+          int page = 1,
+          int limit = TimelineViewModel.pageLimit,
+          List<String>? tags,
+          DateTime? dateFrom,
+          DateTime? dateTo,
+        }) async =>
+            Ok([_timelineCard('card-after-tags-fail', 'Card survives tags')]),
+        fetchTags: () async => throw StateError('tags failed'),
+      );
+
+      await tester.pumpWidget(_TimelineHarness(viewModel: vm));
+
+      await expectLater(vm.refresh(), completes);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 20));
+
+      expect(find.text('Card survives tags'), findsOneWidget);
+      expect(find.byKey(const ValueKey('timeline-loading')), findsNothing);
+      expect(vm.isLoading, isFalse);
+      expect(vm.tags, isEmpty);
+
+      vm.dispose();
+    },
+  );
+
   for (final scenario in [
     _ActiveTaskScenario(
       name: 'hangs',
@@ -203,6 +233,7 @@ void main() {
 
 TimelineViewModel _timelineViewModel({
   TimelineCardsFetcher? fetchTimelineCards,
+  TimelineTagsFetcher? fetchTags,
   TimelineAttachmentFetcher? fetchAttachmentForCard,
   PendingAttachmentsFetcher? fetchPendingAttachments,
   FailedCardCountFetcher? countFailedCardGenerations,
@@ -219,7 +250,7 @@ TimelineViewModel _timelineViewModel({
           DateTime? dateTo,
         }) async =>
             const Ok([]),
-    fetchTags: () async => const Ok(<TagModel>[]),
+    fetchTags: fetchTags ?? () async => const Ok(<TagModel>[]),
     fetchScheduleBriefingCard: () async => const Ok(null),
     fetchAttachmentForCard:
         fetchAttachmentForCard ?? (_) async => const <CardAttachmentData>[],
