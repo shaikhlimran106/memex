@@ -49,6 +49,110 @@ void main() {
     expect(viewModel.isReprocessingCards, isFalse);
     expect(dataController.enqueuedTasks, isEmpty);
   });
+
+  test('date range task options format payload consistently', () {
+    final payload = DebugDateRangeTaskOptions(
+      dateFrom: DateTime(2026, 6, 1),
+      dateTo: DateTime(2026, 6, 16),
+      limit: 25,
+    ).toTaskPayload();
+
+    expect(payload['date_from'], '2026-06-01');
+    expect(payload['date_to'], '2026-06-16');
+    expect(payload['limit'], 25);
+    expect(
+      DebugDateRangeTaskOptions.formatDate(DateTime(2026, 1, 9)),
+      '2026-01-09',
+    );
+  });
+
+  test('clearToken clears user and resets router state', () async {
+    await UserStorage.saveUser('debug-viewmodel-user');
+    final dataController = _RecordingDebugSettingsDataController();
+    final viewModel = DebugSettingsViewModel(dataController: dataController);
+
+    await viewModel.clearToken();
+
+    expect(await UserStorage.getUserId(), isNull);
+    expect(dataController.resetForLogoutCount, 1);
+  });
+
+  test('clearData requires user and clears cached agent data', () async {
+    await UserStorage.saveUser('debug-viewmodel-user');
+    final staleCache = AgentCacheData(
+      responseId: 'stale',
+      systemPromptHash: 1,
+      toolsHash: 2,
+    );
+    await UserStorage.saveCachedAgentData('pkm', staleCache);
+    await UserStorage.saveCachedAgentData('card', staleCache);
+    final dataController = _RecordingDebugSettingsDataController();
+    final viewModel = DebugSettingsViewModel(dataController: dataController);
+
+    final cleared = await viewModel.clearData();
+
+    expect(cleared, isTrue);
+    expect(viewModel.isClearingData, isFalse);
+    expect(dataController.clearDataCount, 1);
+    expect(await UserStorage.getCachedAgentData('pkm'), isNull);
+    expect(await UserStorage.getCachedAgentData('card'), isNull);
+  });
+
+  test('clearFailedAgentContexts returns cleared count', () async {
+    final dataController = _RecordingDebugSettingsDataController(
+      clearedFailedAgentContexts: 3,
+    );
+    final viewModel = DebugSettingsViewModel(dataController: dataController);
+
+    final clearedCount = await viewModel.clearFailedAgentContexts();
+
+    expect(clearedCount, 3);
+    expect(viewModel.isClearingFailedAgentContexts, isFalse);
+    expect(dataController.clearFailedAgentContextsCount, 1);
+  });
+
+  test('creates comments and knowledge base reprocess tasks', () async {
+    await UserStorage.saveUser('debug-viewmodel-user');
+    final dataController = _RecordingDebugSettingsDataController();
+    final viewModel = DebugSettingsViewModel(dataController: dataController);
+    final options = DebugDateRangeTaskOptions(
+      dateFrom: DateTime(2026, 6, 1),
+      dateTo: DateTime(2026, 6, 16),
+    );
+
+    expect(await viewModel.createReprocessCommentsTask(options), isTrue);
+    expect(await viewModel.createReprocessKnowledgeBaseTask(options), isTrue);
+
+    expect(dataController.enqueuedTasks, hasLength(2));
+    expect(
+      dataController.enqueuedTasks[0].taskType,
+      'reprocess_comments_task',
+    );
+    expect(
+      dataController.enqueuedTasks[0].bizId,
+      startsWith('reprocess_comments_'),
+    );
+    expect(
+      dataController.enqueuedTasks[1].taskType,
+      'reprocess_knowledge_base_task',
+    );
+    expect(
+      dataController.enqueuedTasks[1].bizId,
+      startsWith('reprocess_knowledge_base_'),
+    );
+    expect(dataController.enqueuedTasks[1].payload['date_to'], '2026-06-16');
+  });
+
+  test('rebuildSearchIndex delegates to data controller', () async {
+    final dataController = _RecordingDebugSettingsDataController();
+    final viewModel = DebugSettingsViewModel(dataController: dataController);
+
+    final rebuilt = await viewModel.rebuildSearchIndex();
+
+    expect(rebuilt, isTrue);
+    expect(viewModel.isRebuildingSearchIndex, isFalse);
+    expect(dataController.rebuildAllFtsIndexesCount, 1);
+  });
 }
 
 class _QueuedDebugTask {
@@ -65,7 +169,16 @@ class _QueuedDebugTask {
 
 class _RecordingDebugSettingsDataController
     implements DebugSettingsDataController {
+  _RecordingDebugSettingsDataController({
+    this.clearedFailedAgentContexts = 0,
+  });
+
   final enqueuedTasks = <_QueuedDebugTask>[];
+  final int clearedFailedAgentContexts;
+  int clearDataCount = 0;
+  int clearFailedAgentContextsCount = 0;
+  int rebuildAllFtsIndexesCount = 0;
+  int resetForLogoutCount = 0;
 
   @override
   Future<void> enqueueTask({
@@ -83,14 +196,23 @@ class _RecordingDebugSettingsDataController
   }
 
   @override
-  Future<void> clearData() async {}
+  Future<void> clearData() async {
+    clearDataCount++;
+  }
 
   @override
-  Future<int> clearFailedAgentConversationContexts() async => 0;
+  Future<int> clearFailedAgentConversationContexts() async {
+    clearFailedAgentContextsCount++;
+    return clearedFailedAgentContexts;
+  }
 
   @override
-  Future<void> rebuildAllFtsIndexes() async {}
+  Future<void> rebuildAllFtsIndexes() async {
+    rebuildAllFtsIndexesCount++;
+  }
 
   @override
-  void resetForLogout() {}
+  void resetForLogout() {
+    resetForLogoutCount++;
+  }
 }

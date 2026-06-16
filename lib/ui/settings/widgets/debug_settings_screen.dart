@@ -55,8 +55,7 @@ class DebugSettingsScreen extends StatefulWidget {
     );
     return DebugSettingsScreen(
       key: key,
-      dataController:
-          scopedController ??
+      dataController: scopedController ??
           MemexRouterDebugSettingsDataController(context.read<MemexRouter>()),
     );
   }
@@ -386,7 +385,7 @@ class _DebugSettingsScreenState extends State<DebugSettingsScreen> {
                     child: Text(
                       dateFrom == null
                           ? UserStorage.l10n.select
-                          : _formatDate(dateFrom!),
+                          : DebugDateRangeTaskOptions.formatDate(dateFrom!),
                     ),
                   ),
                 ),
@@ -408,7 +407,7 @@ class _DebugSettingsScreenState extends State<DebugSettingsScreen> {
                     child: Text(
                       dateTo == null
                           ? UserStorage.l10n.select
-                          : _formatDate(dateTo!),
+                          : DebugDateRangeTaskOptions.formatDate(dateTo!),
                     ),
                   ),
                 ),
@@ -448,11 +447,6 @@ class _DebugSettingsScreenState extends State<DebugSettingsScreen> {
         ),
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-'
-        '${date.day.toString().padLeft(2, '0')}';
   }
 
   @override

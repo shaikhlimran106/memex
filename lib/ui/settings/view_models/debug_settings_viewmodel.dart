@@ -71,11 +71,11 @@ class DebugDateRangeTaskOptions {
     final payload = <String, dynamic>{};
     final from = dateFrom;
     if (from != null) {
-      payload['date_from'] = _formatDate(from);
+      payload['date_from'] = formatDate(from);
     }
     final to = dateTo;
     if (to != null) {
-      payload['date_to'] = _formatDate(to);
+      payload['date_to'] = formatDate(to);
     }
     final limitValue = limit;
     if (limitValue != null && limitValue > 0) {
@@ -84,7 +84,7 @@ class DebugDateRangeTaskOptions {
     return payload;
   }
 
-  static String _formatDate(DateTime date) {
+  static String formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-'
         '${date.day.toString().padLeft(2, '0')}';
   }
@@ -92,7 +92,7 @@ class DebugDateRangeTaskOptions {
 
 class DebugSettingsViewModel extends ChangeNotifier {
   DebugSettingsViewModel({required DebugSettingsDataController dataController})
-    : _dataController = dataController;
+      : _dataController = dataController;
 
   final DebugSettingsDataController _dataController;
 
