@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:memex/data/services/app_action_service.dart';
 import 'package:memex/data/services/clipboard_preview_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/input_draft_service.dart';
@@ -158,6 +159,31 @@ void main() {
     );
   }
 
+  testWidgets('quick_note app action opens input sheet after host is ready', (
+    tester,
+  ) async {
+    final appActions = AppActionService.test();
+    addTearDown(appActions.dispose);
+
+    appActions.handleAction(AppActionService.quickNoteAction);
+
+    await tester.pumpWidget(
+      _QuickNoteActionHost(appActions: appActions, canHandleActions: false),
+    );
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.text('Home content'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+
+    await tester.pumpWidget(
+      _QuickNoteActionHost(appActions: appActions, canHandleActions: true),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.byType(TextField), findsOneWidget);
+  });
+
   testWidgets('Android back closes the open input sheet without popping home', (
     tester,
   ) async {
@@ -273,11 +299,7 @@ void main() {
     clipboardImage.writeAsBytesSync(_pngHeader(width: 12, height: 12));
     clipboardText = clipboardImage.uri.toString();
 
-    await tester.pumpWidget(
-      buildHost(
-        initialData: InputData(text: ''),
-      ),
-    );
+    await tester.pumpWidget(buildHost(initialData: InputData(text: '')));
     await tester.pump(const Duration(milliseconds: 350));
     await tester.tap(find.byType(TextField));
     await pumpUntilFound(tester, find.byType(ClipboardPreviewCard));
@@ -422,6 +444,91 @@ void main() {
 
     expect(await activeDraftText(tester), 'keep on failure');
   });
+}
+
+class _QuickNoteActionHost extends StatefulWidget {
+  const _QuickNoteActionHost({
+    required this.appActions,
+    required this.canHandleActions,
+  });
+
+  final AppActionService appActions;
+  final bool canHandleActions;
+
+  @override
+  State<_QuickNoteActionHost> createState() => _QuickNoteActionHostState();
+}
+
+class _QuickNoteActionHostState extends State<_QuickNoteActionHost> {
+  StreamSubscription<String>? _subscription;
+  bool _isInputOpen = false;
+  bool _consumeScheduled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.appActions.attach();
+    _subscription = widget.appActions.actionStream.listen((_) {
+      _consumeIfReady();
+    });
+    _consumeIfReady();
+  }
+
+  @override
+  void didUpdateWidget(covariant _QuickNoteActionHost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.appActions != widget.appActions) {
+      oldWidget.appActions.detach();
+      _subscription?.cancel();
+      widget.appActions.attach();
+      _subscription = widget.appActions.actionStream.listen((_) {
+        _consumeIfReady();
+      });
+    }
+    _consumeIfReady();
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    widget.appActions.detach();
+    super.dispose();
+  }
+
+  void _consumeIfReady() {
+    if (!widget.canHandleActions || _consumeScheduled) return;
+    _consumeScheduled = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _consumeScheduled = false;
+      if (!mounted || !widget.canHandleActions) return;
+      final action = widget.appActions.consumeIfPending();
+      if (action != AppActionService.quickNoteAction) return;
+      setState(() {
+        _isInputOpen = true;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(
+        body: Stack(
+          children: [
+            const Center(child: Text('Home content')),
+            InputSheet(
+              isOpen: _isInputOpen,
+              onClose: () => setState(() => _isInputOpen = false),
+              onSubmit: (_) async => true,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 typedef SubmitHostCallback = Future<bool> Function(

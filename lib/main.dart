@@ -61,7 +61,8 @@ import 'package:memex/ui/core/widgets/demo_overlay.dart';
 import 'package:memex/ui/main_screen/widgets/share_intent_handler.dart';
 import 'package:memex/ui/settings/widgets/backup_restore_confirm_dialog.dart';
 import 'package:quick_actions/quick_actions.dart';
-import 'package:memex/data/services/quick_action_service.dart';
+import 'package:memex/data/services/app_action_link_service.dart';
+import 'package:memex/data/services/app_action_service.dart';
 import 'package:memex/data/services/speech_transcription_service.dart';
 import 'package:memex/utils/wakelock_manager.dart';
 import 'package:memex/data/services/clipboard_preview_service.dart';
@@ -124,8 +125,12 @@ void main() async {
   // Initialize quick actions (app icon long-press shortcuts).
   const QuickActions quickActions = QuickActions();
   quickActions.initialize((String shortcutType) {
-    QuickActionService.instance.handleAction(shortcutType);
+    AppActionService.instance.handleAction(
+      shortcutType,
+      source: 'quick_action',
+    );
   });
+  unawaited(AppActionLinkService.instance.initialize());
 
   runApp(
     MultiProvider(
@@ -404,20 +409,23 @@ class _MemexAppState extends State<MemexApp> with WidgetsBindingObserver {
           ThemeMode.light, // Unified light mode, disabling adaptive dark mode
       routerConfig: widget.router,
       builder: (context, child) {
-        return Stack(
-          children: [
-            if (child != null) child,
-            if (_isLocked && _hasUser)
-              _requiresAuth
-                  ? LockScreen(
-                      onUnlock: () {
-                        setState(() {
-                          _isLocked = false;
-                        });
-                      },
-                    )
-                  : const PrivacyScreen(),
-          ],
+        return _AppActionReadiness(
+          canHandleActions: !_isLocked,
+          child: Stack(
+            children: [
+              if (child != null) child,
+              if (_isLocked && _hasUser)
+                _requiresAuth
+                    ? LockScreen(
+                        onUnlock: () {
+                          setState(() {
+                            _isLocked = false;
+                          });
+                        },
+                      )
+                    : const PrivacyScreen(),
+            ],
+          ),
         );
       },
       localizationsDelegates: const [
@@ -428,6 +436,27 @@ class _MemexAppState extends State<MemexApp> with WidgetsBindingObserver {
       ],
       supportedLocales: AppLocalizations.supportedLocales,
     );
+  }
+}
+
+class _AppActionReadiness extends InheritedWidget {
+  const _AppActionReadiness({
+    required this.canHandleActions,
+    required super.child,
+  });
+
+  final bool canHandleActions;
+
+  static bool of(BuildContext context) {
+    return context
+            .dependOnInheritedWidgetOfExactType<_AppActionReadiness>()
+            ?.canHandleActions ??
+        true;
+  }
+
+  @override
+  bool updateShouldNotify(_AppActionReadiness oldWidget) {
+    return canHandleActions != oldWidget.canHandleActions;
   }
 }
 
@@ -480,6 +509,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   ClipboardPreviewCandidate? _homeClipboardCandidate;
   bool _isCheckingHomeClipboard = false;
   bool _isRefreshingAfterRestore = false;
+  StreamSubscription<String>? _appActionSubscription;
+  bool _canHandleAppActions = false;
+  bool _hasRequestedInitialAppActionCheck = false;
+  bool _isAppActionCheckScheduled = false;
 
   // Agent Button Position - REMOVED (Moved to Main App)
 
@@ -542,14 +575,33 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       onBackupFileShared: _handleExternalBackupFile,
     )..init();
 
-    // Consume pending quick action (app icon long-press shortcut).
-    QuickActionService.instance.attach();
-    _consumeQuickActionIfNeeded();
+    // Consume pending app actions once normal app readiness allows it.
+    AppActionService.instance.attach();
+    _appActionSubscription = AppActionService.instance.actionStream.listen((_) {
+      _consumeAppActionIfReady(waitForLateAction: false);
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) unawaited(_checkHomeClipboardPreview());
     });
     _scheduleEarlyUpdateCheck();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final canHandleActions = _AppActionReadiness.of(context);
+    _canHandleAppActions = canHandleActions;
+
+    if (!_canHandleAppActions) return;
+    if (!_hasRequestedInitialAppActionCheck) {
+      _hasRequestedInitialAppActionCheck = true;
+      _consumeAppActionIfReady(waitForLateAction: true);
+      return;
+    }
+    if (AppActionService.instance.hasPendingAction) {
+      _consumeAppActionIfReady(waitForLateAction: false);
+    }
   }
 
   void _scheduleEarlyUpdateCheck() {
@@ -1003,7 +1055,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _memoryButtonTapTimer?.cancel();
     _knowledgeBaseButtonTapTimer?.cancel();
-    QuickActionService.instance.detach();
+    _appActionSubscription?.cancel();
+    AppActionService.instance.detach();
     _shareIntentHandler.dispose();
     _eventBus.removeHandler(
       EventBusMessageType.invalidModelConfig,
@@ -1382,20 +1435,46 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// Consume a pending quick action (e.g. "记一下" from app icon long-press).
-  /// Handles cold-start (action queued before widget built) and warm-start
-  /// (action arrives while app is in background).
-  void _consumeQuickActionIfNeeded() {
+  /// Consume a pending app action (quick action or deep link) once the main UI
+  /// is ready and the app-lock overlay is not active.
+  void _consumeAppActionIfReady({required bool waitForLateAction}) {
+    if (!_canHandleAppActions || _isAppActionCheckScheduled) return;
+    _isAppActionCheckScheduled = true;
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final action = await QuickActionService.instance.consumePendingAction();
-      if (!mounted) return;
-      if (action == 'quick_note') {
-        _logger.info('Quick action: opening input sheet');
-        setState(() {
-          _homeClipboardCandidate = null;
-          _isInputOpen = true;
-        });
+      if (!mounted || !_canHandleAppActions) {
+        _isAppActionCheckScheduled = false;
+        return;
       }
+
+      final action = waitForLateAction
+          ? await AppActionService.instance.consumePendingAction()
+          : AppActionService.instance.consumeIfPending();
+      _isAppActionCheckScheduled = false;
+
+      if (!mounted || !_canHandleAppActions) return;
+      _handleAppAction(action);
+    });
+  }
+
+  void _handleAppAction(String? action) {
+    if (action == null) return;
+    if (action != AppActionService.quickNoteAction) {
+      _logger.info('Ignoring unsupported app action: $action');
+      return;
+    }
+
+    if (_isInputOpen) {
+      _logger.info(
+        'Quick note app action ignored because input is already open',
+      );
+      return;
+    }
+
+    _logger.info('Quick note app action: opening input sheet');
+    setState(() {
+      _homeClipboardCandidate = null;
+      _isInputOpen = true;
     });
   }
 
@@ -1503,27 +1582,18 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused) {
       // Reset consumed-action dedup so the same shortcut can be triggered
       // on the next foreground session.
-      QuickActionService.instance.resetConsumed();
+      AppActionService.instance.resetConsumed();
     }
     // when app enters foreground, ensure event bus is connected
     if (state == AppLifecycleState.resumed) {
       if (!_eventBus.isConnected) {
         _eventBus.connect();
       }
-      // Consume any quick action that arrived while in background.
-      // Use synchronous check — platform callback fires before resumed,
-      // so no need for the 2-sec wait (which could catch a re-delivered intent).
-      final action = QuickActionService.instance.consumeIfPending();
-      if (action == 'quick_note' && mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            _logger.info('Quick action (resumed): opening input sheet');
-            setState(() {
-              _homeClipboardCandidate = null;
-              _isInputOpen = true;
-            });
-          }
-        });
+      // Consume any app action that arrived while in background. Use a
+      // synchronous check because platform callbacks normally fire before
+      // resumed; foreground link events are handled by actionStream.
+      if (_canHandleAppActions && AppActionService.instance.hasPendingAction) {
+        _consumeAppActionIfReady(waitForLateAction: false);
       } else {
         unawaited(_checkHomeClipboardPreview());
       }

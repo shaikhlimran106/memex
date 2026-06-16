@@ -17,5 +17,6 @@ class ChannelRegistrar {
         AudioConverterChannelHandler.register(with: messenger)
         AgentBackgroundTaskChannelHandler.register(with: messenger)
         ClipboardPreviewChannelHandler.register(with: messenger)
+        AppActionChannelHandler.register(with: messenger)
     }
 }

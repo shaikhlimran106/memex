@@ -18,7 +18,22 @@ import workmanager_apple
         // Register all MethodChannel handlers
         ChannelRegistrar.registerAll(with: controller.binaryMessenger)
 
+        if let url = launchOptions?[.url] as? URL {
+            _ = AppActionChannelHandler.handleURL(url)
+        }
+
         GeneratedPluginRegistrant.register(with: self)
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    }
+
+    override func application(
+        _ app: UIApplication,
+        open url: URL,
+        options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+    ) -> Bool {
+        if AppActionChannelHandler.handleURL(url) {
+            return true
+        }
+        return super.application(app, open: url, options: options)
     }
 }
