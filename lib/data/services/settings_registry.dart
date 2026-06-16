@@ -10,7 +10,7 @@ import 'package:memex/ui/settings/widgets/ai_service_setup_page.dart';
 import 'package:memex/ui/settings/widgets/system_authorization_page.dart';
 import 'package:memex/ui/settings/widgets/agent_config_list_page.dart';
 import 'package:memex/ui/settings/widgets/settings_page.dart';
-import 'package:memex/ui/settings/widgets/debug_settings_page.dart';
+import 'package:memex/ui/settings/widgets/debug_settings_screen.dart';
 import 'package:memex/ui/settings/widgets/data_storage_page.dart';
 import 'package:memex/ui/settings/widgets/backup_restore_page.dart';
 import 'package:memex/ui/settings/widgets/location_context_settings_page.dart';
@@ -255,22 +255,8 @@ class SettingsRegistry {
         'logout',
       ],
       icon: Icons.bug_report_outlined,
-      navigationTarget: NavigationTarget(
-        pageBuilder: (_) => DebugSettingsPage(
-          onClearToken: () async {},
-          onClearData: () async {},
-          onClearFailedAgentContexts: () async {},
-          onReprocessCards: () async {},
-          onReprocessComments: () async {},
-          onReprocessKnowledgeBase: () async {},
-          onRebuildSearchIndex: () async {},
-          isClearingData: false,
-          isClearingFailedAgentContexts: false,
-          isReprocessingCards: false,
-          isReprocessingComments: false,
-          isReprocessingKnowledgeBase: false,
-          isRebuildingSearchIndex: false,
-        ),
+      navigationTarget: const NavigationTarget(
+        pageBuilder: DebugSettingsScreen.fromContext,
       ),
       parentPathGetter: () => [UserStorage.l10n.personalCenter],
     ),
