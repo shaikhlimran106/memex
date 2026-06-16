@@ -76,6 +76,28 @@ void main() {
     expect(messages.single.hasValidConfig, isFalse);
     expect(messages.single.reason, 'reset');
   });
+
+  test('setDefaultLLMConfigKey emits default changed event', () async {
+    final messages = <LLMConfigChangedMessage>[];
+    await UserStorage.saveLLMConfigs(const [
+      _validLocalModelConfig,
+      _validOpenAiModelConfig,
+    ]);
+    EventBusService.instance.addHandler(EventBusMessageType.llmConfigChanged, (
+      message,
+    ) {
+      if (message is LLMConfigChangedMessage) {
+        messages.add(message);
+      }
+    });
+
+    await MemexRouter().setDefaultLLMConfigKey(_validOpenAiModelConfig.key);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(messages, hasLength(1));
+    expect(messages.single.hasValidConfig, isTrue);
+    expect(messages.single.reason, 'default_changed');
+  });
 }
 
 const _validLocalModelConfig = LLMConfig(
@@ -84,6 +106,14 @@ const _validLocalModelConfig = LLMConfig(
   modelId: 'llama3',
   apiKey: '',
   baseUrl: 'http://127.0.0.1:11434',
+);
+
+const _validOpenAiModelConfig = LLMConfig(
+  key: 'openai-primary',
+  type: LLMConfig.typeChatCompletion,
+  modelId: 'gpt-4o-mini',
+  apiKey: 'test-key',
+  baseUrl: 'https://api.openai.com/v1',
 );
 
 class FakePathProviderPlatform extends PathProviderPlatform
