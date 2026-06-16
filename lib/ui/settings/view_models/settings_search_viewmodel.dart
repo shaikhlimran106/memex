@@ -5,11 +5,20 @@ import 'package:memex/domain/models/settings_item.dart';
 
 /// 设置搜索 ViewModel。管理搜索状态和结果。
 class SettingsSearchViewModel extends ChangeNotifier {
-  SettingsSearchViewModel({required MemexRouter router}) : _router = router;
+  SettingsSearchViewModel({
+    required MemexRouter router,
+    SettingsSearchService? searchService,
+  })  : _router = router,
+        _searchService = searchService ?? SettingsSearchService.instance;
+
+  @visibleForTesting
+  SettingsSearchViewModel.forTesting({SettingsSearchService? searchService})
+      : _router = null,
+        _searchService = searchService ?? SettingsSearchService.instance;
 
   // ignore: unused_field — kept per project convention (ViewModels receive MemexRouter)
-  final MemexRouter _router;
-  final SettingsSearchService _searchService = SettingsSearchService.instance;
+  final MemexRouter? _router;
+  final SettingsSearchService _searchService;
 
   String _query = '';
   List<SettingsSearchResult> _results = [];
@@ -28,9 +37,6 @@ class SettingsSearchViewModel extends ChangeNotifier {
   /// 导航到设置项
   void navigateToItem(BuildContext context, SettingsItem item) {
     final page = item.navigationTarget.pageBuilder(context);
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => page),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
   }
 }

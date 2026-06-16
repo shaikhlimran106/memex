@@ -6,7 +6,11 @@ import 'package:memex/db/app_database.dart';
 import 'package:memex/domain/models/reprocess_cards_options.dart';
 import 'package:memex/ui/settings/widgets/async_task_list_page.dart';
 import 'package:memex/ui/settings/widgets/debug_settings_page.dart';
+import 'package:memex/ui/settings/widgets/debug_settings_screen.dart';
 import 'package:memex/ui/settings/widgets/reprocess_cards_dialog.dart';
+import 'package:memex/ui/settings/widgets/settings_search_screen.dart';
+import 'package:memex/ui/settings/view_models/debug_settings_viewmodel.dart';
+import 'package:memex/ui/settings/view_models/settings_search_viewmodel.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -68,6 +72,60 @@ void main() {
     expect(clearCount, 0);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
+
+  testWidgets(
+    'search result Debug reprocess cards opens dialog and creates task',
+    (tester) async {
+      final dataController = _RecordingDebugSettingsDataController();
+      await UserStorage.saveUser('debug-search-user');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DebugSettingsActionScope(
+            dataController: dataController,
+            child: SettingsSearchScreen(
+              viewModel: SettingsSearchViewModel.forTesting(),
+            ),
+          ),
+        ),
+      );
+
+      await tester.enterText(find.byType(TextField), 'debug');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Debug').first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Debugging'), findsOneWidget);
+
+      final reprocessCards = find.text(UserStorage.l10n.reprocessCards);
+      await tester.scrollUntilVisible(
+        reprocessCards,
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(reprocessCards);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ReprocessCardsDialog), findsOneWidget);
+
+      await tester.tap(find.text(UserStorage.l10n.startProcessing));
+      await tester.pumpAndSettle();
+
+      expect(dataController.enqueuedTasks, hasLength(1));
+      final task = dataController.enqueuedTasks.single;
+      expect(task.taskType, 'reprocess_cards_task');
+      expect(task.bizId, startsWith('reprocess_cards_'));
+      expect(
+        task.payload[ReprocessCardsPayloadKeys.downstreamMode],
+        ReprocessCardsDownstreamMode.cardOnly.payloadValue,
+      );
+      expect(
+        find.text(UserStorage.l10n.reprocessCardsTaskCreated),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('reprocess cards dialog defaults to card-only mode', (
     tester,
@@ -198,15 +256,53 @@ void main() {
       find.textContaining('"schedule_aggregation_requested":1'),
       findsOneWidget,
     );
-    expect(
-      find.textContaining('"schedule_item_changes"'),
-      findsOneWidget,
-    );
-    expect(
-      find.textContaining('"system_action_changes"'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('"schedule_item_changes"'), findsOneWidget);
+    expect(find.textContaining('"system_action_changes"'), findsOneWidget);
   });
+}
+
+class _QueuedDebugTask {
+  const _QueuedDebugTask({
+    required this.taskType,
+    required this.payload,
+    this.bizId,
+  });
+
+  final String taskType;
+  final Map<String, dynamic> payload;
+  final String? bizId;
+}
+
+class _RecordingDebugSettingsDataController
+    implements DebugSettingsDataController {
+  final enqueuedTasks = <_QueuedDebugTask>[];
+
+  @override
+  Future<void> enqueueTask({
+    required String taskType,
+    required Map<String, dynamic> payload,
+    String? bizId,
+  }) async {
+    enqueuedTasks.add(
+      _QueuedDebugTask(
+        taskType: taskType,
+        payload: Map<String, dynamic>.from(payload),
+        bizId: bizId,
+      ),
+    );
+  }
+
+  @override
+  Future<void> clearData() async {}
+
+  @override
+  Future<int> clearFailedAgentConversationContexts() async => 0;
+
+  @override
+  Future<void> rebuildAllFtsIndexes() async {}
+
+  @override
+  void resetForLogout() {}
 }
 
 Future<void> _pumpDebugPage(
