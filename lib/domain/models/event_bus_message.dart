@@ -10,6 +10,7 @@ enum EventBusMessageType {
   newSystemAction('new_system_action'),
   attachmentsChanged('attachments_changed'),
   invalidModelConfig('invalid_model_config'),
+  llmConfigChanged('llm_config_changed'),
   errorNotification('error_notification'),
   profileUpdated('profile_updated'),
   characterUpdated('character_updated'),
@@ -56,6 +57,8 @@ abstract class EventBusMessage {
         return AttachmentsChangedMessage.fromJson(json);
       case EventBusMessageType.invalidModelConfig:
         return InvalidModelConfigMessage.fromJson(json);
+      case EventBusMessageType.llmConfigChanged:
+        return LLMConfigChangedMessage.fromJson(json);
       case EventBusMessageType.errorNotification:
         return ErrorNotificationMessage.fromJson(json);
       case EventBusMessageType.profileUpdated:
@@ -307,6 +310,26 @@ class InvalidModelConfigMessage extends EventBusMessage {
     return InvalidModelConfigMessage(
       agentId: data['agent_id'] as String,
       configKey: data['config_key'] as String,
+    );
+  }
+}
+
+/// LLM config changed message (refresh model-dependent UI state).
+class LLMConfigChangedMessage extends EventBusMessage {
+  final bool hasValidConfig;
+  final String reason;
+
+  LLMConfigChangedMessage({required this.hasValidConfig, required this.reason})
+    : super(
+        type: EventBusMessageType.llmConfigChanged,
+        data: {'has_valid_config': hasValidConfig, 'reason': reason},
+      );
+
+  factory LLMConfigChangedMessage.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>? ?? {};
+    return LLMConfigChangedMessage(
+      hasValidConfig: data['has_valid_config'] as bool? ?? false,
+      reason: data['reason'] as String? ?? 'updated',
     );
   }
 }

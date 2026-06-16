@@ -17,6 +17,7 @@ import 'package:memex/ui/core/cards/card_action_notification.dart';
 import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/ui/timeline/view_models/timeline_viewmodel.dart';
 import 'package:memex/ui/timeline/widgets/timeline_card_detail_screen.dart';
+import 'package:memex/ui/timeline/widgets/timeline_model_config_banner.dart';
 import 'package:memex/ui/settings/widgets/personal_center_screen.dart';
 import 'package:memex/ui/insight/view_models/insight_viewmodel.dart';
 import 'package:memex/ui/insight/widgets/insight_screen.dart';
@@ -58,7 +59,6 @@ class TimelineScreenState extends State<TimelineScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _showPermissionBadge = false;
   String? _userAvatar;
-  bool _showModelConfigBanner = false;
   bool _showFitnessBanner = false;
   late PageController _pageController;
   int _currentPageIndex = 0;
@@ -135,16 +135,7 @@ class TimelineScreenState extends State<TimelineScreen> {
     );
     _checkPermissionBadge();
     _loadUserAvatar();
-    _checkModelConfig();
     _checkFitnessBanner();
-  }
-
-  Future<void> _checkModelConfig() async {
-    final configs = await UserStorage.getLLMConfigs();
-    final hasValid = configs.any((c) => c.isValid);
-    if (mounted && !hasValid != _showModelConfigBanner) {
-      setState(() => _showModelConfigBanner = !hasValid);
-    }
   }
 
   Future<void> _checkFitnessBanner() async {
@@ -487,112 +478,18 @@ class TimelineScreenState extends State<TimelineScreen> {
             const SizedBox(height: 16),
 
             // Tag Chips (All + Insight + user tags)
-            if (_showModelConfigBanner)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AppConfig.enableMemexModelService
-                            ? const AiServiceSetupPage()
-                            : const ModelConfigListPage(),
-                      ),
-                    ).then((_) => _checkModelConfig());
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withOpacity(0.92),
-                          Colors.white.withOpacity(0.82),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.6),
-                        width: 0.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        ),
-                        BoxShadow(
-                          color: const Color(0xFF6366F1).withOpacity(0.08),
-                          blurRadius: 24,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Color(0xFF818CF8),
-                                Color(0xFF6366F1),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(Icons.auto_awesome,
-                              size: 18, color: Colors.white),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                UserStorage.l10n.configureNow,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1E293B),
-                                  letterSpacing: -0.2,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                UserStorage.l10n.modelNotConfiguredBanner,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color:
-                                      const Color(0xFF64748B).withOpacity(0.9),
-                                  height: 1.3,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF6366F1).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(Icons.arrow_forward_ios,
-                              size: 12, color: Color(0xFF6366F1)),
-                        ),
-                      ],
-                    ),
+            TimelineModelConfigBanner(
+              onConfigureTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AppConfig.enableMemexModelService
+                        ? const AiServiceSetupPage()
+                        : const ModelConfigListPage(),
                   ),
-                ),
-              ),
+                );
+              },
+            ),
             if (_showFitnessBanner)
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
