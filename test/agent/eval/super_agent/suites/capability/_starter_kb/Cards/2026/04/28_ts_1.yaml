@@ -1,0 +1,15 @@
+fact_id: "2026/04/28.md#ts_1"
+timestamp: 1777348800
+status: completed
+title: "Finished The Pragmatic Programmer"
+fact: "Finally finished The Pragmatic Programmer. It took me a few weeks to get through, but I really enjoyed the chapters on the pragmatic mindset."
+tags:
+  - reading
+  - books
+ui_configs:
+  - template_id: rating
+    data:
+      subject: "The Pragmatic Programmer"
+      score: 4
+      max_score: 5
+      comment: "Solid read, the mindset chapters stuck with me."

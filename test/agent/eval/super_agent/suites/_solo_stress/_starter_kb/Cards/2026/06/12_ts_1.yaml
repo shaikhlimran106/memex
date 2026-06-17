@@ -1,0 +1,14 @@
+fact_id: "2026/06/12.md#ts_1"
+timestamp: 1781236800
+status: completed
+title: "5km morning run, 28:00"
+fact: "Got my morning run in, 5km in 28:00. Felt strong the whole way and kept a steady rhythm."
+tags:
+  - running
+  - health
+ui_configs:
+  - template_id: metric
+    data:
+      title: "Morning run"
+      value: "5km"
+      secondary: "28:00"

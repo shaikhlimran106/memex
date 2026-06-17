@@ -80,6 +80,15 @@ class CardData {
   final List<UiConfig> uiConfigs;
   final String? title;
   final String? address;
+  /// The user's original raw information this card represents (AI-recognized
+  /// capture intent). Replaces the legacy pipeline's fact-file content and
+  /// image-analysis text that used to live outside the card.
+  final String? fact;
+  /// Image/audio attachments associated with this card, each stored as a
+  /// markdown-style reference identical to the in-text form: `![image](fs://…)`
+  /// for images and `[audio](fs://…)` for audio. Replaces the legacy pipeline's
+  /// fs:// references that used to live inline in the fact-file content.
+  final List<String> assets;
   final int? userFixedTimestamp;
   final String? userFixedAddress;
   final UserFixedLocation? userFixedLocation;
@@ -96,6 +105,8 @@ class CardData {
     required this.uiConfigs,
     this.title,
     this.address,
+    this.fact,
+    List<String>? assets,
     this.userFixedTimestamp,
     this.userFixedAddress,
     this.userFixedLocation,
@@ -103,13 +114,20 @@ class CardData {
     this.insight,
     this.deleted,
     this.failureReason,
-  }) : comments = comments ?? const [];
+  })  : assets = assets ?? const [],
+        comments = comments ?? const [];
 
   factory CardData.fromJson(Map<String, dynamic> json) {
     final tagsRaw = json['tags'];
     List<String> tagsList = [];
     if (tagsRaw is List) {
       tagsList = tagsRaw.map((e) => e.toString()).toList();
+    }
+
+    final assetsRaw = json['assets'];
+    List<String> assetsList = [];
+    if (assetsRaw is List) {
+      assetsList = assetsRaw.map((e) => e.toString()).toList();
     }
 
     final uiConfigsRaw = json['ui_configs'];
@@ -160,6 +178,8 @@ class CardData {
       uiConfigs: uiConfigsList,
       title: json['title'] as String?,
       address: json['address'] as String?,
+      fact: json['fact'] as String?,
+      assets: assetsList,
       userFixedTimestamp: json['user_fixed_timestamp'] as int?,
       userFixedAddress: json['user_fixed_address'] as String?,
       userFixedLocation: userFixedLocation,
@@ -180,6 +200,8 @@ class CardData {
     };
     if (title != null) m['title'] = title;
     if (address != null) m['address'] = address;
+    if (fact != null) m['fact'] = fact;
+    if (assets.isNotEmpty) m['assets'] = assets;
     if (userFixedTimestamp != null)
       m['user_fixed_timestamp'] = userFixedTimestamp;
     if (userFixedAddress != null) m['user_fixed_address'] = userFixedAddress;
@@ -201,6 +223,8 @@ class CardData {
     List<UiConfig>? uiConfigs,
     String? title,
     String? address,
+    String? fact,
+    List<String>? assets,
     int? userFixedTimestamp,
     String? userFixedAddress,
     UserFixedLocation? userFixedLocation,
@@ -218,6 +242,8 @@ class CardData {
       uiConfigs: uiConfigs ?? this.uiConfigs,
       title: title ?? this.title,
       address: address ?? this.address,
+      fact: fact ?? this.fact,
+      assets: assets ?? this.assets,
       userFixedTimestamp: userFixedTimestamp ?? this.userFixedTimestamp,
       userFixedAddress: userFixedAddress ?? this.userFixedAddress,
       userFixedLocation: userFixedLocation ?? this.userFixedLocation,

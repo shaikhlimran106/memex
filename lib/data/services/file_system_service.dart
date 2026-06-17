@@ -38,6 +38,102 @@ class SkillSyncResult {
   });
 }
 
+class TimelineTemplateFieldMeta {
+  final String name;
+  final String type;
+  final bool required;
+  final String description;
+
+  const TimelineTemplateFieldMeta({
+    required this.name,
+    required this.type,
+    required this.required,
+    required this.description,
+  });
+
+  factory TimelineTemplateFieldMeta.fromJson(Map<String, dynamic> json) {
+    return TimelineTemplateFieldMeta(
+      name: json['name']?.toString() ?? '',
+      type: json['type']?.toString() ?? '',
+      required: json['required'] == true,
+      description: json['description']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'type': type,
+      'required': required,
+      'description': description,
+    };
+  }
+}
+
+class TimelineTemplateMeta {
+  final String templateId;
+  final String description;
+  final String useCase;
+  final List<TimelineTemplateFieldMeta> fields;
+
+  const TimelineTemplateMeta({
+    required this.templateId,
+    required this.description,
+    required this.useCase,
+    required this.fields,
+  });
+
+  factory TimelineTemplateMeta.fromJson(
+    String templateId,
+    Map<String, dynamic> json,
+  ) {
+    final rawFields = json['fields'];
+    return TimelineTemplateMeta(
+      templateId: templateId,
+      description: json['description']?.toString() ?? '',
+      useCase: json['use_case']?.toString() ?? '',
+      fields: rawFields is List
+          ? rawFields
+              .whereType<Map>()
+              .map((field) => TimelineTemplateFieldMeta.fromJson(
+                    Map<String, dynamic>.from(field),
+                  ))
+              .toList()
+          : const [],
+    );
+  }
+
+  List<String> get fieldNames => fields.map((field) => field.name).toList();
+
+  String get dataStructure {
+    return fields
+        .map(
+          (field) =>
+              '- `${field.name}` (${field.type}, ${field.required ? "required" : "optional"}): ${field.description}',
+        )
+        .join('\n');
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'description': description,
+      'use_case': useCase,
+      'data_structure': dataStructure,
+      'fields': fields.map((field) => field.toJson()).toList(),
+    };
+  }
+}
+
+class TimelineTemplateCardUsage {
+  final String cardId;
+  final Map<String, dynamic> data;
+
+  const TimelineTemplateCardUsage({
+    required this.cardId,
+    required this.data,
+  });
+}
+
 /// File system manager. Maps to backend FileSystemManager; manages user workspace dirs and file ops.
 class FileSystemService {
   final BaseFileService _baseService = BaseFileService();
@@ -54,6 +150,14 @@ class FileSystemService {
 
   /// Lock protecting _cardLocks map access
   final Lock _cardLocksMapLock = Lock();
+
+  /// Serializes filename allocation + copy for factId-less assets so two
+  /// concurrent saves on the same day can't pick the same `no_` index.
+  final Lock _factlessAssetLock = Lock();
+
+  /// Serializes card fact_id allocation so two concurrent saves on the same
+  /// day can't pick the same `ts_N` slot.
+  final Lock _cardFactIdLock = Lock();
 
   /// Flag to indicate if a rebuild is in progress to prevent recursion
   bool _isRebuilding = false;
@@ -1316,7 +1420,7 @@ class FileSystemService {
 
   /// Templates directory path (card templates)
   String getTemplatesPath(String userId) {
-    return path.join(getSystemPath(userId), 'Templates');
+    return path.join(getUserSettingsPath(userId), 'Templates');
   }
 
   /// Knowledge insights card templates directory path
@@ -1356,6 +1460,7 @@ class FileSystemService {
     String extension, {
     String? factId,
     String? extraInfo,
+    DateTime? date,
   }) {
     String dateStr;
     String mStr;
@@ -1385,7 +1490,16 @@ class FileSystemService {
         }
       }
     } else {
-      throw ApiException('factId cannot be empty');
+      // No factId (e.g. a record captured directly through Super Agent chat,
+      // where the card — and its fact id — is created later). Name the file by
+      // today's date with a fixed `ts_0` marker; [index] is the running count
+      // of such files for the day.
+      final now = date ?? DateTime.now();
+      final year = now.year.toString().padLeft(4, '0');
+      final month = now.month.toString().padLeft(2, '0');
+      final day = now.day.toString().padLeft(2, '0');
+      dateStr = '$year$month$day';
+      mStr = '0';
     }
 
     final extraPart = extraInfo != null ? '_$extraInfo' : '';
@@ -1447,32 +1561,73 @@ class FileSystemService {
       }
     }
 
-    final filename = generateAssetFilename(
-      userId,
-      assetType,
-      index,
-      extension,
-      factId: factId,
-      extraInfo: extraInfo,
-    );
-    final absolutePath = path.join(assetsPath, filename);
+    Future<(String, String)> doSave(int resolvedIndex, DateTime? date) async {
+      final filename = generateAssetFilename(
+        userId,
+        assetType,
+        resolvedIndex,
+        extension,
+        factId: factId,
+        extraInfo: extraInfo,
+        date: date,
+      );
+      final absolutePath = path.join(assetsPath, filename);
 
-    try {
       final sourceFile = File(sourcePath);
       if (!await sourceFile.exists()) {
         throw ApiException('Source file not found: $sourcePath');
       }
-
       await sourceFile.copy(absolutePath);
 
       // Convert to relative path to avoid iOS Application ID change issue
       final relativePath = toRelativePath(absolutePath);
       _logger.info('Copied asset from $sourcePath to $absolutePath');
       return (filename, relativePath);
+    }
+
+    try {
+      // factId-less assets (captured directly through Super Agent chat) are
+      // named by today's date + ts_0; their `no_` index is the running count
+      // of such files for the day. Allocate the index and copy under a lock so
+      // concurrent saves can't collide on the same name.
+      if (factId == null) {
+        return await _factlessAssetLock.synchronized(() async {
+          final now = DateTime.now();
+          final nextIndex = await _nextFactlessAssetIndex(assetsPath, now);
+          return doSave(nextIndex, now);
+        });
+      }
+      return await doSave(index, null);
     } catch (e) {
       _logger.severe('Failed to save asset file: $e');
       rethrow;
     }
+  }
+
+  /// Next running `no_` index for factId-less assets captured on [date].
+  ///
+  /// Scans [assetsPath] for files named `*_<YYYYMMDD>_ts_0_no_<N>*` (both
+  /// image and audio share one daily counter, so the index reflects "the Nth
+  /// file captured today") and returns the highest N seen plus one, starting
+  /// at 1. Must be called while holding [_factlessAssetLock].
+  Future<int> _nextFactlessAssetIndex(String assetsPath, DateTime date) async {
+    final dateStr = '${date.year.toString().padLeft(4, '0')}'
+        '${date.month.toString().padLeft(2, '0')}'
+        '${date.day.toString().padLeft(2, '0')}';
+    final pattern = RegExp('_${dateStr}_ts_0_no_(\\d+)');
+
+    final dir = Directory(assetsPath);
+    if (!await dir.exists()) return 1;
+
+    var maxIndex = 0;
+    await for (final entity in dir.list(followLinks: false)) {
+      if (entity is! File) continue;
+      final match = pattern.firstMatch(path.basename(entity.path));
+      if (match == null) continue;
+      final n = int.tryParse(match.group(1)!) ?? 0;
+      if (n > maxIndex) maxIndex = n;
+    }
+    return maxIndex + 1;
   }
 
   /// Daily fact file path
@@ -1590,6 +1745,73 @@ class FileSystemService {
     final month = date.month.toString().padLeft(2, '0');
     final day = date.day.toString().padLeft(2, '0');
     return '$year/$month/$day.md#ts_$newId';
+  }
+
+  /// Allocate a fresh fact_id for a brand-new card on [date] (defaults to now).
+  ///
+  /// The legacy flow derived fact_id from the daily Facts file before the card
+  /// existed. Cards are now created directly through SuperAgent without a Facts
+  /// file, so the id space is driven by the Cards directory instead: this scans
+  /// existing cards for the day (`Cards/YYYY/MM/DD_ts_N.yaml`), takes the max
+  /// `ts_N` + 1, and immediately reserves the slot by writing a `processing`
+  /// placeholder card so two concurrent saves on the same day can't pick the
+  /// same id. The caller overwrites the placeholder with the real card via
+  /// [updateCardFile]. Legacy Facts entries for the day are also honored so a
+  /// previously-used id is never reused.
+  Future<String> allocateCardFactId(String userId, {DateTime? date}) async {
+    return _cardFactIdLock.synchronized(() async {
+      final now = date ?? DateTime.now();
+      final year = now.year.toString();
+      final month = now.month.toString().padLeft(2, '0');
+      final day = now.day.toString().padLeft(2, '0');
+
+      var maxTs = 0;
+
+      // Existing cards: Cards/YYYY/MM/DD_ts_N.yaml
+      final monthDir = path.join(getCardsPath(userId), year, month);
+      if (await _baseService.exists(monthDir) &&
+          await _baseService.isDirectory(monthDir)) {
+        try {
+          final pattern = RegExp('^${day}_ts_(\\d+)\\.yaml\$');
+          for (final item in await _baseService.listDirectory(monthDir)) {
+            final m = pattern.firstMatch(path.basename(item));
+            if (m != null) {
+              final n = int.tryParse(m.group(1)!) ?? 0;
+              if (n > maxTs) maxTs = n;
+            }
+          }
+        } catch (e) {
+          _logger.warning('Failed to scan cards for fact_id allocation: $e');
+        }
+      }
+
+      // Legacy Facts entries for the day (## <id:ts_N>) — avoid id reuse.
+      try {
+        final result = await readDailyFactFile(userId, now);
+        for (final m
+            in RegExp(r'## <id:ts_(\d+)>').allMatches(result.bodyContent)) {
+          final n = int.tryParse(m.group(1)!) ?? 0;
+          if (n > maxTs) maxTs = n;
+        }
+      } catch (_) {}
+
+      final factId = '$year/$month/$day.md#ts_${maxTs + 1}';
+
+      // Reserve the slot so a concurrent allocation advances past it.
+      await safeWriteCardFile(
+        userId,
+        factId,
+        CardData(
+          factId: factId,
+          timestamp: now.millisecondsSinceEpoch ~/ 1000,
+          status: 'processing',
+          tags: const [],
+          uiConfigs: const [],
+        ),
+      );
+
+      return factId;
+    });
   }
 
   /// Extract simple format (ts_N) from full fact_id
@@ -1803,6 +2025,148 @@ class FileSystemService {
       _logger.severe('Failed to read template HTML $viewPath: $e');
       return null;
     }
+  }
+
+  Future<void> writeTemplateHtml({
+    required String userId,
+    required String templateId,
+    required String htmlContent,
+  }) async {
+    final templatePath = getTemplatePath(userId, templateId);
+    await ensureDirectory(templatePath);
+
+    final viewPath = path.join(templatePath, 'view.html');
+    await _baseService.writeFile(viewPath, htmlContent);
+  }
+
+  Future<TimelineTemplateMeta?> readTimelineTemplateMeta(
+    String userId,
+    String templateId,
+  ) async {
+    final metaPath =
+        path.join(getTemplatePath(userId, templateId), 'meta.json');
+    if (!await _baseService.exists(metaPath)) {
+      return null;
+    }
+
+    try {
+      final content = await _baseService.readFile(metaPath);
+      final decoded = jsonDecode(content);
+      if (decoded is! Map) return null;
+      return TimelineTemplateMeta.fromJson(
+        templateId,
+        Map<String, dynamic>.from(decoded),
+      );
+    } catch (e) {
+      _logger.severe('Failed to read timeline template meta $metaPath: $e');
+      return null;
+    }
+  }
+
+  Future<void> saveTimelineTemplateMeta({
+    required String userId,
+    required String templateId,
+    required String description,
+    required String useCase,
+    required List<TimelineTemplateFieldMeta> fields,
+  }) async {
+    final templatePath = getTemplatePath(userId, templateId);
+    await ensureDirectory(templatePath);
+
+    final metaPath = path.join(templatePath, 'meta.json');
+    const encoder = JsonEncoder.withIndent('  ');
+    await _baseService.writeFile(
+      metaPath,
+      '${encoder.convert(TimelineTemplateMeta(
+        templateId: templateId,
+        description: description,
+        useCase: useCase,
+        fields: fields,
+      ).toJson())}\n',
+    );
+  }
+
+  Future<List<TimelineTemplateMeta>> listTimelineTemplateMetas(
+      String userId) async {
+    final templatesPath = getTemplatesPath(userId);
+    if (!await _baseService.exists(templatesPath)) {
+      return const [];
+    }
+
+    final metas = <TimelineTemplateMeta>[];
+    try {
+      final items = await _baseService.listDirectory(templatesPath);
+      for (final item in items) {
+        final templatePath = path.join(templatesPath, item);
+        if (!await _baseService.isDirectory(templatePath)) continue;
+        final templateId = path.basename(item);
+        final meta = await readTimelineTemplateMeta(userId, templateId);
+        if (meta != null) {
+          metas.add(meta);
+        }
+      }
+    } catch (e) {
+      _logger.warning('Failed to list timeline template metas: $e');
+    }
+    metas.sort((a, b) => a.templateId.compareTo(b.templateId));
+    return metas;
+  }
+
+  Future<List<String>> findCardsUsingTemplate(
+    String userId,
+    String templateId,
+  ) async {
+    final usages = await findCardTemplateUsages(userId, templateId);
+    return usages.map((usage) => usage.cardId).toSet().toList();
+  }
+
+  Future<List<TimelineTemplateCardUsage>> findCardTemplateUsages(
+    String userId,
+    String templateId,
+  ) async {
+    final cardPaths = await listAllCardFiles(userId);
+    final cardsPath = getCardsPath(userId);
+    final result = <TimelineTemplateCardUsage>[];
+
+    for (final cardPath in cardPaths) {
+      try {
+        final content = await _baseService.readFile(cardPath);
+        final raw = _parseYaml(content);
+        if (raw.isEmpty) continue;
+        final card = CardData.fromJson(Map<String, dynamic>.from(raw));
+        final matchingConfigs = card.uiConfigs
+            .where((config) => config.templateId == templateId)
+            .toList();
+        if (matchingConfigs.isEmpty) {
+          continue;
+        }
+        final relative = path.relative(cardPath, from: cardsPath);
+        final parts = path.split(relative);
+        var cardId = card.factId;
+        if (parts.length != 3) {
+          cardId = card.factId;
+        } else {
+          final year = parts[0];
+          final month = parts[1];
+          final filename = path.basenameWithoutExtension(parts[2]);
+          final match = RegExp(r'^(\d{2})_(ts_\d+)$').firstMatch(filename);
+          if (match != null) {
+            cardId = '$year/$month/${match.group(1)}.md#${match.group(2)}';
+          }
+        }
+
+        for (final config in matchingConfigs) {
+          result.add(TimelineTemplateCardUsage(
+            cardId: cardId,
+            data: config.data,
+          ));
+        }
+      } catch (e) {
+        _logger.warning('Failed to inspect card template usage $cardPath: $e');
+      }
+    }
+
+    return result;
   }
 
   /// Read chart template HTML file

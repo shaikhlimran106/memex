@@ -257,8 +257,8 @@ Future<void> renderAndPushCardUpdate(
 
   final title = cardData?.title;
 
-  // Extract assets and rawText from factContent
-  final assetsAndText = await extractAssetsAndRawText(userId, combinedText);
+  // Extract assets and rawText from the card's own fields
+  final assetsAndText = await extractAssetsAndRawText(userId, cardForRender);
   final assets = (assetsAndText['assets'] as List<AssetData>)
       .map((a) => a.toJson())
       .toList();
@@ -343,8 +343,8 @@ Future<void> handleCardAgentFailureImpl(
       final tags = cardData.tags;
       final title = cardData.title;
 
-      // Extract assets and rawText from factContent
-      final assetsAndText = await extractAssetsAndRawText(userId, combinedText);
+      // Extract assets and rawText from the card's own fields
+      final assetsAndText = await extractAssetsAndRawText(userId, cardData);
       final assets = (assetsAndText['assets'] as List<AssetData>)
           .map((a) => a.toJson())
           .toList();

@@ -1,3 +1,5 @@
+import 'package:memex/data/services/file_system_service.dart';
+
 /// Allowed template IDs derived from [timelineTemplates].
 Set<String> get allowedTemplateIds =>
     timelineTemplates.map((t) => t['template_id'] as String).toSet();
@@ -288,9 +290,75 @@ void validateTemplateData(String templateId, Map<String, dynamic> data) {
   }
 }
 
+void validateCustomTemplateData(
+  String templateId,
+  Map<String, dynamic> data,
+  List<TimelineTemplateFieldMeta> fields,
+) {
+  final expected = fields.map((field) => field.name).toSet();
+  final required = fields
+      .where((field) => field.required)
+      .map((field) => field.name)
+      .toSet();
+  final actual = data.keys.map((key) => key.toString()).toSet();
+  final missing = required.difference(actual);
+  if (missing.isNotEmpty) {
+    throw ArgumentError(
+      'Template $templateId: missing custom field(s): ${missing.join(", ")}.',
+    );
+  }
+  final extra = actual.difference(expected);
+  if (extra.isNotEmpty) {
+    throw ArgumentError(
+      'Template $templateId: unknown custom field(s): ${extra.join(", ")}.',
+    );
+  }
+
+  final htmlTagPattern = RegExp(r'</?[a-zA-Z][^>]*>');
+  for (final field in fields) {
+    if (!data.containsKey(field.name)) {
+      continue;
+    }
+    final value = data[field.name];
+    if (value == null) {
+      throw ArgumentError(
+          'Template $templateId: "${field.name}" must not be null.');
+    }
+    if (value is Map || value is List) {
+      throw ArgumentError(
+        'Template $templateId: "${field.name}" must be a scalar value, not ${value.runtimeType}.',
+      );
+    }
+    if (field.type == 'String' && value is! String) {
+      throw ArgumentError(
+        'Template $templateId: "${field.name}" must be String, got ${value.runtimeType}.',
+      );
+    }
+    if (field.type == 'Number' && value is! num) {
+      throw ArgumentError(
+        'Template $templateId: "${field.name}" must be Number, got ${value.runtimeType}.',
+      );
+    }
+    if (field.type == 'Boolean' && value is! bool) {
+      throw ArgumentError(
+        'Template $templateId: "${field.name}" must be Boolean, got ${value.runtimeType}.',
+      );
+    }
+    final text = value.toString();
+    if (htmlTagPattern.hasMatch(text)) {
+      throw ArgumentError(
+        'Template $templateId: "${field.name}" must be plain text and cannot contain HTML tags.',
+      );
+    }
+  }
+}
+
 /// Validates one ui_config entry (must have template_id and data; data validated per template).
 /// Throws [ArgumentError] with clear message if invalid.
-void validateUiConfig(Map<String, dynamic> config) {
+void validateUiConfig(
+  Map<String, dynamic> config, {
+  Map<String, List<TimelineTemplateFieldMeta>> customTemplateFields = const {},
+}) {
   if (!config.containsKey('template_id')) {
     throw ArgumentError('ui_configs entry missing "template_id".');
   }
@@ -300,9 +368,14 @@ void validateUiConfig(Map<String, dynamic> config) {
         'ui_configs entry "template_id" must be a non-empty String.');
   }
   final templateId = tid;
-  if (!allowedTemplateIds.contains(templateId)) {
+  final customFields = customTemplateFields[templateId];
+  if (!allowedTemplateIds.contains(templateId) && customFields == null) {
+    final allowed = [
+      ...allowedTemplateIds,
+      ...customTemplateFields.keys,
+    ]..sort();
     throw ArgumentError(
-        'template_id "$templateId" is not allowed. Allowed: ${allowedTemplateIds.join(", ")}.');
+        'template_id "$templateId" is not allowed. Allowed: ${allowed.join(", ")}.');
   }
   if (!config.containsKey('data')) {
     throw ArgumentError(
@@ -313,7 +386,12 @@ void validateUiConfig(Map<String, dynamic> config) {
     throw ArgumentError(
         'ui_configs entry for template "$templateId": "data" must be an object (Map).');
   }
-  validateTemplateData(templateId, Map<String, dynamic>.from(data));
+  final dataMap = Map<String, dynamic>.from(data);
+  if (customFields != null) {
+    validateCustomTemplateData(templateId, dataMap, customFields);
+  } else {
+    validateTemplateData(templateId, dataMap);
+  }
 }
 
 final List<Map<String, dynamic>> timelineTemplates = [

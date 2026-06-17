@@ -1,0 +1,55 @@
+{
+  "id": "super_stress_weekly_catchup",
+  "description": "A long ~18-turn Sunday catch-up session on a populated workspace, designed to cross the SuperAgent context-compression threshold through turn count + recall reads rather than large inputs. Resilience probes: turn 11 edits the lamp card created in turn 4 (early-session info must survive compression); turn 15 recalls the Clean Architecture rating from turn 2. Image probes (high-frequency real usage): turn 17 captures a dinner photo (the card's `fact` must describe the meal in words, with the `fs://` reference only in `assets` — never inside `fact`); turn 18 adds a detail to that just-created record and must reuse the fact_id already in context rather than running diagnostics to rediscover it. Deterministic floor: the session must stay coherent (no crash, no half-built cards) and still produce well-formed cards at the end. (Runs with compression_token_threshold=32000 so compression fires once or twice late in the session rather than every turn.)",
+  "trials_per_run": 1,
+  "timeout_seconds": 1800,
+  "metadata": {
+    "failure_bucket": "compression_stress"
+  },
+  "input": {
+    "turns": [
+      "Catching up on this week. First — went for a run Thursday, 5km in 26:10, a new best for me.",
+      "Finished reading Clean Architecture by Bob Martin — solid 4 out of 5, the boundaries chapter was the standout.",
+      "How's my running pace been trending lately?",
+      "Picked up a desk lamp this week — the BenQ ScreenBar, $109.",
+      "What have I been spending money on recently?",
+      "Quick note: feeling good about the onboarding project momentum this week.",
+      "Remind me to book a dentist appointment for early July.",
+      "What's the status of the onboarding project right now?",
+      "Watched The Bear season finale last night — loved it, 9/10.",
+      "Slept badly Friday, only about 5 hours and kept waking up.",
+      "Actually, that BenQ lamp — fix the price, it was $129, not $109.",
+      "How many books have I finished this month?",
+      "Add a todo to write up the sprint retro notes by Wednesday.",
+      "Give me a quick summary of everything I've logged today.",
+      "What did I end up rating Clean Architecture again?",
+      "One more — had a great coffee at Blue Bottle this morning, $6.50.",
+      {
+        "text": "今天晚饭吃了樟树港的辣椒，好辣！",
+        "images": [
+          {"file": "dinner_zhangshugang.jpg", "original_name": "wx_camera_dinner.jpg"}
+        ]
+      },
+      "刚那条晚饭的记录补一句：除了辣椒，还有香煎小鱼和黄瓜汤。"
+    ],
+    "scene": "super_agent_home",
+    "base_fixture": "_starter_kb",
+    "compression_token_threshold": 32000
+  },
+  "reference_solution": {
+    "expected_outcome": {
+      "ran_ok": true,
+      "no_half_built_card": true,
+      "completed_new_card_count": ">=1"
+    },
+    "source": "manual"
+  },
+  "graders": [
+    {
+      "name": "super_capture_complete"
+    },
+    {
+      "name": "super_ambiguous_handled"
+    }
+  ]
+}

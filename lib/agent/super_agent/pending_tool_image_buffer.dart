@@ -13,21 +13,37 @@ import 'package:dart_agent_core/dart_agent_core.dart';
 /// The buffer is pure memory and is never persisted. Drained images are sent to
 /// the model exactly once (on the immediately following call) and are not added
 /// to `state.history`, so they do not bloat the agent state file.
+class PendingToolImage {
+  const PendingToolImage({
+    required this.message,
+    required this.image,
+  });
+
+  final String message;
+  final ImagePart image;
+}
+
 class PendingToolImageBuffer {
   PendingToolImageBuffer._();
 
   static final PendingToolImageBuffer instance = PendingToolImageBuffer._();
 
-  final Map<String, List<ImagePart>> _bySession = {};
+  final Map<String, List<PendingToolImage>> _bySession = {};
 
   /// Queue an image for [sessionId] to be injected on the next LLM call.
-  void add(String sessionId, ImagePart image) {
+  void add(
+    String sessionId,
+    ImagePart image, {
+    required String message,
+  }) {
     if (sessionId.isEmpty) return;
-    (_bySession[sessionId] ??= <ImagePart>[]).add(image);
+    (_bySession[sessionId] ??= <PendingToolImage>[]).add(
+      PendingToolImage(message: message, image: image),
+    );
   }
 
   /// Take and clear all pending images for [sessionId] (one-shot).
-  List<ImagePart> drain(String sessionId) {
+  List<PendingToolImage> drain(String sessionId) {
     final images = _bySession.remove(sessionId);
     if (images == null || images.isEmpty) return const [];
     return images;

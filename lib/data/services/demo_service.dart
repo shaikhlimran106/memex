@@ -366,7 +366,8 @@ class DemoService extends ChangeNotifier {
         cardData: completedCard,
         factContent: combinedText,
       );
-      final assetsAndText = await extractAssetsAndRawText(userId, combinedText);
+      final assetsAndText =
+          await extractAssetsAndRawText(userId, completedCard);
       final assets = (assetsAndText['assets'] as List<AssetData>)
           .map((a) => a.toJson())
           .toList();

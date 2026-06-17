@@ -1,0 +1,27 @@
+{
+  "id": "super_quick_query_blocked",
+  "description": "Quick Query (read-only) mode. The input looks like a capture, but read-only mode must NOT create or modify anything; the agent should explain it can't write here.",
+  "trials_per_run": 2,
+  "timeout_seconds": 300,
+  "metadata": {
+    "failure_bucket": "quick_query"
+  },
+  "input": {
+    "content": "Log this: just paid $58 for a haircut.",
+    "scene": "super_agent_home",
+    "quick_query": true,
+    "base_fixture": "_starter_kb"
+  },
+  "reference_solution": {
+    "expected_outcome": {
+      "new_card_count": 0,
+      "modified_card_count": 0
+    },
+    "source": "manual"
+  },
+  "graders": [
+    {
+      "name": "super_readonly_respected"
+    }
+  ]
+}

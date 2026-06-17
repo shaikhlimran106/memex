@@ -1,0 +1,15 @@
+fact_id: "2026/05/18.md#ts_1"
+timestamp: 1779076800
+status: completed
+title: "Bought a Keychron keyboard"
+fact: "Bought a Keychron K8 mechanical keyboard for $129. Been wanting to upgrade my desk setup for a while."
+tags:
+  - finance
+ui_configs:
+  - template_id: transaction
+    data:
+      merchant: "Keychron"
+      amount: "$129.00"
+      items:
+        - name: "Keychron K8 mechanical keyboard"
+          amount: "$129.00"

@@ -437,10 +437,10 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       refs: refs,
       images: images,
       imageOriginalFilenames: imageOriginalFilenames,
-      isQuickQuery: _isSuperAgentHome
-          ? _runMode == AgentRunMode.readOnly
-          : _isReadOnly,
-      runMode: _isSuperAgentHome ? _runMode.wireName : AgentRunMode.auto.wireName,
+      isQuickQuery:
+          _isSuperAgentHome ? _runMode == AgentRunMode.readOnly : _isReadOnly,
+      runMode:
+          _isSuperAgentHome ? _runMode.wireName : AgentRunMode.auto.wireName,
     ));
   }
 
@@ -1888,10 +1888,8 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                         child: Text(
                           isPending
                               ? _label(
-                                  en:
-                                      'Approve: ${_toolDisplayName(item.request.toolName)}?',
-                                  zh:
-                                      '是否执行:${_toolDisplayName(item.request.toolName)}?',
+                                  en: 'Approve: ${_toolDisplayName(item.request.toolName)}?',
+                                  zh: '是否执行:${_toolDisplayName(item.request.toolName)}?',
                                 )
                               : isApproved
                                   ? _label(en: 'Approved', zh: '已允许')
@@ -1955,8 +1953,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                                 _resolveApproval(item, approved: false),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.textSecondary,
-                              side:
-                                  const BorderSide(color: Color(0xFFE2E8F0)),
+                              side: const BorderSide(color: Color(0xFFE2E8F0)),
                               padding: const EdgeInsets.symmetric(vertical: 9),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -2527,8 +2524,6 @@ class _AgentChatDialogState extends State<AgentChatDialog>
         return Icons.drive_file_move_outline;
       case 'remove':
         return Icons.delete_outline_rounded;
-      case 'submit_record':
-        return Icons.bookmark_add_outlined;
       case 'create_dynamic_timeline_card':
       case 'update_dynamic_timeline_card':
         return Icons.auto_awesome_mosaic_outlined;
@@ -2561,8 +2556,6 @@ class _AgentChatDialogState extends State<AgentChatDialog>
         return _label(en: 'Move', zh: '移动');
       case 'remove':
         return _label(en: 'Delete', zh: '删除');
-      case 'submit_record':
-        return _label(en: 'Record', zh: '记录');
       case 'create_dynamic_timeline_card':
         return _label(en: 'Create UI', zh: '生成 UI');
       case 'update_dynamic_timeline_card':
@@ -2581,8 +2574,10 @@ class _AgentChatDialogState extends State<AgentChatDialog>
         return _label(en: 'Create reminder', zh: '创建提醒');
       case 'cancel_action':
         return _label(en: 'Cancel reminder/event', zh: '取消提醒/日程');
-      case 'retry_failed_timeline_card':
-        return _label(en: 'Retry card', zh: '重试卡片');
+      case 'search_timeline_cards':
+        return _label(en: 'Search cards', zh: '搜索卡片');
+      case 'inspect_timeline_card':
+        return _label(en: 'Inspect card', zh: '查看卡片');
       case 'update_timeline_card_insight':
         return _label(en: 'Update insight', zh: '更新洞察');
       case 'save_knowledge_insight_cards':

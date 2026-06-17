@@ -162,7 +162,7 @@ Future<void> _emitCardProcessingUpdate({
     cardData: cardData,
     factContent: combinedText,
   );
-  final assetsAndText = await extractAssetsAndRawText(userId, combinedText);
+  final assetsAndText = await extractAssetsAndRawText(userId, cardData);
   final assets = (assetsAndText['assets'] as List<AssetData>)
       .map((a) => a.toJson())
       .toList();

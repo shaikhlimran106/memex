@@ -1,0 +1,6 @@
+{
+  "name": "super_agent_capability",
+  "agent_name": "chat_agent",
+  "kind": "capability",
+  "task_pass_threshold": 1.0
+}

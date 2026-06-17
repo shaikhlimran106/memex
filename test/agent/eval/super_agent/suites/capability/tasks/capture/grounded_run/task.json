@@ -1,0 +1,38 @@
+{
+  "id": "super_grounded_run",
+  "description": "On a workspace with an established running habit (3 prior runs + Areas/Health/Running.md), the user logs another run. Capture as a metric card; qualitatively it should ground in the existing pace history (faster than before).",
+  "trials_per_run": 2,
+  "timeout_seconds": 360,
+  "metadata": {
+    "failure_bucket": "capture"
+  },
+  "input": {
+    "content": "Morning run done — 5km in 26:40 today, legs felt strong.",
+    "scene": "super_agent_home",
+    "base_fixture": "_starter_kb"
+  },
+  "reference_solution": {
+    "expected_outcome": {
+      "completed_new_card_count": 1,
+      "template_ids": [
+        "metric",
+        "compact"
+      ]
+    },
+    "source": "manual"
+  },
+  "graders": [
+    {
+      "name": "super_capture_complete"
+    },
+    {
+      "name": "super_template_choice",
+      "config": {
+        "expected_template_ids": [
+          "metric",
+          "compact"
+        ]
+      }
+    }
+  ]
+}

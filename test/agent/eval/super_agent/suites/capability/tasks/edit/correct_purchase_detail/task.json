@@ -1,0 +1,30 @@
+{
+  "id": "super_correct_purchase_detail",
+  "description": "User corrects a factual detail on an existing purchase card (Keychron, 2026/05/18.md#ts_1). Must locate and EDIT that card, not create a new one.",
+  "trials_per_run": 2,
+  "timeout_seconds": 420,
+  "metadata": {
+    "failure_bucket": "edit"
+  },
+  "input": {
+    "content": "That keyboard I logged last month — it was actually the Keychron K8 Pro, not the plain K8. Fix that.",
+    "scene": "super_agent_home",
+    "base_fixture": "_starter_kb"
+  },
+  "reference_solution": {
+    "expected_outcome": {
+      "modified_card_count": 1,
+      "new_card_count": 0,
+      "expected_fact_id": "2026/05/18.md#ts_1"
+    },
+    "source": "manual"
+  },
+  "graders": [
+    {
+      "name": "super_modified_card",
+      "config": {
+        "expected_fact_id": "2026/05/18.md#ts_1"
+      }
+    }
+  ]
+}

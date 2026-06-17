@@ -35,8 +35,7 @@ void main() {
 
     test('moving or removing a fact file is denied (write on source)', () {
       expect(
-        () =>
-            manager.checkPermission('$facts/2026/06', FileAccessType.write),
+        () => manager.checkPermission('$facts/2026/06', FileAccessType.write),
         throwsA(isA<PermissionDeniedException>()),
       );
     });
@@ -44,8 +43,8 @@ void main() {
     test('derived analysis sidecars under assets stay writable', () {
       manager.checkPermission(
           '$assets/photo.jpg.analysis.txt', FileAccessType.write);
-      manager.checkPermission('$assets/voice.m4a.ocr.txt',
-          FileAccessType.write);
+      manager.checkPermission(
+          '$assets/voice.m4a.ocr.txt', FileAccessType.write);
     });
 
     test('the rest of the workspace stays writable', () {
@@ -70,6 +69,23 @@ void main() {
             '$workspace/Cards/c.yaml', FileAccessType.write),
         throwsA(isA<PermissionDeniedException>()),
       );
+    });
+  });
+
+  group('SuperAgent quick query tools', () {
+    test('allows the workspace event log search tool', () {
+      expect(
+        SuperAgent.isQuickQueryToolAllowed('search_workspace_event_logs'),
+        isTrue,
+      );
+      expect(
+        SuperAgent.isQuickQueryToolAllowed('search_event_logs'),
+        isFalse,
+      );
+    });
+
+    test('allows image viewing as a read-only tool', () {
+      expect(SuperAgent.isQuickQueryToolAllowed('view_image'), isTrue);
     });
   });
 }

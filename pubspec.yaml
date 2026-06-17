@@ -89,6 +89,11 @@ dependencies:
   sherpa_onnx: 1.13.2
   geolocator: ^14.0.2
 
+# Build against the locally-edited dart_agent_core (harness extension hooks).
+dependency_overrides:
+  dart_agent_core:
+    path: ../dart_agent_core
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

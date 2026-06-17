@@ -314,27 +314,15 @@ class SearchService {
         final cardData = await fs.readCardFile(userId, factId);
         if (cardData == null || cardData.deleted == true) continue;
 
-        final factInfo = await fs.extractFactContentFromFile(userId, factId);
-        final rawContent = factInfo?.content ?? '';
-        final assetAnalysisTexts = (factInfo?.assetAnalyses ?? [])
-            .map((a) => a['analysis'] as String? ?? '')
-            .where((s) => s.isNotEmpty)
-            .toList();
-        final assetText = assetAnalysisTexts.join(' ');
-        final assetOcrTexts = (factInfo?.assetOcrTexts ?? [])
-            .map((a) => a['ocr_text'] as String? ?? '')
-            .where((s) => s.isNotEmpty)
-            .toList();
-        final ocrText = assetOcrTexts.join(' ');
-        final combined = [rawContent, assetText, ocrText]
-            .where((s) => s.isNotEmpty)
-            .join(' ');
-
+        // The card's `fact` field is the source-of-truth original user input
+        // (verbatim text plus the meaningful content of any attachments), so it
+        // is the only content the card FTS index needs. Image-analysis / OCR
+        // sidecar text is intentionally not indexed separately.
         await dao.upsertCardFts(
           factId: factId,
           title: cardData.title ?? '',
           tags: cardData.tags.join(' '),
-          content: combined,
+          content: cardData.fact ?? '',
           insight: cardData.insight?.text ?? '',
         );
         count++;

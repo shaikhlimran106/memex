@@ -1,0 +1,26 @@
+{
+  "id": "super_dynamic_compare",
+  "description": "User wants a custom visual card no built-in template fits — a comparison dashboard. Agent should design a custom HTML template via dynamic_timeline_ui and create a completed card using it.",
+  "trials_per_run": 2,
+  "timeout_seconds": 600,
+  "metadata": {
+    "failure_bucket": "capture"
+  },
+  "input": {
+    "content": "Make me a nice visual timeline card comparing three laptops I'm weighing: MacBook Air M3 ($1099, 1.24kg, 18h battery), ThinkPad X1 Carbon ($1399, 1.12kg, 15h), Framework 13 ($1049, 1.3kg, 10h). I want a dashboard-style comparison, not a plain list.",
+    "scene": "super_agent_home",
+    "base_fixture": "_starter_kb"
+  },
+  "reference_solution": {
+    "expected_outcome": {
+      "completed_new_card_count": 1,
+      "custom_template_created": true
+    },
+    "source": "manual"
+  },
+  "graders": [
+    {
+      "name": "super_dynamic_template_created"
+    }
+  ]
+}

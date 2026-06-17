@@ -1,0 +1,25 @@
+{
+  "id": "super_project_followup",
+  "description": "On a workspace with an in-progress onboarding project (Projects/Onboarding Revamp.md, kickoff card 2026/06/02.md#ts_2, and a schedule todo 'Finish onboarding design draft'), the user reports finishing the draft. Capture the update; qualitatively it should tie to the existing project (PKM + schedule), not spawn an unrelated record.",
+  "trials_per_run": 2,
+  "timeout_seconds": 480,
+  "metadata": {
+    "failure_bucket": "capture"
+  },
+  "input": {
+    "content": "Finished the first onboarding design draft today and shared it with Priya for review.",
+    "scene": "super_agent_home",
+    "base_fixture": "_starter_kb"
+  },
+  "reference_solution": {
+    "expected_outcome": {
+      "completed_new_card_count": 1
+    },
+    "source": "manual"
+  },
+  "graders": [
+    {
+      "name": "super_capture_complete"
+    }
+  ]
+}

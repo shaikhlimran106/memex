@@ -29,10 +29,69 @@ final getCurrentTimeTool = Tool(
   },
 );
 
+/// Mint a fresh `fact_id` for a brand-new record, reserving the id by writing a
+/// `processing` placeholder card. This is a SuperAgent base tool (not buried in
+/// a skill) so the agent can mint without first activating
+/// `manage_timeline_card` — capture then becomes a clean "mint, then delegate"
+/// flow. It writes data, so it is intentionally excluded from Quick Query
+/// (read-only) mode.
+final mintRecordFactIdTool = Tool(
+  name: 'mint_record_fact_id',
+  description:
+      "Mint a fresh fact_id for a brand-new record BEFORE creating its card. "
+      "The system reserves the id (it never collides and is never guessed by "
+      "you). Pass the returned fact_id into the task_brief of every worker for "
+      "this record (card / PKM / schedule) so they all link to one identity. "
+      "Use this only for a NEW record — to edit an existing card, reuse that "
+      "card's id instead.",
+  parameters: {
+    'type': 'object',
+    'properties': {
+      'content_creation_date': {
+        'type': 'string',
+        'description':
+            'Optional creation date of the record (e.g. an image capture time), in format "YYYY-MM-DD HH:MM:SS". Determines which day the id is filed under. If omitted, the current time is used.'
+      },
+    },
+  },
+  executable: (String? content_creation_date) async {
+    final context = AgentCallToolContext.current;
+    if (context == null) {
+      throw StateError(
+          "mint_record_fact_id must be called within an agent execution context.");
+    }
+    final userId = context.state.metadata['userId'] as String;
+    DateTime? date;
+    if (content_creation_date != null &&
+        content_creation_date.trim().isNotEmpty) {
+      date = DateTime.tryParse(content_creation_date.trim());
+    }
+    final factId =
+        await FileSystemService.instance.allocateCardFactId(userId, date: date);
+    getLogger('CommonTools').info('Minted fact_id: $factId');
+    return AgentToolResult(
+      content: TextPart(
+          "Minted fact_id: $factId. Use this exact id when saving the card "
+          "(save_timeline_card), organizing it into PKM "
+          "(`<!-- fact_id: $factId -->`), and updating the schedule, so every "
+          "part of this record shares one identity."),
+      metadata: {
+        'artifact': {
+          'type': 'fact_id',
+          'id': factId,
+        },
+      },
+    );
+  },
+);
+
 final getPkmOverviewTool = Tool(
   name: 'get_pkm_overview',
   description:
-      'Get current directory structure and file information of the PKM knowledge base.',
+      'Retrieve the current PKM knowledge base directory structure and file '
+      'information on demand. The PKM tree is NOT pre-loaded into your '
+      'context — call this whenever you need to see the current structure '
+      'before reading or organizing knowledge.',
   parameters: {
     'type': 'object',
     'properties': {},

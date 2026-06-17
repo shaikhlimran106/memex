@@ -15,11 +15,13 @@ import 'package:memex/data/services/chat_run_registry.dart';
 import 'package:memex/data/services/custom_agent_config_service.dart';
 import 'package:memex/data/services/llm_image_codec.dart';
 import 'package:memex/data/services/location_context_service.dart';
-import 'package:memex/data/services/media_service.dart';
 import 'package:memex/domain/models/custom_agent_config.dart';
 import 'package:memex/domain/models/location_context_config.dart';
 import 'package:memex/domain/models/llm_config.dart';
 import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/data/services/geocoding_service.dart';
+import 'package:memex/agent/prompts.dart';
+import 'package:memex/utils/exif_utils.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/time_context.dart';
 import 'package:memex/domain/models/agent_definitions.dart';
@@ -307,21 +309,12 @@ class ChatService {
             break;
         }
       } else {
-        // Default: use SuperAgent for normal chat sessions.
-        var additionalSystemPrompt = """## Comprehensive Correction Principles
-When the user disputes content you generated (such as Cards, PKM entries, or Asset Analysis Results) and provides correction suggestions, you must perform a **comprehensive** correction.
--   **Do not modify only a single dimension** (e.g., do not just modify the card body or just the asset analysis).
--   **You must check and synchronously correct all related content** to ensure overall consistency.
--   **Example**: If the user corrects the description of an image, you must not only update the image analysis result (`.analysis.txt`) but also check if the Card body (`Cards/...`) or related PKM entries that reference this image need to be updated synchronously.
-
-## Interaction Guidelines
-- **Agentic Judgment**: You are engaging in a direct dialogue, but routine capture and reversible low-risk organization should proceed without repeated confirmation. Ask clarifying questions when ambiguity changes the user's meaning or would make the next action high-impact.
-- **Professional Tone**: You are communicating directly with the knowledge base owner. Maintain a formal, concise, and professional tone.
-- **Know Your Limits**: If a task cannot be accomplished with your current skills and tools, explicitly decline the request with an explanation.
-
-## Important
-- **Language**: ${UserStorage.l10n.chatLanguageInstruction}
-""";
+        // Default: use SuperAgent for normal chat sessions. Behavioral
+        // guidance (orchestration, truthfulness, comprehensive correction,
+        // tone, judgment) lives in superAgentSystemPrompt; only the dynamic
+        // language instruction is appended per session here.
+        var additionalSystemPrompt =
+            """## Language\n${UserStorage.l10n.chatLanguageInstruction}""";
 
         final forceActiveSkills = <String>[];
         if (scene == 'assistant_timeline_card_detail') {
@@ -338,7 +331,6 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
           name: agentName ?? 'memex_agent',
           state: state,
           controller: controller,
-          disableSubAgents: false,
           forceActiveSkills: forceActiveSkills,
           quickQuery: isQuickQuery,
           additionalSystemPrompt: additionalSystemPrompt,
@@ -369,7 +361,7 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     switch (scene) {
       case 'super_agent_home':
         sceneContext =
-            "The user opened you from the central Memex entry point. They may want to record something into the timeline, ask about existing memory, request edits, or configure the app. Act as the trusted Super Agent entry rather than a one-shot chatbot: decide the likely intent, continue useful low-risk work, and only ask clarification for genuinely risky or conflicting actions. If the user attaches images, inspect them before deciding. In this scene, image-only or media-first uploads are usually intended as lifelog capture; unless the user clearly asks a question about the images, requests an edit, or says not to save them, call submit_record and pass the provided image_paths exactly.";
+            "The user opened you from the central Memex entry point. They may want to record something into the timeline, ask about existing memory, request edits, or configure the app. Act as the trusted Super Agent entry rather than a one-shot chatbot: decide the likely intent, continue useful low-risk work, and only ask clarification for genuinely risky or conflicting actions. If the user attaches images, inspect them before deciding.";
         break;
       case 'assistant_timeline_card_detail':
         sceneContext =
@@ -407,45 +399,41 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
       _logger.warning('Failed to decorate chat with location context: $e');
     }
 
-    // Inject per-turn context (scene, location, attachments, refs) through the
-    // transient systemReminders channel. The agent loop re-injects these into
-    // each request without persisting them into history, so they can never
-    // pollute loop detection the way the old fake "Understood" assistant turn
-    // did. Clear keys that don't apply this turn so stale (e.g. previous
-    // turn's attachment) context doesn't linger — systemReminders is persisted
-    // in agent state.
+    // Per-turn context (message time, scene, location, attachments, refs) is
+    // folded into a SINGLE <system-reminder> block at the head of this turn's
+    // user message — rather than scattered across separate systemReminders
+    // entries (which the agent loop would each wrap in its own
+    // <system-reminder> tag).
     final attachmentContext = _buildAttachmentContext(
       preparedImages,
       scene: scene,
     );
-    final reminderState = agent.state;
-    void setOrClearReminder(String key, String? value) {
-      if (value == null || value.isEmpty) {
-        reminderState.systemReminders.remove(key);
-      } else {
-        reminderState.systemReminders[key] = value;
-      }
-    }
+    final referencedContent = (refs != null && refs.isNotEmpty)
+        ? 'The user has referenced the following content. Use this context '
+            'to answer the user query:\n${refs.map(
+                  (r) =>
+                      'Title: ${r['title']}\nType: ${r['type'] ?? 'unknown'}\nContent: ${r['content']}',
+                ).join('\n\n')}'
+        : null;
 
-    setOrClearReminder(
-        'scene_context', sceneContext.isEmpty ? null : sceneContext);
-    setOrClearReminder('location_context', locationContextReminder);
-    setOrClearReminder('attachment_context',
-        attachmentContext.isEmpty ? null : attachmentContext);
-    setOrClearReminder(
-      'referenced_content',
-      (refs != null && refs.isNotEmpty)
-          ? 'The user has referenced the following content. Use this context '
-              'to answer the user query:\n${refs.map(
-                    (r) =>
-                        'Title: ${r['title']}\nType: ${r['type'] ?? 'unknown'}\nContent: ${r['content']}',
-                  ).join('\n\n')}'
-          : null,
-    );
+    final reminderSections = <String>[
+      // Two distinct facts: when the message was sent (stays fixed on
+      // reprocessing) vs the current processing moment (becomes "now" on
+      // reprocessing). They coincide for a live turn.
+      'User Message Time: ${formatLocalDateTimeWithZone(userMessageTime)}',
+      'Current Local Time: ${formatLocalDateTimeWithZone(DateTime.now())}',
+      if (locationContextReminder != null &&
+          locationContextReminder.isNotEmpty)
+        locationContextReminder.trim(),
+      if (sceneContext.isNotEmpty) sceneContext.trim(),
+      if (attachmentContext.isNotEmpty) attachmentContext.trim(),
+      if (referencedContent != null) referencedContent,
+    ];
+    final combinedReminder =
+        '<system-reminder>\n${reminderSections.join('\n\n')}\n</system-reminder>';
 
     final userContentParts = <UserContentPart>[
-      TextPart(buildCurrentTimeReminder(userMessageTime)),
-      TextPart(buildMessageTimePrefix(userMessageTime)),
+      TextPart(combinedReminder),
       TextPart(
         trimmedMessage.isEmpty
             ? 'User sent ${preparedImages.length} image attachment(s).'
@@ -498,59 +486,125 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     required XFile image,
     required String? originalName,
   }) async {
-    final imported = await MediaService.instance.importImage(
+    // Store chat attachments in Facts/assets (factId-less: named with today's
+    // date + ts_0 + the day's running index) so they share the same fs://
+    // reference scheme as records. The card the agent creates will reference
+    // them via `![image](fs://<filename>)`.
+    final (fsFilename, relativePath) = await _fileService.saveAssetFromFile(
       userId: userId,
       sourcePath: image.path,
+      assetType: 'img',
+      index: 1,
     );
-    final mimeType = _mimeTypeForImagePath(imported.absolutePath);
+    final absolutePath = _fileService.toAbsolutePath(relativePath);
+    final mimeType = _mimeTypeForImagePath(absolutePath);
 
     String? base64Data;
     String? inlineMimeType;
     try {
       final safety =
-          await AssetSafetyService.instance.inspectFile(imported.absolutePath);
+          await AssetSafetyService.instance.inspectFile(absolutePath);
       if (safety.safeForInlineBase64) {
         // iOS gallery originals are commonly HEIC, which OpenAI-compatible
         // endpoints (Kimi, OpenAI) reject. Inline a bounded JPEG transcode;
         // the stored original stays untouched.
-        final transcoded =
-            await LlmImageCodec.transcodeForLlm(imported.absolutePath);
+        final transcoded = await LlmImageCodec.transcodeForLlm(absolutePath);
         if (transcoded != null) {
           base64Data = base64Encode(transcoded);
           inlineMimeType = LlmImageCodec.jpegMimeType;
         } else {
           // Only fall back to original bytes when the format is universally
           // accepted; inlining HEIC would poison the session history.
-          final originalBytes =
-              await File(imported.absolutePath).readAsBytes();
+          final originalBytes = await File(absolutePath).readAsBytes();
           if (LlmImageCodec.isLlmSafeImageBytes(originalBytes)) {
             _logger.warning(
-              'Transcode failed, inlining original bytes for ${imported.relativePath}',
+              'Transcode failed, inlining original bytes for $relativePath',
             );
             base64Data = base64Encode(originalBytes);
           } else {
             _logger.warning(
               'Transcode failed and original format is not LLM-safe, '
-              'skipping inline for ${imported.relativePath}',
+              'skipping inline for $relativePath',
             );
           }
         }
       } else {
         _logger.warning(
-          'Skipping inline chat image ${imported.relativePath}: ${safety.reason}',
+          'Skipping inline chat image $relativePath: ${safety.reason}',
         );
       }
     } catch (e) {
-      _logger
-          .warning('Failed to inline chat image ${imported.relativePath}: $e');
+      _logger.warning('Failed to inline chat image $relativePath: $e');
     }
 
+    // Read EXIF (capture time + GPS → reverse-geocoded address) from the
+    // stored original. saveAssetFromFile copies raw bytes, so EXIF survives;
+    // the transcoded inline copy intentionally strips it.
+    final exifInfo = await _buildImageExifInfo(userId, absolutePath);
+
     return _PreparedChatImage(
-      relativePath: imported.relativePath,
+      relativePath: relativePath,
+      fsFilename: fsFilename,
       mimeType: inlineMimeType ?? mimeType,
       originalName: originalName,
       base64Data: base64Data,
+      exifInfo: exifInfo,
     );
+  }
+
+  /// Extract a human-readable EXIF metadata block (capture time, GPS, and the
+  /// reverse-geocoded address) for [imagePath]. Mirrors the legacy
+  /// analyze_assets pipeline so SuperAgent sees the same capture context.
+  /// Returns null when the image carries no usable timestamp/GPS.
+  Future<String?> _buildImageExifInfo(String userId, String imagePath) async {
+    try {
+      final exif = await ExifUtils.extractExifData(imagePath);
+      if (exif.isEmpty) return null;
+
+      final infoLines = <String>[];
+
+      if (exif.containsKey('datetime_original_str')) {
+        infoLines.add('${Prompts.captureTime}: ${exif['datetime_original_str']}');
+      }
+
+      if (exif.containsKey('gps_coordinates')) {
+        try {
+          final coords = exif['gps_coordinates'] as List;
+          final lat = coords[0] as double;
+          final lng = coords[1] as double;
+          infoLines.add(
+            '${Prompts.gpsCoordinates}: ${lat.toStringAsFixed(6)}, '
+            '${lng.toStringAsFixed(6)}',
+          );
+
+          final geocoded =
+              await GeocodingService.instance.reverseGeocode(lat, lng);
+          if (geocoded != null) {
+            final locationConfig = await UserStorage.getLocationContextConfig();
+            final address =
+                geocoded.fullAddress ?? geocoded.summary(locationConfig.granularity);
+            if (address.isNotEmpty) {
+              var addressLine = '${Prompts.captureLocation}: $address';
+              final markAddress =
+                  await _fileService.getNearestUserLocation(userId, lat, lng);
+              if (markAddress != null) {
+                addressLine +=
+                    ', very close to user marked location ($markAddress) (less than 50 meters)';
+              }
+              infoLines.add(addressLine);
+            }
+          }
+        } catch (e) {
+          _logger.warning('Reverse geocode failed for chat image: $e');
+        }
+      }
+
+      if (infoLines.isEmpty) return null;
+      return '${Prompts.imageMetadata}:\n${infoLines.join('\n')}';
+    } catch (e) {
+      _logger.warning('Failed to extract EXIF for chat image $imagePath: $e');
+      return null;
+    }
   }
 
   List<Map<String, dynamic>> _buildSessionUserContent(
@@ -580,17 +634,27 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
       ..writeln('The user attached ${images.length} image(s).')
       ..writeln(
         scene == 'super_agent_home'
-            ? 'This is the central Super Agent entry. Media-only uploads are usually capture intent; if no conflicting question or edit request is present, call submit_record with image_paths exactly as listed below.'
-            : 'If the user wants these saved as a record, call submit_record with image_paths exactly as listed below.',
+            ? 'This is the central Super Agent entry. Media-only uploads are usually capture intent; inspect them and decide the likely goal unless the user clearly asks a question or requests an edit.'
+            : 'Inspect the attached image(s) and use them to address the user request.',
+      )
+      ..writeln(
+        'Each attachment is identified by a `![image](fs://…)` reference below. '
+        'If you save a timeline card for this input, copy the relevant '
+        'references verbatim into the card\'s `assets` field.',
       );
     for (var i = 0; i < images.length; i++) {
       final image = images[i];
       buffer.writeln(
-        '${i + 1}. image_path: ${image.relativePath}'
+        '${i + 1}. ![image](fs://${image.fsFilename})'
         '${image.originalName == null ? '' : ', original_name: ${image.originalName}'}'
         ', mime_type: ${image.mimeType}'
         '${image.base64Data == null ? ', inline_preview: unavailable' : ''}',
       );
+      if (image.exifInfo != null && image.exifInfo!.isNotEmpty) {
+        for (final line in image.exifInfo!.split('\n')) {
+          buffer.writeln('   $line');
+        }
+      }
     }
     return buffer.toString().trimRight();
   }
@@ -1034,14 +1098,24 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
 
 class _PreparedChatImage {
   final String relativePath;
+
+  /// Bare stored filename, used to build the `fs://<filename>` reference the
+  /// agent sees (resolves to Facts/assets/<filename>, same as in-text fs:// refs).
+  final String fsFilename;
   final String mimeType;
   final String? originalName;
   final String? base64Data;
 
+  /// Pre-formatted EXIF metadata block (capture time, GPS coordinates, and
+  /// reverse-geocoded address) for this image, or null when none is available.
+  final String? exifInfo;
+
   const _PreparedChatImage({
     required this.relativePath,
+    required this.fsFilename,
     required this.mimeType,
     required this.originalName,
     required this.base64Data,
+    this.exifInfo,
   });
 }

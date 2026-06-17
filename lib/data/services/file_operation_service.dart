@@ -209,6 +209,39 @@ class FileOperationService {
     return numberedContent;
   }
 
+  /// Validate a readable file with the same path and workspace checks as Read.
+  Future<int> validateReadableFile({
+    required String filePath,
+    String? workingDirectory,
+  }) async {
+    filePath = _resolvePath(filePath, workingDirectory);
+
+    if (!path.isAbsolute(filePath)) {
+      throw ApiException('file_path must be an absolute path');
+    }
+
+    if (workingDirectory != null &&
+        !isUnderDirectory(filePath, workingDirectory)) {
+      throw ApiException(
+        _maskResult(
+            'file_path $filePath is outside of the working directory $workingDirectory',
+            workingDirectory),
+      );
+    }
+
+    if (!await _baseService.exists(filePath)) {
+      throw ApiException(
+          _maskResult('File $filePath does not exist', workingDirectory));
+    }
+
+    if (await _baseService.isDirectory(filePath)) {
+      throw ApiException(_maskResult(
+          '$filePath is a directory, not a file', workingDirectory));
+    }
+
+    return _baseService.getFileSize(filePath);
+  }
+
   // ==================== Write ====================
 
   /// Write file (maps to server Write). [filePath] must be absolute. Returns result message.

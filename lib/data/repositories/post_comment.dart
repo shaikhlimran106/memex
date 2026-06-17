@@ -4,7 +4,6 @@ import 'package:memex/agent/comment_agent/comment_agent.dart';
 import 'package:memex/domain/models/llm_config.dart';
 import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/data/services/file_system_service.dart';
-import 'package:memex/agent/agent_utils.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:uuid/uuid.dart';
 import 'package:memex/domain/models/agent_definitions.dart';
@@ -193,6 +192,23 @@ Future<void> processAICommentReply({
 
     final initialInsight = cardData.insight?.text;
 
+    // Location for the comment: prefer the caller-supplied device location
+    // (e.g. a live user reply). When absent (e.g. a new card created through
+    // SuperAgent re-publishes userInputSubmitted without device location),
+    // fall back to the card's own place — where the recorded moment happened.
+    // Card display priority: user-marked address first, then address.
+    var effectiveLocationReminder = locationContextReminder?.trim();
+    if (effectiveLocationReminder == null || effectiveLocationReminder.isEmpty) {
+      final cardPlace = (cardData.userFixedAddress?.trim().isNotEmpty ?? false)
+          ? cardData.userFixedAddress!.trim()
+          : (cardData.address?.trim().isNotEmpty ?? false)
+              ? cardData.address!.trim()
+              : null;
+      if (cardPlace != null) {
+        effectiveLocationReminder = 'Recorded location: $cardPlace';
+      }
+    }
+
     // 2. Character ID Fallback
     // When no explicit characterId: pick the most recent AI commenter
     // (the character most recently active in the conversation).
@@ -214,24 +230,18 @@ Future<void> processAICommentReply({
     }
 
     // 3. Raw Input Content
-    // If rawInputContent is null, we should try to extract it from file.
-    // Always extract factContent to get assetAnalyses
-    final factContent = await _fileSystemService.extractFactContentFromFile(
-      userId,
-      cardId,
-    );
+    // The card's own `fact` field is the source-of-truth original input
+    // (including any image/audio content the user captured); use it when the
+    // caller did not pass rawInputContent explicitly.
     String contentToUse = rawInputContent ?? '';
     if (contentToUse.isEmpty) {
-      contentToUse = factContent?.content ?? '';
+      contentToUse = cardData.fact ?? '';
     }
 
-    // Build asset info string
-
-    final assetAnalyses = factContent?.assetAnalyses;
-    final entryDateTime = factContent?.datetime;
-    // Build asset info string
-    final assetInfo = formatAssetAnalysis(assetAnalyses);
-    contentToUse = contentToUse + assetInfo;
+    // Entry time comes from the card's own timestamp (content/creation time).
+    final entryDateTime = cardData.timestamp > 0
+        ? DateTime.fromMillisecondsSinceEpoch(cardData.timestamp * 1000)
+        : null;
 
     // 4. PKM Context
     // CommentAgent.run handles searching PKM context if not passed.
@@ -280,7 +290,7 @@ Future<void> processAICommentReply({
         forcedReplyToId: userCommentId,
         currentTime: inputDateTime ?? DateTime.now(),
         entryTime: entryDateTime,
-        locationContextReminder: locationContextReminder,
+        locationContextReminder: effectiveLocationReminder,
         withMemoryManagement: withMemoryManagement,
         forceReply: forceReply,
       );

@@ -1,11 +1,16 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:logging/logging.dart';
+import 'package:path/path.dart' as p;
 import 'package:memex/agent/prompts.dart';
 import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
 import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/data/services/global_event_bus.dart';
+import 'package:memex/data/services/memory_sync_service.dart';
+import 'package:memex/domain/models/system_event.dart';
 import 'package:memex/agent/skills/manage_timeline_card/timeline_templates.dart';
 import 'package:memex/utils/user_storage.dart';
 
@@ -27,9 +32,13 @@ class TimelineCardSkill extends Skill {
         );
 
   static String _buildSystemPrompt() {
-    final templatesSection = _buildTemplatesSection();
     return Prompts.timelineCardSkillSystemPrompt(
-      templatesSection,
+      '## Timeline Card Templates\n'
+      'Use `get_card_metadata` to retrieve the current template catalog and '
+      'tags. If no suitable template exists, or the user asks to redesign a '
+      'template, activate `dynamic_timeline_ui` to create or update a template '
+      'first, then call `save_timeline_card` with that template_id and a '
+      '`data` object matching its data structure.\n',
       UserStorage.l10n.timelineCardLanguageInstruction,
     );
   }
@@ -56,6 +65,16 @@ class TimelineCardSkill extends Skill {
     final tagsList = tagsListRaw.map((t) => t['name'] as String).toList();
 
     final sb = StringBuffer();
+    sb.write(_buildTemplatesSection());
+    final customTemplates = await fileService.listTimelineTemplateMetas(userId);
+    for (final template in customTemplates) {
+      sb.writeln("## template_id: ${template.templateId}");
+      sb.writeln("**Use Case**: ${template.useCase}");
+      sb.writeln("**Data Structure**:");
+      sb.writeln(template.dataStructure);
+      sb.writeln("");
+    }
+
     sb.writeln("# Existing Tags");
     if (tagsList.isEmpty) {
       sb.writeln("No tags currently available. Create tags as needed.");
@@ -84,24 +103,30 @@ class TimelineCardSkill extends Skill {
       ),
       Tool(
         name: 'save_timeline_card',
-        description: "Saves or updates a timeline card for the Memex timeline.",
+        description:
+            "Saves or updates a timeline card. This is a partial update: any "
+            "field you pass is replaced; any field you omit keeps its current "
+            "value. So to edit one thing on an existing card, send just `fact_id` "
+            "plus that field — don't resend the rest. A brand-new card has "
+            "nothing to inherit, so it still needs `title`, `ui_configs`, and "
+            "`fact`.",
         parameters: {
           'type': 'object',
           'properties': {
             'fact_id': {
               'type': 'string',
               'description':
-                  'The id of the raw input (e.g. 2025/01/01.md#ts_123)'
+                  'REQUIRED. For a brand-new record: the id you minted with `mint_record_fact_id` first. For editing/repairing: the existing card id (e.g. 2025/01/01.md#ts_123). Never invent an id — it must come from mint_record_fact_id or be an existing card.'
             },
             'title': {
               'type': 'string',
               'description':
-                  'A concise summary displayed on detail page header.'
+                  'A concise summary displayed on detail page header. Required for a new card; omit when editing to keep the existing title.'
             },
             'ui_configs': {
               'type': 'array',
               'description':
-                  'UI rendering configuration list. You MUST provide the full data object according to the selected template.',
+                  'UI rendering configuration list. Required for a new card; omit when editing to keep the existing layout. When provided, you MUST give the full data object for the selected template.',
               'items': {
                 'type': 'object',
                 'properties': {
@@ -154,16 +179,29 @@ class TimelineCardSkill extends Skill {
                 'required': ['name']
               }
             },
+            'fact': {
+              'type': 'string',
+              'description':
+                  "The user's original raw information that this card is built from, preserved as the card's source-of-truth content. Write it in the user's own language and tone: the verbatim text the user wrote, plus a natural-language description of the meaningful content of any attachment (for example, what an image actually shows, or the transcription of a voice note). This is the faithful original content, not a summary, paraphrase, or your own commentary. Do NOT put an `fs://` reference here — attachment references go only in `assets`. Required for a new card; omit when editing to keep the existing fact."
+            },
+            'assets': {
+              'type': 'array',
+              'description':
+                  "The image and audio files attached to this card, as the `![image](fs://…)` / `[audio](fs://…)` markers given to you in the user message — copied verbatim, never invented or altered. Omit this field entirely to keep the card's existing assets unchanged; pass the full list to replace them. Required only when a new card has attachments.",
+              'items': {'type': 'string'}
+            },
           },
-          'required': ['fact_id', 'title', 'ui_configs']
+          'required': ['fact_id']
         },
-        executable: (String fact_id,
-            String title,
+        executable: (String? fact_id,
+            String? title,
             dynamic ui_configs,
             String? address,
             String? user_mark_address,
             String? content_creation_date,
-            dynamic tags) async {
+            dynamic tags,
+            String? fact,
+            dynamic assets) async {
           final fileService = FileSystemService.instance;
 
           // Access context
@@ -175,63 +213,118 @@ class TimelineCardSkill extends Skill {
 
           // fact_id and userId are available via closure/args.
 
-          logger.info("Saving card for fact: $fact_id");
+          logger.info("Saving card for fact: ${fact_id ?? '(new)'}");
 
           final userId = AgentCallToolContext.current!.state.metadata['userId'];
 
           final denied = await gateMutatingToolCall(
             toolName: 'save_timeline_card',
-            summary: '$title ($fact_id)',
+            summary: '${title ?? '(card)'}'
+                '${fact_id == null ? '' : ' ($fact_id)'}',
           );
           if (denied != null) return denied;
 
           try {
-            // 1. Validate required fields
-            if (title.isEmpty) {
-              throw ArgumentError("title is required");
-            }
-            final uiConfigsList =
-                _normalizeListArgument(ui_configs, 'ui_configs');
-
-            // ui_configs: must be array, each element must be dict with valid template_id and data
-            if (uiConfigsList.isEmpty) {
-              throw ArgumentError("ui_configs must be provided and non-empty.");
-            }
-            final List<Map<String, dynamic>> finalUiConfigs = [];
-            for (var i = 0; i < uiConfigsList.length; i++) {
-              final raw = uiConfigsList[i];
-              if (raw is! Map) {
-                throw ArgumentError(
-                    "ui_configs[$i] must be an object (Map), got ${raw.runtimeType}.");
-              }
-              final config = Map<String, dynamic>.from(raw);
-              validateUiConfig(config);
-              finalUiConfigs.add(config);
-            }
-            // When multiple templates are selected, remove snapshot template; if all are snapshot, keep one
-            if (finalUiConfigs.length > 1) {
-              final nonSnapshot = finalUiConfigs
-                  .where((c) => c['template_id'] != 'snapshot')
-                  .toList();
-              if (nonSnapshot.isNotEmpty) {
-                finalUiConfigs
-                  ..clear()
-                  ..addAll(nonSnapshot);
-              } else {
-                // All are snapshot: keep exactly one
-                final oneSnapshot = finalUiConfigs.first;
-                finalUiConfigs
-                  ..clear()
-                  ..add(oneSnapshot);
-              }
-            }
-
-            // 2. Read factContent from file (validates fact exists)
-            final factInfo =
-                await fileService.extractFactContentFromFile(userId, fact_id);
-            if (factInfo == null) {
+            // Resolve identity and read the prior card FIRST — whether this is
+            // a brand-new card or an edit drives what's required. fact_id is
+            // always explicit now (minted via mint_record_fact_id for a new
+            // record, or an existing card's id when editing); we never allocate
+            // inside save.
+            if (fact_id == null || fact_id.trim().isEmpty) {
               throw ArgumentError(
-                  "fact id: $fact_id not exist, please check the fact id is correct, or create/edit fact file first, the format of fact_id is 2026/01/20.md#ts_5");
+                  "fact_id is required. Mint one with mint_record_fact_id first (for a new record), or pass an existing card's id when editing.");
+            }
+            final resolvedFactId = fact_id.trim();
+            final priorCard =
+                await fileService.readCardFile(userId, resolvedFactId);
+            if (priorCard == null) {
+              throw ArgumentError(
+                  "Card $resolvedFactId does not exist. Mint a fact_id with mint_record_fact_id before saving a new record, or pass the id of an existing card to edit.");
+            }
+            // A freshly-minted placeholder has status 'processing' and was never
+            // completed → this save is the brand-new card. An already-'completed'
+            // card → this is an edit. This also drives the comment + memory
+            // triggers below.
+            final isNewCard = priorCard.status != 'completed';
+
+            // This save is a partial update: any field you OMIT keeps its prior
+            // value; only fields you pass are replaced. So an edit can change
+            // just one field without resending the whole card. A brand-new card
+            // has nothing to inherit, so its core content is still required.
+            if (isNewCard) {
+              if (title == null || title.trim().isEmpty) {
+                throw ArgumentError("title is required for a new card.");
+              }
+              if (fact == null || fact.trim().isEmpty) {
+                throw ArgumentError("fact is required for a new card.");
+              }
+              if (ui_configs == null) {
+                throw ArgumentError("ui_configs is required for a new card.");
+              }
+            }
+
+            // Guard: `fs://` references identify attachments and belong only in
+            // `assets`. Keeping them out of `fact` (which is prose) prevents the
+            // raw id leaking into the card's source-of-truth text.
+            if (fact != null && fact.contains('fs://')) {
+              throw ArgumentError(
+                  "The `fact` field must not contain an `fs://` reference. Write `fact` as the user's words plus a natural-language description of any attachment, and put the `![image](fs://…)` / `[audio](fs://…)` reference in the `assets` field instead.");
+            }
+
+            // ui_configs: process only when provided. Omitted → keep prior
+            // (uiConfigEntries stays null → copyWith preserves the old value).
+            List<UiConfig>? uiConfigEntries;
+            if (ui_configs != null) {
+              final uiConfigsList =
+                  _normalizeListArgument(ui_configs, 'ui_configs');
+              final customTemplateFields = {
+                for (final meta
+                    in await fileService.listTimelineTemplateMetas(userId))
+                  meta.templateId: meta.fields,
+              };
+              if (uiConfigsList.isEmpty) {
+                throw ArgumentError(
+                    "ui_configs must be non-empty when provided.");
+              }
+              final List<Map<String, dynamic>> finalUiConfigs = [];
+              for (var i = 0; i < uiConfigsList.length; i++) {
+                final raw = uiConfigsList[i];
+                if (raw is! Map) {
+                  throw ArgumentError(
+                      "ui_configs[$i] must be an object (Map), got ${raw.runtimeType}.");
+                }
+                final config = Map<String, dynamic>.from(raw);
+                validateUiConfig(
+                  config,
+                  customTemplateFields: customTemplateFields,
+                );
+                finalUiConfigs.add(config);
+              }
+              // When multiple templates are selected, remove snapshot template; if all are snapshot, keep one
+              if (finalUiConfigs.length > 1) {
+                final nonSnapshot = finalUiConfigs
+                    .where((c) => c['template_id'] != 'snapshot')
+                    .toList();
+                if (nonSnapshot.isNotEmpty) {
+                  finalUiConfigs
+                    ..clear()
+                    ..addAll(nonSnapshot);
+                } else {
+                  // All are snapshot: keep exactly one
+                  final oneSnapshot = finalUiConfigs.first;
+                  finalUiConfigs
+                    ..clear()
+                    ..add(oneSnapshot);
+                }
+              }
+              uiConfigEntries = finalUiConfigs
+                  .map((m) => UiConfig(
+                        templateId: m['template_id'] as String? ?? '',
+                        data: m['data'] is Map
+                            ? Map<String, dynamic>.from(m['data'] as Map)
+                            : {},
+                      ))
+                  .toList();
             }
 
             // 3. Load existing tags
@@ -318,24 +411,52 @@ class TimelineCardSkill extends Skill {
                   userId, user_mark_address);
             }
 
-            final uiConfigEntries = finalUiConfigs
-                .map((m) => UiConfig(
-                      templateId: m['template_id'] as String? ?? '',
-                      data: m['data'] is Map
-                          ? Map<String, dynamic>.from(m['data'] as Map)
-                          : {},
-                    ))
-                .toList();
+            // Normalize asset references (![image](fs://…) / [audio](fs://…)).
+            // Omitted (null) → keep the card's prior assets untouched. Provided
+            // → replace with the validated set: each fs:// reference must
+            // resolve to a real file under Facts/assets, so a fabricated /
+            // hallucinated reference never lands on the card (dropped with a
+            // warning).
+            List<String>? assetsList;
+            if (assets != null) {
+              assetsList = <String>[];
+              final droppedAssets = <String>[];
+              final assetsPath = fileService.getAssetsPath(userId);
+              final fsPattern = RegExp(r'\(fs://([^)]+)\)');
+              for (final entry in _normalizeListArgument(assets, 'assets')) {
+                final ref = entry?.toString().trim() ?? '';
+                if (ref.isEmpty) continue;
+                final m = fsPattern.firstMatch(ref);
+                final fileName = m?.group(1)?.trim();
+                if (fileName == null || fileName.isEmpty) {
+                  droppedAssets.add(ref);
+                  continue;
+                }
+                final exists =
+                    await File(p.join(assetsPath, fileName)).exists();
+                if (exists) {
+                  assetsList.add(ref);
+                } else {
+                  droppedAssets.add(ref);
+                }
+              }
+              if (droppedAssets.isNotEmpty) {
+                logger.warning(
+                    'save_timeline_card dropped asset refs with no backing file: ${droppedAssets.join(', ')}');
+              }
+            }
 
             final updatedCardData = await fileService.updateCardFile(
               userId,
-              fact_id,
+              resolvedFactId,
               createIfNotExists: true,
               (card) {
                 var c = card.copyWith(
                   status: 'completed',
-                  title: title,
+                  title: title?.trim(),
                   uiConfigs: uiConfigEntries,
+                  fact: fact?.trim(),
+                  assets: assetsList,
                   timestamp: timestamp ??
                       (card.timestamp > 0
                           ? card.timestamp
@@ -359,13 +480,13 @@ class TimelineCardSkill extends Skill {
 
             if (updatedCardData == null) {
               throw StateError(
-                  "Card file not found for fact_id: $fact_id, maybe it has been deleted");
+                  "Card file not found for fact_id: $resolvedFactId, maybe it has been deleted");
             }
 
             // Log event
             try {
               // Determine card file path from fact_id
-              final parts = fact_id.split('#');
+              final parts = resolvedFactId.split('#');
               if (parts.length == 2) {
                 final datePart = parts[0]; // e.g., "2025/01/21.md"
                 final dateWithoutExt = datePart.replaceFirst('.md', '');
@@ -377,22 +498,64 @@ class TimelineCardSkill extends Skill {
                   userId: userId,
                   filePath: cardPath,
                   description: 'Agent updated timeline card',
-                  metadata: {'fact_id': fact_id, 'title': title},
+                  metadata: {'fact_id': resolvedFactId, 'title': title},
                 );
               }
             } catch (e) {
               // Event logging failure should not break tool
             }
 
+            // For a brand-new card, re-publish userInputSubmitted so the
+            // independently-running comment agent (the only remaining
+            // subscriber) reacts to the new record. Editing/repairing an
+            // existing card does not re-trigger comments.
+            if (isNewCard) {
+              try {
+                await GlobalEventBus.instance.publish(
+                  userId: userId,
+                  event: SystemEvent(
+                    type: SystemEventTypes.userInputSubmitted,
+                    source: 'timeline_card_skill.save_timeline_card',
+                    payload: UserInputSubmittedPayload(
+                      factId: resolvedFactId,
+                      assetPaths: const [],
+                      combinedText: fact?.trim() ?? '',
+                      markdownEntry: '',
+                      createdAtTs: updatedCardData.timestamp,
+                      pkmCreatedAtTs:
+                          updatedCardData.timestamp.toDouble(),
+                    ),
+                  ),
+                );
+              } catch (e) {
+                // Comment triggering is best-effort; never fail the save.
+                logger.warning(
+                    'Failed to publish userInputSubmitted for $resolvedFactId: $e');
+              }
+
+              // Enqueue the new record for background long-term memory sync
+              // (batched + curated by MemoryAgent). Best-effort.
+              try {
+                await MemorySyncService.instance
+                    .enqueueFact(userId, resolvedFactId);
+              } catch (e) {
+                logger.warning(
+                    'Failed to enqueue memory sync for $resolvedFactId: $e');
+              }
+            }
+
             return AgentToolResult(
               content: TextPart(
-                  "Successfully saved timeline card for Fact $fact_id"),
+                  "Successfully saved timeline card. This record's fact_id is "
+                  "$resolvedFactId — use this exact id when organizing this "
+                  "record into PKM (e.g. `<!-- fact_id: $resolvedFactId -->`) "
+                  "so the knowledge base links back to this card."),
               stopFlag: stopAfterSuccessSaveCard,
               metadata: {
                 'artifact': {
                   'type': 'card',
-                  'id': fact_id,
-                  'title': title,
+                  'id': resolvedFactId,
+                  'title': title ?? updatedCardData.title,
                   'tags': tagNames,
                   'updated': true,
                 },

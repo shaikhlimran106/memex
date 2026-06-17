@@ -82,9 +82,11 @@ Tool buildGetScheduleStateTool() {
   return Tool(
     name: 'get_schedule_state',
     description:
-        'Return the canonical schedule_state document. Completed items are '
-        'truncated to the latest 20 entries; use search_completed for older '
-        'history.',
+        'Retrieve the current canonical schedule_state document on demand. '
+        'Schedule state is NOT pre-loaded into your context — call this '
+        'whenever you need the live state before reading or mutating it. '
+        'Completed items are truncated to the latest 20 entries; use '
+        'search_completed for older history.',
     parameters: {'type': 'object', 'properties': {}},
     executable: () async {
       final userId = AgentCallToolContext.current!.state.metadata['userId'];

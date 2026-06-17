@@ -10,6 +10,7 @@ import 'package:memex/data/services/backup_service.dart';
 import 'package:memex/data/services/user_stats_service.dart';
 import 'package:memex/domain/models/calendar_model.dart';
 import 'package:memex/data/repositories/hydrate_card.dart';
+import 'package:memex/data/repositories/migrate_cards_fact_assets.dart';
 import 'package:memex/data/services/task_handlers/knowledge_insight_handler.dart';
 import 'package:memex/data/services/task_handlers/schedule_aggregator_handler.dart';
 import 'package:memex/data/services/task_handlers/post_card_router_handler.dart';
@@ -148,6 +149,11 @@ class MemexRouter {
         activityService: LocalAgentActivityService.instance,
       );
 
+      // One-time migration: backfill legacy cards' fact/assets fields from
+      // their Facts files. Must run before the FTS rebuild below so the card
+      // index is built from the migrated `fact` content.
+      await migrateCardsToFactAssets(userId);
+
       // Register file change callback and FTS event subscriptions.
       // Also triggers a one-time full rebuild when FTS tables were just created
       // via migration (existing users upgrading to schema v10).
@@ -169,88 +175,17 @@ class MemexRouter {
   void _registerEventSubscriptions() {
     final eventBus = GlobalEventBus.instance;
 
-    eventBus.subscribe(
-      eventType: SystemEventTypes.userInputSubmitted,
-      subscription: EventTaskSubscription(
-        subscriptionId: 'analyze_assets',
-        taskType: 'handle_analyze_assets',
-        payloadBuilder: (_, event) {
-          final p = event.payload as UserInputSubmittedPayload;
-          return Future.value({
-            'fact_id': p.factId,
-            'asset_paths': p.assetPaths,
-          });
-        },
-      ),
-    );
-
-    eventBus.subscribe(
-      eventType: SystemEventTypes.userInputSubmitted,
-      subscription: EventTaskSubscription(
-        subscriptionId: 'card_agent',
-        taskType: 'card_agent_task',
-        dependsOn: const ['analyze_assets'],
-        payloadBuilder: (_, event) {
-          final p = event.payload as UserInputSubmittedPayload;
-          return Future.value({
-            'fact_id': p.factId,
-            'combined_text': p.combinedText,
-            'markdown_entry': p.markdownEntry,
-            'created_at_ts': p.createdAtTs,
-            'location_context_reminder': p.locationContextReminder,
-          });
-        },
-      ),
-    );
-
-    eventBus.subscribe(
-      eventType: SystemEventTypes.userInputSubmitted,
-      subscription: EventTaskSubscription(
-        subscriptionId: 'pkm_agent',
-        taskType: 'pkm_agent_task',
-        dependsOn: const ['analyze_assets'],
-        payloadBuilder: (_, event) {
-          final p = event.payload as UserInputSubmittedPayload;
-          return Future.value({
-            'fact_id': p.factId,
-            'combined_text': p.combinedText,
-            'created_at_ts': p.pkmCreatedAtTs,
-            'location_context_reminder': p.locationContextReminder,
-          });
-        },
-        dependenciesBuilder: (_, __) async {
-          final lastPkmTaskId = await LocalTaskExecutor.instance
-              .getLastTaskByType('pkm_agent_task');
-          return lastPkmTaskId == null ? const [] : [lastPkmTaskId];
-        },
-      ),
-    );
-
+    // The capture pipeline (analyze_assets → card_agent → pkm_agent →
+    // post_card_router) used to fan out from userInputSubmitted. Capture now
+    // happens directly inside SuperAgent (save_timeline_card), so those
+    // subscriptions were removed. comment_agent remains an independently
+    // triggered agent: SuperAgent re-publishes userInputSubmitted after a new
+    // card is saved, and only comment_agent listens for it now.
     eventBus.subscribe(
       eventType: SystemEventTypes.userInputSubmitted,
       subscription: EventTaskSubscription(
         subscriptionId: 'comment_agent',
         taskType: 'comment_agent_task',
-        dependsOn: const ['pkm_agent'],
-        payloadBuilder: (_, event) {
-          final p = event.payload as UserInputSubmittedPayload;
-          return Future.value({
-            'fact_id': p.factId,
-            'combined_text': p.combinedText,
-            'created_at_ts': p.createdAtTs,
-            'location_context_reminder': p.locationContextReminder,
-          });
-        },
-      ),
-    );
-
-    eventBus.subscribe(
-      eventType: SystemEventTypes.userInputSubmitted,
-      subscription: EventTaskSubscription(
-        subscriptionId: 'post_card_router',
-        taskType: 'post_card_router_task',
-        dependsOn: const ['analyze_assets'],
-        priority: -1,
         payloadBuilder: (_, event) {
           final p = event.payload as UserInputSubmittedPayload;
           return Future.value({

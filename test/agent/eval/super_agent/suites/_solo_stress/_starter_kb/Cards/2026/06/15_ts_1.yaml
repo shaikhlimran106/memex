@@ -1,0 +1,15 @@
+fact_id: "2026/06/15.md#ts_1"
+timestamp: 1781496000
+status: completed
+title: "Lunch with Priya about onboarding"
+fact: "Had lunch with Priya today and we talked through the direction for the onboarding project. Good to get aligned on where we're taking the design."
+tags:
+  - work
+  - relationship
+ui_configs:
+  - template_id: compact
+    data:
+      details:
+        - "Lunch with Priya"
+        - "Topic: onboarding project"
+        - "Aligned on design direction"

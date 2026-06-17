@@ -4,8 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/agent/skills/timeline_diagnostics/timeline_diagnostics_skill.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/domain/models/card_model.dart';
+import 'package:memex/utils/time_context.dart';
 import 'package:memex/utils/user_storage.dart';
-import 'package:path/path.dart' as path;
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -27,103 +27,86 @@ void main() {
       }
     });
 
-    test('registers diagnostic tools', () {
+    test('registers focused diagnostic tools', () {
       final skill = TimelineDiagnosticsSkill();
 
       expect(skill.name, 'timeline_diagnostics');
       expect(
         skill.tools?.map((tool) => tool.name),
-        containsAll([
-          'list_recent_timeline_cards',
+        [
+          'search_timeline_cards',
           'inspect_timeline_card',
-          'inspect_timeline_card_assets',
-          'describe_timeline_render_path',
-          'retry_failed_timeline_card',
-        ]),
-      );
-    });
-
-    test('extracts fs refs with asset kinds', () {
-      final refs = TimelineDiagnosticsSkill.extractFsRefsForTesting(
-        '![image](fs://photo.jpg) [audio](fs://voice.m4a) "fs://note.txt"',
-      );
-
-      expect(refs, hasLength(3));
-      expect(refs[0]['filename'], 'photo.jpg');
-      expect(refs[0]['kind'], 'image');
-      expect(refs[1]['filename'], 'voice.m4a');
-      expect(refs[1]['kind'], 'audio');
-      expect(refs[2]['filename'], 'note.txt');
-      expect(refs[2]['kind'], 'unknown');
-    });
-
-    test('warns when fact image is not referenced by normal ui configs',
-        () async {
-      await _writeFactAndAsset(userId: userId);
-      await _writeCard(
-        userId: userId,
-        cardId: cardId,
-        uiConfigs: const [
-          UiConfig(
-            templateId: 'classic_card',
-            data: {'content': '今天拍了两张图'},
-          ),
         ],
       );
+    });
+
+    test('search without query returns recent cards with local time', () async {
+      await _writeFactAndAsset(userId: userId);
+      await _writeCard(userId: userId, cardId: cardId);
+
+      final result = await TimelineDiagnosticsSkill.searchTimelineCards(
+        query: null,
+        limit: 50,
+        userId: userId,
+      );
+
+      expect(result, contains('Recent timeline cards:'));
+      expect(result, contains(cardId));
+      expect(
+        result,
+        contains(
+          formatLocalDateTimeWithZone(dateTimeFromUnixSeconds(1781000000)),
+        ),
+      );
+      expect(result, contains('测试图片'));
+    });
+
+    test(
+        'inspect returns original input context and current card data without comments',
+        () async {
+      await _writeFactAndAsset(userId: userId);
+      await _writeCard(userId: userId, cardId: cardId);
 
       final result = await TimelineDiagnosticsSkill.inspectTimelineCardForUser(
         userId: userId,
         cardId: cardId,
       );
 
-      expect(result['card_found'], isTrue);
-      expect(result['fact_found'], isTrue);
-      expect(result['can_verify_current_screen'], isFalse);
+      expect(result, contains('Original input context:'));
       expect(
-        result['warnings'] as List,
+        result,
         contains(
-          contains(
-              'Fact has image assets, but normal ui_configs do not reference'),
+          'Published time: ${formatLocalDateTimeWithZone(DateTime(2026, 6, 10, 9))}',
         ),
       );
+      expect(result, contains('Raw input content:'));
+      expect(result, contains('今天拍了两张图'));
+      expect(result, contains('## Asset Analysis Results'));
+      expect(result, contains('### Asset 1 (name: photo.jpg)'));
+      expect(result, contains('A test image.'));
+      expect(result, contains('Current CardData:'));
+      expect(result, contains('fact_id: $cardId'));
+      expect(result, contains('status: failed'));
+      expect(result, contains('tags: Visual'));
+      expect(result, contains('title: 测试图片'));
+      expect(result, contains('address: Beijing · Chaoyang Park'));
+      expect(result, contains('user_fixed_timestamp: 1781000000'));
+      expect(result, contains('user_fixed_address: Shanghai · Jing’an'));
+      expect(result, contains('failure_reason: LLM timeout'));
+      expect(result, isNot(contains('comments')));
+      expect(result, contains('summary: A useful visual memory.'));
+      expect(result, contains('template_id: snapshot'));
+      expect(result, contains('image_url: fs://photo.jpg'));
 
-      final renderPath = result['render_path'] as Map<String, dynamic>;
-      expect(renderPath['fact_has_image_assets'], isTrue);
-      expect(renderPath['normal_mode_has_image_refs_in_ui_config'], isFalse);
-    });
-
-    test('reports existing assets and ui config image references', () async {
-      await _writeFactAndAsset(userId: userId);
-      await _writeCard(
-        userId: userId,
-        cardId: cardId,
-        uiConfigs: const [
-          UiConfig(
-            templateId: 'classic_card',
-            data: {
-              'content': '今天拍了两张图',
-              'images': ['fs://photo.jpg'],
-            },
-          ),
-        ],
-      );
-
-      final result =
-          await TimelineDiagnosticsSkill.inspectTimelineCardAssetsForUser(
+      final createdAtLocal =
+          await TimelineDiagnosticsSkill.createdAtLocalForCardForTesting(
         userId: userId,
         cardId: cardId,
       );
-
-      expect(result['asset_count'], 2);
-      expect(result['missing_asset_count'], 0);
-
-      final renderPath =
-          await TimelineDiagnosticsSkill.describeTimelineRenderPathForUser(
-        userId: userId,
-        cardId: cardId,
+      expect(
+        createdAtLocal,
+        formatLocalDateTimeWithZone(dateTimeFromUnixSeconds(1781000000)),
       );
-      final render = renderPath['render_path'] as Map<String, dynamic>;
-      expect(render['normal_mode_has_image_refs_in_ui_config'], isTrue);
     });
 
     test('returns structured not found result for missing card', () async {
@@ -132,8 +115,7 @@ void main() {
         cardId: '2026/06/10.md#ts_9',
       );
 
-      expect(result['kind'], 'timeline_card_not_found');
-      expect(result['card_found'], isFalse);
+      expect(result, 'Card not found.');
     });
   });
 }
@@ -148,7 +130,7 @@ Future<void> _writeFactAndAsset({required String userId}) async {
 
   final assetsDir = Directory(fs.getAssetsPath(userId));
   await assetsDir.create(recursive: true);
-  final imagePath = path.join(assetsDir.path, 'photo.jpg');
+  final imagePath = '${assetsDir.path}/photo.jpg';
   await File(imagePath).writeAsBytes([0, 1, 2, 3]);
   await File('$imagePath.analysis.txt').writeAsString('A test image.');
 }
@@ -156,19 +138,35 @@ Future<void> _writeFactAndAsset({required String userId}) async {
 Future<void> _writeCard({
   required String userId,
   required String cardId,
-  required List<UiConfig> uiConfigs,
 }) async {
-  final timestamp = DateTime(2026, 6, 10, 9).millisecondsSinceEpoch ~/ 1000;
   await FileSystemService.instance.safeWriteCardFile(
     userId,
     cardId,
     CardData(
       factId: cardId,
-      timestamp: timestamp,
-      status: 'completed',
-      tags: const ['Visual'],
+      timestamp: 1781000000,
+      status: 'failed',
+      tags: ['Visual'],
       title: '测试图片',
-      uiConfigs: uiConfigs,
+      address: 'Beijing · Chaoyang Park',
+      userFixedTimestamp: 1781000000,
+      userFixedAddress: 'Shanghai · Jing’an',
+      insight: const CardInsight(summary: 'A useful visual memory.'),
+      failureReason: 'LLM timeout',
+      comments: const [
+        CardComment(
+          id: 'comment_1',
+          content: 'Do not expose this from diagnostics.',
+          isAi: false,
+          timestamp: 1781000001,
+        ),
+      ],
+      uiConfigs: const [
+        UiConfig(
+          templateId: 'snapshot',
+          data: {'image_url': 'fs://photo.jpg', 'caption': '今天拍了两张图'},
+        ),
+      ],
     ),
   );
 }

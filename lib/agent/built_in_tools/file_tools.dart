@@ -1,7 +1,14 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:dart_agent_core/dart_agent_core.dart';
+import 'package:flutter/foundation.dart' show compute;
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:memex/agent/prompts.dart';
 import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
 import 'package:memex/agent/security/file_permission_manager.dart';
+import 'package:memex/agent/super_agent/pending_tool_image_buffer.dart';
+import 'package:memex/data/services/asset_safety_service.dart';
 import 'package:memex/data/services/file_operation_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:path/path.dart' as p;
@@ -10,14 +17,62 @@ import 'package:path/path.dart' as p;
 final _fileOpService = FileOperationService.instance;
 FileSystemService get _fileSystem => FileSystemService.instance;
 
+typedef ViewImageCompressor = Future<Uint8List?> Function(
+  String filePath, {
+  int targetSize,
+  int quality,
+});
+
 class FileToolFactory {
   final FilePermissionManager permissionManager;
   final String workingDirectory;
+  final ViewImageCompressor _viewImageCompressor;
 
   FileToolFactory({
     required this.permissionManager,
     required this.workingDirectory,
-  });
+    ViewImageCompressor? viewImageCompressor,
+  }) : _viewImageCompressor =
+            viewImageCompressor ?? _defaultViewImageCompressor;
+
+  static Future<Uint8List?> _defaultViewImageCompressor(
+    String filePath, {
+    int targetSize = 2048,
+    int quality = 85,
+  }) {
+    return FlutterImageCompress.compressWithFile(
+      filePath,
+      minWidth: targetSize,
+      minHeight: targetSize,
+      quality: quality,
+      format: CompressFormat.webp,
+      autoCorrectionAngle: true,
+      keepExif: false,
+    );
+  }
+
+  static const _viewImageExtensions = {
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.bmp',
+    '.webp',
+    '.heic',
+    '.heif',
+    '.tiff',
+    '.tif',
+  };
+
+  static String _formatBytes(int bytes) {
+    if (bytes >= 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
+    }
+    if (bytes >= 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)}KB';
+    }
+    return '${bytes}B';
+  }
 
   String _resolvePath(String pathStr) {
     if (pathStr.startsWith(workingDirectory)) {
@@ -28,6 +83,99 @@ class FileToolFactory {
       return p.join(workingDirectory, pathStr.substring(1));
     }
     return p.join(workingDirectory, pathStr);
+  }
+
+  /// Resolve the image argument for `view_image`.
+  ///
+  /// Accepts `fs://<filename>` references (the canonical form used in card
+  /// media and in-text attachments), mapping them to the asset pool at
+  /// `Facts/assets/<filename>` under the working directory. Other forms fall
+  /// back to [_resolvePath] for backward compatibility.
+  String _resolveImagePath(String pathStr) {
+    if (pathStr.startsWith('fs://')) {
+      final filename = pathStr.substring(5);
+      return p.join(workingDirectory, 'Facts', 'assets', filename);
+    }
+    return _resolvePath(pathStr);
+  }
+
+  Tool buildViewImageTool() {
+    return Tool(
+      name: 'view_image',
+      description:
+          'View a local image file by attaching a compressed image to the next model message. '
+          'Use this when visual inspection is needed. The image is resized/compressed before being sent to the model. '
+          'Provide the image by its `fs://<filename>` reference (the same form used in card media and in-text attachments).',
+      parameters: {
+        'type': 'object',
+        'properties': {
+          'path': {
+            'type': 'string',
+            'description':
+                'The image to view, given as its `fs://<filename>` reference (for example fs://img_20260612_ts_0_no_1_800x600.jpg).',
+          },
+          'detail': {
+            'type': 'string',
+            'enum': ['high', 'original'],
+            'description':
+                'Optional Codex-compatible detail hint. Images are still resized/compressed for model input safety.',
+          },
+        },
+        'required': ['path'],
+      },
+      executable: (String path, String? detail) async {
+        if (detail != null && detail != 'high' && detail != 'original') {
+          throw ArgumentError(
+            'view_image.detail only supports `high` or `original`.',
+          );
+        }
+
+        final imagePath = _resolveImagePath(path);
+        permissionManager.checkPermission(imagePath, FileAccessType.read);
+
+        final extension = p.extension(imagePath).toLowerCase();
+        if (!_viewImageExtensions.contains(extension)) {
+          throw ArgumentError('Unsupported image type: $extension');
+        }
+
+        final originalSize = await _fileOpService.validateReadableFile(
+          filePath: imagePath,
+          workingDirectory: workingDirectory,
+        );
+
+        final safety = await AssetSafetyService.instance.inspectFile(imagePath);
+        if (!safety.safeForAnalysis) {
+          return 'Image was not attached: ${safety.analysisSkipText(p.basename(imagePath))}';
+        }
+
+        final compressedBytes = await _viewImageCompressor(
+          imagePath,
+          targetSize: 2048,
+          quality: 85,
+        );
+        if (compressedBytes == null || compressedBytes.isEmpty) {
+          throw Exception('Image compression failed.');
+        }
+
+        final sessionId = AgentCallToolContext.current?.state.sessionId ?? '';
+        PendingToolImageBuffer.instance.add(
+          sessionId,
+          ImagePart(await compute(base64Encode, compressedBytes), 'image/webp'),
+          message:
+              'Image loaded from `${_displayPath(imagePath)}`. Inspect it now.',
+        );
+
+        return 'Image attached as the next message (${_formatBytes(originalSize)} -> ${_formatBytes(compressedBytes.length)}).';
+      },
+    );
+  }
+
+  String _displayPath(String absolutePath) {
+    if (absolutePath.startsWith(workingDirectory)) {
+      final relative = p.relative(absolutePath, from: workingDirectory);
+      return relative == '.' ? '/' : '/$relative';
+    }
+    return absolutePath;
   }
 
   Tool buildReadTool() {

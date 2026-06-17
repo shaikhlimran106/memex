@@ -76,7 +76,7 @@ class LLMCallRecordService {
   ///
   /// ✅ Usable in:
   /// 1. Inside a Tool's executable function
-  ///    - e.g. SaveCardTool.tool(), SaveTemplateTool.tool()
+  ///    - e.g. SaveCardTool.tool(), file operation tools
   ///    - e.g. UpdateCardInsight tool, file operation tools, etc.
   ///    - These run inside runZoned when the agent invokes the tool
   ///
