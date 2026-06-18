@@ -952,6 +952,49 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   }
 
   Widget _buildHeader() {
+    final actions = <Widget>[
+      if (!_isSuperAgentHome)
+        _buildHeaderIconButton(
+          tooltip: UserStorage.l10n.chatHistory,
+          icon: Icons.history,
+          onPressed: () {
+            context.push(
+              AppRoutes.chatHistory,
+              extra: {
+                'agentName': widget.agentName,
+                'title': widget.title,
+              },
+            ).then((_) {
+              if (mounted) {
+                setState(() {});
+                _loadSessionHistory();
+              }
+            });
+          },
+        ),
+      _buildHeaderIconButton(
+        key: const ValueKey('agent_chat_fullscreen_toggle'),
+        tooltip: _isFullScreen
+            ? UserStorage.l10n.exitFullScreenTooltip
+            : UserStorage.l10n.enterFullScreenTooltip,
+        icon: _isFullScreen ? Icons.close_fullscreen : Icons.open_in_full,
+        onPressed: () {
+          setState(() {
+            _isFullScreen = !_isFullScreen;
+          });
+          _scrollToBottom();
+        },
+      ),
+      _buildHeaderIconButton(
+        key: const ValueKey('agent_chat_close_button'),
+        tooltip: UserStorage.l10n.close,
+        icon: Icons.close,
+        iconSize: 20,
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+    ];
+    final reservedActionWidth = actions.length * 36.0 + 8;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.only(left: 24, right: 4, top: 16, bottom: 16),
@@ -959,67 +1002,43 @@ class _AgentChatDialogState extends State<AgentChatDialog>
         color: Colors.white.withValues(alpha: 0.8),
         border: const Border(bottom: BorderSide(color: Color(0xFFF7F8FA))),
       ),
-      child: Row(
-        children: [
-          _buildAgentMark(size: 22),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              widget.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+      child: SizedBox(
+        height: 36,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              right: reservedActionWidth,
+              child: Row(
+                children: [
+                  _buildAgentMark(size: 22),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      widget.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  if (!_isSuperAgentHome) ...[
+                    const SizedBox(width: 8),
+                    _buildModeChip(),
+                  ],
+                ],
               ),
             ),
-          ),
-          if (!_isSuperAgentHome) ...[
-            const SizedBox(width: 8),
-            _buildModeChip(),
-          ],
-          const Spacer(),
-          if (!_isSuperAgentHome)
-            _buildHeaderIconButton(
-              tooltip: UserStorage.l10n.chatHistory,
-              icon: Icons.history,
-              onPressed: () {
-                context.push(
-                  AppRoutes.chatHistory,
-                  extra: {
-                    'agentName': widget.agentName,
-                    'title': widget.title,
-                  },
-                ).then((_) {
-                  if (mounted) {
-                    setState(() {});
-                    _loadSessionHistory();
-                  }
-                });
-              },
+            Positioned(
+              top: 0,
+              right: 0,
+              bottom: 0,
+              child: Row(mainAxisSize: MainAxisSize.min, children: actions),
             ),
-          _buildHeaderIconButton(
-            key: const ValueKey('agent_chat_fullscreen_toggle'),
-            tooltip: _isFullScreen
-                ? UserStorage.l10n.exitFullScreenTooltip
-                : UserStorage.l10n.enterFullScreenTooltip,
-            icon: _isFullScreen ? Icons.close_fullscreen : Icons.open_in_full,
-            onPressed: () {
-              setState(() {
-                _isFullScreen = !_isFullScreen;
-              });
-              _scrollToBottom();
-            },
-          ),
-          _buildHeaderIconButton(
-            key: const ValueKey('agent_chat_close_button'),
-            tooltip: UserStorage.l10n.close,
-            icon: Icons.close,
-            iconSize: 20,
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
