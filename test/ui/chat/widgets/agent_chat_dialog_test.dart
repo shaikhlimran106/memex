@@ -167,6 +167,37 @@ void main() {
       );
       expect(find.text(UserStorage.l10n.sendLabel), findsOneWidget);
     });
+
+    testWidgets('keeps super agent header actions tight to the right edge', (
+      tester,
+    ) async {
+      await _pumpDialog(tester, scene: 'super_agent_home');
+
+      final dialogRect = tester.getRect(
+        find.byKey(const ValueKey('agent_chat_dialog_container')),
+      );
+      final fullscreenButtonRect = tester.getRect(
+        find.byKey(const ValueKey('agent_chat_fullscreen_toggle')),
+      );
+      final closeButtonFinder =
+          find.byKey(const ValueKey('agent_chat_close_button'));
+      final closeButtonRect = tester.getRect(closeButtonFinder);
+      final closeIconRect = tester.getRect(
+        find.descendant(
+          of: closeButtonFinder,
+          matching: find.byIcon(Icons.close),
+        ),
+      );
+
+      expect(closeButtonRect.size, const Size.square(36));
+      expect(fullscreenButtonRect.size, const Size.square(36));
+      expect(
+        dialogRect.right - closeButtonRect.right,
+        moreOrLessEquals(4),
+      );
+      expect(closeIconRect.right, greaterThan(dialogRect.right - 13));
+      expect(closeButtonRect.left - fullscreenButtonRect.right, 0);
+    });
   });
 }
 

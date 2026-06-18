@@ -952,7 +952,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.only(left: 24, right: 12, top: 16, bottom: 16),
+      padding: const EdgeInsets.only(left: 24, right: 4, top: 16, bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.8),
         border: const Border(bottom: BorderSide(color: Color(0xFFF7F8FA))),
@@ -1011,6 +1011,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
             },
           ),
           _buildHeaderIconButton(
+            key: const ValueKey('agent_chat_close_button'),
             tooltip: UserStorage.l10n.close,
             icon: Icons.close,
             iconSize: 20,
@@ -1022,9 +1023,9 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   }
 
   /// Compact header action button. Material's default [IconButton] reserves a
-  /// 48x48 hit box, which left the fullscreen/close icons floating ~38px from
-  /// the edge with visible gaps; this keeps a comfortable tap target while
-  /// sitting flush against the header's right padding.
+  /// 48x48 hit box, which leaves fullscreen/close icons floating too far from
+  /// the sheet edge. A stable 36x36 box keeps the tap target predictable while
+  /// visually aligning the close icon near the right edge.
   Widget _buildHeaderIconButton({
     Key? key,
     required IconData icon,
@@ -1034,13 +1035,15 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   }) {
     return Tooltip(
       message: tooltip,
-      child: InkResponse(
+      child: SizedBox.square(
         key: key,
-        onTap: onPressed,
-        radius: 20,
-        child: Padding(
-          padding: const EdgeInsets.all(7),
-          child: Icon(icon, size: iconSize, color: AppColors.textTertiary),
+        dimension: 36,
+        child: InkResponse(
+          onTap: onPressed,
+          radius: 20,
+          child: Center(
+            child: Icon(icon, size: iconSize, color: AppColors.textTertiary),
+          ),
         ),
       ),
     );
