@@ -797,6 +797,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                 key: const ValueKey('agent_chat_dialog_container'),
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOutCubic,
+                width: double.infinity,
                 height: dialogHeight,
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -952,6 +953,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
 
   Widget _buildHeader() {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.only(left: 24, right: 4, top: 16, bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.8),

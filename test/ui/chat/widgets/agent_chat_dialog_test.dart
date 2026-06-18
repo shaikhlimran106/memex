@@ -171,7 +171,12 @@ void main() {
     testWidgets('keeps super agent header actions tight to the right edge', (
       tester,
     ) async {
-      await _pumpDialog(tester, scene: 'super_agent_home');
+      const viewportSize = Size(390, 800);
+      await _pumpDialog(
+        tester,
+        viewportSize: viewportSize,
+        scene: 'super_agent_home',
+      );
 
       final dialogRect = tester.getRect(
         find.byKey(const ValueKey('agent_chat_dialog_container')),
@@ -189,13 +194,19 @@ void main() {
         ),
       );
 
+      expect(dialogRect.width, moreOrLessEquals(viewportSize.width));
       expect(closeButtonRect.size, const Size.square(36));
       expect(fullscreenButtonRect.size, const Size.square(36));
       expect(
         dialogRect.right - closeButtonRect.right,
         moreOrLessEquals(4),
       );
+      expect(
+        viewportSize.width - closeButtonRect.right,
+        moreOrLessEquals(4),
+      );
       expect(closeIconRect.right, greaterThan(dialogRect.right - 13));
+      expect(closeIconRect.right, greaterThan(viewportSize.width - 13));
       expect(closeButtonRect.left - fullscreenButtonRect.right, 0);
     });
   });
