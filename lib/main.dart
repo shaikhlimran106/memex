@@ -48,7 +48,6 @@ import 'package:workmanager/workmanager.dart';
 import 'package:health/health.dart';
 import 'package:memex/domain/models/timeline_card_model.dart';
 import 'package:memex/utils/logger.dart';
-import 'package:memex/utils/result.dart';
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/ui/agent_activity/widgets/agent_activity_widget.dart';
 import 'package:memex/ui/main_screen/widgets/ai_core_button.dart';
@@ -63,7 +62,7 @@ import 'package:memex/data/services/demo_service.dart';
 import 'package:memex/ui/core/widgets/demo_overlay.dart';
 import 'package:memex/ui/main_screen/widgets/share_intent_handler.dart';
 import 'package:memex/ui/settings/widgets/backup_restore_confirm_dialog.dart';
-import 'package:memex/ui/chat/widgets/agent_chat_dialog.dart';
+import 'package:memex/ui/chat/widgets/open_super_agent_dialog.dart';
 import 'package:quick_actions/quick_actions.dart';
 import 'package:memex/data/services/quick_action_service.dart';
 import 'package:memex/data/services/speech_transcription_service.dart';
@@ -820,51 +819,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     _openSuperAgentDialog();
   }
 
-  Future<String?> _latestSuperAgentSessionId() async {
-    try {
-      final result = await MemexRouter().fetchChatSessions(
-        agentName: 'memex_agent',
-        limit: 30,
-      );
-      return result.when(
-        onOk: (sessions) {
-          for (final session in sessions) {
-            if (session['scene'] == 'super_agent_home') {
-              return session['session_id']?.toString();
-            }
-          }
-          return null;
-        },
-        onError: (_, __) => null,
-      );
-    } catch (e) {
-      return null;
-    }
-  }
-
-  void _openSuperAgentDialog() {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: '',
-      barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 500),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return FutureBuilder<String?>(
-          future: _latestSuperAgentSessionId(),
-          builder: (context, snapshot) {
-            return AgentChatDialog(
-              key: ValueKey(snapshot.data ?? 'super_agent_new_session'),
-              agentName: 'memex_agent',
-              title: 'Memex',
-              initialSessionId: snapshot.data,
-              inputHint: UserStorage.l10n.aiInputHint,
-              scene: 'super_agent_home',
-            );
-          },
-        );
-      },
-    );
+  void _openSuperAgentDialog({String? initialDraftText}) {
+    openSuperAgentDialog(context, initialDraftText: initialDraftText);
   }
 
   void _handleAICoreButtonLongPressStart() {
@@ -1560,17 +1516,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     setState(() => _homeClipboardCandidate = candidate);
   }
 
-  Future<void> _pasteHomeClipboardToInput() async {
+  Future<void> _openHomeClipboardInSuperAgent() async {
     final candidate = _homeClipboardCandidate;
     if (candidate == null) return;
 
     await _clipboardPreviewService.markHandled(candidate);
     if (!mounted) return;
-    setState(() {
-      _homeClipboardCandidate = null;
-      _sharedDraft = InputData(text: candidate.text);
-      _isInputOpen = true;
-    });
+    setState(() => _homeClipboardCandidate = null);
+    _openSuperAgentDialog(initialDraftText: candidate.text);
   }
 
   Future<void> _dismissHomeClipboardPreview() async {
@@ -1777,7 +1730,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         minimum: const EdgeInsets.only(bottom: 8),
         child: ClipboardPreviewCard(
           candidate: candidate,
-          onPaste: _pasteHomeClipboardToInput,
+          onPaste: _openHomeClipboardInSuperAgent,
           onDismiss: _dismissHomeClipboardPreview,
         ),
       ),

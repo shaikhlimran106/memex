@@ -96,34 +96,6 @@ class TimelineScreenState extends State<TimelineScreen> {
     }
   }
 
-  void _showChatDialog(TimelineViewModel vm) {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: '',
-      barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 500),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        if (vm.viewMode == TimelineViewMode.insight) {
-          return AgentChatDialog(
-            agentName: 'knowledge_insight_agent',
-            title: UserStorage.l10n.insightAssistant,
-            inputHint: UserStorage.l10n.insightInputHint,
-            scene: 'insight_card_chat',
-            sceneId: 'general_insight_chat',
-            initialRefs: const [],
-          );
-        }
-        return AgentChatDialog(
-          agentName: 'memex_agent',
-          title: UserStorage.l10n.aiAssistant,
-          inputHint: UserStorage.l10n.aiInputHint,
-          scene: 'assistant_home',
-        );
-      },
-    );
-  }
-
   @override
   void initState() {
     super.initState();
@@ -365,28 +337,12 @@ class TimelineScreenState extends State<TimelineScreen> {
                       ),
                     ),
                   ),
-                  // 4 buttons: chat, notification, companion, user avatar
+                  // Header actions: notification, companion, user avatar
                   SizedBox(
                     height: 36,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Chat button
-                        GestureDetector(
-                          onTap: () => _showChatDialog(vm),
-                          child: SizedBox(
-                            width: 36,
-                            height: 36,
-                            child: Center(
-                              child: SvgPicture.asset(
-                                'assets/icons/chat_add.svg',
-                                width: 22,
-                                height: 20,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
                         // Notification button
                         if (AppDatabase.isInitialized)
                           Builder(

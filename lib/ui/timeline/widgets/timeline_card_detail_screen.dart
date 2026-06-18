@@ -21,7 +21,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:memex/ui/timeline/widgets/timeline/asset_header_gallery.dart';
 import 'package:memex/ui/core/widgets/local_image.dart';
 
-import 'package:memex/ui/chat/widgets/agent_chat_dialog.dart';
+import 'package:memex/ui/chat/widgets/open_super_agent_dialog.dart';
 import 'package:memex/data/services/event_bus_service.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
@@ -171,56 +171,59 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
   void _showChatDialog() {
     if (_detail == null) return;
 
-    final contextString = StringBuffer();
-    contextString.writeln('Card Fact ID: ${_detail!.id}');
-    contextString.writeln(
-      'Card Local Time: ${formatLocalDateTimeWithZone(_detail!.timestamp)}',
+    openSuperAgentDialog(
+      context,
+      sceneId: _detail!.id,
+      initialRefs: [
+        {
+          'title': _detail!.title,
+          'content': _buildCardReferenceContent(_detail!),
+          'type': 'timeline_card',
+        },
+      ],
     );
-    contextString.writeln('Card Title: ${_detail!.title}');
-    contextString.writeln('Card Content: ${_detail!.rawContent}');
-    if (_detail!.insight.text.isNotEmpty) {
-      contextString.writeln('Asset analysis results: ${_detail!.insight.text}');
-    }
+  }
 
-    if (_detail!.insight.comments.isNotEmpty) {
-      contextString.writeln('Card Comments:');
-      for (var comment in _detail!.insight.comments) {
+  String _buildCardReferenceContent(CardDetailModel detail) {
+    final buffer = StringBuffer()
+      ..writeln('Reference Type: timeline_card')
+      ..writeln('Target Card ID: ${detail.id}')
+      ..writeln(
+          'Record Local Time: ${formatLocalDateTimeWithZone(detail.timestamp)}')
+      ..writeln('Title: ${detail.title}')
+      ..writeln('Status: ${detail.status}');
+
+    if (detail.tags.isNotEmpty) {
+      buffer.writeln('Tags: ${detail.tags.join(', ')}');
+    }
+    if (detail.address.isNotEmpty && detail.address != 'Unknown') {
+      buffer.writeln('Location: ${detail.address}');
+    }
+    if (detail.rawContent.isNotEmpty) {
+      buffer.writeln('Record Content:\n${detail.rawContent}');
+    }
+    if (detail.assets.isNotEmpty) {
+      buffer.writeln('Assets:');
+      for (final asset in detail.assets) {
+        buffer.writeln('- ${asset.type}: ${asset.url}');
+      }
+    }
+    if (detail.insight.text.isNotEmpty) {
+      buffer.writeln('Existing AI Insight:\n${detail.insight.text}');
+    }
+    if (detail.insight.comments.isNotEmpty) {
+      buffer.writeln('Comments:');
+      for (final comment in detail.insight.comments) {
         final authorName =
             comment.isAi ? 'AI' : (comment.character?.name ?? 'User');
-        final authorId =
-            comment.isAi ? 'ai_agent' : (comment.character?.id ?? 'user');
         final time = formatLocalDateTimeWithZone(
           DateTime.fromMillisecondsSinceEpoch(comment.timestamp * 1000),
         );
-        contextString.writeln(
-          '- [$time] $authorName (ID: $authorId): ${comment.content}',
-        );
+        buffer.writeln('- [$time] $authorName: ${comment.content}');
       }
     }
 
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: '',
-      barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 500),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return AgentChatDialog(
-          agentName: 'memex_agent',
-          title: UserStorage.l10n.aiAssistant,
-          inputHint: UserStorage.l10n.aiInputHint,
-          scene: 'assistant_timeline_card_detail',
-          sceneId: _detail!.id,
-          initialRefs: [
-            {
-              'title': _detail!.title,
-              'content': contextString.toString(),
-              'type': 'timeline_card',
-            },
-          ],
-        );
-      },
-    );
+    return buffer.toString();
   }
 
   Future<void> _retryCardGeneration() async {

@@ -693,8 +693,10 @@ class ChatService {
     // entries (which the agent loop would each wrap in its own
     // <system-reminder> tag).
     final referencedContent = (refs != null && refs.isNotEmpty)
-        ? 'The user has referenced the following content. Use this context '
-            'to answer the user query:\n${refs.map(
+        ? 'The user opened this chat from the following in-app reference. '
+            'Treat it as the current page context for understanding words like '
+            '"this", "this card", or "this insight", and use the target IDs if '
+            'the user asks to update or organize the referenced content:\n${refs.map(
                   (r) =>
                       'Title: ${r['title']}\nType: ${r['type'] ?? 'unknown'}\nContent: ${r['content']}',
                 ).join('\n\n')}'

@@ -180,6 +180,7 @@ class AgentChatDialog extends StatefulWidget {
   final String scene;
   final String? sceneId;
   final List<Map<String, String>>? initialRefs;
+  final String? initialDraftText;
 
   const AgentChatDialog({
     super.key,
@@ -190,6 +191,7 @@ class AgentChatDialog extends StatefulWidget {
     this.scene = 'assistant',
     this.sceneId,
     this.initialRefs,
+    this.initialDraftText,
   });
 
   @override
@@ -239,6 +241,13 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   void initState() {
     super.initState();
     _currentSessionId = widget.initialSessionId;
+    final initialDraftText = widget.initialDraftText;
+    if (initialDraftText != null && initialDraftText.isNotEmpty) {
+      _messageController.text = initialDraftText;
+      _messageController.selection = TextSelection.collapsed(
+        offset: initialDraftText.length,
+      );
+    }
 
     // Animations
     _controller = AnimationController(
@@ -924,15 +933,17 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildAgentMark(size: 44),
-          const SizedBox(height: 14),
+          _buildAgentMark(size: 32),
+          const SizedBox(height: 6),
           Text(
             widget.inputHint,
             style: const TextStyle(
               color: AppColors.textTertiary,
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
