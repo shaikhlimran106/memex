@@ -17,7 +17,7 @@ Always be concise, helpful, and friendly.
 
 /// A lightweight skill-host agent with a simple system prompt.
 /// Supports file-based skills (SKILL.md + RunJavaScript) and file operations.
-/// Does NOT include memory management or PKM overview tools.
+/// Does NOT include memory management tools.
 class PureSkillHostAgent {
   static final Logger _logger = getLogger('PureSkillHostAgent');
 

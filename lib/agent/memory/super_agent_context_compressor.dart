@@ -45,8 +45,9 @@ class SuperAgentContextCompressor implements ContextCompressor {
         if (message is! UserMessage) continue;
         if (!message.contents.any((part) => part is ImagePart)) continue;
 
-        final fsPaths = (message.metadata?['image_fs_paths'] as List?)
-                ?.map((path) => path.toString())
+        final fsFileNames = (message.metadata?['image_fs_paths'] as List?)
+                ?.map(_fsFileName)
+                .whereType<String>()
                 .toList() ??
             const <String>[];
 
@@ -54,12 +55,13 @@ class SuperAgentContextCompressor implements ContextCompressor {
         final newContents = <UserContentPart>[];
         for (final part in message.contents) {
           if (part is ImagePart) {
-            final path =
-                imageIndex < fsPaths.length ? fsPaths[imageIndex] : null;
+            final fileName = imageIndex < fsFileNames.length
+                ? fsFileNames[imageIndex]
+                : null;
             imageIndex += 1;
             newContents.add(TextPart(
-              path != null
-                  ? '[archived image attachment: fs://$path]'
+              fileName != null
+                  ? '[archived image attachment: fs://$fileName]'
                   : '[archived image attachment]',
             ));
           } else {
@@ -74,5 +76,16 @@ class SuperAgentContextCompressor implements ContextCompressor {
         );
       }
     }
+  }
+
+  static String? _fsFileName(Object? raw) {
+    var value = raw?.toString().trim();
+    if (value == null || value.isEmpty) return null;
+    if (value.startsWith('fs://')) {
+      value = value.substring('fs://'.length);
+    }
+    value = value.replaceAll('\\', '/');
+    final parts = value.split('/').where((part) => part.isNotEmpty).toList();
+    return parts.isEmpty ? null : parts.last;
   }
 }

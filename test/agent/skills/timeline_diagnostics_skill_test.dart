@@ -8,6 +8,9 @@ import 'package:memex/utils/time_context.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+final _recordDateTime = DateTime(2026, 6, 10, 9);
+final _recordTimestamp = _recordDateTime.millisecondsSinceEpoch ~/ 1000;
+
 void main() {
   group('TimelineDiagnosticsSkill', () {
     late Directory tempDir;
@@ -55,7 +58,8 @@ void main() {
       expect(
         result,
         contains(
-          formatLocalDateTimeWithZone(dateTimeFromUnixSeconds(1781000000)),
+          formatLocalDateTimeWithZone(
+              dateTimeFromUnixSeconds(_recordTimestamp)),
         ),
       );
       expect(result, contains('测试图片'));
@@ -76,21 +80,20 @@ void main() {
       expect(
         result,
         contains(
-          'Published time: ${formatLocalDateTimeWithZone(DateTime(2026, 6, 10, 9))}',
+          'Published time: ${formatLocalDateTimeWithZone(_recordDateTime)}',
         ),
       );
-      expect(result, contains('Raw input content:'));
+      expect(result, contains('Original user input (fact):'));
       expect(result, contains('今天拍了两张图'));
-      expect(result, contains('## Asset Analysis Results'));
-      expect(result, contains('### Asset 1 (name: photo.jpg)'));
-      expect(result, contains('A test image.'));
+      expect(result, contains('Associated media files:'));
+      expect(result, contains('- ![image](fs://photo.jpg)'));
       expect(result, contains('Current CardData:'));
       expect(result, contains('fact_id: $cardId'));
       expect(result, contains('status: failed'));
       expect(result, contains('tags: Visual'));
       expect(result, contains('title: 测试图片'));
       expect(result, contains('address: Beijing · Chaoyang Park'));
-      expect(result, contains('user_fixed_timestamp: 1781000000'));
+      expect(result, contains('user_fixed_timestamp: $_recordTimestamp'));
       expect(result, contains('user_fixed_address: Shanghai · Jing’an'));
       expect(result, contains('failure_reason: LLM timeout'));
       expect(result, isNot(contains('comments')));
@@ -105,7 +108,7 @@ void main() {
       );
       expect(
         createdAtLocal,
-        formatLocalDateTimeWithZone(dateTimeFromUnixSeconds(1781000000)),
+        formatLocalDateTimeWithZone(dateTimeFromUnixSeconds(_recordTimestamp)),
       );
     });
 
@@ -144,21 +147,23 @@ Future<void> _writeCard({
     cardId,
     CardData(
       factId: cardId,
-      timestamp: 1781000000,
+      timestamp: _recordTimestamp,
       status: 'failed',
       tags: ['Visual'],
       title: '测试图片',
+      fact: '今天拍了两张图',
+      assets: const ['![image](fs://photo.jpg)'],
       address: 'Beijing · Chaoyang Park',
-      userFixedTimestamp: 1781000000,
+      userFixedTimestamp: _recordTimestamp,
       userFixedAddress: 'Shanghai · Jing’an',
       insight: const CardInsight(summary: 'A useful visual memory.'),
       failureReason: 'LLM timeout',
-      comments: const [
+      comments: [
         CardComment(
           id: 'comment_1',
           content: 'Do not expose this from diagnostics.',
           isAi: false,
-          timestamp: 1781000001,
+          timestamp: _recordTimestamp + 1,
         ),
       ],
       uiConfigs: const [

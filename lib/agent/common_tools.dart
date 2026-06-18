@@ -46,28 +46,16 @@ final mintRecordFactIdTool = Tool(
       "card's id instead.",
   parameters: {
     'type': 'object',
-    'properties': {
-      'content_creation_date': {
-        'type': 'string',
-        'description':
-            'Optional creation date of the record (e.g. an image capture time), in format "YYYY-MM-DD HH:MM:SS". Determines which day the id is filed under. If omitted, the current time is used.'
-      },
-    },
+    'properties': {},
   },
-  executable: (String? content_creation_date) async {
+  executable: () async {
     final context = AgentCallToolContext.current;
     if (context == null) {
       throw StateError(
           "mint_record_fact_id must be called within an agent execution context.");
     }
     final userId = context.state.metadata['userId'] as String;
-    DateTime? date;
-    if (content_creation_date != null &&
-        content_creation_date.trim().isNotEmpty) {
-      date = DateTime.tryParse(content_creation_date.trim());
-    }
-    final factId =
-        await FileSystemService.instance.allocateCardFactId(userId, date: date);
+    final factId = await FileSystemService.instance.allocateCardFactId(userId);
     getLogger('CommonTools').info('Minted fact_id: $factId');
     return AgentToolResult(
       content: TextPart(
@@ -124,7 +112,9 @@ final getPkmOverviewTool = Tool(
       getLogger('PkmAgent').warning('Failed to get PKM structure: $e');
       pkmStructure = Prompts.pkmAgentDirectoryStructureError(e.toString());
     }
-    final header = pkmStructure.contains('passing a specific path') ? Prompts.pkmAgentTruncatedOverviewHeader : Prompts.pkmAgentFullOverviewHeader;
+    final header = pkmStructure.contains('passing a specific path')
+        ? Prompts.pkmAgentTruncatedOverviewHeader
+        : Prompts.pkmAgentFullOverviewHeader;
     return '''<system-reminder>
 $header
 $pkmStructure

@@ -74,16 +74,23 @@ class RelatedFact {
 /// Timeline card data (YAML file content).
 class CardData {
   final String factId;
+
+  /// System-controlled record creation time, in Unix seconds. This is when the
+  /// record entered Memex, distinct from [timestamp], which is the content/event
+  /// time and may be model-inferred or user-edited.
+  final int? createdAt;
   final int timestamp;
   final String status;
   final List<String> tags;
   final List<UiConfig> uiConfigs;
   final String? title;
   final String? address;
+
   /// The user's original raw information this card represents (AI-recognized
   /// capture intent). Replaces the legacy pipeline's fact-file content and
   /// image-analysis text that used to live outside the card.
   final String? fact;
+
   /// Image/audio attachments associated with this card, each stored as a
   /// markdown-style reference identical to the in-text form: `![image](fs://…)`
   /// for images and `[audio](fs://…)` for audio. Replaces the legacy pipeline's
@@ -99,6 +106,7 @@ class CardData {
 
   const CardData({
     required this.factId,
+    this.createdAt,
     required this.timestamp,
     required this.status,
     required this.tags,
@@ -172,6 +180,7 @@ class CardData {
 
     return CardData(
       factId: json['fact_id'] as String? ?? '',
+      createdAt: json['created_at'] as int?,
       timestamp: json['timestamp'] as int? ?? 0,
       status: json['status'] as String? ?? 'processing',
       tags: tagsList,
@@ -198,6 +207,7 @@ class CardData {
       'tags': tags,
       'ui_configs': uiConfigs.map((e) => e.toJson()).toList(),
     };
+    if (createdAt != null) m['created_at'] = createdAt;
     if (title != null) m['title'] = title;
     if (address != null) m['address'] = address;
     if (fact != null) m['fact'] = fact;
@@ -217,6 +227,7 @@ class CardData {
 
   CardData copyWith({
     String? factId,
+    int? createdAt,
     int? timestamp,
     String? status,
     List<String>? tags,
@@ -236,6 +247,7 @@ class CardData {
   }) {
     return CardData(
       factId: factId ?? this.factId,
+      createdAt: createdAt ?? this.createdAt,
       timestamp: timestamp ?? this.timestamp,
       status: status ?? this.status,
       tags: tags ?? this.tags,
@@ -250,9 +262,8 @@ class CardData {
       comments: comments ?? this.comments,
       insight: insight ?? this.insight,
       deleted: deleted ?? this.deleted,
-      failureReason: clearFailureReason
-          ? null
-          : failureReason ?? this.failureReason,
+      failureReason:
+          clearFailureReason ? null : failureReason ?? this.failureReason,
     );
   }
 }

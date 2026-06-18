@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_agent_core/dart_agent_core.dart';
@@ -5,7 +7,10 @@ import 'package:dio/dio.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/agent/skills/dynamic_timeline_ui/dynamic_timeline_ui_skill.dart';
+import 'package:memex/agent/super_agent/subagent/delegate_progress.dart';
+import 'package:memex/agent/super_agent/subagent/delegate_subagent_tool.dart';
 import 'package:memex/agent/super_agent/subagent/super_agent_child.dart';
+import 'package:memex/data/services/api_exception.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/db/app_database.dart';
 import 'package:memex/utils/user_storage.dart';
@@ -67,6 +72,7 @@ void main() {
       );
       final names = (agent.tools ?? const []).map((t) => t.name).toSet();
       expect(names, containsAll(<String>['LS', 'Glob', 'Grep', 'Read']));
+      expect(names, isNot(contains('get_pkm_overview')));
       expect(names, isNot(contains('Write')));
       expect(names, isNot(contains('Edit')));
     });
@@ -80,6 +86,126 @@ void main() {
       );
       final names = (agent.tools ?? const []).map((t) => t.name).toSet();
       expect(names, containsAll(<String>['Read', 'Write', 'Edit']));
+      expect(names, isNot(contains('get_pkm_overview')));
+    });
+
+    test('restricted read roots keep PKM workers out of Cards', () async {
+      final workspace = FileSystemService.instance.getWorkspacePath(userId);
+      await Directory('$workspace/PKM').create(recursive: true);
+      await Directory('$workspace/Cards').create(recursive: true);
+      await File('$workspace/PKM/note.md').writeAsString('pkm note');
+      await File('$workspace/Cards/card.yaml').writeAsString('card: secret');
+
+      final agent = createSuperAgentChild(
+        config: const SuperAgentChildConfig(
+          childName: 'manage_pkm_child',
+          taskBrief: 'organize',
+          skills: [],
+          toolProfile: ChildToolProfile.full,
+          readRootPaths: ['/PKM'],
+          writeRootPaths: ['/PKM'],
+        ),
+        client: _ScriptedClient(texts: const ['done']),
+        modelConfig: ModelConfig(model: 'test'),
+        userId: userId,
+      );
+
+      final readTool =
+          (agent.tools ?? const []).singleWhere((t) => t.name == 'Read');
+      final pkmResult = await _callTool<String>(readTool, {
+        'file_path': '/PKM/note.md',
+      });
+      expect(pkmResult, contains('pkm note'));
+
+      final writeTool =
+          (agent.tools ?? const []).singleWhere((t) => t.name == 'Write');
+      await _callTool<dynamic>(writeTool, {
+        'file_path': '/PKM/new.md',
+        'content': 'new pkm note',
+      });
+      expect(
+          await File('$workspace/PKM/new.md').readAsString(), 'new pkm note');
+
+      final lsTool =
+          (agent.tools ?? const []).singleWhere((t) => t.name == 'LS');
+      final rootList = await _callTool<String>(lsTool, {'path': '/'});
+      expect(rootList, contains('PKM'));
+      expect(rootList, contains('note.md'));
+      expect(rootList, isNot(contains('Cards')));
+      expect(rootList, isNot(contains('card.yaml')));
+
+      expect(
+        () => _callTool<String>(lsTool, {'path': '/Cards'}),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.toString(),
+            'message',
+            equals('Directory /Cards does not exist'),
+          ),
+        ),
+      );
+
+      final globTool =
+          (agent.tools ?? const []).singleWhere((t) => t.name == 'Glob');
+      final globResult = await _callTool<String>(globTool, {
+        'pattern': '**/*',
+      });
+      expect(globResult, contains('PKM'));
+      expect(globResult, contains('note.md'));
+      expect(globResult, isNot(contains('Cards')));
+      expect(globResult, isNot(contains('card.yaml')));
+
+      expect(
+        () => _callTool<String>(globTool, {
+          'pattern': '**/*',
+          'path': '/Cards',
+        }),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.toString(),
+            'message',
+            equals('Directory /Cards does not exist'),
+          ),
+        ),
+      );
+
+      final grepTool =
+          (agent.tools ?? const []).singleWhere((t) => t.name == 'Grep');
+      final grepResult = await _callTool<String>(grepTool, {
+        'pattern': 'pkm|secret',
+        'output_mode': 'content',
+      });
+      expect(grepResult, contains('pkm note'));
+      expect(grepResult, isNot(contains('secret')));
+      expect(grepResult, isNot(contains('Cards')));
+
+      expect(
+        () => _callTool<String>(grepTool, {
+          'pattern': 'secret',
+          'path': '/Cards',
+          'output_mode': 'content',
+        }),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.toString(),
+            'message',
+            equals('path /Cards does not exist'),
+          ),
+        ),
+      );
+
+      expect(
+        () => _callTool<String>(readTool, {
+          'file_path': '/Cards/card.yaml',
+        }),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.toString(),
+            'message',
+            equals('File /Cards/card.yaml does not exist'),
+          ),
+        ),
+      );
     });
 
     test('dynamic_timeline_ui gets scoped file tools injected; base stays bare',
@@ -105,13 +231,47 @@ void main() {
 
       // The dynamic-UI skill carries the injected scoped file tools, so they
       // appear only once the worker activates that skill.
-      final uiSkill = agent.skills!
-          .whereType<DynamicTimelineUiSkill>()
-          .single;
-      final skillToolNames = (uiSkill.tools ?? const []).map((t) => t.name).toSet();
+      final uiSkill = agent.skills!.whereType<DynamicTimelineUiSkill>().single;
+      final skillToolNames =
+          (uiSkill.tools ?? const []).map((t) => t.name).toSet();
       expect(skillToolNames, containsAll(<String>['Read', 'Write', 'Edit']));
       // Its own design tools are still present too.
       expect(skillToolNames, contains('save_timeline_template'));
+    });
+
+    test('reports child tool progress through delegate progress sink',
+        () async {
+      const progress = DelegateProgress(
+        delegateRunId: 'delegate_1',
+        childName: 'read_child',
+        taskBrief: 'list workspace',
+      );
+      final sink = _RecordingDelegateProgressSink();
+      await Directory(FileSystemService.instance.getWorkspacePath(userId))
+          .create(recursive: true);
+
+      final result = await runSuperAgentChild(
+        config: const SuperAgentChildConfig(
+          childName: 'read_child',
+          taskBrief: 'list workspace',
+          skills: [],
+          toolProfile: ChildToolProfile.read,
+        ),
+        client: _SingleToolCallClient(
+          toolName: 'LS',
+          arguments: {'path': '/'},
+          finalText:
+              '```json\n{"status":"completed","summary":"listed workspace"}\n```',
+        ),
+        modelConfig: ModelConfig(model: 'test'),
+        userId: userId,
+        progress: progress,
+        progressSink: sink,
+      );
+
+      expect(result.status, SuperAgentChildStatus.completed);
+      expect(sink.events, contains('start:delegate_1:LS'));
+      expect(sink.events, contains('finish:delegate_1:LS:false'));
     });
 
     test('run extracts a structured no_op result from the final message',
@@ -139,7 +299,340 @@ void main() {
       expect(result.status, SuperAgentChildStatus.failed);
       expect(result.error, isNotNull);
     });
+
+    test('timed out child cancels the model request and saves state', () async {
+      final client = _CancellableClient();
+
+      final result = await runSuperAgentChild(
+        config: const SuperAgentChildConfig(
+          childName: 'slow_child',
+          taskBrief: 'run until timeout',
+          skills: [],
+          toolProfile: ChildToolProfile.full,
+          readRootPaths: ['/PKM'],
+          writeRootPaths: ['/PKM'],
+          timeout: Duration(milliseconds: 20),
+          contextPacket: {'parent_session_id': 'parent_session'},
+        ),
+        client: client,
+        modelConfig: ModelConfig(model: 'test'),
+        userId: userId,
+      );
+
+      expect(result.status, SuperAgentChildStatus.failed);
+      expect(result.error, 'child timed out after 20ms');
+      await client.cancelObserved.future
+          .timeout(const Duration(milliseconds: 200));
+      expect(client.cancelToken?.isCancelled, isTrue);
+      await client.returned.future.timeout(const Duration(milliseconds: 200));
+
+      final stateDir = Directory(
+        await FileSystemService.instance.getAgentStateDirectory(userId),
+      );
+      final stateFiles = await stateDir
+          .list()
+          .where((entity) =>
+              entity is File &&
+              entity.uri.pathSegments.last.startsWith('slow_child_') &&
+              entity.uri.pathSegments.last.endsWith('.json'))
+          .cast<File>()
+          .toList();
+      expect(stateFiles, hasLength(1));
+      final fileName = stateFiles.single.uri.pathSegments.last;
+      expect(
+        fileName,
+        matches(RegExp(
+          r'^slow_child_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.json$',
+        )),
+      );
+
+      final stateJson = await _readJsonWhenStable(stateFiles.single);
+      final metadata = stateJson['metadata'] as Map;
+      expect(metadata['sub_agent_mode'], isTrue);
+      expect(metadata['child_name'], 'slow_child');
+      expect(metadata['parent_session_id'], 'parent_session');
+      expect(metadata['child_cancelled'], isTrue);
+      expect(metadata['child_cancel_reason'], 'child timed out after 20ms');
+      expect(metadata['child_read_roots'], ['/PKM']);
+      expect(metadata['child_write_roots'], ['/PKM']);
+    });
+
+    test('delegate rejects task briefs with nonexistent asset refs', () async {
+      final tool = buildDelegateToSubagentTool();
+      final state = AgentState(
+        sessionId: 'delegate_asset_test',
+        metadata: {'userId': userId},
+      );
+      final agent = StatefulAgent(
+        name: 'delegate_asset_test_agent',
+        client: _SingleToolCallClient(
+          toolName: tool.name,
+          arguments: {
+            'task_brief': 'Capture this image: ![image](fs://missing.jpg)',
+            'profile': 'none',
+            'skills': [
+              {'name': 'manage_timeline_card', 'force_activate': true},
+            ],
+          },
+        ),
+        modelConfig: ModelConfig(model: 'test'),
+        state: state,
+        tools: [tool],
+        withGeneralPrinciples: false,
+        maxTurns: 3,
+      );
+
+      await agent.run([UserMessage.text('delegate')], useStream: false);
+
+      final resultMessage = state.history.messages
+          .whereType<FunctionExecutionResultMessage>()
+          .single;
+      final result = resultMessage.results.single;
+      expect(result.isError, isTrue);
+      expect(
+        _text(result),
+        contains('fs://missing.jpg'),
+      );
+    });
+
+    test('delegate accepts existing bare asset refs wrapped in backticks',
+        () async {
+      final assetsDir = Directory(
+        FileSystemService.instance.getAssetsPath(userId),
+      );
+      await assetsDir.create(recursive: true);
+      await File('${assetsDir.path}/photo.jpg').writeAsBytes(<int>[1, 2, 3]);
+
+      final tool = buildDelegateToSubagentTool();
+      final state = AgentState(
+        sessionId: 'delegate_backtick_asset_test',
+        metadata: {'userId': userId},
+      );
+      final agent = StatefulAgent(
+        name: 'delegate_backtick_asset_agent',
+        client: _SingleToolCallClient(
+          toolName: tool.name,
+          arguments: {
+            'task_brief': 'Capture this image attachment `fs://photo.jpg`）。',
+            'profile': 'read',
+            'skills': <dynamic>[],
+          },
+          finalText:
+              '```json\n{"status":"completed","summary":"asset ok"}\n```',
+        ),
+        modelConfig: ModelConfig(model: 'test'),
+        state: state,
+        tools: [tool],
+        withGeneralPrinciples: false,
+        maxTurns: 3,
+      );
+
+      await agent.run([UserMessage.text('delegate')], useStream: false);
+
+      final result = state.history.messages
+          .whereType<FunctionExecutionResultMessage>()
+          .single
+          .results
+          .single;
+      expect(result.isError, isFalse);
+      expect(_text(result), contains('asset ok'));
+    });
+
+    test('delegate rejects a skill-less worker on the none profile', () async {
+      final tool = buildDelegateToSubagentTool();
+      final state = AgentState(
+        sessionId: 'delegate_no_skill_none_test',
+        metadata: {'userId': userId},
+      );
+      final agent = StatefulAgent(
+        name: 'delegate_no_skill_none_agent',
+        client: _SingleToolCallClient(
+          toolName: tool.name,
+          arguments: {
+            'task_brief': 'Look around the knowledge base.',
+            'profile': 'none',
+            'skills': <dynamic>[],
+          },
+        ),
+        modelConfig: ModelConfig(model: 'test'),
+        state: state,
+        tools: [tool],
+        withGeneralPrinciples: false,
+        maxTurns: 3,
+      );
+
+      await agent.run([UserMessage.text('delegate')], useStream: false);
+
+      final result = state.history.messages
+          .whereType<FunctionExecutionResultMessage>()
+          .single
+          .results
+          .single;
+      expect(result.isError, isTrue);
+      expect(_text(result), contains('read'));
+    });
+
+    test('delegate allows a skill-less research worker on the read profile',
+        () async {
+      await Directory(FileSystemService.instance.getWorkspacePath(userId))
+          .create(recursive: true);
+      final tool = buildDelegateToSubagentTool();
+      final state = AgentState(
+        sessionId: 'delegate_research_test',
+        metadata: {'userId': userId},
+      );
+      final agent = StatefulAgent(
+        name: 'delegate_research_agent',
+        client: _SingleToolCallClient(
+          toolName: tool.name,
+          arguments: {
+            'task_brief': 'Summarize what is in the knowledge base.',
+            'profile': 'read',
+            'skills': <dynamic>[],
+          },
+          finalText:
+              '```json\n{"status":"completed","summary":"nothing yet"}\n```',
+        ),
+        modelConfig: ModelConfig(model: 'test'),
+        state: state,
+        tools: [tool],
+        withGeneralPrinciples: false,
+        maxTurns: 3,
+      );
+
+      await agent.run([UserMessage.text('delegate')], useStream: false);
+
+      final result = state.history.messages
+          .whereType<FunctionExecutionResultMessage>()
+          .single
+          .results
+          .single;
+      // The validation gate let the skill-less worker through: the result is a
+      // normal child report (its name carries the profile), not a rejection.
+      expect(result.isError, isFalse);
+      expect(_text(result), contains('read_child'));
+    });
+
+    test('delegate accepts a call that omits the skills field entirely',
+        () async {
+      // `skills` is not in the schema's `required` list, so the model may leave
+      // it out. The runtime must treat an absent field the same as an empty
+      // list (a skill-less read worker), not crash on a null arg.
+      await Directory(FileSystemService.instance.getWorkspacePath(userId))
+          .create(recursive: true);
+      final tool = buildDelegateToSubagentTool();
+      final state = AgentState(
+        sessionId: 'delegate_omit_skills_test',
+        metadata: {'userId': userId},
+      );
+      final agent = StatefulAgent(
+        name: 'delegate_omit_skills_agent',
+        client: _SingleToolCallClient(
+          toolName: tool.name,
+          arguments: {
+            'task_brief': 'Summarize what is in the knowledge base.',
+            'profile': 'read',
+            // no 'skills' key at all
+          },
+          finalText:
+              '```json\n{"status":"completed","summary":"nothing yet"}\n```',
+        ),
+        modelConfig: ModelConfig(model: 'test'),
+        state: state,
+        tools: [tool],
+        withGeneralPrinciples: false,
+        maxTurns: 3,
+      );
+
+      await agent.run([UserMessage.text('delegate')], useStream: false);
+
+      final result = state.history.messages
+          .whereType<FunctionExecutionResultMessage>()
+          .single
+          .results
+          .single;
+      expect(result.isError, isFalse);
+      expect(_text(result), contains('read_child'));
+    });
   });
+}
+
+Future<T> _callTool<T>(Tool tool, Map<String, dynamic> args) async {
+  final result = _invokeTool(tool, args);
+  if (result is Future) {
+    return await result as T;
+  }
+  return result as T;
+}
+
+dynamic _invokeTool(Tool tool, Map<String, dynamic> args) {
+  if (tool.parameterMode == ToolParameterMode.object) {
+    return tool.executable!(args);
+  }
+
+  final positionalArgs = <dynamic>[];
+  final namedArgs = <Symbol, dynamic>{};
+  final properties = tool.parameters['properties'];
+  if (properties is! Map) {
+    return Function.apply(tool.executable!, positionalArgs, namedArgs);
+  }
+
+  for (final entry in properties.entries) {
+    final key = entry.key.toString();
+    if (args.containsKey(key)) {
+      final value = _castToolValue(args[key], entry.value);
+      if (tool.namedParameters.contains(key)) {
+        namedArgs[Symbol(key)] = value;
+      } else {
+        positionalArgs.add(value);
+      }
+    } else if (!tool.namedParameters.contains(key)) {
+      positionalArgs.add(null);
+    }
+  }
+
+  return Function.apply(tool.executable!, positionalArgs, namedArgs);
+}
+
+dynamic _castToolValue(dynamic value, dynamic schema) {
+  if (schema is! Map) return value;
+  final type = schema['type'];
+  if (type == 'array' && value is List) {
+    final itemType = schema['items'] is Map ? schema['items']['type'] : null;
+    if (itemType == 'string') return value.cast<String>();
+    if (itemType == 'integer') {
+      return value.map((e) => (e as num).toInt()).toList();
+    }
+    if (itemType == 'number') {
+      return value.map((e) => (e as num).toDouble()).toList();
+    }
+    if (itemType == 'boolean') return value.cast<bool>();
+  } else if (type == 'integer' && value is num) {
+    return value.toInt();
+  } else if (type == 'number' && value is num) {
+    return value.toDouble();
+  }
+  return value;
+}
+
+Future<Map> _readJsonWhenStable(File file) async {
+  Object? lastError;
+  for (var i = 0; i < 20; i++) {
+    try {
+      return jsonDecode(await file.readAsString()) as Map;
+    } catch (e) {
+      lastError = e;
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+  }
+  throw StateError('State file did not settle: $lastError');
+}
+
+String _text(FunctionExecutionResult result) {
+  return result.content
+      .whereType<TextPart>()
+      .map((part) => part.text)
+      .join('\n');
 }
 
 /// Returns the i-th scripted text as a plain (no tool call) model message, so
@@ -180,6 +673,97 @@ class _ScriptedClient extends LLMClient {
   }
 }
 
+class _SingleToolCallClient extends LLMClient {
+  _SingleToolCallClient({
+    required this.toolName,
+    required this.arguments,
+    this.finalText = 'done',
+  });
+
+  final String toolName;
+  final Map<String, dynamic> arguments;
+  final String finalText;
+  var _callCount = 0;
+
+  @override
+  Future<ModelMessage> generate(
+    List<LLMMessage> messages, {
+    List<Tool>? tools,
+    ToolChoice? toolChoice,
+    required ModelConfig modelConfig,
+    bool? jsonOutput,
+    CancelToken? cancelToken,
+  }) async {
+    _callCount += 1;
+    if (_callCount == 1) {
+      return ModelMessage(
+        model: modelConfig.model,
+        stopReason: 'tool_calls',
+        functionCalls: [
+          FunctionCall(
+            id: 'call_1',
+            name: toolName,
+            arguments: jsonEncode(arguments),
+          ),
+        ],
+      );
+    }
+    return ModelMessage(
+      model: modelConfig.model,
+      stopReason: 'stop',
+      textOutput: finalText,
+    );
+  }
+
+  @override
+  Future<Stream<StreamingMessage>> stream(
+    List<LLMMessage> messages, {
+    List<Tool>? tools,
+    ToolChoice? toolChoice,
+    required ModelConfig modelConfig,
+    bool? jsonOutput,
+    CancelToken? cancelToken,
+  }) async {
+    throw UnsupportedError('Streaming is not used by this test client.');
+  }
+}
+
+class _RecordingDelegateProgressSink implements DelegateProgressSink {
+  final events = <String>[];
+
+  @override
+  void delegateStarted(DelegateProgress progress) {
+    events.add('delegate-start:${progress.delegateRunId}');
+  }
+
+  @override
+  void childToolStarted({
+    required DelegateProgress progress,
+    required String toolName,
+    required String arguments,
+  }) {
+    events.add('start:${progress.delegateRunId}:$toolName');
+  }
+
+  @override
+  void childToolFinished({
+    required DelegateProgress progress,
+    required FunctionExecutionResult result,
+  }) {
+    events.add(
+        'finish:${progress.delegateRunId}:${result.name}:${result.isError}');
+  }
+
+  @override
+  void delegateFinished({
+    required DelegateProgress progress,
+    required String status,
+    required String summary,
+  }) {
+    events.add('delegate-finish:${progress.delegateRunId}:$status');
+  }
+}
+
 class _ThrowingClient extends LLMClient {
   @override
   Future<ModelMessage> generate(
@@ -191,6 +775,50 @@ class _ThrowingClient extends LLMClient {
     CancelToken? cancelToken,
   }) async {
     throw StateError('boom');
+  }
+
+  @override
+  Future<Stream<StreamingMessage>> stream(
+    List<LLMMessage> messages, {
+    List<Tool>? tools,
+    ToolChoice? toolChoice,
+    required ModelConfig modelConfig,
+    bool? jsonOutput,
+    CancelToken? cancelToken,
+  }) async {
+    throw UnsupportedError('Streaming is not used by this test client.');
+  }
+}
+
+class _CancellableClient extends LLMClient {
+  final cancelObserved = Completer<void>();
+  final returned = Completer<void>();
+  CancelToken? cancelToken;
+
+  @override
+  Future<ModelMessage> generate(
+    List<LLMMessage> messages, {
+    List<Tool>? tools,
+    ToolChoice? toolChoice,
+    required ModelConfig modelConfig,
+    bool? jsonOutput,
+    CancelToken? cancelToken,
+  }) async {
+    this.cancelToken = cancelToken;
+    while (!(cancelToken?.isCancelled ?? false)) {
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+    }
+    if (!cancelObserved.isCompleted) {
+      cancelObserved.complete();
+    }
+    if (!returned.isCompleted) {
+      returned.complete();
+    }
+    return ModelMessage(
+      model: modelConfig.model,
+      stopReason: 'stop',
+      textOutput: '{"status":"failed","summary":"cancelled"}',
+    );
   }
 
   @override

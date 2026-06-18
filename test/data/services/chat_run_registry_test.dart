@@ -4,8 +4,7 @@ import 'package:memex/data/services/chat_run_registry.dart';
 
 void main() {
   group('ActiveChatRun.attach', () {
-    test('replays missed events then continues live, no duplicates',
-        () async {
+    test('replays missed events then continues live, no duplicates', () async {
       final registry = ChatRunRegistry();
       final run = registry.start('s1');
 
@@ -45,6 +44,20 @@ void main() {
       // Closing twice is safe and add() after close is ignored.
       run.close();
       run.add(ChatResponseChunkEvent('ignored'));
+    });
+
+    test('getOrStart reuses active run and creates missing run', () {
+      final registry = ChatRunRegistry();
+      final first = registry.getOrStart('s5');
+      final second = registry.getOrStart('s5');
+
+      expect(identical(first, second), isTrue);
+      expect(registry.isActive('s5'), isTrue);
+
+      first.close();
+      final third = registry.getOrStart('s5');
+      expect(identical(first, third), isFalse);
+      expect(registry.isActive('s5'), isTrue);
     });
 
     test('multiple attachments receive the same events', () async {

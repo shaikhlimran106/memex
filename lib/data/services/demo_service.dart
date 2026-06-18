@@ -227,6 +227,7 @@ class DemoService extends ChangeNotifier {
 
       final introCard = CardData(
         factId: factId,
+        createdAt: now.millisecondsSinceEpoch ~/ 1000,
         timestamp: now.millisecondsSinceEpoch ~/ 1000,
         status: 'completed',
         title: _isZh ? 'Memex — 你的 AI 生活记录本' : 'Memex — Your AI Life Journal',
@@ -324,10 +325,12 @@ class DemoService extends ChangeNotifier {
       final relatedFacts = _introFactId != null
           ? [RelatedFact(id: _introFactId!)]
           : <RelatedFact>[];
+      final createdAt = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
       final completedCard = CardData(
         factId: factId,
-        timestamp: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        createdAt: createdAt,
+        timestamp: createdAt,
         status: 'completed',
         title: _isZh ? '我的第一条记录' : 'My First Record',
         tags: const ['Knowledge'],
@@ -353,7 +356,7 @@ class DemoService extends ChangeNotifier {
                 : 'And so it begins! 🎉 Looking forward to what comes next~',
             isAi: true,
             characterId: commentCharId,
-            timestamp: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+            timestamp: createdAt,
           ),
         ],
       );

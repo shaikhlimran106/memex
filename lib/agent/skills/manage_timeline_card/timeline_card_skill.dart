@@ -1,11 +1,12 @@
+// ignore_for_file: non_constant_identifier_names
+
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:logging/logging.dart';
-import 'package:path/path.dart' as p;
 import 'package:memex/agent/prompts.dart';
 import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
+import 'package:memex/data/services/asset_reference_service.dart';
 import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/global_event_bus.dart';
@@ -182,12 +183,12 @@ class TimelineCardSkill extends Skill {
             'fact': {
               'type': 'string',
               'description':
-                  "The user's original raw information that this card is built from, preserved as the card's source-of-truth content. Write it in the user's own language and tone: the verbatim text the user wrote, plus a natural-language description of the meaningful content of any attachment (for example, what an image actually shows, or the transcription of a voice note). This is the faithful original content, not a summary, paraphrase, or your own commentary. Do NOT put an `fs://` reference here — attachment references go only in `assets`. Required for a new card; omit when editing to keep the existing fact."
+                  "The source-of-truth record content. Write a coherent record in the user's own words and speaking/writing style, combining the user's text with the image/audio content that matters to this record. This is the faithful original content, not a summary, paraphrase, or your own commentary. If the user wrote text, preserve their wording where it matters. Do NOT put an `fs://` reference here — attachment references go only in `assets`. Required for a new card; omit when editing to keep the existing fact."
             },
             'assets': {
               'type': 'array',
               'description':
-                  "The image and audio files attached to this card, as the `![image](fs://…)` / `[audio](fs://…)` markers given to you in the user message — copied verbatim, never invented or altered. Omit this field entirely to keep the card's existing assets unchanged; pass the full list to replace them. Required only when a new card has attachments.",
+                  "The image and audio files attached to this card, as bare `fs://...` references extracted from the attachment markers in the user message (for example `fs://photo.jpg`) — copied exactly, never invented or altered. Omit this field entirely to keep the card's existing assets unchanged; pass the full list to replace them. Required only when a new card has attachments.",
               'items': {'type': 'string'}
             },
           },
@@ -268,7 +269,7 @@ class TimelineCardSkill extends Skill {
             // raw id leaking into the card's source-of-truth text.
             if (fact != null && fact.contains('fs://')) {
               throw ArgumentError(
-                  "The `fact` field must not contain an `fs://` reference. Write `fact` as the user's words plus a natural-language description of any attachment, and put the `![image](fs://…)` / `[audio](fs://…)` reference in the `assets` field instead.");
+                  "The `fact` field must not contain an `fs://` reference. Write `fact` as a coherent record in the user's own words and speaking/writing style, using the image/audio content that matters to the record, and put the bare `fs://...` reference in the `assets` field instead.");
             }
 
             // ui_configs: process only when provided. Omitted → keep prior
@@ -411,7 +412,11 @@ class TimelineCardSkill extends Skill {
                   userId, user_mark_address);
             }
 
-            // Normalize asset references (![image](fs://…) / [audio](fs://…)).
+            // Normalize asset references. Tool callers provide bare
+            // `fs://...` ids (view_image uses the same form); legacy markdown
+            // media refs are accepted for compatibility. Cards still store full
+            // markdown refs because the renderer uses the marker shape to
+            // distinguish image vs audio.
             // Omitted (null) → keep the card's prior assets untouched. Provided
             // → replace with the validated set: each fs:// reference must
             // resolve to a real file under Facts/assets, so a fabricated /
@@ -421,24 +426,18 @@ class TimelineCardSkill extends Skill {
             if (assets != null) {
               assetsList = <String>[];
               final droppedAssets = <String>[];
-              final assetsPath = fileService.getAssetsPath(userId);
-              final fsPattern = RegExp(r'\(fs://([^)]+)\)');
               for (final entry in _normalizeListArgument(assets, 'assets')) {
                 final ref = entry?.toString().trim() ?? '';
                 if (ref.isEmpty) continue;
-                final m = fsPattern.firstMatch(ref);
-                final fileName = m?.group(1)?.trim();
-                if (fileName == null || fileName.isEmpty) {
+                final asset = await AssetReferenceService.resolveExisting(
+                  userId: userId,
+                  reference: ref,
+                );
+                if (asset == null) {
                   droppedAssets.add(ref);
                   continue;
                 }
-                final exists =
-                    await File(p.join(assetsPath, fileName)).exists();
-                if (exists) {
-                  assetsList.add(ref);
-                } else {
-                  droppedAssets.add(ref);
-                }
+                assetsList.add(asset.markdownRef);
               }
               if (droppedAssets.isNotEmpty) {
                 logger.warning(
@@ -522,8 +521,7 @@ class TimelineCardSkill extends Skill {
                       combinedText: fact?.trim() ?? '',
                       markdownEntry: '',
                       createdAtTs: updatedCardData.timestamp,
-                      pkmCreatedAtTs:
-                          updatedCardData.timestamp.toDouble(),
+                      pkmCreatedAtTs: updatedCardData.timestamp.toDouble(),
                     ),
                   ),
                 );

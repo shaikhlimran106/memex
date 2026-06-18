@@ -73,19 +73,24 @@ void main() {
   });
 
   group('SuperAgent quick query tools', () {
-    test('allows the workspace event log search tool', () {
+    test('does not expose event log search or current time tools', () {
       expect(
         SuperAgent.isQuickQueryToolAllowed('search_workspace_event_logs'),
-        isTrue,
+        isFalse,
       );
       expect(
-        SuperAgent.isQuickQueryToolAllowed('search_event_logs'),
+        SuperAgent.isQuickQueryToolAllowed('getCurrentTime'),
         isFalse,
       );
     });
 
     test('allows image viewing as a read-only tool', () {
       expect(SuperAgent.isQuickQueryToolAllowed('view_image'), isTrue);
+    });
+
+    test('uses generic LS for PKM reads instead of PKM overview tool', () {
+      expect(SuperAgent.isQuickQueryToolAllowed('LS'), isTrue);
+      expect(SuperAgent.isQuickQueryToolAllowed('get_pkm_overview'), isFalse);
     });
   });
 }

@@ -23,7 +23,7 @@ import 'tasks.dart';
 /// Run:
 ///
 ///     export OPENAI_BASE_URL='https://shark.ai/api/v1'
-///     export OPENAI_API_KEY='sk-...'
+///     export OPENAI_API_KEY='your-openai-api-key'
 ///     # optional model overrides (defaults: sonnet-4.6 / opus-4.7)
 ///     export EVAL_MODEL='anthropic/claude-sonnet-4.6'
 ///     export EVAL_JUDGE_MODEL='anthropic/claude-opus-4.7'

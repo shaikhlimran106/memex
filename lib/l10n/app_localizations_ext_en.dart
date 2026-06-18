@@ -105,7 +105,7 @@ class AppLocalizationsExtEn extends AppLocalizationsEn
   @override
   String get pkmPARAStructureExample =>
       '''## P.A.R.A. Knowledge Base Structure Example (Flexibly organized based on actual user input):
-│
+/PKM                                          <-- This is your root; all P.A.R.A. folders live under /PKM
 ├── Projects
 │   ├── 2025 Sanya Spring Festival Trip/      <-- Involves itinerary, flights, hotels, use folder
 │   │   ├── Itinerary and Schedule.md

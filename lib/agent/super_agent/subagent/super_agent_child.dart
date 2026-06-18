@@ -2,14 +2,17 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dart_agent_core/dart_agent_core.dart';
+import 'package:dio/dio.dart';
 import 'package:memex/agent/built_in_tools/file_tools.dart';
-import 'package:memex/agent/common_tools.dart';
 import 'package:memex/agent/security/file_permission_manager.dart';
+import 'package:memex/agent/state_util.dart';
 import 'package:memex/agent/skills/dynamic_timeline_ui/dynamic_timeline_ui_skill.dart';
 import 'package:memex/agent/super_agent/super_agent_harness.dart';
+import 'package:memex/agent/super_agent/subagent/delegate_progress.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/time_context.dart';
+import 'package:uuid/uuid.dart';
 
 final _logger = getLogger('SuperAgentChild');
 
@@ -22,7 +25,7 @@ enum ChildToolProfile {
   none,
 
   /// Skill tools + all read-only base tools (LS / Glob / Grep / Read /
-  /// BatchRead / view_image / getCurrentTime / get_pkm_overview).
+  /// BatchRead / view_image).
   read,
 
   /// `read` + the generic write tools (Write / Edit / MOVE / Remove). Writes
@@ -59,10 +62,17 @@ class SuperAgentChildConfig {
   /// Base tool profile (see [ChildToolProfile]).
   final ChildToolProfile toolProfile;
 
+  /// Absolute workspace-relative roots this child may READ from. Empty means
+  /// the normal workspace-read defaults apply. Non-empty means this child gets
+  /// no default workspace read access; only these roots (plus write roots,
+  /// because write implies read) are readable. Enforced by
+  /// [FilePermissionManager], not by prompt text.
+  final List<String> readRootPaths;
+
   /// Absolute workspace-relative roots this child may WRITE to (e.g.
-  /// `/Cards`, `/PKM`, `/_UserSettings/Templates`). Everything else is
-  /// read-only; `Facts` / `_System` stay locked by the default rules. Enforced
-  /// by [FilePermissionManager], not by prompt text.
+  /// `/Cards`, `/PKM`, `/_UserSettings/Templates`). When [readRootPaths] is
+  /// empty, everything else is read-only and Facts/_System stay locked by the
+  /// default rules. Enforced by [FilePermissionManager], not by prompt text.
   final List<String> writeRootPaths;
 
   /// Hard wall-clock bound for this child's run.
@@ -74,6 +84,7 @@ class SuperAgentChildConfig {
     required this.skills,
     this.contextPacket = const {},
     this.toolProfile = ChildToolProfile.read,
+    this.readRootPaths = const [],
     this.writeRootPaths = const [],
     this.timeout = const Duration(minutes: 4),
   });
@@ -182,29 +193,36 @@ Include any branch-specific fields your skill instructions ask for (such as
 }
 
 /// Renders the runtime-provided context packet into a single `<system-reminder>`
-/// block, mirroring how `ChatService` assembles per-turn context. Time and
-/// location are passed deterministically (not left to the parent to remember to
-/// put in the brief) because a missing capture time would corrupt event /
-/// schedule reasoning.
+/// block, mirroring how `ChatService` assembles per-turn context. The child
+/// can't see the user's attachments, so each image's EXIF capture context
+/// (time + place) is re-derived by the runtime and passed here — without it the
+/// child's skill would stamp cards/records with the wrong time and location.
 String _buildContextReminder(Map<String, dynamic> packet) {
   final sections = <String>[];
 
   final factId = packet['fact_id'];
   if (factId is String && factId.isNotEmpty) {
-    sections.add('Record fact_id: $factId (use this exact id; never invent one)');
+    sections
+        .add('Record fact_id: $factId (use this exact id; never invent one)');
   }
 
-  final capturedAt = packet['captured_at'];
-  if (capturedAt is DateTime) {
-    sections.add('User Message Time: ${formatLocalDateTimeWithZone(capturedAt)}');
-  } else if (capturedAt is String && capturedAt.isNotEmpty) {
-    sections.add('User Message Time: $capturedAt');
-  }
-  sections.add('Current Local Time: ${formatLocalDateTimeWithZone(DateTime.now())}');
+  sections.add(
+      'Current Local Time: ${formatLocalDateTimeWithZone(DateTime.now())}');
 
   final location = packet['location_reminder'];
   if (location is String && location.trim().isNotEmpty) {
     sections.add(location.trim());
+  }
+
+  // Per-attachment EXIF (capture time / GPS / geocoded place), which the child
+  // cannot read off the image itself. Each block is self-describing, matching
+  // the metadata ChatService surfaces to the parent.
+  final exif = packet['attachment_exif'];
+  if (exif is List && exif.isNotEmpty) {
+    final blocks = exif.whereType<String>().where((s) => s.trim().isNotEmpty);
+    if (blocks.isNotEmpty) {
+      sections.add(blocks.join('\n\n'));
+    }
   }
 
   return '<system-reminder>\n${sections.join('\n\n')}\n</system-reminder>';
@@ -228,8 +246,6 @@ List<Tool> _baseToolsForProfile(
         factory.buildReadTool(),
         factory.buildBatchReadTool(),
         factory.buildViewImageTool(),
-        getCurrentTimeTool,
-        getPkmOverviewTool,
       ];
     case ChildToolProfile.full:
       return [
@@ -243,8 +259,6 @@ List<Tool> _baseToolsForProfile(
         factory.buildEditTool(),
         factory.buildMoveTool(),
         factory.buildRemoveTool(),
-        getCurrentTimeTool,
-        getPkmOverviewTool,
       ];
   }
 }
@@ -257,21 +271,41 @@ StatefulAgent createSuperAgentChild({
   required LLMClient client,
   required ModelConfig modelConfig,
   required String userId,
+  DelegateProgress? progress,
+  DelegateProgressSink? progressSink,
 }) {
   final fileService = FileSystemService.instance;
   final workingDirectory = fileService.getWorkspacePath(userId);
 
-  // Map the write-path allow-list to write rules; default rules keep the rest
-  // of the workspace read-only and Facts/_System locked.
-  final writeRules = <PermissionRule>[
+  // Default child behavior matches the parent: workspace read, explicit write
+  // roots writable. Some specialists (PKM) need a narrower read wall; a
+  // non-empty readRootPaths disables default workspace read and allows only the
+  // declared roots.
+  final restrictedRead = config.readRootPaths.isNotEmpty;
+  final permissionRules = <PermissionRule>[
+    if (restrictedRead)
+      PermissionRule(
+        rootPath: workingDirectory,
+        access: FileAccessType.none,
+      ),
+    // Add write roots before read roots so equal-path rules keep write access;
+    // FilePermissionManager uses stable longest-prefix sorting.
     for (final root in config.writeRootPaths)
       PermissionRule(
         rootPath: _resolveWorkspacePath(fileService, userId, root),
         access: FileAccessType.write,
       ),
+    for (final root in config.readRootPaths)
+      PermissionRule(
+        rootPath: _resolveWorkspacePath(fileService, userId, root),
+        access: FileAccessType.read,
+      ),
   ];
-  final permissionManager =
-      FilePermissionManager(userId, writeRules);
+  final permissionManager = FilePermissionManager(
+    userId,
+    permissionRules,
+    withDefaultRules: !restrictedRead,
+  );
 
   final fileToolFactory = FileToolFactory(
     permissionManager: permissionManager,
@@ -306,14 +340,42 @@ StatefulAgent createSuperAgentChild({
   }).toList();
 
   final state = AgentState(
-    sessionId:
-        '${config.childName}_${DateTime.now().microsecondsSinceEpoch}',
+    sessionId: '${config.childName}_${const Uuid().v4()}',
     metadata: {
       'userId': userId,
       'sub_agent_mode': true,
       'child_name': config.childName,
+      'child_tool_profile': config.toolProfile.name,
+      'child_read_roots': config.readRootPaths,
+      'child_write_roots': config.writeRootPaths,
+      'child_skills': config.skills
+          .map((s) => {
+                'name': s.name,
+                'force_activate': s.forceActivate,
+              })
+          .toList(),
+      'child_created_at': DateTime.now().toIso8601String(),
+      if (config.contextPacket['parent_session_id'] is String)
+        'parent_session_id': config.contextPacket['parent_session_id'],
     },
   );
+
+  final controller = AgentController();
+  if (progress != null && progressSink != null) {
+    controller.on((BeforeToolCallEvent event) {
+      progressSink.childToolStarted(
+        progress: progress,
+        toolName: event.functionCall.name,
+        arguments: event.functionCall.arguments,
+      );
+    });
+    controller.on((AfterToolCallEvent event) {
+      progressSink.childToolFinished(
+        progress: progress,
+        result: event.result,
+      );
+    });
+  }
 
   return StatefulAgent(
     name: config.childName,
@@ -322,10 +384,14 @@ StatefulAgent createSuperAgentChild({
     state: state,
     tools: tools,
     skills: skills,
+    controller: controller,
     systemPrompts: [buildChildBasePrompt()],
     disableSubAgents: true,
     withGeneralPrinciples: true,
     planMode: PlanMode.none,
+    autoSaveStateFunc: (state) async {
+      await saveAgentState(state);
+    },
     // PKM organization now happens inside these workers, so the PKM
     // structural-health reminders ride along here (only fire on /PKM reads).
     postToolCallHook: SuperAgentHarness.buildChildPostToolCallHook(userId),
@@ -353,13 +419,19 @@ Future<SuperAgentChildResult> runSuperAgentChild({
   required LLMClient client,
   required ModelConfig modelConfig,
   required String userId,
+  DelegateProgress? progress,
+  DelegateProgressSink? progressSink,
 }) async {
+  StatefulAgent? agent;
+  final cancelToken = CancelToken();
   try {
-    final agent = createSuperAgentChild(
+    agent = createSuperAgentChild(
       config: config,
       client: client,
       modelConfig: modelConfig,
       userId: userId,
+      progress: progress,
+      progressSink: progressSink,
     );
 
     final reminder = _buildContextReminder(config.contextPacket);
@@ -368,16 +440,14 @@ Future<SuperAgentChildResult> runSuperAgentChild({
       TextPart(config.taskBrief),
     ]);
 
-    final messages = await agent
-        .run([initial], useStream: false)
-        .timeout(config.timeout);
+    final messages = await agent.run([initial],
+        cancelToken: cancelToken, useStream: false).timeout(config.timeout);
 
     final finalText = _lastText(messages);
     final structured = _extractJson(finalText);
     final status = _statusFromWire(structured['status'] as String?);
 
-    _logger.info(
-        'Child ${config.childName} finished: status=${status.name}');
+    _logger.info('Child ${config.childName} finished: status=${status.name}');
 
     return SuperAgentChildResult(
       childName: config.childName,
@@ -386,12 +456,35 @@ Future<SuperAgentChildResult> runSuperAgentChild({
       structured: structured,
     );
   } on TimeoutException {
+    final message = 'child timed out after ${_formatTimeout(config.timeout)}';
+    if (!cancelToken.isCancelled) {
+      cancelToken.cancel(message);
+    }
+    await _markChildCancelled(agent, message);
     _logger.warning('Child ${config.childName} timed out');
-    return SuperAgentChildResult.failed(
-        config.childName, 'child timed out after ${config.timeout.inSeconds}s');
+    return SuperAgentChildResult.failed(config.childName, message);
   } catch (e, st) {
     _logger.severe('Child ${config.childName} errored', e, st);
     return SuperAgentChildResult.failed(config.childName, e.toString());
+  }
+}
+
+String _formatTimeout(Duration timeout) {
+  if (timeout.inSeconds >= 1) return '${timeout.inSeconds}s';
+  return '${timeout.inMilliseconds}ms';
+}
+
+Future<void> _markChildCancelled(StatefulAgent? agent, String reason) async {
+  if (agent == null) return;
+  agent.state.metadata['child_cancelled'] = true;
+  agent.state.metadata['child_cancel_reason'] = reason;
+  agent.state.metadata['child_cancelled_at'] = DateTime.now().toIso8601String();
+  agent.state.lastError = reason;
+  agent.state.isRunning = false;
+  try {
+    await saveAgentState(agent.state);
+  } catch (e) {
+    _logger.warning('Failed to save cancelled child state: $e');
   }
 }
 

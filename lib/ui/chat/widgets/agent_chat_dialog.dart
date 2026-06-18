@@ -54,24 +54,52 @@ class ThinkingItem extends ChatDisplayItem {
 }
 
 class ToolCallItem extends ChatDisplayItem {
+  final String id;
+  ChatTraceKind kind;
   final String toolName;
-  final String args;
+  String args;
   final DateTime startedAt;
+  final List<ToolCallItem> childToolCalls = [];
   String? result;
   bool isError;
   bool isExpanded;
   DateTime? completedAt;
   Map<String, dynamic>? metadata;
+  String? label;
+  String? status;
 
   ToolCallItem(
+    this.id,
     this.toolName,
     this.args, {
+    this.kind = ChatTraceKind.tool,
+    this.label,
     this.result,
     this.isError = false,
     this.isExpanded = false,
   }) : startedAt = DateTime.now();
 
   bool get isRunning => result == null;
+
+  bool get isDelegate => kind == ChatTraceKind.delegate;
+
+  Iterable<ToolCallItem> get selfAndDescendants sync* {
+    yield this;
+    for (final child in childToolCalls) {
+      yield* child.selfAndDescendants;
+    }
+  }
+
+  bool get hasRunningTrace =>
+      isRunning || childToolCalls.any((child) => child.hasRunningTrace);
+
+  bool get hasTraceError =>
+      isError || childToolCalls.any((child) => child.hasTraceError);
+
+  int get childTraceCount => childToolCalls.fold<int>(
+        childToolCalls.length,
+        (total, child) => total + child.childTraceCount,
+      );
 
   Duration? get duration {
     final finishedAt = completedAt;
@@ -112,12 +140,15 @@ class ProcessItem extends ChatDisplayItem {
   List<ToolCallItem> get toolCalls =>
       children.whereType<ToolCallItem>().toList();
 
+  List<ToolCallItem> get allTraceCalls =>
+      toolCalls.expand((tool) => tool.selfAndDescendants).toList();
+
   List<ThinkingItem> get thinkingItems =>
       children.whereType<ThinkingItem>().toList();
 
-  bool get hasRunningTool => toolCalls.any((tool) => tool.isRunning);
+  bool get hasRunningTool => toolCalls.any((tool) => tool.hasRunningTrace);
 
-  bool get hasToolError => toolCalls.any((tool) => tool.isError);
+  bool get hasToolError => toolCalls.any((tool) => tool.hasTraceError);
 }
 
 const double _agentChatSheetHeightFactor = 0.75;
@@ -179,6 +210,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   bool _isLoading = false;
   bool _isStreaming = false;
   bool _isLoadingAgent = false;
+  bool _nextResponseStartsNewMessage = true;
   ChatTokenUsageEvent? _lastTokenUsage;
   bool _isReadOnly = false;
   // Whether the user has sent at least one message in normal mode — prevents switching to read-only.
@@ -196,6 +228,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   final List<XFile> _selectedImages = [];
   final Map<String, String> _originalFilenames = {};
   StreamSubscription<ChatEvent>? _chatSubscription;
+  final List<StreamSubscription<ChatEvent>> _queuedSendSubscriptions = [];
 
   late AnimationController _controller;
   late Animation<Offset> _slideAnimation;
@@ -245,6 +278,10 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   @override
   void dispose() {
     _chatSubscription?.cancel();
+    for (final subscription in _queuedSendSubscriptions) {
+      subscription.cancel();
+    }
+    _queuedSendSubscriptions.clear();
     _approvalSubscription?.cancel();
     final sessionId = _currentSessionId;
     if (sessionId != null) {
@@ -378,7 +415,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     }
     // After history is on screen, resume following an in-flight run if the
     // dialog was closed mid-reply.
-    _maybeReattachToActiveRun();
+    unawaited(_maybeReattachToActiveRun());
   }
 
   String _resolveDisplayImagePath(String filePath) {
@@ -393,8 +430,10 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     List<XFile> images = const [],
     Map<String, String>? imageOriginalFilenames,
   }) {
-    if ((message.trim().isEmpty && images.isEmpty) || _isStreaming) return;
+    if (message.trim().isEmpty && images.isEmpty) return;
 
+    final queueBehindActiveRun =
+        _isStreaming && _currentSessionId != null && _chatSubscription != null;
     _messageFocusNode.unfocus();
     String finalMessage = message.trim();
     final displayText = finalMessage.isNotEmpty
@@ -428,7 +467,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     });
     _scrollToBottom();
 
-    _listenToChatStream(_router.sendMessage(
+    final stream = _router.sendMessage(
       finalMessage,
       sessionId: _currentSessionId,
       agentName: widget.agentName,
@@ -441,7 +480,12 @@ class _AgentChatDialogState extends State<AgentChatDialog>
           _isSuperAgentHome ? _runMode == AgentRunMode.readOnly : _isReadOnly,
       runMode:
           _isSuperAgentHome ? _runMode.wireName : AgentRunMode.auto.wireName,
-    ));
+    );
+    if (queueBehindActiveRun) {
+      _listenToQueuedSend(stream);
+    } else {
+      _listenToChatStream(stream);
+    }
   }
 
   /// Subscribes the dialog to a chat event stream — either a freshly started
@@ -456,30 +500,66 @@ class _AgentChatDialogState extends State<AgentChatDialog>
         setState(() {
           _items.add(ErrorItem(e.toString()));
           _isStreaming = false;
+          _isLoadingAgent = false;
         });
         _scrollToBottom();
       },
       onDone: () {
         setState(() {
           _isStreaming = false;
+          _isLoadingAgent = false;
           // Ensure the last AI message is marked as done
           if (_items.isNotEmpty && _items.last is AIMessageItem) {
             (_items.last as AIMessageItem).isStreaming = false;
+          }
+          final primary = _lastPrimaryItem();
+          if (primary is ProcessItem) {
+            primary.isFinished = true;
+            primary.isExpanded = false;
           }
         });
       },
     );
   }
 
+  /// Consumes the enqueue/session events from a send made while this dialog is
+  /// already attached to the active run. The existing live subscription remains
+  /// responsible for agent progress and responses.
+  void _listenToQueuedSend(Stream<ChatEvent> stream) {
+    late final StreamSubscription<ChatEvent> subscription;
+    subscription = stream.listen(
+      (event) {
+        if (!mounted) return;
+        if (event is ChatSessionCreatedEvent || event is ChatErrorEvent) {
+          _handleChatEvent(event);
+        }
+      },
+      onError: (e) {
+        if (!mounted) return;
+        setState(() => _items.add(ErrorItem(e.toString())));
+        _scrollToBottom();
+      },
+      onDone: () {
+        _queuedSendSubscriptions.remove(subscription);
+      },
+    );
+    _queuedSendSubscriptions.add(subscription);
+  }
+
   /// If this session has a run still executing (the dialog was closed while
   /// the agent worked), restore the streaming UI and replay missed events.
-  void _maybeReattachToActiveRun() {
+  Future<void> _maybeReattachToActiveRun() async {
     final sessionId = _currentSessionId;
     if (!mounted || sessionId == null) return;
-    if (!_router.hasActiveChatRun(sessionId)) return;
+    if (!await _router.hasActiveChatRun(sessionId)) return;
+    if (!mounted || sessionId != _currentSessionId) return;
 
     AgentActionApprovalService.instance.attachSession(sessionId);
-    setState(() => _isStreaming = true);
+    setState(() {
+      _isStreaming = true;
+      _isLoadingAgent = true;
+      _nextResponseStartsNewMessage = true;
+    });
     _listenToChatStream(_router.attachToChatRun(sessionId));
     _scrollToBottom();
   }
@@ -554,6 +634,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     setState(() {
       if (event is ChatAgentStartedEvent) {
         _isLoadingAgent = true;
+        _nextResponseStartsNewMessage = true;
         return;
       }
       if (event is ChatAgentStoppedEvent) {
@@ -572,8 +653,8 @@ class _AgentChatDialogState extends State<AgentChatDialog>
 
       // Handle Thoughts and Tools (Grouping)
       if (event is ChatThoughtChunkEvent ||
-          event is ChatToolCallEvent ||
-          event is ChatToolResultEvent) {
+          event is ChatTraceStartedEvent ||
+          event is ChatTraceCompletedEvent) {
         final processItem = _ensureProcessItem();
 
         if (event is ChatThoughtChunkEvent) {
@@ -583,25 +664,10 @@ class _AgentChatDialogState extends State<AgentChatDialog>
           } else {
             processItem.children.add(ThinkingItem(event.text));
           }
-        } else if (event is ChatToolCallEvent) {
-          processItem.children.add(ToolCallItem(event.toolName, event.args));
-        } else if (event is ChatToolResultEvent) {
-          // Find matching tool in current process item
-          ToolCallItem? matchedTool;
-          for (int i = processItem.children.length - 1; i >= 0; i--) {
-            final item = processItem.children[i];
-            if (item is ToolCallItem &&
-                item.toolName == event.toolName &&
-                item.result == null) {
-              item.result = event.result;
-              item.isError = event.isError;
-              item.completedAt = DateTime.now();
-              item.metadata = event.metadata;
-              matchedTool = item;
-              break;
-            }
-          }
-
+        } else if (event is ChatTraceStartedEvent) {
+          _upsertTraceStart(processItem, event);
+        } else if (event is ChatTraceCompletedEvent) {
+          final matchedTool = _completeTrace(processItem, event);
           if (!event.isError) {
             final artifact = ChatArtifact.fromToolMetadata(event.metadata);
             if (artifact != null) {
@@ -627,11 +693,12 @@ class _AgentChatDialogState extends State<AgentChatDialog>
           primary.isExpanded = false; // Collapse when answer starts
         }
 
-        if (primary is AIMessageItem) {
+        if (primary is AIMessageItem && !_nextResponseStartsNewMessage) {
           primary.text += event.text;
         } else {
           _items.add(AIMessageItem(event.text, isStreaming: !event.isDone));
         }
+        _nextResponseStartsNewMessage = false;
       } else if (event is ChatErrorEvent) {
         _items.add(ErrorItem(event.error));
       }
@@ -1085,12 +1152,12 @@ class _AgentChatDialogState extends State<AgentChatDialog>
               onTap: () => _sendMessage(_messageController.text),
               child: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _isStreaming ? Colors.grey : AppColors.primary,
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  _isStreaming ? Icons.stop : Icons.arrow_upward,
+                child: const Icon(
+                  Icons.arrow_upward,
                   size: 16,
                   color: Colors.white,
                 ),
@@ -1190,7 +1257,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                     const SizedBox(width: 12),
                     GestureDetector(
                       key: const ValueKey('super_agent_publish_button'),
-                      onTap: isBusy ? null : _handleSuperAgentSubmit,
+                      onTap: _handleSuperAgentSubmit,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 160),
                         padding: const EdgeInsets.symmetric(
@@ -1198,9 +1265,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                           vertical: 11,
                         ),
                         decoration: BoxDecoration(
-                          color: isBusy
-                              ? AppColors.textTertiary
-                              : AppColors.textPrimary,
+                          color: AppColors.textPrimary,
                           borderRadius: BorderRadius.circular(24),
                         ),
                         child: Row(
@@ -2374,7 +2439,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   }
 
   String _processTitle(ProcessItem item) {
-    final toolCount = item.toolCalls.length;
+    final toolCount = item.allTraceCalls.length;
     if (toolCount == 0) {
       return item.isFinished
           ? _label(en: 'Reasoning complete', zh: '思考完成')
@@ -2396,7 +2461,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   }
 
   String _processSubtitle(ProcessItem item) {
-    final toolCounts = _toolCounts(item.toolCalls);
+    final toolCounts = _toolCounts(item.allTraceCalls);
     if (toolCounts.isEmpty) {
       return item.isFinished
           ? _label(en: 'Internal reasoning finished', zh: '内部推理已完成')
@@ -2412,7 +2477,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       count == 1 ? '1 action' : '$count actions';
 
   Widget _buildToolSummaryChips(ProcessItem item) {
-    final entries = _toolCounts(item.toolCalls).entries.toList();
+    final entries = _toolCounts(item.allTraceCalls).entries.toList();
     final visibleEntries = entries.take(4).toList();
     final hiddenCount =
         entries.skip(4).fold<int>(0, (sum, entry) => sum + entry.value);
@@ -2505,6 +2570,69 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     return counts;
   }
 
+  void _upsertTraceStart(ProcessItem process, ChatTraceStartedEvent event) {
+    final existing = _findTraceItem(process, event.id);
+    if (existing != null) {
+      existing.kind = event.kind;
+      existing.label = event.label ?? existing.label;
+      existing.args = event.args;
+      return;
+    }
+
+    final item = ToolCallItem(
+      event.id,
+      event.name,
+      event.args,
+      kind: event.kind,
+      label: event.label,
+    );
+    final parentId = event.parentId;
+    if (parentId == null) {
+      process.children.add(item);
+      return;
+    }
+
+    final parent = _findTraceItem(process, parentId);
+    if (parent == null) {
+      process.children.add(item);
+    } else {
+      parent.childToolCalls.add(item);
+    }
+  }
+
+  ToolCallItem? _completeTrace(
+    ProcessItem process,
+    ChatTraceCompletedEvent event,
+  ) {
+    final item = _findTraceItem(process, event.id);
+    if (item == null) return null;
+    if (!(item.isDelegate && event.status == null && item.result != null)) {
+      item.result = event.result;
+    }
+    item.isError = event.isError;
+    item.status = event.status ?? item.status;
+    item.completedAt = DateTime.now();
+    item.metadata = event.metadata ?? item.metadata;
+    return item;
+  }
+
+  ToolCallItem? _findTraceItem(ProcessItem process, String id) {
+    for (final item in process.children.whereType<ToolCallItem>()) {
+      final found = _findTraceItemIn(item, id);
+      if (found != null) return found;
+    }
+    return null;
+  }
+
+  ToolCallItem? _findTraceItemIn(ToolCallItem root, String id) {
+    if (root.id == id) return root;
+    for (final child in root.childToolCalls) {
+      final found = _findTraceItemIn(child, id);
+      if (found != null) return found;
+    }
+    return null;
+  }
+
   IconData _toolIcon(String toolName) {
     switch (toolName.toLowerCase()) {
       case 'grep':
@@ -2524,6 +2652,8 @@ class _AgentChatDialogState extends State<AgentChatDialog>
         return Icons.drive_file_move_outline;
       case 'remove':
         return Icons.delete_outline_rounded;
+      case 'delegate_to_subagent':
+        return Icons.account_tree_outlined;
       case 'create_dynamic_timeline_card':
       case 'update_dynamic_timeline_card':
         return Icons.auto_awesome_mosaic_outlined;
@@ -2556,6 +2686,8 @@ class _AgentChatDialogState extends State<AgentChatDialog>
         return _label(en: 'Move', zh: '移动');
       case 'remove':
         return _label(en: 'Delete', zh: '删除');
+      case 'delegate_to_subagent':
+        return _label(en: 'Delegate task', zh: '委派任务');
       case 'create_dynamic_timeline_card':
         return _label(en: 'Create UI', zh: '生成 UI');
       case 'update_dynamic_timeline_card':
@@ -2592,6 +2724,16 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   }
 
   String _toolStatusLabel(ToolCallItem item) {
+    if (item.isDelegate && item.status != null) {
+      final status = item.status!;
+      if (status == 'running') return _label(en: 'Running', zh: '执行中');
+      if (status == 'completed') return _label(en: 'Done', zh: '完成');
+      if (status == 'failed') return _label(en: 'Failed', zh: '失败');
+      if (status == 'noOp') return _label(en: 'No-op', zh: '无需处理');
+      if (status == 'needsParentInput') {
+        return _label(en: 'Needs input', zh: '需要信息');
+      }
+    }
     if (item.isRunning) return _label(en: 'Running', zh: '执行中');
     if (item.isError) return _label(en: 'Failed', zh: '失败');
     final duration = item.duration;
@@ -2612,6 +2754,13 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     final compact = value.replaceAll(RegExp(r'\s+'), ' ').trim();
     if (compact.length <= maxLength) return compact;
     return '${compact.substring(0, maxLength)}...';
+  }
+
+  String _delegatePreview(ToolCallItem item) {
+    final childName = item.label ?? _label(en: 'Worker', zh: '子任务');
+    final count = item.childTraceCount;
+    final countLabel = _isZhLocale ? '已执行 $count 次工具调用' : '$count tool calls';
+    return '$childName · $countLabel';
   }
 
   Widget _buildThinkingItem(ThinkingItem item) {
@@ -2703,7 +2852,9 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        _compactPreview(item.args),
+                        item.isDelegate
+                            ? _delegatePreview(item)
+                            : _compactPreview(item.args),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -2750,6 +2901,60 @@ class _AgentChatDialogState extends State<AgentChatDialog>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (item.childToolCalls.isNotEmpty) ...[
+                  Text(
+                    _label(en: 'Worker tool calls', zh: '子任务工具调用'),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      children: [
+                        for (var index = 0;
+                            index < item.childToolCalls.length;
+                            index++) ...[
+                          if (index > 0)
+                            const Divider(
+                              height: 1,
+                              thickness: 1,
+                              color: Color(0xFFF1F5F9),
+                            ),
+                          _buildToolCallItem(item.childToolCalls[index]),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                if (item.isDelegate && item.result != null) ...[
+                  Text(
+                    _label(en: 'Worker result', zh: '子任务结果'),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  SelectableText(
+                    item.result!,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF334155),
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 Text(
                   _label(en: 'Arguments', zh: '参数'),
                   style: const TextStyle(
@@ -2768,7 +2973,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                     height: 1.35,
                   ),
                 ),
-                if (item.result != null) ...[
+                if (item.result != null && !item.isDelegate) ...[
                   const SizedBox(height: 10),
                   Text(
                     _label(en: 'Result', zh: '结果'),

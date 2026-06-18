@@ -1,3 +1,5 @@
+// ignore_for_file: non_constant_identifier_names
+
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -9,6 +11,7 @@ import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
 import 'package:memex/agent/security/file_permission_manager.dart';
 import 'package:memex/agent/super_agent/pending_tool_image_buffer.dart';
 import 'package:memex/data/services/asset_safety_service.dart';
+import 'package:memex/data/services/api_exception.dart';
 import 'package:memex/data/services/file_operation_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:path/path.dart' as p;
@@ -103,9 +106,14 @@ class FileToolFactory {
     return Tool(
       name: 'view_image',
       description:
-          'View a local image file by attaching a compressed image to the next model message. '
-          'Use this when visual inspection is needed. The image is resized/compressed before being sent to the model. '
-          'Provide the image by its `fs://<filename>` reference (the same form used in card media and in-text attachments).',
+          'View a local image file by attaching it to the next model message. '
+          'Use this when you need to view an image that is not already in your '
+          'context. Provide the image by its `fs://<filename>` reference (the '
+          'same form used in card media and in-text attachments). Images loaded '
+          'by this tool are visible for the next model call only and are not '
+          'kept in message history; if you need to compare multiple images, '
+          'call view_image for all of them in the same turn before inspecting '
+          'them.',
       parameters: {
         'type': 'object',
         'properties': {
@@ -114,22 +122,10 @@ class FileToolFactory {
             'description':
                 'The image to view, given as its `fs://<filename>` reference (for example fs://img_20260612_ts_0_no_1_800x600.jpg).',
           },
-          'detail': {
-            'type': 'string',
-            'enum': ['high', 'original'],
-            'description':
-                'Optional Codex-compatible detail hint. Images are still resized/compressed for model input safety.',
-          },
         },
         'required': ['path'],
       },
-      executable: (String path, String? detail) async {
-        if (detail != null && detail != 'high' && detail != 'original') {
-          throw ArgumentError(
-            'view_image.detail only supports `high` or `original`.',
-          );
-        }
-
+      executable: (String path) async {
         final imagePath = _resolveImagePath(path);
         permissionManager.checkPermission(imagePath, FileAccessType.read);
 
@@ -165,7 +161,7 @@ class FileToolFactory {
               'Image loaded from `${_displayPath(imagePath)}`. Inspect it now.',
         );
 
-        return 'Image attached as the next message (${_formatBytes(originalSize)} -> ${_formatBytes(compressedBytes.length)}).';
+        return 'Image attached to the next model message (${_formatBytes(originalSize)}).';
       },
     );
   }
@@ -202,7 +198,9 @@ class FileToolFactory {
       },
       executable: (String file_path, int? offset, int? limit) {
         file_path = _resolvePath(file_path);
-        permissionManager.checkPermission(file_path, FileAccessType.read);
+        if (!permissionManager.allowsRead(file_path)) {
+          throw ApiException('File ${_displayPath(file_path)} does not exist');
+        }
         return _fileOpService.readFile(
           filePath: file_path,
           workingDirectory: workingDirectory,
@@ -293,7 +291,7 @@ class FileToolFactory {
         var filesReadCount = 0;
 
         for (final filePath in uniqueFilePaths) {
-          buffer.writeln('=' * 20 + ' File: $filePath ' + '=' * 20);
+          buffer.writeln('${'=' * 20} File: $filePath ${'=' * 20}');
           try {
             // Double check just in case, though we checked above
             permissionManager.checkPermission(filePath, FileAccessType.read);
@@ -617,13 +615,18 @@ class FileToolFactory {
       },
       executable: (String path, List? ignore, int? depth) {
         path = _resolvePath(path);
-        permissionManager.checkPermission(path, FileAccessType.read);
+        if (!permissionManager.canTraverseForRead(path)) {
+          throw ApiException(
+            'Directory ${_displayPath(path)} does not exist',
+          );
+        }
         return _fileOpService.listDirectory(
           dirPath: path,
           workingDirectory: workingDirectory,
           ignore: ignore?.cast<String>(),
           depth: depth ?? 3,
           filter: (p) => permissionManager.allowsRead(p),
+          traversalFilter: (p) => permissionManager.canTraverseForRead(p),
         );
       },
     );
@@ -649,18 +652,24 @@ class FileToolFactory {
         'required': ['pattern']
       },
       executable: (String pattern, String? path) {
+        final searchRoot = path != null ? _resolvePath(path) : workingDirectory;
+        if (!permissionManager.canTraverseForRead(searchRoot)) {
+          if (path != null) {
+            throw ApiException(
+              'Directory ${_displayPath(searchRoot)} does not exist',
+            );
+          }
+          return 'No files found';
+        }
         if (path != null) {
           path = _resolvePath(path);
-          permissionManager.checkPermission(path, FileAccessType.read);
-        } else {
-          permissionManager.checkPermission(
-              workingDirectory, FileAccessType.read);
         }
         return _fileOpService.globFiles(
           pattern: pattern,
           searchPath: path,
           workingDirectory: workingDirectory,
           filter: (p) => permissionManager.allowsRead(p),
+          traversalFilter: (p) => permissionManager.canTraverseForRead(p),
         );
       },
     );
@@ -747,9 +756,17 @@ class FileToolFactory {
           String? type,
           int? head_limit,
           bool? multiline) {
-        // Check permission for the search path
         final searchPath = _resolvePath(path ?? workingDirectory);
-        permissionManager.checkPermission(searchPath, FileAccessType.read);
+        if (!permissionManager.canTraverseForRead(searchPath)) {
+          if (path != null) {
+            throw ApiException(
+              'path ${_displayPath(searchPath)} does not exist',
+            );
+          }
+          return output_mode == 'files_with_matches' || output_mode == null
+              ? 'No files found'
+              : 'No matches found';
+        }
 
         return _fileOpService.grepFiles(
           pattern: pattern,

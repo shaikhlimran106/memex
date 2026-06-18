@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:memex/agent/agent_system_prompt_helper.dart';
 import 'package:memex/agent/agent_controller.util.dart';
 import 'package:memex/agent/built_in_tools/file_tools.dart';
-import 'package:memex/agent/built_in_tools/search_event_logs_tool.dart';
 import 'package:memex/agent/memory/memory_management.dart';
 import 'package:memex/agent/memory/super_agent_context_compressor.dart';
 import 'package:memex/agent/skills/manage_pkm/pkm_skill.dart';
@@ -32,9 +31,6 @@ const _readOnlyToolNames = {
   'Read',
   'BatchRead',
   'view_image',
-  'search_workspace_event_logs',
-  'getCurrentTime',
-  'get_pkm_overview',
 };
 
 /// Skills excluded in Quick Query mode (those that create/modify data).
@@ -44,7 +40,7 @@ const _readOnlyToolNames = {
 /// whitelist. So EVERY skill that can write must be excluded here, or
 /// read-only mode leaks a write path (e.g. activating `manage_pkm` exposes
 /// `update_timeline_card_insight`). Read access stays available via base read
-/// tools + `get_pkm_overview`.
+/// tools; use `LS` with `path: "/PKM"` to inspect PKM structure.
 const _quickQueryExcludedSkills = {
   'manage_timeline_card',
   'dynamic_timeline_ui',
@@ -139,9 +135,6 @@ class SuperAgent {
       fileToolFactory.buildMoveTool(),
       fileToolFactory.buildRemoveTool(),
       fileToolFactory.buildEditTool(),
-      buildSearchEventLogsTool(),
-      getCurrentTimeTool,
-      getPkmOverviewTool,
       // Mint a fact_id without activating any skill, so capture is a clean
       // "mint, then delegate" flow. Writes a placeholder card, so it is NOT in
       // _readOnlyToolNames and the Quick Query filter below drops it.

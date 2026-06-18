@@ -16,7 +16,9 @@ class KnowledgeInsightSkill extends Skill {
       : super(
           name: "update_knowledge_insight",
           description:
-              "Analyzes user knowledge and generates visual insights cards. (Only activate when need to update knowledge insight card data)",
+              "Creates, updates, or removes Knowledge Insight cards: the chart-style visualizations (trends, breakdowns, recaps, comparisons) that surface patterns across many of the user's records, each rendered from a template and backed by the facts it draws on. "
+              "Use when the user wants a cross-record insight, chart, recap, or trend, or when an existing insight card needs revising or deleting. "
+              "Not for single-record timeline cards: use manage_timeline_card for those.",
           systemPrompt:
               Prompts.knowledgeInsightAgentKnowledgeInsightSkillPrompt(
             UserStorage.l10n.knowledgeInsightLanguageInstruction,

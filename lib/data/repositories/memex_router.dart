@@ -149,9 +149,9 @@ class MemexRouter {
         activityService: LocalAgentActivityService.instance,
       );
 
-      // One-time migration: backfill legacy cards' fact/assets fields from
-      // their Facts files. Must run before the FTS rebuild below so the card
-      // index is built from the migrated `fact` content.
+      // One-time migration: backfill legacy cards' fact/assets/created_at
+      // fields from their Facts files. Must run before the FTS rebuild below
+      // so the card index is built from the migrated `fact` content.
       await migrateCardsToFactAssets(userId);
 
       // Register file change callback and FTS event subscriptions.
@@ -322,6 +322,11 @@ class MemexRouter {
     executor.registerHandler(
       'handle_analyze_assets',
       handleAnalyzeAssetsImpl,
+    );
+    executor.registerHandler(
+      'super_agent_chat_turn_task',
+      ChatService.instance.handleSuperAgentChatTurnTask,
+      concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
     );
     executor.registerHandler(
       'card_agent_task',
@@ -1348,9 +1353,9 @@ class MemexRouter {
     );
   }
 
-  /// Whether the session has an agent reply currently executing (the run
-  /// survives the chat dialog being closed).
-  bool hasActiveChatRun(String? sessionId) =>
+  /// Whether the session has an in-memory run or a persisted chat turn waiting
+  /// to resume after app restart.
+  Future<bool> hasActiveChatRun(String? sessionId) =>
       ChatService.instance.hasActiveRun(sessionId);
 
   /// Re-attaches to an in-flight chat run: replays missed events, then

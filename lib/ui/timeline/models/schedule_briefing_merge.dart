@@ -16,13 +16,15 @@ List<TimelineCardModel> mergeScheduleBriefingInTimelineOrder({
     return withoutBriefing;
   }
 
-  final merged = [...withoutBriefing, briefing];
-  merged.sort(compareTimelineCardsForFeed);
-  return merged;
-}
-
-int compareTimelineCardsForFeed(TimelineCardModel a, TimelineCardModel b) {
-  final timestampCompare = b.timestamp.compareTo(a.timestamp);
-  if (timestampCompare != 0) return timestampCompare;
-  return b.id.compareTo(a.id);
+  final insertAt = withoutBriefing.indexWhere(
+    (card) => briefing.timestamp.isAfter(card.timestamp),
+  );
+  if (insertAt == -1) {
+    return [...withoutBriefing, briefing];
+  }
+  return [
+    ...withoutBriefing.take(insertAt),
+    briefing,
+    ...withoutBriefing.skip(insertAt),
+  ];
 }

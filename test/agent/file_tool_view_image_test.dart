@@ -57,6 +57,9 @@ void main() {
         },
       );
       final tool = factory.buildViewImageTool();
+      final properties = tool.parameters['properties'] as Map;
+      expect(properties.keys, contains('path'));
+      expect(properties.keys, isNot(contains('detail')));
       final state = AgentState(
         sessionId: 'view_image_test',
         metadata: const {'userId': 'test_user'},
@@ -69,7 +72,8 @@ void main() {
       );
 
       expect(result.isError, isFalse);
-      expect(_text(result), contains('Image attached as the next message'));
+      expect(
+          _text(result), contains('Image attached to the next model message'));
       expect(compressedPath, image.path);
       expect(targetSizeSeen, 2048);
       expect(qualitySeen, 85);
@@ -79,36 +83,6 @@ void main() {
       expect(pending.single.message, contains('Inspect it now'));
       expect(pending.single.image.mimeType, 'image/webp');
       expect(pending.single.image.base64Data, base64Encode(compressed));
-    });
-
-    test('rejects unsupported detail values before reading the file', () async {
-      final factory = FileToolFactory(
-        permissionManager: FilePermissionManager(
-          'test_user',
-          [
-            PermissionRule(
-              rootPath: tempDir.path,
-              access: FileAccessType.read,
-            ),
-          ],
-          withDefaultRules: false,
-        ),
-        workingDirectory: tempDir.path,
-        viewImageCompressor: (
-          String filePath, {
-          int targetSize = 2048,
-          int quality = 85,
-        }) async =>
-            Uint8List.fromList([1]),
-      );
-
-      final result = await _runToolCall(
-        tool: factory.buildViewImageTool(),
-        arguments: {'path': '/missing.png', 'detail': 'low'},
-      );
-
-      expect(result.isError, isTrue);
-      expect(_text(result), contains('only supports `high` or `original`'));
     });
   });
 }

@@ -85,4 +85,9 @@ class ChatRunRegistry {
     _runs[sessionId] = run;
     return run;
   }
+
+  /// Returns the active run for [sessionId], or creates one when a background
+  /// task resumes without an attached chat dialog.
+  ActiveChatRun getOrStart(String sessionId) =>
+      _runs[sessionId] ?? start(sessionId);
 }

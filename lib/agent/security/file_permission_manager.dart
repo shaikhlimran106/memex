@@ -17,7 +17,8 @@ class PermissionDeniedException implements Exception {
 
   @override
   String toString() =>
-      'PermissionDeniedException: Access denied for "$path". Required: $requiredAccess';
+      'Access denied for "$path": outside your allowed scope. This is a fixed '
+      'boundary, not a transient error — do not retry.';
 }
 
 class PermissionRule {
@@ -124,6 +125,15 @@ class FilePermissionManager {
     }
   }
 
+  bool canTraverseForRead(String path) {
+    if (allowsRead(path)) return true;
+    final normalizedTarget = _normalize(path);
+    return _rules.any((rule) =>
+        _hasAccess(rule.access, FileAccessType.read) &&
+        _isSameOrUnder(rule.path, normalizedTarget) &&
+        allowsRead(rule.path));
+  }
+
   FileSearchAccessScope buildSearchAccessScope(String searchRoot) {
     final normalizedRoot = _normalize(searchRoot);
     final excludedPaths = <String>[];
@@ -158,6 +168,7 @@ class FilePermissionManager {
 
     return FileSearchAccessScope(
       allowsRead: allowsRead,
+      canTraverse: canTraverseForRead,
       excludedPaths: excludedPaths,
       canUseDirectorySearch: canUseDirectorySearch,
     );

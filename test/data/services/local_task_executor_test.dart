@@ -23,6 +23,31 @@ void main() {
   });
 
   group('LocalTaskExecutor scheduling', () {
+    test('getLastTaskByType uses insertion order when createdAt ties',
+        () async {
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+      await db.into(db.tasks).insert(TasksCompanion.insert(
+            id: 'chat-1',
+            type: 'super_agent_chat_turn_task',
+            payload: const Value('{}'),
+            status: 'pending',
+            createdAt: Value(now),
+          ));
+      await db.into(db.tasks).insert(TasksCompanion.insert(
+            id: 'chat-2',
+            type: 'super_agent_chat_turn_task',
+            payload: const Value('{}'),
+            status: 'pending',
+            createdAt: Value(now),
+          ));
+
+      expect(
+        await executor.getLastTaskByType('super_agent_chat_turn_task'),
+        'chat-2',
+      );
+    });
+
     test('scans past dependency-blocked queue head to run later tasks',
         () async {
       final completed = Completer<void>();

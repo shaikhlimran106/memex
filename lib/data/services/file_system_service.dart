@@ -424,6 +424,7 @@ class FileSystemService {
           // No prior file and caller wants creation → insert.
           currentData = CardData(
             factId: cardId,
+            createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
             timestamp: DateTime.now().millisecondsSinceEpoch ~/ 1000,
             status: 'processing',
             tags: const [],
@@ -586,7 +587,7 @@ class FileSystemService {
       if (factInfo != null) {
         timestamp = factInfo.timestamp;
       } else {
-        timestamp = cardData.timestamp;
+        timestamp = cardData.createdAt ?? cardData.timestamp;
       }
 
       final tagsJson = jsonEncode(cardData.tags);
@@ -1747,7 +1748,7 @@ class FileSystemService {
     return '$year/$month/$day.md#ts_$newId';
   }
 
-  /// Allocate a fresh fact_id for a brand-new card on [date] (defaults to now).
+  /// Allocate a fresh fact_id for a brand-new card on the current local day.
   ///
   /// The legacy flow derived fact_id from the daily Facts file before the card
   /// existed. Cards are now created directly through SuperAgent without a Facts
@@ -1758,9 +1759,9 @@ class FileSystemService {
   /// same id. The caller overwrites the placeholder with the real card via
   /// [updateCardFile]. Legacy Facts entries for the day are also honored so a
   /// previously-used id is never reused.
-  Future<String> allocateCardFactId(String userId, {DateTime? date}) async {
+  Future<String> allocateCardFactId(String userId) async {
     return _cardFactIdLock.synchronized(() async {
-      final now = date ?? DateTime.now();
+      final now = DateTime.now().toLocal();
       final year = now.year.toString();
       final month = now.month.toString().padLeft(2, '0');
       final day = now.day.toString().padLeft(2, '0');
@@ -1803,6 +1804,7 @@ class FileSystemService {
         factId,
         CardData(
           factId: factId,
+          createdAt: now.millisecondsSinceEpoch ~/ 1000,
           timestamp: now.millisecondsSinceEpoch ~/ 1000,
           status: 'processing',
           tags: const [],

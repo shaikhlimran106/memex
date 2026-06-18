@@ -556,11 +556,27 @@ class LocalTaskExecutor {
       if (rethrowErrors) {
         Error.throwWithStackTrace(e, stackTrace);
       }
+      if (_isDatabaseLockedError(e)) {
+        _logger.warning(
+          'Database locked in worker loop; retrying on next poll.',
+        );
+        if (scheduleNextPoll) {
+          _scheduleNextPoll();
+        }
+        return;
+      }
       _logger.severe('Error in worker loop, $e', e, stackTrace);
       if (scheduleNextPoll) {
         _scheduleNextPoll();
       }
     }
+  }
+
+  bool _isDatabaseLockedError(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('database is locked') ||
+        message.contains('sqliteexception(5)') ||
+        message.contains('code 5');
   }
 
   Future<List<Task>> _findRunnableTasks({
@@ -1267,7 +1283,8 @@ class LocalTaskExecutor {
       ..addColumns([_db.tasks.id])
       ..where(_db.tasks.type.equals(taskType))
       ..orderBy([
-        OrderingTerm(expression: _db.tasks.createdAt, mode: OrderingMode.desc)
+        OrderingTerm(expression: _db.tasks.createdAt, mode: OrderingMode.desc),
+        OrderingTerm(expression: _db.tasks.rowId, mode: OrderingMode.desc),
       ])
       ..limit(1);
 

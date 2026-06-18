@@ -97,7 +97,7 @@ class AppLocalizationsExtZh extends AppLocalizationsZh
 
   @override
   String get pkmPARAStructureExample => '''## P.A.R.A. 知识库结构示例（根据用户实际输入灵活组织）：
-│
+/PKM                              <-- 这是你的根目录，所有 P.A.R.A. 文件夹都在 /PKM 之下
 ├── Projects
 │   ├── 2025春节全家三亚旅游/      <-- 涉及行程、机票、酒店，使用文件夹
 │   │   ├── 行程规划日程表.md

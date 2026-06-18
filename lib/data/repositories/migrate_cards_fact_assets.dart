@@ -10,7 +10,7 @@ import 'package:memex/utils/logger.dart';
 final _logger = getLogger('MigrateCardsFactAssets');
 
 /// Migration key in `_System/migration_state.json`.
-const _migrationKey = 'cards_fact_assets_v1';
+const _migrationKey = 'cards_fact_assets_created_at_v2';
 
 /// Per-user lock so a migration can't run twice concurrently.
 final Map<String, Lock> _locks = {};
@@ -21,13 +21,15 @@ Lock _lockFor(String userId) => _locks.putIfAbsent(userId, () => Lock());
 /// Historically a card's original user input (raw text) and its media
 /// references (`![image](fs://…)` / `[audio](fs://…)`) lived in the
 /// `Facts/年/月/日.md` files, and card display read them back from there. Cards
-/// now carry that data themselves via [CardData.fact] (raw text) and
-/// [CardData.assets] (media references).
+/// now carry that data themselves via [CardData.fact] (raw text),
+/// [CardData.assets] (media references), and [CardData.createdAt] (the legacy
+/// fact entry time).
 ///
-/// This walks every existing card whose `fact` is still empty, pulls the raw
-/// content out of the Facts file, splits the media markers into `assets` and
-/// the remaining text into `fact`, and writes it back onto the card. It is
-/// idempotent: once completed it records a flag in
+/// This walks every existing card that is missing any of those fields, pulls
+/// the legacy entry out of the Facts file, splits the media markers into
+/// `assets` and the remaining text into `fact`, and writes the legacy entry
+/// timestamp into `created_at`. It is idempotent: once completed it records a
+/// flag in
 /// `_System/migration_state.json` and returns immediately on subsequent runs.
 ///
 /// Image-analysis / OCR sidecar text is intentionally NOT migrated onto the
@@ -56,23 +58,36 @@ Future<void> migrateCardsToFactAssets(String userId) async {
           final card = await fs.readCardFile(userId, factId);
           if (card == null || card.deleted == true) continue;
 
-          // Skip cards that already carry their own fact (e.g. created through
-          // the new flow) so we never clobber fresh data.
-          if ((card.fact ?? '').trim().isNotEmpty || card.assets.isNotEmpty) {
+          final needsFactAssets =
+              (card.fact ?? '').trim().isEmpty && card.assets.isEmpty;
+          final needsCreatedAt = card.createdAt == null;
+          if (!needsFactAssets && !needsCreatedAt) {
             continue;
           }
 
           final factInfo = await fs.extractFactContentFromFile(userId, factId);
-          final content = factInfo?.content ?? '';
-          if (content.trim().isEmpty) continue;
+          if (factInfo == null) continue;
 
-          final (fact, assets) = _splitFactAndAssets(content);
-          if (fact.isEmpty && assets.isEmpty) continue;
+          String? fact;
+          List<String>? assets;
+          if (needsFactAssets) {
+            final split = _splitFactAndAssets(factInfo.content);
+            if (split.$1.isNotEmpty || split.$2.isNotEmpty) {
+              fact = split.$1;
+              assets = split.$2;
+            }
+          }
+
+          if (fact == null && assets == null && !needsCreatedAt) continue;
 
           await fs.updateCardFile(
             userId,
             factId,
-            (c) => c.copyWith(fact: fact, assets: assets),
+            (c) => c.copyWith(
+              fact: fact,
+              assets: assets,
+              createdAt: needsCreatedAt ? factInfo.timestamp : null,
+            ),
           );
           migrated++;
         } catch (e, st) {
@@ -118,9 +133,8 @@ Future<void> migrateCardsToFactAssets(String userId) async {
   return (fact, assets);
 }
 
-String _migrationStatePath(String userId) =>
-    p.join(FileSystemService.instance.getSystemPath(userId),
-        'migration_state.json');
+String _migrationStatePath(String userId) => p.join(
+    FileSystemService.instance.getSystemPath(userId), 'migration_state.json');
 
 Future<Map<String, dynamic>> _readMigrationState(String userId) async {
   final file = File(_migrationStatePath(userId));

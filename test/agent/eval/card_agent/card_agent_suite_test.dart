@@ -16,7 +16,7 @@ import 'tasks.dart';
 /// Run:
 ///
 ///     export OPENAI_BASE_URL='https://shark.ai/api/v1'
-///     export OPENAI_API_KEY='sk-...'
+///     export OPENAI_API_KEY='your-openai-api-key'
 ///     export EVAL_MODEL='anthropic/claude-sonnet-4.6'  # optional
 ///     flutter test test/agent/eval/card_agent/card_agent_suite_test.dart -r expanded
 ///

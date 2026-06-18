@@ -47,6 +47,13 @@ void main() {
       await db.close();
     });
 
+    test('mint tool does not accept a content creation date', () {
+      expect(
+        mintRecordFactIdTool.parameters['properties'],
+        isNot(contains('content_creation_date')),
+      );
+    });
+
     test('mint reserves a processing placeholder card', () async {
       final mintResult = await _runToolCall(
         tool: _tool('mint_record_fact_id'),
@@ -58,9 +65,12 @@ void main() {
       final factId = _artifactId(mintResult);
       expect(factId, isNotNull);
 
-      final card = await FileSystemService.instance.readCardFile(userId, factId!);
+      final card =
+          await FileSystemService.instance.readCardFile(userId, factId!);
       expect(card, isNotNull);
       expect(card!.status, 'processing');
+      expect(card.createdAt, isNotNull);
+      expect(card.createdAt, greaterThan(0));
     });
 
     test('mint then save completes the card and enqueues memory once',
@@ -93,7 +103,8 @@ void main() {
       );
       expect(saveResult.isError, isFalse);
 
-      final card = await FileSystemService.instance.readCardFile(userId, factId);
+      final card =
+          await FileSystemService.instance.readCardFile(userId, factId);
       expect(card!.status, 'completed');
       expect(card.title, 'Slept 6.5 hours');
 
@@ -137,7 +148,8 @@ void main() {
       );
       expect(second.isError, isFalse);
 
-      final card = await FileSystemService.instance.readCardFile(userId, factId);
+      final card =
+          await FileSystemService.instance.readCardFile(userId, factId);
       expect(card!.title, 'Edited title');
 
       // Only the first (new-card) save enqueued memory; the edit did not.
@@ -210,13 +222,92 @@ void main() {
       );
       expect(edited.isError, isFalse);
 
-      final card = await FileSystemService.instance.readCardFile(userId, factId);
+      final card =
+          await FileSystemService.instance.readCardFile(userId, factId);
       // The omitted fields kept their prior values; only fact changed.
       expect(card!.fact,
           'Spicy peppers, fried fish, and cucumber soup for dinner.');
       expect(card.assets, ['![image](fs://photo.jpg)']);
       expect(card.title, 'Dinner photo');
       expect(card.uiConfigs.single.templateId, 'snapshot');
+    });
+
+    test('save accepts bare fs asset refs and stores renderable markdown refs',
+        () async {
+      final assetsDir =
+          Directory(FileSystemService.instance.getAssetsPath(userId));
+      await assetsDir.create(recursive: true);
+      await File(p.join(assetsDir.path, 'bare_photo.jpg'))
+          .writeAsBytes(const [0xff, 0xd8, 0xff, 0xd9]);
+
+      final mintResult = await _runToolCall(
+        tool: _tool('mint_record_fact_id'),
+        arguments: const {},
+        metadata: {'userId': userId},
+      );
+      final factId = _artifactId(mintResult)!;
+
+      final saved = await _runToolCall(
+        tool: _tool('save_timeline_card'),
+        arguments: {
+          'fact_id': factId,
+          'title': 'Bare asset ref',
+          'fact': 'Photo attachment captured.',
+          'assets': ['fs://bare_photo.jpg'],
+          'ui_configs': [
+            {
+              'template_id': 'snapshot',
+              'data': {'image_url': 'fs://bare_photo.jpg'},
+            },
+          ],
+        },
+        metadata: {'userId': userId},
+      );
+      expect(saved.isError, isFalse);
+
+      final card =
+          await FileSystemService.instance.readCardFile(userId, factId);
+      expect(card!.assets, ['![image](fs://bare_photo.jpg)']);
+    });
+
+    test('card cache timeline ordering uses record creation time for new cards',
+        () async {
+      final mintResult = await _runToolCall(
+        tool: _tool('mint_record_fact_id'),
+        arguments: const {},
+        metadata: {'userId': userId},
+      );
+      final factId = _artifactId(mintResult)!;
+      final placeholder =
+          await FileSystemService.instance.readCardFile(userId, factId);
+      final createdAt = placeholder!.createdAt!;
+
+      final saved = await _runToolCall(
+        tool: _tool('save_timeline_card'),
+        arguments: {
+          'fact_id': factId,
+          'title': 'Old event saved today',
+          'fact': 'A memory from 2000 that was recorded today.',
+          'content_creation_date': '2000-01-01T00:00:00',
+          'ui_configs': [
+            {
+              'template_id': 'article',
+              'data': {'body': 'A memory from 2000 that was recorded today.'},
+            },
+          ],
+        },
+        metadata: {'userId': userId},
+      );
+      expect(saved.isError, isFalse);
+
+      final card =
+          await FileSystemService.instance.readCardFile(userId, factId);
+      expect(card!.timestamp,
+          DateTime.parse('2000-01-01T00:00:00').millisecondsSinceEpoch ~/ 1000);
+
+      final cached = await db.cardDao.getCards(page: 1, limit: 20);
+      final cachedCard = cached.singleWhere((card) => card.factId == factId);
+      expect(cachedCard.timestamp, createdAt);
     });
 
     test('a fact containing an fs:// reference is rejected', () async {

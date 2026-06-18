@@ -16,7 +16,10 @@ void main() {
               ImagePart('BBBB', 'image/jpeg'),
             ],
             metadata: {
-              'image_fs_paths': ['2026/06/a.png', '2026/06/b.jpg'],
+              'image_fs_paths': [
+                'workspace/_u/Facts/assets/a.png',
+                'fs://b.jpg',
+              ],
             },
           ),
           ModelMessage(textOutput: 'nice photos', model: 'test-model'),
@@ -30,8 +33,8 @@ void main() {
       final texts =
           user.contents.whereType<TextPart>().map((part) => part.text).toList();
       expect(texts[0], 'look at these');
-      expect(texts[1], contains('fs://2026/06/a.png'));
-      expect(texts[2], contains('fs://2026/06/b.jpg'));
+      expect(texts[1], contains('fs://a.png'));
+      expect(texts[2], contains('fs://b.jpg'));
       // Non-user messages are untouched.
       expect(episode.messages.last, isA<ModelMessage>());
     });
