@@ -198,6 +198,13 @@ class SuperAgent {
         }
       }
     }
+    final prunedActiveSkills = pruneUnavailableActiveSkills(
+      state,
+      skills.map((skill) => skill.name).toSet(),
+    );
+    if (prunedActiveSkills) {
+      await saveAgentState(state);
+    }
 
     final systemPrompts = [superAgentSystemPrompt];
     if (readOnlyMemoryPrompt != null) {
@@ -308,5 +315,29 @@ class SuperAgent {
         requestMessages: nextRequestMessages,
       );
     };
+  }
+
+  @visibleForTesting
+  static bool pruneUnavailableActiveSkills(
+    AgentState state,
+    Set<String> availableSkillNames,
+  ) {
+    final activeSkills = state.activeSkills;
+    if (activeSkills == null || activeSkills.isEmpty) return false;
+
+    final retained = activeSkills
+        .where((skillName) => availableSkillNames.contains(skillName))
+        .toList();
+    if (retained.length == activeSkills.length) return false;
+
+    final removed = activeSkills
+        .where((skillName) => !availableSkillNames.contains(skillName))
+        .toList();
+    state.activeSkills = retained;
+    _logger.warning(
+      'Pruned unavailable active skill(s) from SuperAgent state '
+      '${state.sessionId}: $removed',
+    );
+    return true;
   }
 }

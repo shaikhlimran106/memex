@@ -8,6 +8,7 @@ import 'package:logging/logging.dart';
 import 'package:memex/agent/memex_skill_host_agent/memex_skill_host_agent.dart';
 import 'package:memex/agent/run_mode/agent_run_mode.dart';
 import 'package:memex/agent/pure_skill_host_agent/pure_skill_host_agent.dart';
+import 'package:memex/agent/state_util.dart';
 import 'package:memex/agent/super_agent/super_agent.dart';
 import 'package:memex/agent/super_agent/subagent/delegate_progress.dart';
 import 'package:memex/data/services/asset_safety_service.dart';
@@ -498,10 +499,7 @@ class ChatService {
       final modelConfig = resources.modelConfig;
 
       // Load State
-      final stateDirPath = await _fileService.getAgentStateDirectory(userId);
-      final stateDir = Directory(stateDirPath);
-      final storage = FileStateStorage(stateDir);
-      final state = await storage.loadOrCreate(sessionId, {
+      final state = await loadOrCreateAgentState(sessionId, {
         'userId': userId,
         'scene': scene,
         'sceneId': sceneId,

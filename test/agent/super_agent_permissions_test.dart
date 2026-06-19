@@ -1,3 +1,4 @@
+import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/agent/security/file_permission_manager.dart';
 import 'package:memex/agent/super_agent/super_agent.dart';
@@ -91,6 +92,27 @@ void main() {
     test('uses generic LS for PKM reads instead of PKM overview tool', () {
       expect(SuperAgent.isQuickQueryToolAllowed('LS'), isTrue);
       expect(SuperAgent.isQuickQueryToolAllowed('get_pkm_overview'), isFalse);
+    });
+  });
+
+  group('SuperAgent legacy active skills', () {
+    test('drops stale active skill names before agent tools are composed', () {
+      final state = AgentState(
+        sessionId: 'legacy_active_skill_session',
+        metadata: {'userId': 'legacy_skill_user'},
+        activeSkills: [
+          'create_dynamic_timeline_card',
+          'manage_timeline_card',
+        ],
+      );
+
+      final pruned = SuperAgent.pruneUnavailableActiveSkills(
+        state,
+        {'manage_timeline_card', 'dynamic_timeline_ui'},
+      );
+
+      expect(pruned, isTrue);
+      expect(state.activeSkills, ['manage_timeline_card']);
     });
   });
 }
