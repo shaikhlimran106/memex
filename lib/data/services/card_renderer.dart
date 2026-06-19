@@ -1,9 +1,8 @@
-import 'dart:io';
-import 'package:path/path.dart' as path;
 import 'package:memex/utils/logger.dart';
 import 'file_system_service.dart';
 import 'package:memex/domain/models/card_detail_model.dart';
 import 'package:memex/domain/models/card_model.dart';
+import 'asset_reference_service.dart';
 import 'html_templates.dart';
 
 final _logger = getLogger('CardRenderer');
@@ -60,7 +59,6 @@ const Set<String> _nativeCardTemplates = {
   'trend_chart_card_v1',
   'bar_chart_card_v1',
   'timeline_card_v1',
-  'system_task',
   'schedule_briefing',
 };
 
@@ -261,24 +259,22 @@ Future<CardRenderResult> renderCard({
 Future<Map<String, dynamic>> extractAssetsAndRawText(
     String userId, CardData card) async {
   final assets = <AssetData>[];
-  final fileSystemService = FileSystemService.instance;
-  final assetsPath = fileSystemService.getAssetsPath(userId);
 
   // Each entry is a full markdown reference. Images use the `![...](fs://…)`
   // form (leading `!`); audio uses `[...](fs://…)`.
-  final fsPattern = RegExp(r'\(fs://([^\)]+)\)');
   for (final ref in card.assets) {
-    final match = fsPattern.firstMatch(ref);
-    if (match == null) continue;
-    final fileName = match.group(1)!;
-    final isImage = ref.trimLeft().startsWith('!');
-
-    final filePath = path.join(assetsPath, fileName);
-    if (!await File(filePath).exists()) continue;
+    final asset = await AssetReferenceService.resolveExisting(
+      userId: userId,
+      reference: ref,
+    );
+    if (asset == null) continue;
 
     final url =
-        await FileSystemService.convertFsToLocalHttp('fs://$fileName', userId);
-    assets.add(AssetData(type: isImage ? 'image' : 'audio', url: url));
+        await FileSystemService.convertFsToLocalHttp(asset.fsUri, userId);
+    assets.add(AssetData(
+      type: asset.type == AssetReferenceType.image ? 'image' : 'audio',
+      url: url,
+    ));
   }
 
   final rawText = card.fact?.trim();

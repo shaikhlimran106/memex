@@ -314,10 +314,7 @@ class SearchService {
         final cardData = await fs.readCardFile(userId, factId);
         if (cardData == null || cardData.deleted == true) continue;
 
-        // The card's `fact` field is the source-of-truth original user input
-        // (verbatim text plus the meaningful content of any attachments), so it
-        // is the only content the card FTS index needs. Image-analysis / OCR
-        // sidecar text is intentionally not indexed separately.
+        // The card's `fact` field is the source text used for card search.
         await dao.upsertCardFts(
           factId: factId,
           title: cardData.title ?? '',

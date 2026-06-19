@@ -64,13 +64,9 @@ class SuperAgent {
   /// File-tool permission rules for the SuperAgent workspace.
   ///
   /// The whole workspace is writable (read-only in Quick Query), with one
-  /// carve-out the system prompt has always declared but never enforced:
-  /// `Facts/` holds the user's immutable raw records and is never writable
-  /// through generic file tools — records are created via the input
-  /// submission pipeline, which writes through FileSystemService directly and
-  /// is not affected by these rules. `Facts/assets/` stays writable because
-  /// derived analysis sidecars (`.analysis.txt`, `.ocr.txt`) live there and the
-  /// correction flow must be able to update them.
+  /// carve-out: generic file tools cannot write non-asset files under `Facts/`.
+  /// `Facts/assets/` stays writable in normal mode because attached media files
+  /// live there and may be referenced by `fs://...` ids.
   @visibleForTesting
   static List<PermissionRule> buildPermissionRules({
     required String workspacePath,

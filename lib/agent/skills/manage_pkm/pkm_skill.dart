@@ -35,13 +35,13 @@ class PkmSkill extends Skill {
         );
 
   static List<Tool> _buildTools(List<bool>? stopAfterUpdateCardInsightRef) {
-    final logger = getLogger('PkmAgent');
+    final logger = getLogger('PkmSkill');
 
     return [
       Tool(
         name: 'update_timeline_card_insight',
-        description: Prompts.pkmAgentUpdateCardInsightToolDescription,
-        parameters: Prompts.pkmAgentUpdateCardInsightToolParameters,
+        description: Prompts.pkmSkillUpdateCardInsightToolDescription,
+        parameters: Prompts.pkmSkillUpdateCardInsightToolParameters,
         executable: (
           String fact_id,
           String insight_text,
@@ -130,7 +130,7 @@ class PkmSkill extends Skill {
             logger.warning(
                 "Card file not found for fact_id: $fact_id, maybe it has been deleted");
             throw StateError(
-                Prompts.pkmAgentUpdateCardInsightErrorCardNotFound(fact_id));
+                Prompts.pkmSkillUpdateCardInsightErrorCardNotFound(fact_id));
           }
 
           // Notify detail page to refresh after insight update
@@ -139,7 +139,7 @@ class PkmSkill extends Skill {
           ));
 
           return AgentToolResult(
-            content: TextPart(Prompts.pkmAgentUpdateCardInsightSuccess(
+            content: TextPart(Prompts.pkmSkillUpdateCardInsightSuccess(
                 cardPath, fact_id, relatedCount)),
             stopFlag: stopFlag,
           );
@@ -147,8 +147,8 @@ class PkmSkill extends Skill {
       ),
       Tool(
         name: 'skip_pkm_organization',
-        description: Prompts.pkmAgentSkipOrganizationToolDescription,
-        parameters: Prompts.pkmAgentSkipOrganizationToolParameters,
+        description: Prompts.pkmSkillSkipOrganizationToolDescription,
+        parameters: Prompts.pkmSkillSkipOrganizationToolParameters,
         executable: (String evidence) async {
           final context = AgentCallToolContext.current;
           final factId = context?.state.metadata['factId'];

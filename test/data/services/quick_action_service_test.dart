@@ -100,8 +100,7 @@ void main() {
   });
 
   group('dedup — double delivery from quick_actions_android', () {
-    test(
-        'second handleAction with same action is ignored after consumption',
+    test('second handleAction with same action is ignored after consumption',
         () async {
       service.attach();
       // 1. First delivery (from onAttachedToActivity)

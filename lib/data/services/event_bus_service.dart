@@ -106,4 +106,3 @@ class EventBusService {
     _handlers.clear();
   }
 }
-

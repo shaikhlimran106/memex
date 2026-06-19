@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:memex/ui/core/cards/templates/system_task_card.dart';
 import 'package:memex/ui/core/cards/templates/classic_card.dart';
-import 'package:memex/ui/core/cards/templates/clarification_ask_card.dart';
 import 'package:memex/ui/core/cards/templates/system/schedule_briefing_card.dart';
 
 import 'package:memex/ui/core/cards/templates/textual/compact_card.dart';
@@ -208,10 +206,6 @@ class NativeCardFactory {
           data: mergedData,
           onTap: onTap,
         );
-      case 'system_task':
-        return SystemTaskCard(data: mergedData);
-      case 'clarification_ask':
-        return ClarificationAskCard(data: mergedData);
       default:
         // Fallback to ClassicCard for now, or could return a specific Error/Fallback card
         return ClassicCard(

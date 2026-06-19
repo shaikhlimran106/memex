@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:typed_data';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -28,9 +26,9 @@ import 'dart:io';
 import 'package:memex/ui/main_screen/widgets/radial_menu.dart';
 import 'package:memex/domain/models/shortcut_item.dart' as app_shortcut;
 import 'package:record/record.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:memex/ui/main_screen/widgets/input_sheet.dart';
 import 'package:memex/ui/settings/widgets/ai_service_setup_page.dart';
 import 'package:memex/ui/settings/widgets/model_config_list_page.dart';
 import 'package:memex/data/repositories/memex_router.dart';
@@ -38,7 +36,6 @@ import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/agent_background_task_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/utils/user_storage.dart';
-import 'package:memex/data/services/publish_timestamp_service.dart';
 import 'package:memex/data/services/health_service.dart';
 import 'package:memex/data/services/health_strategies.dart';
 import 'package:memex/data/services/whisper_service.dart';
@@ -46,7 +43,6 @@ import 'package:memex/data/services/streaming_transcriber.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:health/health.dart';
-import 'package:memex/domain/models/timeline_card_model.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/ui/agent_activity/widgets/agent_activity_widget.dart';
@@ -442,7 +438,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _currentTab = 0;
-  bool _isInputOpen = false;
   final GlobalKey<TimelineScreenState> _timelineKey =
       GlobalKey<TimelineScreenState>();
   final GlobalKey<KnowledgeBaseScreenState> _knowledgeBaseKey =
@@ -478,7 +473,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   bool _isErrorNotificationDialogShowing = false;
   bool _earlyUpdateCheckStarted = false;
   late final ShareIntentHandler _shareIntentHandler;
-  InputData? _sharedDraft;
   ClipboardPreviewCandidate? _homeClipboardCandidate;
   bool _isCheckingHomeClipboard = false;
 
@@ -530,10 +524,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       scaffoldMessengerKey: rootScaffoldMessengerKey,
       onSharedDraft: (data) {
         if (!mounted) return;
-        setState(() {
-          _homeClipboardCandidate = null;
-          _sharedDraft = data;
-          _isInputOpen = true;
+        setState(() => _homeClipboardCandidate = null);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _openSuperAgentDialog(
+            initialDraftText: data.text,
+            initialImages: data.images,
+          );
         });
       },
       onBackupFileShared: _handleExternalBackupFile,
@@ -801,14 +798,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   Future<void> _handleAICoreButtonTap() async {
     if (!mounted) return;
 
-    // Keep the onboarding demo on the legacy publish sheet because it depends
-    // on a prefilled draft and a deterministic tapSend step.
     if (DemoService.instance.currentStep == DemoStep.tapSend) {
-      setState(() {
-        _homeClipboardCandidate = null;
-        _sharedDraft = InputData(text: DemoService.instance.prefillText);
-        _isInputOpen = true;
-      });
+      setState(() => _homeClipboardCandidate = null);
+      _openSuperAgentDialog(initialDraftText: DemoService.instance.prefillText);
       return;
     }
 
@@ -819,8 +811,15 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     _openSuperAgentDialog();
   }
 
-  void _openSuperAgentDialog({String? initialDraftText}) {
-    openSuperAgentDialog(context, initialDraftText: initialDraftText);
+  void _openSuperAgentDialog({
+    String? initialDraftText,
+    List<XFile> initialImages = const [],
+  }) {
+    openSuperAgentDialog(
+      context,
+      initialDraftText: initialDraftText,
+      initialImages: initialImages,
+    );
   }
 
   void _handleAICoreButtonLongPressStart() {
@@ -1308,7 +1307,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
     if (item != null) {
       if (mounted) setState(() => _isRadialMenuOpen = false);
-      unawaited(_handleInputSubmit(InputData(text: item.content)));
+      _openSuperAgentDialog(initialDraftText: item.content);
     } else if (hasRecording) {
       // Show calibrating state — keep menu open
       if (mounted) setState(() => _isQuickCalibrating = true);
@@ -1323,21 +1322,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         });
       }
       if (_quickTranscribedText.isNotEmpty) {
-        unawaited(_handleInputSubmit(InputData(text: _quickTranscribedText)));
+        _openSuperAgentDialog(initialDraftText: _quickTranscribedText);
       } else if (_quickAudioPath != null) {
-        final audioFile = File(_quickAudioPath!);
-        String? audioHash;
-        if (await audioFile.exists()) {
-          final length = await audioFile.length();
-          final fileName = _quickAudioPath!.split(Platform.pathSeparator).last;
-          audioHash =
-              md5.convert(utf8.encode('audio_${fileName}_$length')).toString();
-        }
-        unawaited(
-          _handleInputSubmit(
-            InputData(audioPath: _quickAudioPath, audioHash: audioHash),
-          ),
-        );
+        ToastHelper.showInfo(context, UserStorage.l10n.speechNoResult);
       }
       _quickTranscribedText = '';
       _quickAudioPath = null;
@@ -1362,11 +1349,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       final action = await QuickActionService.instance.consumePendingAction();
       if (!mounted) return;
       if (action == 'quick_note') {
-        _logger.info('Quick action: opening input sheet');
-        setState(() {
-          _homeClipboardCandidate = null;
-          _isInputOpen = true;
-        });
+        _logger.info('Quick action: opening Super Agent');
+        setState(() => _homeClipboardCandidate = null);
+        _openSuperAgentDialog();
       }
     });
   }
@@ -1488,11 +1473,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       if (action == 'quick_note' && mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
-            _logger.info('Quick action (resumed): opening input sheet');
-            setState(() {
-              _homeClipboardCandidate = null;
-              _isInputOpen = true;
-            });
+            _logger.info('Quick action (resumed): opening Super Agent');
+            setState(() => _homeClipboardCandidate = null);
+            _openSuperAgentDialog();
           }
         });
       } else {
@@ -1502,9 +1485,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _checkHomeClipboardPreview() async {
-    if (_isCheckingHomeClipboard ||
-        _isInputOpen ||
-        DemoService.instance.isActive) {
+    if (_isCheckingHomeClipboard || DemoService.instance.isActive) {
       return;
     }
 
@@ -1512,7 +1493,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final candidate = await _clipboardPreviewService.fetchUnhandledText();
     _isCheckingHomeClipboard = false;
 
-    if (!mounted || _isInputOpen) return;
+    if (!mounted) return;
     setState(() => _homeClipboardCandidate = candidate);
   }
 
@@ -1535,85 +1516,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     setState(() => _homeClipboardCandidate = null);
   }
 
-  Future<bool> _handleInputSubmit(InputData data) async {
-    // During demo: advance tapSend → tapCard first, so the overlay
-    // immediately shows a blocking scrim (cardReady is still false).
-    DemoService.instance.tryAdvance(DemoStep.tapSend);
-
-    // Close input sheet immediately
-    if (mounted) {
-      setState(() {
-        _isInputOpen = false;
-        _sharedDraft = null;
-      });
-    }
-
-    // Show loading in timeline
-    if (mounted) context.read<TimelineViewModel>().setSubmitting(true);
-    await WidgetsBinding.instance.endOfFrame;
-
-    try {
-      // Call API
-      final response = await _memexRouter.submitInput(
-        text: data.text,
-        images: data.images,
-        audioPath: data.audioPath,
-        textHash: data.textHash,
-        imageHashes: data.imageHashes,
-        audioHash: data.audioHash,
-      );
-
-      // Parse response and add card to timeline
-      if (response.containsKey('card')) {
-        final card = TimelineCardModel.fromJson(response['card']);
-
-        // Add card to timeline
-        if (mounted) context.read<TimelineViewModel>().addCard(card);
-
-        // update last publish timestamp
-        await PublishTimestampService.saveLastPublishTimestamp(
-          DateTime.now().millisecondsSinceEpoch,
-        );
-
-        // During demo: write preset completed card with insight/comment
-        if (DemoService.instance.isActive) {
-          final userId = await UserStorage.getUserId();
-          if (userId != null) {
-            DemoService.instance.handleDemoSubmit(
-              userId,
-              response['fact_id'] as String,
-              data.text ?? '',
-            );
-          }
-        }
-      }
-
-      // Show success message
-      if (mounted) {
-        ToastHelper.showSuccess(
-          context,
-          UserStorage.l10n.recordSubmittedAiProcessing,
-        );
-      }
-
-      // Refresh auto-input count after manual input
-      // since the manual input might have consumed items that were pending auto-publish.
-      return true;
-    } catch (e) {
-      // Hide loading on error
-      if (mounted) context.read<TimelineViewModel>().setSubmitting(false);
-
-      if (mounted) {
-        ToastHelper.showError(context, e);
-      }
-      return false;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final timelineViewModel = context.watch<TimelineViewModel>();
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         systemNavigationBarColor: Colors.transparent,
@@ -1641,13 +1545,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                       children: [
                         TimelineScreen(
                           key: _timelineKey,
-                          viewModel: timelineViewModel,
+                          viewModel: context.watch<TimelineViewModel>(),
                           insightViewModel: context.watch<InsightViewModel>(),
                           onInputTap: () {
-                            setState(() {
-                              _homeClipboardCandidate = null;
-                              _isInputOpen = true;
-                            });
+                            setState(() => _homeClipboardCandidate = null);
+                            _openSuperAgentDialog();
                           },
                         ),
                         KnowledgeBaseScreen(
@@ -1661,10 +1563,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               ),
             ),
 
-            if (!_isInputOpen &&
-                _homeClipboardCandidate != null &&
-                !timelineViewModel.isSubmitting)
-              _buildHomeClipboardPreview(),
+            if (_homeClipboardCandidate != null) _buildHomeClipboardPreview(),
 
             // Floating bottom bar overlay
             _buildBottomBar(),
@@ -1674,25 +1573,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
               left: 0,
               right: 0,
               child: Center(
-                child: AgentActivityWidget(
-                  navigatorKey: null,
-                  forceVisible: timelineViewModel.isSubmitting,
-                ),
+                child: AgentActivityWidget(navigatorKey: null),
               ),
-            ),
-
-            // Input sheet
-            InputSheet(
-              isOpen: _isInputOpen,
-              initialData: _sharedDraft,
-              onClose: () {
-                setState(() {
-                  _isInputOpen = false;
-                  _sharedDraft = null;
-                });
-                unawaited(_checkHomeClipboardPreview());
-              },
-              onSubmit: _handleInputSubmit,
             ),
 
             if (_isRadialMenuOpen)

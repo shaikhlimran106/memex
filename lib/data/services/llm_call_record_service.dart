@@ -84,7 +84,7 @@ class LLMCallRecordService {
   /// 1. afterLLMResponse callback (not inside a zone)
   /// 2. beforeCallLLM callback (not inside a zone)
   /// 3. beforeRunAgent / afterRunAgent callbacks (not inside a zone)
-  /// 4. Handlers that call tools directly (e.g. analyze_assets_handler calling AssetAnalysisTool)
+  /// 4. Handlers that call tools directly
   ///    - because the handler is not in the agent's tool-execution context
   ///
   /// Workaround:
@@ -127,8 +127,8 @@ class LLMCallRecordService {
   /// [userId] User ID.
   /// [scene] Scene type: 'input' (raw input), 'insight' (insight generation), 'discovery' (discovery generation), etc.
   /// [sceneId] Scene ID: fact_id, insight_id, discovery_id, etc.
-  /// [agentName] Agent name, e.g. 'card_agent', 'pkm_agent'.
-  /// [handlerName] Optional handler name, e.g. 'card_agent_handler'.
+  /// [agentName] Agent name, e.g. 'comment_agent' or 'memex_agent'.
+  /// [handlerName] Optional handler name, e.g. 'comment_agent_handler'.
   /// [usage] Token usage for the call.
   /// [model] Model name.
   /// [metadata] Optional extra data (e.g. input/output, call time).

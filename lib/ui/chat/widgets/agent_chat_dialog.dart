@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:logging/logging.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:image_picker/image_picker.dart';
@@ -13,6 +14,7 @@ import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/data/model/chat_artifact.dart';
 import 'package:memex/data/model/chat_events.dart';
 import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/data/services/input_draft_service.dart';
 import 'package:memex/ui/core/widgets/html_webview_card.dart';
 import 'package:memex/ui/timeline/widgets/timeline_card_detail_screen.dart';
 import 'package:memex/data/services/photo_suggestion_service.dart';
@@ -20,8 +22,6 @@ import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/ui/core/widgets/agent_logo_loading.dart';
-import 'package:go_router/go_router.dart';
-import 'package:memex/routing/routes.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
 import 'package:memex/utils/token_usage_utils.dart';
 
@@ -171,27 +171,39 @@ BorderRadius resolveAgentChatDialogBorderRadius({required bool isFullScreen}) {
   return isFullScreen ? BorderRadius.zero : _agentChatSheetBorderRadius;
 }
 
+@visibleForTesting
+double resolveSuperAgentInputBottomInset({
+  required double keyboardInset,
+  required bool inputFocused,
+  required bool isStreaming,
+}) {
+  return inputFocused && !isStreaming ? keyboardInset : 0;
+}
+
+@visibleForTesting
+bool shouldShowSuperAgentPhotoSuggestions({
+  required bool isStreaming,
+  required bool isLoading,
+  required bool hasSuggestions,
+}) {
+  return !isStreaming && (isLoading || hasSuggestions);
+}
+
 /// Agent Chat Dialog with Real-time Event Streaming
 class AgentChatDialog extends StatefulWidget {
-  final String? agentName;
-  final String title;
   final String? initialSessionId;
-  final String inputHint;
-  final String scene;
   final String? sceneId;
   final List<Map<String, String>>? initialRefs;
   final String? initialDraftText;
+  final List<XFile> initialImages;
 
   const AgentChatDialog({
     super.key,
-    this.agentName,
-    this.title = 'AI Assistant',
     this.initialSessionId,
-    this.inputHint = 'Ask something...',
-    this.scene = 'assistant',
     this.sceneId,
     this.initialRefs,
     this.initialDraftText,
+    this.initialImages = const [],
   });
 
   @override
@@ -205,6 +217,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   // Services
   MemexRouter? _memexRouter;
   MemexRouter get _router => _memexRouter ??= MemexRouter();
+  final InputDraftService _draftService = InputDraftService.instance;
 
   // State
   List<ChatDisplayItem> _items = [];
@@ -214,13 +227,9 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   bool _isLoadingAgent = false;
   bool _nextResponseStartsNewMessage = true;
   ChatTokenUsageEvent? _lastTokenUsage;
-  bool _isReadOnly = false;
-  // Whether the user has sent at least one message in normal mode — prevents switching to read-only.
-  bool _hasSentInNormalMode = false;
   bool _isFullScreen = false;
   AgentRunMode _runMode = AgentRunMode.auto;
   StreamSubscription<AgentActionApprovalRequest>? _approvalSubscription;
-  bool get _isSuperAgentHome => widget.scene == 'super_agent_home';
 
   // Controllers
   final TextEditingController _messageController = TextEditingController();
@@ -231,6 +240,10 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   final Map<String, String> _originalFilenames = {};
   StreamSubscription<ChatEvent>? _chatSubscription;
   final List<StreamSubscription<ChatEvent>> _queuedSendSubscriptions = [];
+  Timer? _draftSaveDebounce;
+  bool _isApplyingDraft = false;
+  bool _isLoadingPhotoSuggestions = false;
+  List<List<EnhancedPhoto>> _photoSuggestionClusters = [];
 
   late AnimationController _controller;
   late Animation<Offset> _slideAnimation;
@@ -248,6 +261,10 @@ class _AgentChatDialogState extends State<AgentChatDialog>
         offset: initialDraftText.length,
       );
     }
+    _messageController.addListener(_handleDraftTextChanged);
+    _selectedImages.addAll(widget.initialImages);
+    unawaited(_loadActiveDraftIfNeeded());
+    unawaited(_loadPhotoSuggestions());
 
     // Animations
     _controller = AnimationController(
@@ -264,13 +281,11 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
     _controller.forward();
 
-    if (_isSuperAgentHome) {
-      UserStorage.getSuperAgentRunMode().then((value) {
-        if (mounted) {
-          setState(() => _runMode = AgentRunMode.fromWire(value));
-        }
-      });
-    }
+    UserStorage.getSuperAgentRunMode().then((value) {
+      if (mounted) {
+        setState(() => _runMode = AgentRunMode.fromWire(value));
+      }
+    });
 
     final sessionId = _currentSessionId;
     if (sessionId != null) {
@@ -297,6 +312,8 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       // Denies anything still pending so a gated tool call never hangs.
       AgentActionApprovalService.instance.detachSession(sessionId);
     }
+    _flushDraftOnDispose();
+    _messageController.removeListener(_handleDraftTextChanged);
     _controller.dispose();
     _messageController.dispose();
     _scrollController.dispose();
@@ -410,11 +427,6 @@ class _AgentChatDialogState extends State<AgentChatDialog>
         _items = historyItems;
         _lastTokenUsage = restoredUsage;
         _isLoading = false;
-        // Restore read-only mode from persisted session
-        final wasQuickQuery = sessionData['is_quick_query'] == true;
-        _isReadOnly = wasQuickQuery;
-        // If session was in normal mode (or field missing for old sessions), lock toggle
-        _hasSentInNormalMode = !wasQuickQuery;
       });
       _scrollToBottom();
     } catch (e) {
@@ -432,6 +444,148 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       return filePath;
     }
     return FileSystemService.instance.toAbsolutePath(filePath);
+  }
+
+  bool get _hasInitialReferenceContext =>
+      widget.initialRefs != null && widget.initialRefs!.isNotEmpty;
+
+  bool get _shouldPersistDraft => !_hasInitialReferenceContext;
+
+  bool get _shouldLoadStoredDraft =>
+      _shouldPersistDraft &&
+      widget.initialImages.isEmpty &&
+      (widget.initialDraftText == null || widget.initialDraftText!.isEmpty);
+
+  Future<void> _loadActiveDraftIfNeeded() async {
+    if (!_shouldLoadStoredDraft || _messageController.text.isNotEmpty) return;
+
+    final draft = await _draftService.loadActiveDraft();
+    if (!mounted ||
+        draft == null ||
+        !_shouldLoadStoredDraft ||
+        _messageController.text.isNotEmpty) {
+      return;
+    }
+
+    _isApplyingDraft = true;
+    _messageController.text = draft.text;
+    _messageController.selection = TextSelection.collapsed(
+      offset: _messageController.text.length,
+    );
+    _isApplyingDraft = false;
+    setState(() {});
+  }
+
+  void _handleDraftTextChanged() {
+    if (_isApplyingDraft || !_shouldPersistDraft) return;
+    _scheduleDraftSave();
+  }
+
+  void _scheduleDraftSave() {
+    _draftSaveDebounce?.cancel();
+    _draftSaveDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (!_shouldPersistDraft) return;
+      unawaited(_draftService.saveTextDraft(_messageController.text));
+    });
+  }
+
+  void _clearDraftAfterAcceptedSend() {
+    if (!_shouldPersistDraft) return;
+    _draftSaveDebounce?.cancel();
+    unawaited(_draftService.clearActiveDraft());
+  }
+
+  void _flushDraftOnDispose() {
+    _draftSaveDebounce?.cancel();
+    if (!_shouldPersistDraft) return;
+    unawaited(_draftService.saveTextDraft(_messageController.text));
+  }
+
+  Future<void> _loadPhotoSuggestions() async {
+    if (_isLoadingPhotoSuggestions || _photoSuggestionClusters.isNotEmpty) {
+      return;
+    }
+
+    setState(() => _isLoadingPhotoSuggestions = true);
+    try {
+      final clusters = await PhotoSuggestionService.fetchAndClusterRecentPhotos(
+        maxCount: 10,
+      );
+      if (!mounted) return;
+      setState(() {
+        _photoSuggestionClusters =
+            clusters.where((cluster) => cluster.isNotEmpty).take(8).toList();
+        _isLoadingPhotoSuggestions = false;
+      });
+    } catch (e, st) {
+      _logger.warning('Failed to load photo suggestions: $e', e, st);
+      if (!mounted) return;
+      setState(() => _isLoadingPhotoSuggestions = false);
+    }
+  }
+
+  bool _isSuggestionClusterSelected(List<EnhancedPhoto> cluster) {
+    return cluster.isNotEmpty &&
+        cluster.every(
+          (photo) => _selectedImages.any(
+            (image) => image.path == photo.xFile.path,
+          ),
+        );
+  }
+
+  void _togglePhotoSuggestionCluster(List<EnhancedPhoto> cluster) {
+    if (cluster.isEmpty) return;
+
+    if (_isSuggestionClusterSelected(cluster)) {
+      setState(() {
+        for (final photo in cluster) {
+          _selectedImages
+              .removeWhere((image) => image.path == photo.xFile.path);
+          _originalFilenames.remove(photo.xFile.path);
+        }
+      });
+      return;
+    }
+
+    setState(() {
+      for (final photo in cluster) {
+        final alreadySelected =
+            _selectedImages.any((image) => image.path == photo.xFile.path);
+        if (alreadySelected) continue;
+
+        // Keep the original EXIF/GPS-carrying file from assetToXFile().
+        _selectedImages.add(photo.xFile);
+        _originalFilenames[photo.xFile.path] = photo.xFile.name;
+      }
+    });
+  }
+
+  void _recordSentImageHashes(
+    List<XFile> images,
+    Map<String, String>? originalFilenames,
+  ) {
+    if (images.isEmpty) return;
+
+    unawaited(() async {
+      final hashes = <String>[];
+      for (final image in images) {
+        try {
+          final length = await image.length();
+          final effectiveName = originalFilenames?[image.path] ?? image.name;
+          final rawHashStr = 'photo_${effectiveName}_$length';
+          hashes.add(crypto.md5.convert(utf8.encode(rawHashStr)).toString());
+        } catch (e, st) {
+          _logger.warning('Failed to hash sent image ${image.path}: $e', e, st);
+        }
+      }
+
+      if (hashes.isEmpty) return;
+      try {
+        await _router.recordProcessedHashes(hashes);
+      } catch (e, st) {
+        _logger.warning('Failed to record sent image hashes: $e', e, st);
+      }
+    }());
   }
 
   void _sendMessage(
@@ -454,11 +608,6 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       _contextSent = true;
     }
 
-    // Lock read-only toggle once user sends in normal mode
-    if (!_isSuperAgentHome && !_isReadOnly) {
-      _hasSentInNormalMode = true;
-    }
-
     setState(() {
       _items.add(
         UserMessageItem(
@@ -474,22 +623,22 @@ class _AgentChatDialogState extends State<AgentChatDialog>
         _originalFilenames.clear();
       }
     });
+    _clearDraftAfterAcceptedSend();
     _scrollToBottom();
 
     final stream = _router.sendMessage(
       finalMessage,
       sessionId: _currentSessionId,
-      agentName: widget.agentName,
-      scene: widget.scene,
+      agentName: 'memex_agent',
+      scene: 'super_agent_home',
       sceneId: widget.sceneId,
       refs: refs,
       images: images,
       imageOriginalFilenames: imageOriginalFilenames,
-      isQuickQuery:
-          _isSuperAgentHome ? _runMode == AgentRunMode.readOnly : _isReadOnly,
-      runMode:
-          _isSuperAgentHome ? _runMode.wireName : AgentRunMode.auto.wireName,
+      isQuickQuery: _runMode == AgentRunMode.readOnly,
+      runMode: _runMode.wireName,
     );
+    _recordSentImageHashes(images, imageOriginalFilenames);
     if (queueBehindActiveRun) {
       _listenToQueuedSend(stream);
     } else {
@@ -918,18 +1067,6 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   }
 
   Widget _buildEmptyState() {
-    if (!_isSuperAgentHome) {
-      return Center(
-        child: Text(
-          'Start a conversation with ${widget.title}',
-          style: TextStyle(
-            color: Colors.grey[400],
-            fontSize: 14,
-          ),
-        ),
-      );
-    }
-
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -937,7 +1074,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
           _buildAgentMark(size: 32),
           const SizedBox(height: 6),
           Text(
-            widget.inputHint,
+            UserStorage.l10n.aiInputHint,
             style: const TextStyle(
               color: AppColors.textTertiary,
               fontSize: 13,
@@ -953,25 +1090,6 @@ class _AgentChatDialogState extends State<AgentChatDialog>
 
   Widget _buildHeader() {
     final actions = <Widget>[
-      if (!_isSuperAgentHome)
-        _buildHeaderIconButton(
-          tooltip: UserStorage.l10n.chatHistory,
-          icon: Icons.history,
-          onPressed: () {
-            context.push(
-              AppRoutes.chatHistory,
-              extra: {
-                'agentName': widget.agentName,
-                'title': widget.title,
-              },
-            ).then((_) {
-              if (mounted) {
-                setState(() {});
-                _loadSessionHistory();
-              }
-            });
-          },
-        ),
       _buildHeaderIconButton(
         key: const ValueKey('agent_chat_fullscreen_toggle'),
         tooltip: _isFullScreen
@@ -1012,22 +1130,18 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                 children: [
                   _buildAgentMark(size: 22),
                   const SizedBox(width: 8),
-                  Flexible(
+                  const Flexible(
                     child: Text(
-                      widget.title,
+                      'Memex',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary,
                       ),
                     ),
                   ),
-                  if (!_isSuperAgentHome) ...[
-                    const SizedBox(width: 8),
-                    _buildModeChip(),
-                  ],
                 ],
               ),
             ),
@@ -1071,132 +1185,120 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   }
 
   Widget _buildAgentMark({double size = 24}) {
-    if (_isSuperAgentHome) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(size * 0.28),
-        child: Image.asset(
-          'assets/icon.png',
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-        ),
-      );
-    }
-
-    return const Icon(Icons.auto_awesome, size: 18, color: AppColors.primary);
-  }
-
-  Widget _buildModeChip() {
-    final locked = !_isReadOnly && _hasSentInNormalMode;
-    final canToggle = !locked && !_isStreaming;
-
-    final label = _isReadOnly
-        ? UserStorage.l10n.readOnlyMode
-        : UserStorage.l10n.chatModeLabel;
-
-    return GestureDetector(
-      onTap: canToggle
-          ? () {
-              setState(() {
-                _isReadOnly = !_isReadOnly;
-              });
-            }
-          : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: _isReadOnly
-              ? AppColors.primary.withValues(alpha: 0.08)
-              : locked
-                  ? const Color(0xFFF0F0F0)
-                  : const Color(0xFFEEEEEE),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: _isReadOnly
-                    ? AppColors.primary
-                    : locked
-                        ? AppColors.textTertiary
-                        : AppColors.textSecondary,
-              ),
-            ),
-            if (canToggle) ...[
-              const SizedBox(width: 2),
-              Icon(
-                Icons.unfold_more,
-                size: 12,
-                color:
-                    _isReadOnly ? AppColors.primary : AppColors.textSecondary,
-              ),
-            ],
-          ],
-        ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(size * 0.28),
+      child: Image.asset(
+        'assets/icon.png',
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
       ),
     );
   }
 
   Widget _buildInput() {
-    if (_isSuperAgentHome) {
-      return _buildSuperAgentInput();
-    }
+    return _buildSuperAgentInput();
+  }
 
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        12,
-        16,
-        MediaQuery.of(context).viewInsets.bottom + 16,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFF7F8FA))),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF7F8FA),
-          borderRadius: BorderRadius.circular(24),
-        ),
+  Widget _buildPhotoSuggestionRow() {
+    if (_isLoadingPhotoSuggestions) {
+      return SizedBox(
+        height: 48,
         child: Row(
           children: [
-            Expanded(
-              child: TextField(
-                controller: _messageController,
-                focusNode: _messageFocusNode,
-                decoration: InputDecoration(
-                  hintText: widget.inputHint,
-                  hintStyle: const TextStyle(
-                    color: AppColors.textTertiary,
-                    fontSize: 14,
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+            Icon(
+              Icons.photo_library_outlined,
+              size: 18,
+              color: AppColors.primary.withValues(alpha: 0.55),
+            ),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                _label(en: 'Finding recent photos...', zh: '正在推荐照片...'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.textTertiary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                 ),
-                onSubmitted: (text) => _sendMessage(text),
               ),
             ),
-            GestureDetector(
-              onTap: () => _sendMessage(_messageController.text),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
+          ],
+        ),
+      );
+    }
+
+    if (_photoSuggestionClusters.isEmpty) return const SizedBox.shrink();
+
+    return SizedBox(
+      height: 68,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _photoSuggestionClusters.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          return _buildPhotoSuggestionChip(_photoSuggestionClusters[index]);
+        },
+      ),
+    );
+  }
+
+  Widget _buildPhotoSuggestionChip(List<EnhancedPhoto> cluster) {
+    final isSelected = _isSuggestionClusterSelected(cluster);
+
+    return GestureDetector(
+      onTap: () => _togglePhotoSuggestionCluster(cluster),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primary.withValues(alpha: 0.45)
+                : const Color(0xFFE2E8F0),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ...cluster.take(5).map(
+                  (photo) => Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: 46,
+                        height: 46,
+                        child: AssetEntityImage(
+                          photo.entity,
+                          fit: BoxFit.cover,
+                          isOriginal: false,
+                          thumbnailSize: const ThumbnailSize.square(120),
+                          thumbnailFormat: ThumbnailFormat.jpeg,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                child: const Icon(
-                  Icons.arrow_upward,
-                  size: 16,
-                  color: Colors.white,
+            if (cluster.length > 5)
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Text(
+                  '+${cluster.length - 5}',
+                  style: const TextStyle(
+                    color: AppColors.textTertiary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
+            const SizedBox(width: 2),
+            Icon(
+              isSelected ? Icons.check_circle : Icons.add_circle_outline,
+              size: 20,
+              color: isSelected ? AppColors.primary : const Color(0xFFCBD5E1),
             ),
           ],
         ),
@@ -1205,8 +1307,17 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   }
 
   Widget _buildSuperAgentInput() {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final isBusy = _isStreaming;
+    final bottomInset = resolveSuperAgentInputBottomInset(
+      keyboardInset: MediaQuery.of(context).viewInsets.bottom,
+      inputFocused: _messageFocusNode.hasFocus,
+      isStreaming: isBusy,
+    );
+    final showPhotoSuggestions = shouldShowSuperAgentPhotoSuggestions(
+      isStreaming: isBusy,
+      isLoading: _isLoadingPhotoSuggestions,
+      hasSuggestions: _photoSuggestionClusters.isNotEmpty,
+    );
 
     return Container(
       padding: EdgeInsets.fromLTRB(16, 12, 16, bottomInset + 16),
@@ -1218,6 +1329,10 @@ class _AgentChatDialogState extends State<AgentChatDialog>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (showPhotoSuggestions) ...[
+            _buildPhotoSuggestionRow(),
+            const SizedBox(height: 10),
+          ],
           if (_selectedImages.isNotEmpty) ...[
             SizedBox(
               height: 72,
@@ -1256,7 +1371,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                   maxLines: 5,
                   textInputAction: TextInputAction.newline,
                   decoration: InputDecoration(
-                    hintText: widget.inputHint,
+                    hintText: UserStorage.l10n.aiInputHint,
                     hintStyle: const TextStyle(
                       color: AppColors.textTertiary,
                       fontSize: 15,
@@ -1705,21 +1820,15 @@ class _AgentChatDialogState extends State<AgentChatDialog>
             CircleAvatar(
               radius: 12,
               backgroundColor: AppColors.iconBgLight,
-              child: _isSuperAgentHome
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: Image.asset(
-                        'assets/icon.png',
-                        width: 16,
-                        height: 16,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.auto_awesome,
-                      size: 12,
-                      color: AppColors.primary,
-                    ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Image.asset(
+                  'assets/icon.png',
+                  width: 16,
+                  height: 16,
+                  fit: BoxFit.cover,
+                ),
+              ),
             ),
             const SizedBox(width: 8),
             Flexible(

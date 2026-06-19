@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:memex/data/services/file_system_service.dart';
 
-typedef AgentStateMatcher =
-    bool Function(String sessionId, Map<String, dynamic> metadata);
+typedef AgentStateMatcher = bool Function(
+    String sessionId, Map<String, dynamic> metadata);
 
 Future<AgentState> loadOrCreateAgentState(
   String sessionId,

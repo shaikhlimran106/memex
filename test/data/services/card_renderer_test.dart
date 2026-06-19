@@ -69,7 +69,7 @@ void main() {
   test('renderCard prefers saved HTML template over built-in template id',
       () async {
     const userId = 'override_user';
-    await FileSystemService.instance.writeTemplateHtml(
+    await _writeTemplateHtmlFixture(
       userId: userId,
       templateId: 'article',
       htmlContent: '<section class="custom-article">{{body}}</section>',
@@ -116,4 +116,15 @@ void main() {
     expect(
         config.data['html'], contains('Rendered by the user HTML template.'));
   });
+}
+
+Future<void> _writeTemplateHtmlFixture({
+  required String userId,
+  required String templateId,
+  required String htmlContent,
+}) async {
+  final templatePath =
+      FileSystemService.instance.getTemplatePath(userId, templateId);
+  await Directory(templatePath).create(recursive: true);
+  await File('$templatePath/view.html').writeAsString(htmlContent);
 }

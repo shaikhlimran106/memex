@@ -191,7 +191,7 @@ void main() {
       final tool = DynamicTimelineUiSkill(forceActivate: true)
           .tools!
           .singleWhere((tool) => tool.name == 'save_timeline_template');
-      await FileSystemService.instance.writeTemplateHtml(
+      await _writeTemplateHtmlFixture(
         userId: 'test_user',
         templateId: 'focus_dashboard',
         htmlContent: '<section><h1>{{title}}</h1><p>{{summary}}</p></section>',
@@ -261,7 +261,7 @@ void main() {
     test('adds current state reminder when overwriting template field schema',
         () async {
       final fileService = FileSystemService.instance;
-      await fileService.writeTemplateHtml(
+      await _writeTemplateHtmlFixture(
         userId: 'test_user',
         templateId: 'focus_dashboard',
         htmlContent: '<section>{{title}} {{summary}}</section>',
@@ -349,7 +349,7 @@ void main() {
         () async {
       final fileService = FileSystemService.instance;
       const factId = '2026/06/09.md#ts_2';
-      await fileService.writeTemplateHtml(
+      await _writeTemplateHtmlFixture(
         userId: 'test_user',
         templateId: 'article',
         htmlContent: '<section>{{summary}}</section>',
@@ -459,6 +459,17 @@ String _text(FunctionExecutionResult result) {
       .whereType<TextPart>()
       .map((part) => part.text)
       .join('\n');
+}
+
+Future<void> _writeTemplateHtmlFixture({
+  required String userId,
+  required String templateId,
+  required String htmlContent,
+}) async {
+  final templatePath =
+      FileSystemService.instance.getTemplatePath(userId, templateId);
+  await Directory(templatePath).create(recursive: true);
+  await File('$templatePath/view.html').writeAsString(htmlContent);
 }
 
 class _SingleToolCallClient extends LLMClient {

@@ -16,8 +16,7 @@ void main() {
       expect(LlmImageCodec.isLlmSafeImageBytes(_bytes([0xFF, 0xD8, 0xFF])),
           isTrue);
       expect(
-          LlmImageCodec.isLlmSafeImageBytes(
-              _bytes([0x89, 0x50, 0x4E, 0x47])),
+          LlmImageCodec.isLlmSafeImageBytes(_bytes([0x89, 0x50, 0x4E, 0x47])),
           isTrue);
       expect(
           LlmImageCodec.isLlmSafeImageBytes(_bytes([0x47, 0x49, 0x46, 0x38])),

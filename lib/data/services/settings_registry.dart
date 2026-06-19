@@ -16,6 +16,7 @@ import 'package:memex/ui/settings/widgets/data_storage_page.dart';
 import 'package:memex/ui/settings/widgets/backup_restore_page.dart';
 import 'package:memex/ui/settings/widgets/location_context_settings_page.dart';
 import 'package:memex/ui/settings/widgets/experimental_lab_page.dart';
+import 'package:memex/ui/app_lock/widgets/app_lock_settings_page.dart';
 import 'package:memex/ui/memory/view_models/memory_viewmodel.dart';
 import 'package:memex/ui/memory/widgets/memory_screen.dart';
 import 'package:memex/ui/character/view_models/character_viewmodel.dart';
@@ -65,6 +66,30 @@ class SettingsRegistry {
           icon: Icons.security_outlined,
           navigationTarget: NavigationTarget(
             pageBuilder: (_) => const SystemAuthorizationPage(),
+          ),
+          parentPathGetter: () => [UserStorage.l10n.personalCenter],
+        ),
+        SettingsItem(
+          id: 'app_lock',
+          titleGetter: () => UserStorage.l10n.appLockConfig,
+          descriptionGetter: () => UserStorage.l10n.enableAppLockSubtitle,
+          keywords: const [
+            '应用锁',
+            '锁定',
+            '密码',
+            '生物识别',
+            '面容',
+            '指纹',
+            'app lock',
+            'lock',
+            'password',
+            'biometrics',
+            'face id',
+            'touch id',
+          ],
+          icon: Icons.lock_outline,
+          navigationTarget: NavigationTarget(
+            pageBuilder: (_) => const AppLockSettingsPage(),
           ),
           parentPathGetter: () => [UserStorage.l10n.personalCenter],
         ),
@@ -260,16 +285,12 @@ class SettingsRegistry {
               onClearData: () async {},
               onClearFailedAgentContexts: () async {},
               onCloneToTestUser: () async {},
-              onReprocessCards: () async {},
               onReprocessComments: () async {},
-              onReprocessKnowledgeBase: () async {},
               onRebuildSearchIndex: () async {},
               isClearingData: false,
               isClearingFailedAgentContexts: false,
               isCloningTestUser: false,
-              isReprocessingCards: false,
               isReprocessingComments: false,
-              isReprocessingKnowledgeBase: false,
               isRebuildingSearchIndex: false,
             ),
           ),

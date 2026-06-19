@@ -60,7 +60,6 @@ Working directory is `/`; always use absolute paths. Read freely everywhere exce
 - `/PKM` — P.A.R.A knowledge base (`Projects/` `Areas/` `Resources/` `Archives/`). Modify via `manage_pkm`.
 - `/KnowledgeInsights` — cross-record insight cards. Modify via `update_knowledge_insight`.
 - `/Facts/assets/` — the user's attached media (`fs://…` targets).
-- `/Facts` — read-only legacy archive of older raw inputs; new records live in their card's `fact` now. Read only if you specifically need history.
 - `/_UserSettings` — preferences (e.g. `user_locations.yaml`); read-only via file tools.
 - `/_System` — no access.
 

@@ -225,6 +225,7 @@ class TimelineCardSkill extends Skill {
           );
           if (denied != null) return denied;
 
+          String? rollbackPlaceholderFactId;
           try {
             // Resolve identity and read the prior card FIRST — whether this is
             // a brand-new card or an edit drives what's required. fact_id is
@@ -247,6 +248,13 @@ class TimelineCardSkill extends Skill {
             // card → this is an edit. This also drives the comment + memory
             // triggers below.
             final isNewCard = priorCard.status != 'completed';
+            final isEmptyProcessingPlaceholder =
+                priorCard.status == 'processing' &&
+                    (priorCard.fact?.trim().isEmpty ?? true) &&
+                    priorCard.uiConfigs.isEmpty;
+            if (isEmptyProcessingPlaceholder) {
+              rollbackPlaceholderFactId = resolvedFactId;
+            }
 
             // This save is a partial update: any field you OMIT keeps its prior
             // value; only fields you pass are replaced. So an edit can change
@@ -481,6 +489,7 @@ class TimelineCardSkill extends Skill {
               throw StateError(
                   "Card file not found for fact_id: $resolvedFactId, maybe it has been deleted");
             }
+            rollbackPlaceholderFactId = null;
 
             // Log event
             try {
@@ -560,6 +569,17 @@ class TimelineCardSkill extends Skill {
               },
             );
           } catch (e, stack) {
+            final factIdToRollback = rollbackPlaceholderFactId;
+            if (factIdToRollback != null) {
+              try {
+                await fileService.deleteCard(userId, factIdToRollback);
+                logger.warning(
+                    'Rolled back empty processing placeholder after save_timeline_card failed: $factIdToRollback');
+              } catch (deleteError) {
+                logger.warning(
+                    'Failed to roll back processing placeholder $factIdToRollback: $deleteError');
+              }
+            }
             logger.severe("SaveTimelineCard failed", e, stack);
             rethrow;
           }

@@ -2,7 +2,7 @@
 
 ## 设计修正
 
-子 agent 不是恢复旧的 `card_agent_task` / `pkm_agent_task` / `schedule_aggregator_task` 流水线。
+子 agent 不是恢复旧的固定捕获流水线。
 
 Hermes 和 OpenClaw 的最佳实践不是“系统里预置一堆固定子 agent 组成 pipeline”，而是提供一个受 harness 管理的 delegation primitive：主 agent 在需要时把一个边界清楚的子任务交给临时 worker，runtime 负责上下文隔离、工具限制、深度/并发/超时、结果回收和可观测性。
 
@@ -399,13 +399,11 @@ runtime 应提供：
 - 旧 prompt 中的角色边界经验。
 - 旧工具和 skill 实现。
 - 旧 completion evidence 的 deterministic 检查思路。
-- 旧 handler 中对 asset analyses、location reminder、time context 的输入组织经验。
+- 旧 handler 中对附件、地点和时间上下文的输入组织经验。
 
 不应复用为主路径：
 
-- `card_agent_task`
-- `pkm_agent_task`
-- `schedule_aggregator_task`
+- 固定捕获 task 类型
 - 固定 userInputSubmitted fan-out
 - “输入发布后必跑一串 agent”的架构
 

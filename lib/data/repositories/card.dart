@@ -305,8 +305,7 @@ Future<CardDetailModel> getCardDetail(String cardId) async {
             cachedTokens: (prev?.cachedTokens ?? 0) + cachedTokens,
             effectivePromptTokens:
                 (prev?.effectivePromptTokens ?? 0) + (effPrompt ?? 0),
-            cachedTokensForRate:
-                (prev?.cachedTokensForRate ?? 0) +
+            cachedTokensForRate: (prev?.cachedTokensForRate ?? 0) +
                 (effPrompt != null ? cachedTokens : 0),
             thoughtTokens: (prev?.thoughtTokens ?? 0) + thoughtTokens,
             totalTokens: (prev?.totalTokens ?? 0) + tokens,
@@ -491,6 +490,14 @@ Future<bool> updateCardLocationEndpoint(
     if (updatedCardData == null) {
       _logger.warning('Card not found: $cardId');
       return false;
+    }
+
+    final savedUserLocation =
+        await _fileSystemService.addUserLocation(userId, lat, lng, name);
+    if (!savedUserLocation) {
+      _logger.warning(
+        'Updated card location for $cardId, but failed to save reusable user location mark: $name',
+      );
     }
 
     _logger.info('Updated user_fixed_location for card $cardId');

@@ -105,8 +105,7 @@ void main() {
         findsOneWidget);
     expect(
       find.text(
-        AgentDefinitions
-            .displayNames[AgentDefinitions.clarificationResolutionAgent]!,
+        AgentDefinitions.displayNames[AgentDefinitions.profileAgent]!,
       ),
       findsOneWidget,
     );

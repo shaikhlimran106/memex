@@ -61,12 +61,6 @@ Future<void> handleCommentAgentImpl(
       return;
     }
 
-    // Check if asset analysis failed and input is media-only
-    await failIfAssetAnalysisFailed(
-      bizId: context.bizId,
-      combinedText: combinedText,
-    );
-
     if (selectedCharId != null) {
       // Explicit character — single comment
       _logger.info("Using explicitly routed character $selectedCharId");

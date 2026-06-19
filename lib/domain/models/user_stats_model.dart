@@ -25,10 +25,10 @@ class UserStatsDateRange {
   int get dayCount => end.difference(start).inDays + 1;
 
   Map<String, dynamic> toJson() => {
-    'start': _dateKey(start),
-    'end': _dateKey(end),
-    'day_count': dayCount,
-  };
+        'start': _dateKey(start),
+        'end': _dateKey(end),
+        'day_count': dayCount,
+      };
 }
 
 class UserStatsSummary {
@@ -56,16 +56,16 @@ class UserStatsSummary {
       totalCards + totalKnowledgeUnits + totalInsights + totalCompletedTodos;
 
   Map<String, dynamic> toJson() => {
-    'total_inputs': totalInputs,
-    'total_words': totalWords,
-    'total_cards': totalCards,
-    'total_knowledge_units': totalKnowledgeUnits,
-    'total_insights': totalInsights,
-    'total_completed_todos': totalCompletedTodos,
-    'total_outputs': totalOutputs,
-    'active_days': activeDays,
-    'current_streak_days': currentStreakDays,
-  };
+        'total_inputs': totalInputs,
+        'total_words': totalWords,
+        'total_cards': totalCards,
+        'total_knowledge_units': totalKnowledgeUnits,
+        'total_insights': totalInsights,
+        'total_completed_todos': totalCompletedTodos,
+        'total_outputs': totalOutputs,
+        'active_days': activeDays,
+        'current_streak_days': currentStreakDays,
+      };
 }
 
 class UserStatsDailyPoint {
@@ -112,15 +112,15 @@ class UserStatsDailyPoint {
   }
 
   Map<String, dynamic> toJson() => {
-    'date': _dateKey(date),
-    'inputs': inputs,
-    'words': words,
-    'cards': cards,
-    'knowledge_units': knowledgeUnits,
-    'insights': insights,
-    'completed_todos': completedTodos,
-    'is_active': isActive,
-  };
+        'date': _dateKey(date),
+        'inputs': inputs,
+        'words': words,
+        'cards': cards,
+        'knowledge_units': knowledgeUnits,
+        'insights': insights,
+        'completed_todos': completedTodos,
+        'is_active': isActive,
+      };
 }
 
 class UserStatsTrendBucket {
@@ -218,11 +218,11 @@ class UserStatsSourceBreakdown {
   int get total => textInputs + imageInputs + audioInputs;
 
   Map<String, dynamic> toJson() => {
-    'text_inputs': textInputs,
-    'image_inputs': imageInputs,
-    'audio_inputs': audioInputs,
-    'total': total,
-  };
+        'text_inputs': textInputs,
+        'image_inputs': imageInputs,
+        'audio_inputs': audioInputs,
+        'total': total,
+      };
 }
 
 class UserStatsTopTag {
@@ -250,12 +250,12 @@ class UserStatsDayDetail {
   });
 
   Map<String, dynamic> toJson() => {
-    'date': _dateKey(date),
-    'card_titles': cardTitles,
-    'knowledge_paths': knowledgePaths,
-    'insight_titles': insightTitles,
-    'completed_todo_titles': completedTodoTitles,
-  };
+        'date': _dateKey(date),
+        'card_titles': cardTitles,
+        'knowledge_paths': knowledgePaths,
+        'insight_titles': insightTitles,
+        'completed_todo_titles': completedTodoTitles,
+      };
 }
 
 class UserStatsSnapshot {
@@ -383,15 +383,15 @@ class UserStatsSnapshot {
   }
 
   Map<String, dynamic> toJson() => {
-    'range': range.toJson(),
-    'summary': summary.toJson(),
-    'daily': daily.map((point) => point.toJson()).toList(),
-    'source_breakdown': sourceBreakdown.toJson(),
-    'top_tags': topTags.map((tag) => tag.toJson()).toList(),
-    'day_details': dayDetails.map((key, value) {
-      return MapEntry(key, value.toJson());
-    }),
-  };
+        'range': range.toJson(),
+        'summary': summary.toJson(),
+        'daily': daily.map((point) => point.toJson()).toList(),
+        'source_breakdown': sourceBreakdown.toJson(),
+        'top_tags': topTags.map((tag) => tag.toJson()).toList(),
+        'day_details': dayDetails.map((key, value) {
+          return MapEntry(key, value.toJson());
+        }),
+      };
 }
 
 List<String> _dedupe(List<String> values) {

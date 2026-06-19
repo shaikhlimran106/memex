@@ -18,9 +18,9 @@ class ScheduleState {
     List<SchedulePendingItem>? pending,
     List<ScheduleCompletedItem>? completed,
     this.presentation,
-  }) : generatedAt = generatedAt ?? DateTime.now(),
-       pending = pending ?? <SchedulePendingItem>[],
-       completed = completed ?? <ScheduleCompletedItem>[];
+  })  : generatedAt = generatedAt ?? DateTime.now(),
+        pending = pending ?? <SchedulePendingItem>[],
+        completed = completed ?? <ScheduleCompletedItem>[];
 
   final int version;
   final DateTime generatedAt;
@@ -71,9 +71,8 @@ class ScheduleState {
       generatedAt: generatedAt ?? this.generatedAt,
       pending: pending ?? this.pending,
       completed: completed ?? this.completed,
-      presentation: clearPresentation
-          ? null
-          : (presentation ?? this.presentation),
+      presentation:
+          clearPresentation ? null : (presentation ?? this.presentation),
     );
   }
 }
@@ -96,14 +95,14 @@ class SchedulePendingItem {
     DateTime? updatedAt,
     this.syncDeviceAction = false,
     this.deviceActionId,
-  }) : assert(
-         kind == kindTodo || kind == kindEvent,
-         'kind must be "todo" or "event"',
-       ),
-       subtasks = subtasks ?? const <ScheduleSubtask>[],
-       sourceFactIds = sourceFactIds ?? const <String>[],
-       createdAt = createdAt ?? DateTime.now(),
-       updatedAt = updatedAt ?? createdAt ?? DateTime.now();
+  })  : assert(
+          kind == kindTodo || kind == kindEvent,
+          'kind must be "todo" or "event"',
+        ),
+        subtasks = subtasks ?? const <ScheduleSubtask>[],
+        sourceFactIds = sourceFactIds ?? const <String>[],
+        createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? createdAt ?? DateTime.now();
 
   static const String kindTodo = 'todo';
   static const String kindEvent = 'event';
@@ -227,9 +226,8 @@ class SchedulePendingItem {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       syncDeviceAction: syncDeviceAction ?? this.syncDeviceAction,
-      deviceActionId: clearDeviceActionId
-          ? null
-          : (deviceActionId ?? this.deviceActionId),
+      deviceActionId:
+          clearDeviceActionId ? null : (deviceActionId ?? this.deviceActionId),
     );
   }
 }
@@ -268,9 +266,8 @@ class ScheduleSubtask {
     return ScheduleSubtask(
       title: title ?? this.title,
       completed: completed ?? this.completed,
-      closedByFactId: clearClosedByFactId
-          ? null
-          : (closedByFactId ?? this.closedByFactId),
+      closedByFactId:
+          clearClosedByFactId ? null : (closedByFactId ?? this.closedByFactId),
     );
   }
 }
@@ -284,11 +281,11 @@ class ScheduleCompletedItem {
     this.closedByFactId,
     this.pendingSnapshot,
     List<String>? sourceFactIds,
-  }) : assert(
-         kind == SchedulePendingItem.kindTodo ||
-             kind == SchedulePendingItem.kindEvent,
-       ),
-       sourceFactIds = sourceFactIds ?? const <String>[];
+  })  : assert(
+          kind == SchedulePendingItem.kindTodo ||
+              kind == SchedulePendingItem.kindEvent,
+        ),
+        sourceFactIds = sourceFactIds ?? const <String>[];
 
   final String id;
   final String kind;
@@ -336,8 +333,8 @@ class SchedulePresentation {
     this.editorialIntro,
     List<ScheduleQuoteBlock>? quoteBlocks,
     List<ScheduleTimelineDay>? timeline,
-  }) : quoteBlocks = quoteBlocks ?? const <ScheduleQuoteBlock>[],
-       timeline = timeline ?? const <ScheduleTimelineDay>[];
+  })  : quoteBlocks = quoteBlocks ?? const <ScheduleQuoteBlock>[],
+        timeline = timeline ?? const <ScheduleTimelineDay>[];
 
   final SchedulePresentationHero? hero;
   final String? editorialIntro;

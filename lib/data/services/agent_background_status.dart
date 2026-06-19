@@ -49,7 +49,7 @@ class AgentBackgroundStatus {
 
     final stage =
         _firstNonBlank([latestMessage?.title, latestMessage?.agentName]) ??
-        fallbackStage;
+            fallbackStage;
 
     final detail = _detailFor(
       taskSnapshot: taskSnapshot,
@@ -127,17 +127,17 @@ class AgentBackgroundStatus {
 
   @override
   int get hashCode => Object.hash(
-    state,
-    pending,
-    processing,
-    retrying,
-    title,
-    stage,
-    detail,
-    agentName,
-    scene,
-    sceneId,
-  );
+        state,
+        pending,
+        processing,
+        retrying,
+        title,
+        stage,
+        detail,
+        agentName,
+        scene,
+        sceneId,
+      );
 }
 
 String _detailFor({

@@ -13,9 +13,9 @@ class AgentBackgroundCoordinator with WidgetsBindingObserver {
     AgentBackgroundPlatform? platform,
     AgentQueueDrainScheduler? scheduler,
     AppLifecycleState? initialLifecycleState,
-  }) : _platform = platform ?? MethodChannelAgentBackgroundPlatform(),
-       _scheduler = scheduler ?? WorkmanagerAgentQueueDrainScheduler(),
-       _initialLifecycleState = initialLifecycleState;
+  })  : _platform = platform ?? MethodChannelAgentBackgroundPlatform(),
+        _scheduler = scheduler ?? WorkmanagerAgentQueueDrainScheduler(),
+        _initialLifecycleState = initialLifecycleState;
 
   static AgentBackgroundCoordinator? _instance;
   static AgentBackgroundCoordinator get instance {
@@ -32,8 +32,8 @@ class AgentBackgroundCoordinator with WidgetsBindingObserver {
   StreamSubscription<String>? _actionSubscription;
   late final StreamController<void> _openActivityController =
       StreamController<void>.broadcast(
-        onListen: _flushPendingOpenActivityRequest,
-      );
+    onListen: _flushPendingOpenActivityRequest,
+  );
 
   TaskActivitySnapshot _taskSnapshot = const TaskActivitySnapshot.empty();
   AgentActivityMessageModel? _latestMessage;
@@ -56,8 +56,7 @@ class AgentBackgroundCoordinator with WidgetsBindingObserver {
   }) {
     if (_started || !_platform.isSupported) return;
     _started = true;
-    _lifecycleState =
-        _initialLifecycleState ??
+    _lifecycleState = _initialLifecycleState ??
         WidgetsBinding.instance.lifecycleState ??
         AppLifecycleState.resumed;
     WidgetsBinding.instance.addObserver(this);

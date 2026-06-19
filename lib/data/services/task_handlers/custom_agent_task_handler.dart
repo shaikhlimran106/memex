@@ -8,13 +8,12 @@ import 'package:path/path.dart' as p;
 import 'package:memex/agent/memex_skill_host_agent/memex_skill_host_agent.dart';
 import 'package:memex/agent/pure_skill_host_agent/pure_skill_host_agent.dart';
 import 'package:memex/agent/state_util.dart';
+import 'package:memex/data/services/asset_reference_service.dart';
 import 'package:memex/data/services/asset_safety_service.dart';
 import 'package:memex/data/services/custom_agent_config_service.dart';
-import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/llm_image_codec.dart';
 import 'package:memex/domain/models/agent_definitions.dart';
-import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/domain/models/custom_agent_config.dart';
 import 'package:memex/domain/models/llm_config.dart';
 import 'package:memex/utils/logger.dart';
@@ -51,94 +50,63 @@ const _mimeTypes = <String, String>{
   '.wma': 'audio/x-ms-wma',
 };
 
-const _imageExtensions = {
-  '.jpg',
-  '.jpeg',
-  '.png',
-  '.gif',
-  '.webp',
-  '.heic',
-  '.heif',
-  '.bmp',
-  '.tiff',
-  '.tif',
-};
-
-const _audioExtensions = {
-  '.mp3',
-  '.wav',
-  '.flac',
-  '.aac',
-  '.ogg',
-  '.m4a',
-  '.aiff',
-  '.aif',
-  '.wma',
-};
-
-/// Regex to extract `fs://filename` references from markdown media links
-/// in serialized event content. Matches both Chinese and English labels:
-///   `![图片](fs://xxx)` / `![image](fs://xxx)` → image
-///   `[音频](fs://xxx)` / `[audio](fs://xxx)` → audio
-final _mediaRefPattern = RegExp(
-  r'(?:!\[(?:图片|image)\]|\[(?:音频|audio)\])\(fs://([^)]+)\)',
-);
-
 /// Extract media references from the event XML string and build multimodal
 /// [UserContentPart] list. This is generic — works for any event type whose
-/// serialized content contains `![image](fs://file)` or `[audio](fs://file)`.
+/// serialized content contains `fs://file` references.
 Future<List<UserContentPart>> _buildAssetPartsFromXml(
   String userId,
   String eventXml,
 ) async {
-  final matches = _mediaRefPattern.allMatches(eventXml);
-  if (matches.isEmpty) return const [];
+  final references = AssetReferenceService.extractReferences(eventXml);
+  if (references.isEmpty) return const [];
 
-  final assetsDir = FileSystemService.instance.getAssetsPath(userId);
   final parts = <UserContentPart>[];
 
-  for (final match in matches) {
-    final filename = match.group(1)!;
-    final fullMatch = match.group(0)!;
-    final isImage = fullMatch.startsWith('!');
-
+  for (final reference in references) {
     try {
-      final absPath = p.join(assetsDir, filename);
-      final file = File(absPath);
-      if (!file.existsSync()) {
-        _logger.warning('Asset file not found, skipping: $absPath');
+      final asset = await AssetReferenceService.resolveExisting(
+        userId: userId,
+        reference: reference,
+      );
+      if (asset == null) {
+        _logger.warning(
+          'Asset file not found or unsupported, skipping: $reference',
+        );
         continue;
       }
 
-      final ext = p.extension(filename).toLowerCase();
+      final file = File(asset.absolutePath);
+      final ext = p.extension(asset.fileName).toLowerCase();
       final mime = _mimeTypes[ext];
       if (mime == null) {
         _logger.fine('Unsupported asset extension, skipping: $ext');
         continue;
       }
 
-      final safety = await AssetSafetyService.instance.inspectFile(absPath);
+      final safety =
+          await AssetSafetyService.instance.inspectFile(asset.absolutePath);
       if (!safety.safeForInlineBase64) {
         _logger.warning(
-          'Skipping unsafe custom-agent inline asset $absPath: ${safety.reason}',
+          'Skipping unsafe custom-agent inline asset ${asset.absolutePath}: ${safety.reason}',
         );
         continue;
       }
 
-      if (isImage && _imageExtensions.contains(ext)) {
+      if (asset.type == AssetReferenceType.image) {
         // Transcode to JPEG so HEIC originals survive OpenAI-compatible
         // endpoints (Kimi rejects HEIC); falls back to raw bytes.
-        final transcoded = await LlmImageCodec.transcodeForLlm(absPath);
+        final transcoded =
+            await LlmImageCodec.transcodeForLlm(asset.absolutePath);
         final b64 = base64Encode(transcoded ?? await file.readAsBytes());
         parts.add(ImagePart(
           b64,
           transcoded != null ? LlmImageCodec.jpegMimeType : mime,
         ));
-      } else if (!isImage && _audioExtensions.contains(ext)) {
+      } else {
         parts.add(AudioPart(base64Encode(await file.readAsBytes()), mime));
       }
     } catch (e) {
-      _logger.warning('Failed to read asset $filename: $e');
+      _logger.warning('Failed to read asset $reference: $e');
     }
   }
   return parts;
@@ -254,15 +222,6 @@ Future<void> _handleCustomAgentTask(
       userText: textContent,
       aiResponse: resultText,
     );
-
-    // Create a system_task card to show the result on the timeline.
-    await _createResultCard(
-      userId: userId,
-      agentName: agentName,
-      status: 'completed',
-      message: resultText,
-      sessionId: sessionId,
-    );
   } finally {
     // Sync skill changes back to the original directory if we made a copy.
     await FileSystemService.instance.syncSkillsBack(skillSync);
@@ -333,68 +292,4 @@ Future<void> _createChatSession({
   } catch (e) {
     _logger.warning('Failed to create chat session file: $e');
   }
-}
-
-/// Create a system_task card for the custom agent result and notify the UI.
-Future<void> _createResultCard({
-  required String userId,
-  required String agentName,
-  required String status,
-  String? message,
-  String? sessionId,
-}) async {
-  final now = DateTime.now();
-  final timestampMs = now.millisecondsSinceEpoch;
-  final timestampSec = timestampMs ~/ 1000;
-  final year = now.year;
-  final month = now.month.toString().padLeft(2, '0');
-  final day = now.day.toString().padLeft(2, '0');
-  final factId = '$year/$month/$day.md#ts_$timestampMs';
-
-  final title = agentName;
-  final uiConfig = UiConfig(
-    templateId: 'system_task',
-    data: {
-      'title': title,
-      'status': status,
-      if (message != null) 'message': message,
-      if (sessionId != null) 'sessionId': sessionId,
-      'agentName': agentName,
-    },
-  );
-
-  final card = CardData(
-    factId: factId,
-    title: title,
-    timestamp: timestampSec,
-    status: status,
-    tags: [agentName],
-    uiConfigs: [uiConfig],
-  );
-
-  final fs = FileSystemService.instance;
-  try {
-    final success = await fs.safeWriteCardFile(userId, factId, card);
-    if (success) {
-      _logger.info('Created system_task card for agent "$agentName": $factId');
-    } else {
-      _logger.warning('safeWriteCardFile returned false for $factId');
-    }
-  } catch (e) {
-    _logger.warning('Failed to write system_task card: $e');
-    return;
-  }
-
-  // Notify the timeline UI.
-  EventBusService.instance.emitEvent(
-    CardAddedMessage(
-      id: factId,
-      html: '',
-      timestamp: timestampSec,
-      tags: [agentName],
-      status: status,
-      title: title,
-      uiConfigs: [uiConfig],
-    ),
-  );
 }

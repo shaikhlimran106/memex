@@ -9,6 +9,7 @@ import 'package:memex/data/services/sandbox_user_clone_service.dart';
 import 'package:memex/main.dart' show rootScaffoldMessengerKey, rootShellKey;
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/utils/logger.dart';
+import 'package:memex/ui/app_lock/widgets/app_lock_settings_page.dart';
 import 'package:memex/ui/settings/widgets/ai_service_setup_page.dart';
 import 'package:memex/ui/settings/widgets/model_config_list_page.dart';
 import 'package:memex/ui/settings/widgets/system_authorization_page.dart';
@@ -36,9 +37,7 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
   String? _userId;
   String? _userEmail;
 
-  bool _isReprocessingCards = false;
   bool _isReprocessingComments = false;
-  bool _isReprocessingKnowledgeBase = false;
   bool _isRebuildingSearchIndex = false;
   bool _isClearingFailedAgentContexts = false;
   bool _isCloningTestUser = false;
@@ -139,182 +138,6 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
             UserStorage.l10n.clearTokenFailed(e.toString()),
           );
         }
-      }
-    }
-  }
-
-  Future<void> _reprocessCards() async {
-    if (_isReprocessingCards) return;
-
-    // show dialog for user to choose params
-    DateTime? dateFrom;
-    DateTime? dateTo;
-    int? limit;
-    var reanalyzeAssets = false;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(UserStorage.l10n.reprocessCards),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(UserStorage.l10n.selectDateRangeOptional),
-                const SizedBox(height: 8),
-                ListTile(
-                  title: Text(UserStorage.l10n.startDate),
-                  trailing: TextButton(
-                    onPressed: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now(),
-                      );
-                      if (date != null) {
-                        setDialogState(() {
-                          dateFrom = date;
-                        });
-                      }
-                    },
-                    child: Text(
-                      dateFrom == null
-                          ? UserStorage.l10n.select
-                          : '${dateFrom!.year}-${dateFrom!.month.toString().padLeft(2, '0')}-${dateFrom!.day.toString().padLeft(2, '0')}',
-                    ),
-                  ),
-                ),
-                ListTile(
-                  title: Text(UserStorage.l10n.endDate),
-                  trailing: TextButton(
-                    onPressed: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: dateTo ?? DateTime.now(),
-                        firstDate: dateFrom ?? DateTime(2020),
-                        lastDate: DateTime.now(),
-                      );
-                      if (date != null) {
-                        setDialogState(() {
-                          dateTo = date;
-                        });
-                      }
-                    },
-                    child: Text(
-                      dateTo == null
-                          ? UserStorage.l10n.select
-                          : '${dateTo!.year}-${dateTo!.month.toString().padLeft(2, '0')}-${dateTo!.day.toString().padLeft(2, '0')}',
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  decoration: InputDecoration(
-                    labelText: UserStorage.l10n.processLimitOptional,
-                    hintText: UserStorage.l10n.leaveEmptyForAll,
-                  ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    limit = int.tryParse(value);
-                  },
-                ),
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: reanalyzeAssets,
-                  title: Text(UserStorage.l10n.reanalyzeMediaAssets),
-                  subtitle: Text(UserStorage.l10n.reanalyzeMediaAssetsDesc),
-                  onChanged: (value) {
-                    setDialogState(() {
-                      reanalyzeAssets = value;
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(UserStorage.l10n.cancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(UserStorage.l10n.startProcessing),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    setState(() {
-      _isReprocessingCards = true;
-    });
-
-    try {
-      final userId = await UserStorage.getUserId();
-      if (userId == null) {
-        if (mounted) {
-          setState(() {
-            _isReprocessingCards = false;
-          });
-          ToastHelper.showErrorWithKey(
-            _scaffoldMessengerKey,
-            UserStorage.l10n.userIdNotFound,
-          );
-        }
-        return;
-      }
-
-      // build payload
-      final payload = <String, dynamic>{};
-      final dateFromValue = dateFrom;
-      if (dateFromValue != null) {
-        payload['date_from'] = dateFromValue.toIso8601String().substring(0, 10);
-      }
-      final dateToValue = dateTo;
-      if (dateToValue != null) {
-        payload['date_to'] = dateToValue.toIso8601String().substring(0, 10);
-      }
-      final limitValue = limit;
-      if (limitValue != null && limitValue > 0) {
-        payload['limit'] = limitValue;
-      }
-      if (reanalyzeAssets) {
-        payload['reanalyze_assets'] = true;
-      }
-
-      // enqueue task
-      await _memexRouter.enqueueTask(
-        taskType: 'reprocess_cards_task',
-        payload: payload,
-        bizId: 'reprocess_cards_${DateTime.now().millisecondsSinceEpoch}',
-      );
-
-      if (mounted) {
-        setState(() {
-          _isReprocessingCards = false;
-        });
-        ToastHelper.showSuccessWithKey(
-          _scaffoldMessengerKey,
-          UserStorage.l10n.reprocessCardsTaskCreated,
-        );
-      }
-    } catch (e) {
-      _logger.severe('Error reprocessing cards: $e', e);
-      if (mounted) {
-        setState(() {
-          _isReprocessingCards = false;
-        });
-        ToastHelper.showErrorWithKey(
-          _scaffoldMessengerKey,
-          UserStorage.l10n.createTaskFailed(e),
-        );
       }
     }
   }
@@ -479,167 +302,6 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
     }
   }
 
-  Future<void> _reprocessKnowledgeBase() async {
-    if (_isReprocessingKnowledgeBase) return;
-
-    // show dialog for user to choose params
-    DateTime? dateFrom;
-    DateTime? dateTo;
-    int? limit;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(UserStorage.l10n.reprocessKnowledgeBase),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(UserStorage.l10n.selectDateRangeOptional),
-                const SizedBox(height: 8),
-                ListTile(
-                  title: Text(UserStorage.l10n.startDate),
-                  trailing: TextButton(
-                    onPressed: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now(),
-                      );
-                      if (date != null) {
-                        setDialogState(() {
-                          dateFrom = date;
-                        });
-                      }
-                    },
-                    child: Text(
-                      dateFrom == null
-                          ? UserStorage.l10n.select
-                          : '${dateFrom!.year}-${dateFrom!.month.toString().padLeft(2, '0')}-${dateFrom!.day.toString().padLeft(2, '0')}',
-                    ),
-                  ),
-                ),
-                ListTile(
-                  title: Text(UserStorage.l10n.endDate),
-                  trailing: TextButton(
-                    onPressed: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: dateTo ?? DateTime.now(),
-                        firstDate: dateFrom ?? DateTime(2020),
-                        lastDate: DateTime.now(),
-                      );
-                      if (date != null) {
-                        setDialogState(() {
-                          dateTo = date;
-                        });
-                      }
-                    },
-                    child: Text(
-                      dateTo == null
-                          ? UserStorage.l10n.select
-                          : '${dateTo!.year}-${dateTo!.month.toString().padLeft(2, '0')}-${dateTo!.day.toString().padLeft(2, '0')}',
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  decoration: InputDecoration(
-                    labelText: UserStorage.l10n.processLimitOptional,
-                    hintText: UserStorage.l10n.leaveEmptyForAll,
-                  ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    limit = int.tryParse(value);
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(UserStorage.l10n.cancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(UserStorage.l10n.startProcessing),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    setState(() {
-      _isReprocessingKnowledgeBase = true;
-    });
-
-    try {
-      final userId = await UserStorage.getUserId();
-      if (userId == null) {
-        if (mounted) {
-          setState(() {
-            _isReprocessingKnowledgeBase = false;
-          });
-          ToastHelper.showErrorWithKey(
-            _scaffoldMessengerKey,
-            UserStorage.l10n.userIdNotFound,
-          );
-        }
-        return;
-      }
-
-      // build payload
-      final payload = <String, dynamic>{};
-      final dateFromValue = dateFrom;
-      if (dateFromValue != null) {
-        payload['date_from'] = dateFromValue.toIso8601String().substring(0, 10);
-      }
-      final dateToValue = dateTo;
-      if (dateToValue != null) {
-        payload['date_to'] = dateToValue.toIso8601String().substring(0, 10);
-      }
-      final limitValue = limit;
-      if (limitValue != null && limitValue > 0) {
-        payload['limit'] = limitValue;
-      }
-
-      // enqueue task
-      await _memexRouter.enqueueTask(
-        taskType: 'reprocess_knowledge_base_task',
-        payload: payload,
-        bizId:
-            'reprocess_knowledge_base_${DateTime.now().millisecondsSinceEpoch}',
-      );
-
-      if (mounted) {
-        setState(() {
-          _isReprocessingKnowledgeBase = false;
-        });
-        ToastHelper.showSuccessWithKey(
-          _scaffoldMessengerKey,
-          UserStorage.l10n.reprocessTaskCreated,
-        );
-      }
-    } catch (e) {
-      _logger.severe('Error reprocessing knowledge base: $e', e);
-      if (mounted) {
-        setState(() {
-          _isReprocessingKnowledgeBase = false;
-        });
-        ToastHelper.showErrorWithKey(
-          _scaffoldMessengerKey,
-          UserStorage.l10n.createTaskFailed(e),
-        );
-      }
-    }
-  }
-
   bool _isClearingData = false;
 
   Future<void> _rebuildSearchIndex() async {
@@ -785,7 +447,7 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
         title: Text(UserStorage.l10n.clearData),
         content: Text(
           '${UserStorage.l10n.confirmClearDataMessage}\n'
-          '${UserStorage.l10n.confirmClearDataKeepFactsMessage}',
+          '${UserStorage.l10n.confirmClearDataDeletesWorkspaceMessage}',
         ),
         actions: [
           TextButton(
@@ -815,10 +477,6 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
 
       // use MemexRouter to clear all data
       await _memexRouter.clearData();
-
-      // Clear cached agent data
-      await UserStorage.saveCachedAgentData('pkm', null);
-      await UserStorage.saveCachedAgentData('card', null);
 
       if (mounted) {
         ToastHelper.showSuccessWithKey(
@@ -1024,6 +682,20 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                             },
                           ),
                           const SizedBox(height: 12),
+                          _buildFunctionTab(
+                            icon: Icons.lock_outline,
+                            title: UserStorage.l10n.appLockConfig,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const AppLockSettingsPage(),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 12),
                           if (AppConfig.enableMemexModelService) ...[
                             _buildFunctionTab(
                               icon: Icons.auto_awesome_rounded,
@@ -1112,20 +784,13 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                                         _clearFailedAgentContexts(),
                                     onCloneToTestUser: () async =>
                                         _cloneToTestUser(),
-                                    onReprocessCards: () async =>
-                                        _reprocessCards(),
                                     onReprocessComments: () async =>
                                         _reprocessComments(),
-                                    onReprocessKnowledgeBase: () async =>
-                                        _reprocessKnowledgeBase(),
                                     onRebuildSearchIndex: () async =>
                                         _rebuildSearchIndex(),
                                     isClearingData: _isClearingData,
-                                    isReprocessingCards: _isReprocessingCards,
                                     isReprocessingComments:
                                         _isReprocessingComments,
-                                    isReprocessingKnowledgeBase:
-                                        _isReprocessingKnowledgeBase,
                                     isClearingFailedAgentContexts:
                                         _isClearingFailedAgentContexts,
                                     isCloningTestUser: _isCloningTestUser,

@@ -26,7 +26,8 @@ class CharacterViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setCharacterEnabled(CharacterModel character, bool enabled) async {
+  Future<void> setCharacterEnabled(
+      CharacterModel character, bool enabled) async {
     final result = await _router.setCharacterEnabled(character.id, enabled);
     result.when(
       onOk: (_) {

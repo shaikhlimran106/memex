@@ -91,7 +91,6 @@ class TimelineViewModel extends ChangeNotifier {
   int _currentPage = 1;
   int _loadGeneration = 0;
   String? errorMessage;
-  bool isSubmitting = false;
 
   // Card attachments (system actions, clarification requests, etc.)
   // Keyed by factId.
@@ -279,8 +278,7 @@ class TimelineViewModel extends ChangeNotifier {
   Future<void> _refreshPendingCount() async {
     final pending =
         await CardAttachmentService.instance.getPendingAttachments();
-    final failedCardCount = await _router.countFailedCardGenerations();
-    pendingAttachmentCount = pending.length + (failedCardCount > 0 ? 1 : 0);
+    pendingAttachmentCount = pending.length;
     notifyListeners();
   }
 
@@ -328,12 +326,6 @@ class TimelineViewModel extends ChangeNotifier {
     }
   }
 
-  void setSubmitting(bool value) {
-    if (isSubmitting == value) return;
-    isSubmitting = value;
-    notifyListeners();
-  }
-
   /// Refresh timeline and tags (e.g. after pull-to-refresh or scroll-to-top).
   Future<void> refresh() async {
     await load.execute();
@@ -342,7 +334,6 @@ class TimelineViewModel extends ChangeNotifier {
 
   void addCard(TimelineCardModel card) {
     cards = upsertTimelineCardById(cards, card);
-    isSubmitting = false;
     if (card.status == 'processing') {
       _startPollingIfNeeded();
     }

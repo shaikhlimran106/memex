@@ -1,25 +1,33 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:logging/logging.dart';
-import 'package:crypto/crypto.dart';
 import 'package:share_handler/share_handler.dart';
 
 import 'package:memex/data/services/backup_import_intent_service.dart';
 import 'package:memex/data/services/backup_service.dart';
-import 'package:memex/ui/main_screen/widgets/input_sheet.dart';
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/utils/user_storage.dart';
 
+class SharedDraft {
+  const SharedDraft({
+    this.text,
+    this.images = const [],
+  });
+
+  final String? text;
+  final List<XFile> images;
+
+  bool get isEmpty => (text == null || text!.trim().isEmpty) && images.isEmpty;
+}
+
 /// Handles system share intents (text, images) and forwards them
-/// as drafts into the input sheet for user confirmation.
+/// as drafts into the Super Agent dialog for user confirmation.
 class ShareIntentHandler {
   final Logger logger;
   final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey;
-  final void Function(InputData) onSharedDraft;
+  final void Function(SharedDraft) onSharedDraft;
   final Future<void> Function(String backupFilePath) onBackupFileShared;
 
   StreamSubscription<SharedMedia>? _mediaSubscription;
@@ -52,16 +60,13 @@ class ShareIntentHandler {
     });
 
     final backupIntentService = BackupImportIntentService.instance;
-    backupIntentService
-        .consumeInitialBackupPath()
-        .then((path) {
-          if (path != null) {
-            _handleBackupFile(path);
-          }
-        })
-        .catchError((err, stack) {
-          logger.warning('Error reading initial backup import intent: $err');
-        });
+    backupIntentService.consumeInitialBackupPath().then((path) {
+      if (path != null) {
+        _handleBackupFile(path);
+      }
+    }).catchError((err, stack) {
+      logger.warning('Error reading initial backup import intent: $err');
+    });
     _backupPathSubscription = backupIntentService.backupPathStream.listen(
       (path) {
         _handleBackupFile(path);
@@ -96,10 +101,9 @@ class ShareIntentHandler {
         return;
       }
 
-      final trimmedText =
-          media.content == null || media.content!.trim().isEmpty
-              ? null
-              : media.content!.trim();
+      final trimmedText = media.content == null || media.content!.trim().isEmpty
+          ? null
+          : media.content!.trim();
 
       final imageFiles = <XFile>[];
 
@@ -116,38 +120,9 @@ class ShareIntentHandler {
         }
       }
 
-      // Generate hashes similar to InputSheet
-      String? textHash;
-      List<String>? imageHashes;
-
-      if (trimmedText != null && trimmedText.isNotEmpty) {
-        textHash = md5.convert(utf8.encode(trimmedText)).toString();
-      }
-
-      if (imageFiles.isNotEmpty) {
-        imageHashes = [];
-        for (final xFile in imageFiles) {
-          try {
-            final file = File(xFile.path);
-            final length = await file.length();
-            final rawHashStr =
-                'photo_${file.uri.pathSegments.isNotEmpty ? file.uri.pathSegments.last : file.path}_$length';
-            logger.info('Generating hash for shared image: $rawHashStr');
-            imageHashes.add(md5.convert(utf8.encode(rawHashStr)).toString());
-          } catch (e) {
-            imageHashes.add(md5
-                .convert(utf8.encode(
-                    'photo_${xFile.path}_${DateTime.now().millisecondsSinceEpoch}'))
-                .toString());
-          }
-        }
-      }
-
-      final inputData = InputData(
+      final inputData = SharedDraft(
         text: trimmedText,
         images: imageFiles,
-        textHash: textHash,
-        imageHashes: imageHashes,
       );
 
       if (inputData.isEmpty) return;

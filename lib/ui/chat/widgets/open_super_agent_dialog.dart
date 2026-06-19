@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/ui/chat/widgets/agent_chat_dialog.dart';
 import 'package:memex/utils/result.dart';
-import 'package:memex/utils/user_storage.dart';
 
 Future<String?> latestSuperAgentSessionId() async {
   try {
@@ -29,6 +29,7 @@ Future<String?> latestSuperAgentSessionId() async {
 void openSuperAgentDialog(
   BuildContext context, {
   String? initialDraftText,
+  List<XFile> initialImages = const [],
   String? sceneId,
   List<Map<String, String>>? initialRefs,
 }) {
@@ -45,14 +46,11 @@ void openSuperAgentDialog(
           final sessionId = snapshot.data;
           return AgentChatDialog(
             key: ValueKey(sessionId ?? 'super_agent_new_session'),
-            agentName: 'memex_agent',
-            title: 'Memex',
             initialSessionId: sessionId,
-            inputHint: UserStorage.l10n.aiInputHint,
-            scene: 'super_agent_home',
             sceneId: sceneId,
             initialRefs: initialRefs,
             initialDraftText: initialDraftText,
+            initialImages: initialImages,
           );
         },
       );

@@ -335,6 +335,10 @@ void main() {
       );
       expect(result.isError, isTrue);
       expect(_text(result), contains('fs://'));
+      expect(
+        await FileSystemService.instance.readCardFile(userId, factId),
+        isNull,
+      );
     });
   });
 }

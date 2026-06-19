@@ -40,8 +40,7 @@ void main() {
           child: AgentActivityWidget(
             forceVisible: forceVisible,
             initialTaskSnapshot: initialTaskSnapshot,
-            taskActivitySnapshotStream:
-                taskActivitySnapshotStream ??
+            taskActivitySnapshotStream: taskActivitySnapshotStream ??
                 const Stream<TaskActivitySnapshot>.empty(),
           ),
         ),

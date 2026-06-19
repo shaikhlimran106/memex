@@ -32,7 +32,6 @@ import 'package:memex/ui/core/widgets/agent_logo_loading.dart';
 import 'package:memex/ui/character/widgets/persona_chat_screen.dart';
 import 'package:memex/utils/share_service.dart';
 import 'package:memex/ui/core/cards/native_card_factory.dart';
-import 'package:memex/ui/timeline/widgets/failed_card_recovery_banner.dart';
 
 /// Timeline card detail screen - plays full card detail
 class TimelineCardDetailScreen extends StatefulWidget {
@@ -56,7 +55,6 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
   bool _showInsightText = true;
   String? _replyToCommentId;
   String? _replyToCommentName;
-  bool _isRetryingCard = false;
 
   @override
   void initState() {
@@ -224,45 +222,6 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
     }
 
     return buffer.toString();
-  }
-
-  Future<void> _retryCardGeneration() async {
-    if (_isRetryingCard) return;
-
-    setState(() => _isRetryingCard = true);
-    final success = await _memexRouter.retryCardGeneration(widget.cardId);
-    if (!mounted) return;
-
-    setState(() => _isRetryingCard = false);
-    if (success) {
-      ToastHelper.showSuccess(
-        context,
-        UserStorage.l10n.cardRegenerationStarted,
-      );
-      await _fetchDetail();
-    } else {
-      ToastHelper.showError(context, UserStorage.l10n.cardRegenerationFailed);
-    }
-  }
-
-  void _showFailureReason() {
-    final reason = _detail?.failureReason;
-    if (reason == null || reason.isEmpty) return;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        title: Text(UserStorage.l10n.failureReason),
-        content: SingleChildScrollView(child: SelectableText(reason)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(MaterialLocalizations.of(context).closeButtonLabel),
-          ),
-        ],
-      ),
-    );
   }
 
   void _openCalendar() {
@@ -1127,16 +1086,8 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const SizedBox(height: 16),
-                                  if (detail.status == 'failed') ...[
-                                    FailedCardRecoveryBanner(
-                                      failureReason: detail.failureReason,
-                                      isRetrying: _isRetryingCard,
-                                      onRetry: _retryCardGeneration,
-                                      onShowReason: _showFailureReason,
-                                    ),
-                                    const SizedBox(height: 16),
-                                  ] else if (detail.status == 'processing') ...[
-                                    const CardRegeneratingBanner(),
+                                  if (detail.status == 'processing') ...[
+                                    const CardProcessingBanner(),
                                     const SizedBox(height: 16),
                                   ],
                                   // Title
@@ -2339,6 +2290,42 @@ class _CommentInputWidgetState extends State<_CommentInputWidget> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class CardProcessingBanner extends StatelessWidget {
+  const CardProcessingBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEF2FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFF818CF8).withValues(alpha: 0.35),
+          width: 0.8,
+        ),
+      ),
+      child: Row(
+        children: [
+          const AgentLogoLoading(size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              UserStorage.l10n.processingStatus,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF3730A3),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

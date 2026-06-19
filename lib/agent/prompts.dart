@@ -4,31 +4,6 @@
 
 /// The translations for extensionEnglish (`en`).
 class Prompts {
-  static String get cardAgentAssetAnalysisHeader =>
-      '## Asset Analysis Results\n';
-
-  static String get cardAgentAssetAnalysisEmpty =>
-      '<system-reminder>This asset has no analysis results. You only know the filename, do not attempt to guess the file content.</system-reminder>';
-
-  static String cardAgentAssetHeader(int index, String name) =>
-      '### Asset $index (name: $name)\n';
-
-  static String cardAgentGpsCoordinates(double latitude, double longitude) =>
-      'GPS Coordinates: Latitude $latitude, Longitude $longitude\n\n';
-
-  static String cardAgentUserMessagePromptForPublishNewContent(
-    String publishTime,
-    String factId,
-    String factContent,
-  ) =>
-      '''User has published new content, please help the user create a timeline card based on the user's raw input.
-
-Raw Input ID (fact_id): $factId
-Published time: $publishTime - Do not display the date information on the card.
-Raw Input Content:
-$factContent
-''';
-
   static String timelineCardSkillSystemPrompt(
     String templatesSection,
     String instruction,
@@ -72,32 +47,6 @@ Important: Do not display date or time information on the card itself (no "Publi
 Important: The top-level card address describes where the recorded moment actually happened. For tasks, todos, reminders, plans, wishes, future destinations, or places the user merely wants to go to, omit the top-level address even if a place is mentioned in the raw input.
 Important: $instruction
 ''';
-
-  static String pkmAgentInstructionForNewPublishedContent(
-    String currentTime,
-    String factId,
-    String contentText,
-    String assetInfo,
-  ) =>
-      '''Process the following raw input to organize it into the P.A.R.A knowledge base and update the card insight:
-Published Time: $currentTime
-Raw Input ID (fact_id): $factId
-
-Raw Input Content:
-$contentText$assetInfo
-''';
-
-  static String get pkmAgentDirectoryNotCreated =>
-      'P.A.R.A. knowledge base has not been created yet, currently empty.';
-
-  static String pkmAgentDirectoryStructureError(String error) =>
-      'Unable to get P.A.R.A. knowledge base structure: $error';
-
-  static String get pkmAgentFullOverviewHeader =>
-      'Current P.A.R.A. knowledge base structure (This is the complete recursive directory tree of `/`. Do not execute `LS` in `/` or its subfolders again):';
-
-  static String get pkmAgentTruncatedOverviewHeader =>
-      'Current P.A.R.A. knowledge base structure(Same to the result of executing LS tool in `/`):';
 
   static String pkmSkillSystemPrompt(
     String workingDirectory,
@@ -185,13 +134,13 @@ Examples:
   - If you need to read multiple files, you must make multiple parallel calls to `Read` tool.
   - If you need to make the final edit and update the timeline card's insight, you MUST send a single message containing both the `Edit` and `update_timeline_card_insight` tool calls to run the calls in parallel.''';
 
-  static String get pkmAgentUpdateCardInsightToolDescription =>
+  static String get pkmSkillUpdateCardInsightToolDescription =>
       'Updates the insight and related facts of a timeline card.';
 
-  static String get pkmAgentSkipOrganizationToolDescription =>
+  static String get pkmSkillSkipOrganizationToolDescription =>
       'Skip P.A.R.A. organization for this input. Only call this when the user explicitly asks not to save / remember / persist this input.';
 
-  static Map<String, dynamic> get pkmAgentSkipOrganizationToolParameters => {
+  static Map<String, dynamic> get pkmSkillSkipOrganizationToolParameters => {
         'type': 'object',
         'properties': {
           'evidence': {
@@ -203,7 +152,7 @@ Examples:
         'required': ['evidence'],
       };
 
-  static Map<String, dynamic> get pkmAgentUpdateCardInsightToolParameters => {
+  static Map<String, dynamic> get pkmSkillUpdateCardInsightToolParameters => {
         'type': 'object',
         'properties': {
           'fact_id': {
@@ -226,10 +175,10 @@ Examples:
         'required': ['fact_id', 'insight_text'],
       };
 
-  static String pkmAgentUpdateCardInsightErrorCardNotFound(String factId) =>
+  static String pkmSkillUpdateCardInsightErrorCardNotFound(String factId) =>
       'Card file not found for fact_id: $factId, maybe it has been deleted';
 
-  static String pkmAgentUpdateCardInsightSuccess(
+  static String pkmSkillUpdateCardInsightSuccess(
     String cardPath,
     String factId,
     int relatedCount,
@@ -445,7 +394,7 @@ $toolUsage''';
   static String get commentAgentPkmErrorReadingDirectory =>
       '(Error reading directory)';
 
-  static String knowledgeInsightAgentKnowledgeInsightSkillPrompt(
+  static String knowledgeInsightSkillPrompt(
     String instruction,
   ) =>
       '''## Skill Name

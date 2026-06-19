@@ -72,7 +72,6 @@ void main() {
       );
       final names = (agent.tools ?? const []).map((t) => t.name).toSet();
       expect(names, containsAll(<String>['LS', 'Glob', 'Grep', 'Read']));
-      expect(names, isNot(contains('get_pkm_overview')));
       expect(names, isNot(contains('Write')));
       expect(names, isNot(contains('Edit')));
     });
@@ -86,7 +85,6 @@ void main() {
       );
       final names = (agent.tools ?? const []).map((t) => t.name).toSet();
       expect(names, containsAll(<String>['Read', 'Write', 'Edit']));
-      expect(names, isNot(contains('get_pkm_overview')));
     });
 
     test('restricted read roots keep PKM workers out of Cards', () async {

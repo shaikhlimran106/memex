@@ -79,12 +79,8 @@ lib/
 │   ├── app_config.dart
 │   └── dependencies.dart      # DI setup (repositories/services only)
 ├── agent/                     # Multi-agent AI system
-│   ├── pkm_agent/
-│   ├── card_agent/
-│   ├── insight_agent/
 │   ├── comment_agent/
 │   ├── memory_agent/
-│   ├── persona_agent/
 │   ├── super_agent/           # Orchestrator
 │   ├── skills/                # Composable skills
 │   ├── built_in_tools/

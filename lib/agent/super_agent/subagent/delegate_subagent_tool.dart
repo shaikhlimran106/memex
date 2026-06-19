@@ -138,9 +138,9 @@ Tool buildDelegateToSubagentTool() {
           'type': 'string',
           'description':
               'Base file-tool access for the worker: "none" (skill tools only), '
-              '"read" (skill tools + read-only file tools), or "full" '
-              '(adds generic write tools, still confined to the paths its '
-              'skills are allowed to write).',
+                  '"read" (skill tools + read-only file tools), or "full" '
+                  '(adds generic write tools, still confined to the paths its '
+                  'skills are allowed to write).',
           'enum': ['none', 'read', 'full'],
         },
         'skills': {

@@ -8,7 +8,8 @@ void main() {
       final state = AgentState.empty();
       state.history.messages.addAll([
         UserMessage([TextPart('记一下今天的事')]),
-        UserMessage.text('<system-reminder>\nscene context...\n</system-reminder>'),
+        UserMessage.text(
+            '<system-reminder>\nscene context...\n</system-reminder>'),
         ModelMessage(
           model: 'mocked',
           textOutput: 'Understood, I will keep this context in mind.',

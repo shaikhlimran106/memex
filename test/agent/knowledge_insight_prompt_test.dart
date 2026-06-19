@@ -7,7 +7,7 @@ void main() {
         '**Important**: All output text must be in **zh-CN (Simplified Chinese)**.';
 
     test('skill prompt interpolates the configured language instruction', () {
-      final prompt = Prompts.knowledgeInsightAgentKnowledgeInsightSkillPrompt(
+      final prompt = Prompts.knowledgeInsightSkillPrompt(
         zhInstruction,
       );
 

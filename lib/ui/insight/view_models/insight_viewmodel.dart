@@ -12,18 +12,17 @@ import 'package:memex/utils/user_storage.dart';
 
 enum InsightSection { insights, stats }
 
-typedef UserStatsFetcher =
-    Future<Result<UserStatsSnapshot>> Function(UserStatsDateRange range);
+typedef UserStatsFetcher = Future<Result<UserStatsSnapshot>> Function(
+    UserStatsDateRange range);
 
 /// ViewModel for the Insight page. Holds insight list, pin/delete/reorder state.
 class InsightViewModel extends ChangeNotifier {
   InsightViewModel({
     required MemexRouter router,
     UserStatsFetcher? userStatsFetcher,
-  }) : _router = router,
-       _userStatsFetcher =
-           userStatsFetcher ??
-           ((range) => router.fetchUserStats(range: range)) {
+  })  : _router = router,
+        _userStatsFetcher = userStatsFetcher ??
+            ((range) => router.fetchUserStats(range: range)) {
     EventBusService.instance.addHandler(
       EventBusMessageType.newInsight,
       _handleNewInsightEvent,
@@ -192,18 +191,9 @@ class InsightViewModel extends ChangeNotifier {
     isRefreshing = true;
     await refreshTaskActivity(notify: false);
     notifyListeners();
-    (await _router.updateKnowledgeInsights()).when(
-      onOk: (_) {
-        // Request sent. The handler will emit NewInsightMessage on
-        // both success and failure via try/finally, which triggers
-        // _reloadAfterInsightUpdated to reset isRefreshing.
-      },
-      onError: (_, __) {
-        errorMessage = UserStorage.l10n.dataLoadFailedRetry;
-        isRefreshing = false;
-        notifyListeners();
-      },
-    );
+    await loadData();
+    isRefreshing = false;
+    notifyListeners();
   }
 
   void setActiveCardId(String? id) {

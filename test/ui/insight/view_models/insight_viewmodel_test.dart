@@ -22,15 +22,15 @@ void main() {
     tempDir = await Directory.systemTemp.createTemp('memex_insight_vm_');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(pathProviderChannel, (call) async {
-          switch (call.method) {
-            case 'getApplicationDocumentsDirectory':
-            case 'getApplicationSupportDirectory':
-            case 'getTemporaryDirectory':
-              return tempDir.path;
-            default:
-              return null;
-          }
-        });
+      switch (call.method) {
+        case 'getApplicationDocumentsDirectory':
+        case 'getApplicationSupportDirectory':
+        case 'getTemporaryDirectory':
+          return tempDir.path;
+        default:
+          return null;
+      }
+    });
   });
 
   setUp(() async {
@@ -244,8 +244,7 @@ UserStatsSnapshot _snapshot({
   required int totalInputs,
   UserStatsDateRange? range,
 }) {
-  final resolvedRange =
-      range ??
+  final resolvedRange = range ??
       UserStatsDateRange(
         start: DateTime(2026, 5, 18),
         end: DateTime(2026, 5, 20),

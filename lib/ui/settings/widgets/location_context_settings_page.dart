@@ -6,8 +6,8 @@ import 'package:memex/ui/core/themes/app_colors.dart';
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/utils/user_storage.dart';
 
-typedef CurrentLocationContextLoader =
-    Future<CurrentLocationContext> Function({bool forceRefresh});
+typedef CurrentLocationContextLoader = Future<CurrentLocationContext> Function(
+    {bool forceRefresh});
 typedef LocationPermissionRequester = Future<void> Function();
 typedef LocationSettingsOpener = Future<bool> Function();
 
@@ -101,8 +101,7 @@ class _LocationContextSettingsPageState
       _testContext = null;
     });
     try {
-      final loader =
-          widget.loadCurrentContext ??
+      final loader = widget.loadCurrentContext ??
           LocationContextService.instance.getCurrentContext;
       final context = await loader(forceRefresh: true);
       if (!mounted) return;
@@ -129,8 +128,7 @@ class _LocationContextSettingsPageState
     try {
       switch (action) {
         case _LocationGuidanceAction.requestPermission:
-          final requester =
-              widget.requestLocationPermission ??
+          final requester = widget.requestLocationPermission ??
               () async => Geolocator.requestPermission();
           await requester();
           if (mounted) {
@@ -692,8 +690,8 @@ class _LocationContextSettingsPageState
               _saving
                   ? '${l10n.save}...'
                   : hasChanges
-                  ? l10n.save
-                  : l10n.saved,
+                      ? l10n.save
+                      : l10n.saved,
             ),
           ),
         ),

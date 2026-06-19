@@ -198,7 +198,8 @@ Future<void> processAICommentReply({
     // fall back to the card's own place — where the recorded moment happened.
     // Card display priority: user-marked address first, then address.
     var effectiveLocationReminder = locationContextReminder?.trim();
-    if (effectiveLocationReminder == null || effectiveLocationReminder.isEmpty) {
+    if (effectiveLocationReminder == null ||
+        effectiveLocationReminder.isEmpty) {
       final cardPlace = (cardData.userFixedAddress?.trim().isNotEmpty ?? false)
           ? cardData.userFixedAddress!.trim()
           : (cardData.address?.trim().isNotEmpty ?? false)

@@ -44,7 +44,7 @@ void main() {
     });
 
     test('search without query returns recent cards with local time', () async {
-      await _writeFactAndAsset(userId: userId);
+      await _writeAsset(userId: userId);
       await _writeCard(userId: userId, cardId: cardId);
 
       final result = await TimelineDiagnosticsSkill.searchTimelineCards(
@@ -68,7 +68,7 @@ void main() {
     test(
         'inspect returns original input context and current card data without comments',
         () async {
-      await _writeFactAndAsset(userId: userId);
+      await _writeAsset(userId: userId);
       await _writeCard(userId: userId, cardId: cardId);
 
       final result = await TimelineDiagnosticsSkill.inspectTimelineCardForUser(
@@ -123,19 +123,12 @@ void main() {
   });
 }
 
-Future<void> _writeFactAndAsset({required String userId}) async {
+Future<void> _writeAsset({required String userId}) async {
   final fs = FileSystemService.instance;
-  await fs.appendToDailyFactFile(
-    userId,
-    DateTime(2026, 6, 10),
-    '## <id:ts_1> 09:00:00 "{}"\n\n今天拍了两张图\n![image](fs://photo.jpg)\n',
-  );
-
   final assetsDir = Directory(fs.getAssetsPath(userId));
   await assetsDir.create(recursive: true);
   final imagePath = '${assetsDir.path}/photo.jpg';
   await File(imagePath).writeAsBytes([0, 1, 2, 3]);
-  await File('$imagePath.analysis.txt').writeAsString('A test image.');
 }
 
 Future<void> _writeCard({

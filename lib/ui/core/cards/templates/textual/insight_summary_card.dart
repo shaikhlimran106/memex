@@ -22,12 +22,15 @@ class InsightSummaryCard extends StatelessWidget {
     final List<dynamic> updated = data['updated_insight_cards'] ?? [];
 
     final l10n = UserStorage.l10n;
-    String title = l10n.knowledgeNewDiscovery; //data['title'] ?? l10n.knowledgeNewDiscovery;
+    String title = l10n
+        .knowledgeNewDiscovery; //data['title'] ?? l10n.knowledgeNewDiscovery;
 
     String content = data['content'] ?? '';
     final List<String> parts = [];
-    if (added.isNotEmpty) parts.add(l10n.discoveredNewInsightsCount(added.length));
-    if (updated.isNotEmpty) parts.add(l10n.updatedExistingInsightsCount(updated.length));
+    if (added.isNotEmpty)
+      parts.add(l10n.discoveredNewInsightsCount(added.length));
+    if (updated.isNotEmpty)
+      parts.add(l10n.updatedExistingInsightsCount(updated.length));
     if (parts.isNotEmpty) {
       content = parts.join('，');
     }
@@ -97,10 +100,11 @@ class InsightSummaryCard extends StatelessWidget {
             const SizedBox(height: 16),
           ],
           if (added.isNotEmpty)
-            _buildListSection(context, l10n.sectionNewInsights, added, const Color(0xFF10B981)),
+            _buildListSection(context, l10n.sectionNewInsights, added,
+                const Color(0xFF10B981)),
           if (updated.isNotEmpty)
-            _buildListSection(
-                context, l10n.sectionUpdatedInsights, updated, const Color(0xFF3B82F6)),
+            _buildListSection(context, l10n.sectionUpdatedInsights, updated,
+                const Color(0xFF3B82F6)),
         ],
       ),
     );
@@ -124,7 +128,8 @@ class InsightSummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           ...items.map((item) {
-            final String itemTitle = item['title'] ?? UserStorage.l10n.unnamedInsight;
+            final String itemTitle =
+                item['title'] ?? UserStorage.l10n.unnamedInsight;
             final String? itemId = item['id'];
             return InkWell(
               onTap: itemId != null

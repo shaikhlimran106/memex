@@ -10,7 +10,7 @@ class TaskCard extends StatefulWidget {
   final String? cardId;
   final int? configIndex;
   final Function(String cardId, int configIndex, Map<String, dynamic> data)?
-  onUpdate;
+      onUpdate;
 
   const TaskCard({
     super.key,
@@ -48,8 +48,7 @@ class _TaskCardState extends State<TaskCard> {
         .whereType<Map>()
         .map((task) => Map<String, dynamic>.from(task))
         .toList();
-    _isCompleted =
-        _parseCompletedBool(widget.data['is_completed']) ||
+    _isCompleted = _parseCompletedBool(widget.data['is_completed']) ||
         (_subtasks.isNotEmpty &&
             _subtasks.every((task) => _parseCompletedBool(task['completed'])));
     if (_isCompleted && _subtasks.isNotEmpty) {
@@ -72,8 +71,7 @@ class _TaskCardState extends State<TaskCard> {
       final task = Map<String, dynamic>.from(_subtasks[index]);
       task['completed'] = !_parseCompletedBool(task['completed']);
       _subtasks[index] = task;
-      _isCompleted =
-          _subtasks.isNotEmpty &&
+      _isCompleted = _subtasks.isNotEmpty &&
           _subtasks.every((task) => _parseCompletedBool(task['completed']));
     });
     _updateData();
@@ -139,9 +137,8 @@ class _TaskCardState extends State<TaskCard> {
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
                     color: const Color(0xFF0A0A0A),
-                    decoration: _isCompleted
-                        ? TextDecoration.lineThrough
-                        : null,
+                    decoration:
+                        _isCompleted ? TextDecoration.lineThrough : null,
                     decorationColor: const Color(0xFF99A1AF),
                   ),
                 ),

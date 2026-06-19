@@ -774,15 +774,13 @@ class ChatService {
     required XFile image,
     required String? originalName,
   }) async {
-    // Store chat attachments in Facts/assets (factId-less: named with today's
-    // date + ts_0 + the day's running index) so they share the same fs://
-    // reference scheme as records. The card the agent creates will reference
-    // them via `![image](fs://<filename>)`.
+    // Store chat attachments in Facts/assets using the same fs:// reference
+    // scheme as records. The card the agent creates will reference them via
+    // `![image](fs://<filename>)`.
     final (fsFilename, relativePath) = await _fileService.saveAssetFromFile(
       userId: userId,
       sourcePath: image.path,
       assetType: 'img',
-      index: 1,
     );
     final absolutePath = _fileService.toAbsolutePath(relativePath);
     final mimeType = _mimeTypeForImagePath(absolutePath);

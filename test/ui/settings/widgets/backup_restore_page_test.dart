@@ -172,18 +172,17 @@ void main() {
     await _pumpBackupPage(
       tester,
       listStoredBackups: () async => List<BackupSnapshot>.of(snapshots),
-      createAutoBackup:
-          ({
-            String trigger = 'automatic',
-            bool force = false,
-            void Function(String status)? onProgress,
-          }) async {
-            expect(trigger, 'manual');
-            expect(force, isTrue);
-            onProgress?.call('Compressing...');
-            snapshots.add(snapshot);
-            return snapshot;
-          },
+      createAutoBackup: ({
+        String trigger = 'automatic',
+        bool force = false,
+        void Function(String status)? onProgress,
+      }) async {
+        expect(trigger, 'manual');
+        expect(force, isTrue);
+        onProgress?.call('Compressing...');
+        snapshots.add(snapshot);
+        return snapshot;
+      },
     );
 
     await tester.tap(find.text(UserStorage.l10n.createSnapshotNow));
@@ -220,15 +219,14 @@ void main() {
         return 42;
       },
       listStoredBackups: () async => List<BackupSnapshot>.of(snapshots),
-      createAutoBackup:
-          ({
-            String trigger = 'automatic',
-            bool force = false,
-            void Function(String status)? onProgress,
-          }) async {
-            snapshots.add(snapshot);
-            return snapshot;
-          },
+      createAutoBackup: ({
+        String trigger = 'automatic',
+        bool force = false,
+        void Function(String status)? onProgress,
+      }) async {
+        snapshots.add(snapshot);
+        return snapshot;
+      },
     );
 
     expect(estimateCalls, 1);
@@ -307,8 +305,7 @@ void main() {
   });
 
   testWidgets('shows Android SAF folder name and URI details', (tester) async {
-    const treeUri =
-        'content://com.android.externalstorage.documents/tree/'
+    const treeUri = 'content://com.android.externalstorage.documents/tree/'
         'primary%3ADownload%2FMemexBackups';
 
     await _pumpBackupPage(

@@ -5,20 +5,17 @@ import 'package:path/path.dart' as p;
 
 import 'package:memex/data/services/file_operation_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
-import 'package:memex/agent/pkm_agent/pkm_stats_service.dart';
+import 'package:memex/agent/super_agent/pkm_stats_service.dart';
 
 /// Harness control plane for the SuperAgent and its capture child workers.
 ///
-/// Recovers the genuinely-valuable parts of the old fixed pipeline without
-/// re-imposing rigid gates, via dart_agent_core's post-tool / turn-completion
-/// hooks:
+/// Adds SuperAgent post-tool / turn-completion guidance without hard-coding
+/// workflow gates:
 ///
 /// - **PKM structural-health reminders**: when an agent reads a `/PKM` file,
-///   append the same "file too long / fragmented / churned" advice the old
-///   pkm_agent's custom Read tool produced. PKM organization now happens inside
-///   a capture *child* worker, so this is wired into BOTH the parent (for
-///   conversational/repair work it does itself, via [buildPostToolCallHook])
-///   and the child workers (via [buildChildPostToolCallHook]).
+///   append "file too long / fragmented / churned" advice. PKM organization
+///   can happen in child workers or in parent repair flows, so this is wired
+///   into both [buildPostToolCallHook] and [buildChildPostToolCallHook].
 /// - **Idle-skill reminder** (parent only): when the parent keeps a skill
 ///   active but unused for several turns, gently suggest deactivating it.
 ///
@@ -149,7 +146,8 @@ class SuperAgentHarness {
     final counters = _skillIdleTurns.putIfAbsent(sessionId, () => {});
     counters.removeWhere((name, _) => !optionalActive.contains(name));
     for (final name in optionalActive) {
-      counters[name] = usedSkills.contains(name) ? 0 : (counters[name] ?? 0) + 1;
+      counters[name] =
+          usedSkills.contains(name) ? 0 : (counters[name] ?? 0) + 1;
     }
 
     final idle = counters.entries
@@ -188,9 +186,8 @@ class SuperAgentHarness {
     return null;
   }
 
-  /// Reproduces the structural-health reminders the old pkm_agent custom Read
-  /// tool appended, but only for `/PKM` reads, delivered via the post-tool
-  /// hook. Returns null when no reminder applies.
+  /// Builds PKM structural-health reminders for `/PKM` reads. Returns null
+  /// when no reminder applies.
   static Future<String?> _buildPkmHealthReminder(
       String userId, FunctionExecutionResult result) async {
     final filePath = _argString(result.arguments, 'file_path');

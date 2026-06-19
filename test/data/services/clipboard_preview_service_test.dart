@@ -14,11 +14,11 @@ void main() {
     SharedPreferences.setMockInitialValues({'user_id': 'test_user'});
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform, (call) async {
-          if (call.method == 'Clipboard.getData') {
-            return {'text': clipboardText};
-          }
-          return null;
-        });
+      if (call.method == 'Clipboard.getData') {
+        return {'text': clipboardText};
+      }
+      return null;
+    });
   });
 
   tearDown(() {

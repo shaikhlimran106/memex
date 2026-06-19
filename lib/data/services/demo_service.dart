@@ -11,7 +11,6 @@ import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/character_service.dart';
 import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/domain/models/card_detail_model.dart';
-import 'package:memex/domain/models/event_bus_message.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/user_storage.dart';
 
@@ -61,18 +60,13 @@ class DemoService extends ChangeNotifier {
     final seen = await OnboardingService.hasDemoBeenSeen();
     if (seen) return;
 
-    // If the user already has fact files, they're not new — skip the demo.
+    // If the user already has cards, they're not new — skip the demo.
     try {
-      final factsDir =
-          Directory(FileSystemService.instance.getFactsPath(userId));
-      if (await factsDir.exists()) {
-        final hasFacts = await factsDir
-            .list(recursive: true)
-            .any((e) => e.path.endsWith('.md'));
-        if (hasFacts) {
-          await OnboardingService.markDemoAsSeen();
-          return;
-        }
+      final existingCards =
+          await FileSystemService.instance.listAllCardFiles(userId);
+      if (existingCards.isNotEmpty) {
+        await OnboardingService.markDemoAsSeen();
+        return;
       }
     } catch (_) {
       // If we can't check, proceed with the demo — safe default for new users.
@@ -187,10 +181,8 @@ class DemoService extends ChangeNotifier {
     try {
       final fs = FileSystemService.instance;
       final now = DateTime.now().subtract(const Duration(minutes: 1));
-      final factId = await fs.generateFactId(userId, now);
+      final factId = await fs.allocateCardFactId(userId);
       _introFactId = factId;
-      final simpleFactId = fs.extractSimpleFactId(factId);
-      final timeStr = fs.formatTime(now);
 
       // Copy icon.png from assets to user's asset directory
       String? iconFsUrl;
@@ -207,8 +199,6 @@ class DemoService extends ChangeNotifier {
           userId: userId,
           sourcePath: tempFile.path,
           assetType: 'img',
-          index: 1,
-          factId: factId,
         );
         iconFsUrl = 'fs://$filename';
         try {
@@ -219,11 +209,7 @@ class DemoService extends ChangeNotifier {
       }
 
       final rawText = _isZh ? _introTextZh : _introTextEn;
-      final combinedText =
-          iconFsUrl != null ? '$rawText\n\n![image]($iconFsUrl)' : rawText;
-      final markdownEntry =
-          '## <id:$simpleFactId> $timeStr "{}"\n\n$combinedText\n';
-      await fs.appendToDailyFactFile(userId, now, markdownEntry);
+      final assets = iconFsUrl != null ? ['![image]($iconFsUrl)'] : <String>[];
 
       final introCard = CardData(
         factId: factId,
@@ -232,6 +218,8 @@ class DemoService extends ChangeNotifier {
         status: 'completed',
         title: _isZh ? 'Memex — 你的 AI 生活记录本' : 'Memex — Your AI Life Journal',
         tags: const ['Knowledge'],
+        fact: rawText,
+        assets: assets,
         uiConfigs: _buildIntroUiConfigs(iconFsUrl),
         insight: CardInsight(
           text: _isZh
@@ -258,7 +246,7 @@ class DemoService extends ChangeNotifier {
       final renderResult = await renderCard(
         userId: userId,
         cardData: introCard,
-        factContent: combinedText,
+        factContent: rawText,
       );
       EventBusService.instance.emitEvent(CardAddedMessage(
         id: factId,

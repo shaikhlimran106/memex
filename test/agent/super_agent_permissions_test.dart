@@ -24,7 +24,7 @@ void main() {
   group('SuperAgent file permissions (normal mode)', () {
     final manager = managerFor(quickQuery: false);
 
-    test('daily fact markdown is read-only', () {
+    test('non-asset files under Facts are read-only', () {
       expect(
         () => manager.checkPermission(
             '$facts/2026/06/10.md', FileAccessType.write),
@@ -34,18 +34,17 @@ void main() {
       manager.checkPermission('$facts/2026/06/10.md', FileAccessType.read);
     });
 
-    test('moving or removing a fact file is denied (write on source)', () {
+    test('moving or removing a Facts directory is denied (write on source)',
+        () {
       expect(
         () => manager.checkPermission('$facts/2026/06', FileAccessType.write),
         throwsA(isA<PermissionDeniedException>()),
       );
     });
 
-    test('derived analysis sidecars under assets stay writable', () {
-      manager.checkPermission(
-          '$assets/photo.jpg.analysis.txt', FileAccessType.write);
-      manager.checkPermission(
-          '$assets/voice.m4a.ocr.txt', FileAccessType.write);
+    test('media files under assets stay writable', () {
+      manager.checkPermission('$assets/photo.jpg', FileAccessType.write);
+      manager.checkPermission('$assets/voice.m4a', FileAccessType.write);
     });
 
     test('the rest of the workspace stays writable', () {
@@ -61,8 +60,8 @@ void main() {
     test('everything is read-only including assets', () {
       manager.checkPermission('$facts/2026/06/10.md', FileAccessType.read);
       expect(
-        () => manager.checkPermission(
-            '$assets/photo.jpg.analysis.txt', FileAccessType.write),
+        () =>
+            manager.checkPermission('$assets/photo.jpg', FileAccessType.write),
         throwsA(isA<PermissionDeniedException>()),
       );
       expect(
@@ -89,9 +88,8 @@ void main() {
       expect(SuperAgent.isQuickQueryToolAllowed('view_image'), isTrue);
     });
 
-    test('uses generic LS for PKM reads instead of PKM overview tool', () {
+    test('allows generic LS for read-only filesystem access', () {
       expect(SuperAgent.isQuickQueryToolAllowed('LS'), isTrue);
-      expect(SuperAgent.isQuickQueryToolAllowed('get_pkm_overview'), isFalse);
     });
   });
 

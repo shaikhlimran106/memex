@@ -23,7 +23,8 @@ class DynamicTimelineUiSkill extends Skill {
   /// file tools (Read/Write/Edit on the template dir) ONLY while a worker is
   /// actually designing a template. Defaults to none, so the SuperAgent's own
   /// use of this skill is unchanged.
-  DynamicTimelineUiSkill({super.forceActivate, List<Tool> extraTools = const []})
+  DynamicTimelineUiSkill(
+      {super.forceActivate, List<Tool> extraTools = const []})
       : super(
           name: 'dynamic_timeline_ui',
           description:

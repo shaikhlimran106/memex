@@ -31,6 +31,60 @@ void main() {
         BorderRadius.zero,
       );
     });
+
+    test('drops keyboard inset while the super agent is sending', () {
+      expect(
+        resolveSuperAgentInputBottomInset(
+          keyboardInset: 320,
+          inputFocused: true,
+          isStreaming: false,
+        ),
+        320,
+      );
+      expect(
+        resolveSuperAgentInputBottomInset(
+          keyboardInset: 320,
+          inputFocused: true,
+          isStreaming: true,
+        ),
+        0,
+      );
+      expect(
+        resolveSuperAgentInputBottomInset(
+          keyboardInset: 320,
+          inputFocused: false,
+          isStreaming: false,
+        ),
+        0,
+      );
+    });
+
+    test('hides photo suggestions while the super agent is sending', () {
+      expect(
+        shouldShowSuperAgentPhotoSuggestions(
+          isStreaming: false,
+          isLoading: true,
+          hasSuggestions: false,
+        ),
+        isTrue,
+      );
+      expect(
+        shouldShowSuperAgentPhotoSuggestions(
+          isStreaming: false,
+          isLoading: false,
+          hasSuggestions: true,
+        ),
+        isTrue,
+      );
+      expect(
+        shouldShowSuperAgentPhotoSuggestions(
+          isStreaming: true,
+          isLoading: true,
+          hasSuggestions: true,
+        ),
+        isFalse,
+      );
+    });
   });
 
   group('AgentChatDialog full-screen affordance', () {
@@ -39,12 +93,9 @@ void main() {
     ) async {
       await _pumpDialog(tester);
 
-      expect(
-        find.text('Start a conversation with Super Agent'),
-        findsOneWidget,
-      );
+      expect(find.text(UserStorage.l10n.aiInputHint), findsWidgets);
       expect(find.byType(TextField), findsOneWidget);
-      expect(find.byTooltip(UserStorage.l10n.chatHistory), findsOneWidget);
+      expect(find.byTooltip(UserStorage.l10n.chatHistory), findsNothing);
       expect(
         find.byTooltip(UserStorage.l10n.enterFullScreenTooltip),
         findsOneWidget,
@@ -126,13 +177,11 @@ void main() {
     });
 
     testWidgets(
-      'keeps a long title inside the compact header on narrow screens',
+      'keeps header actions inside the compact header on narrow screens',
       (tester) async {
         await _pumpDialog(
           tester,
           viewportSize: const Size(320, 800),
-          title:
-              'Super Agent with a very long workspace-specific conversation title',
         );
 
         expect(tester.takeException(), isNull);
@@ -147,11 +196,9 @@ void main() {
     testWidgets('super agent entry hides chat controls and uses send input', (
       tester,
     ) async {
-      await _pumpDialog(tester, scene: 'super_agent_home');
+      await _pumpDialog(tester);
 
       expect(find.byTooltip(UserStorage.l10n.chatHistory), findsNothing);
-      expect(find.text(UserStorage.l10n.chatModeLabel), findsNothing);
-      expect(find.text(UserStorage.l10n.readOnlyMode), findsNothing);
       expect(find.byIcon(Icons.mic), findsNothing);
       expect(
         find.byKey(const ValueKey('super_agent_camera_button')),
@@ -175,7 +222,6 @@ void main() {
       await _pumpDialog(
         tester,
         viewportSize: viewportSize,
-        scene: 'super_agent_home',
       );
 
       final dialogRect = tester.getRect(
@@ -215,8 +261,6 @@ void main() {
 Future<void> _pumpDialog(
   WidgetTester tester, {
   Size viewportSize = const Size(390, 800),
-  String title = 'Super Agent',
-  String scene = 'assistant_home',
 }) async {
   tester.view.physicalSize = viewportSize;
   tester.view.devicePixelRatio = 1.0;
@@ -224,16 +268,11 @@ Future<void> _pumpDialog(
   addTearDown(tester.view.resetDevicePixelRatio);
 
   await tester.pumpWidget(
-    MaterialApp(
+    const MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
-        body: AgentChatDialog(
-          agentName: 'memex_agent',
-          title: title,
-          inputHint: 'Ask Super Agent...',
-          scene: scene,
-        ),
+        body: AgentChatDialog(),
       ),
     ),
   );

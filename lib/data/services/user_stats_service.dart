@@ -30,8 +30,8 @@ class UserStatsService {
   UserStatsService({
     FileSystemService? fileSystemService,
     bool useBackgroundIsolate = true,
-  }) : _fileSystemService = fileSystemService ?? FileSystemService.instance,
-       _useBackgroundIsolate = useBackgroundIsolate;
+  })  : _fileSystemService = fileSystemService ?? FileSystemService.instance,
+        _useBackgroundIsolate = useBackgroundIsolate;
 
   final FileSystemService _fileSystemService;
   final bool _useBackgroundIsolate;
@@ -80,13 +80,6 @@ class UserStatsService {
 
     final inputFactIds = _collectInputFactIds(events, daily);
 
-    await _collectFactInputStats(
-      userId,
-      normalizedRange,
-      events,
-      inputFactIds,
-      daily,
-    );
     _collectSourceStats(events, daily);
     await _collectCardStats(
       userId,
@@ -172,58 +165,6 @@ class UserStatsService {
     }
   }
 
-  Future<void> _collectFactInputStats(
-    String userId,
-    UserStatsDateRange range,
-    List<Map<String, dynamic>> events,
-    Set<String> inputFactIds,
-    Map<String, _DailyStatsAccumulator> daily,
-  ) async {
-    final userInputCountsByDay = <String, int>{};
-    for (final event in events) {
-      if (event['event_type'] != 'user_input') continue;
-      final date = _eventDate(event);
-      if (date == null) continue;
-      final key = _dateKey(date);
-      if (!daily.containsKey(key)) continue;
-      userInputCountsByDay[key] = (userInputCountsByDay[key] ?? 0) + 1;
-    }
-    final hasUserInputEvents = userInputCountsByDay.isNotEmpty;
-
-    for (var i = 0; i < range.dayCount; i++) {
-      final date = range.start.add(Duration(days: i));
-      final key = _dateKey(date);
-      final file = File(_factPath(userId, date));
-      final eventInputCount = userInputCountsByDay[key] ?? 0;
-
-      try {
-        if (hasUserInputEvents) {
-          daily[key]?.inputs += eventInputCount;
-          if (!await file.exists()) continue;
-
-          final content = await file.readAsString();
-          final entries = _parseFactEntries(content, date);
-          final eventEntries = entries.where(
-            (entry) => inputFactIds.contains(entry.factId),
-          );
-          daily[key]?.words += eventEntries.fold(
-            0,
-            (sum, item) => sum + item.words,
-          );
-          continue;
-        }
-
-        if (!await file.exists()) continue;
-        final content = await file.readAsString();
-        final entries = _parseFactEntries(content, date);
-        daily[key]?.inputs += entries.length;
-        daily[key]?.words += entries.fold(0, (sum, item) => sum + item.words);
-      } catch (e) {
-        _logger.warning('Failed to read fact stats from ${file.path}: $e');
-      }
-    }
-  }
-
   void _collectSourceStats(
     List<Map<String, dynamic>> events,
     Map<String, _DailyStatsAccumulator> daily,
@@ -273,6 +214,12 @@ class UserStatsService {
       final key = _dateKey(date);
       final bucket = daily[key];
       if (bucket == null) continue;
+
+      final fact = card.fact?.trim() ?? '';
+      if (fact.isNotEmpty) {
+        bucket.inputs += 1;
+        bucket.words += _countWords(fact);
+      }
 
       if (_isGeneratedCard(card)) {
         bucket.cards += 1;
@@ -457,18 +404,6 @@ class UserStatsService {
     return streak;
   }
 
-  String _factPath(String userId, DateTime date) {
-    final year = date.year.toString().padLeft(4, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-    return path.join(
-      _fileSystemService.getFactsPath(userId),
-      year,
-      month,
-      '$day.md',
-    );
-  }
-
   Set<String> _collectInputFactIds(
     List<Map<String, dynamic>> events,
     Map<String, _DailyStatsAccumulator> daily,
@@ -484,35 +419,6 @@ class UserStatsService {
       }
     }
     return factIds;
-  }
-
-  List<_FactEntryStats> _parseFactEntries(String content, DateTime date) {
-    final matches = RegExp(
-      r'^## <id:([^>]+)>.*$',
-      multiLine: true,
-    ).allMatches(content).toList();
-    final entries = <_FactEntryStats>[];
-    for (var i = 0; i < matches.length; i++) {
-      final start = matches[i].end;
-      final end = i + 1 < matches.length
-          ? matches[i + 1].start
-          : content.length;
-      final simpleId = matches[i].group(1) ?? '';
-      entries.add(
-        _FactEntryStats(
-          factId: _factIdForDate(date, simpleId),
-          words: _countWords(content.substring(start, end)),
-        ),
-      );
-    }
-    return entries;
-  }
-
-  String _factIdForDate(DateTime date, String simpleId) {
-    final year = date.year.toString().padLeft(4, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-    return '$year/$month/$day.md#$simpleId';
   }
 
   int _countWords(String value) {
@@ -624,14 +530,14 @@ class _DailyStatsAccumulator {
   final Map<String, int> tagCounts = {};
 
   UserStatsDailyPoint toPoint() => UserStatsDailyPoint(
-    date: date,
-    inputs: inputs,
-    words: words,
-    cards: cards,
-    knowledgeUnits: knowledgeUnits,
-    insights: insights,
-    completedTodos: completedTodos,
-  );
+        date: date,
+        inputs: inputs,
+        words: words,
+        cards: cards,
+        knowledgeUnits: knowledgeUnits,
+        insights: insights,
+        completedTodos: completedTodos,
+      );
 }
 
 class _DayDetailAccumulator {
@@ -644,12 +550,12 @@ class _DayDetailAccumulator {
   final List<String> completedTodoTitles = [];
 
   UserStatsDayDetail toDetail() => UserStatsDayDetail(
-    date: date,
-    cardTitles: _dedupe(cardTitles),
-    knowledgePaths: _dedupe(knowledgePaths),
-    insightTitles: _dedupe(insightTitles),
-    completedTodoTitles: _dedupe(completedTodoTitles),
-  );
+        date: date,
+        cardTitles: _dedupe(cardTitles),
+        knowledgePaths: _dedupe(knowledgePaths),
+        insightTitles: _dedupe(insightTitles),
+        completedTodoTitles: _dedupe(completedTodoTitles),
+      );
 
   List<String> _dedupe(List<String> values) {
     final seen = <String>{};
@@ -659,11 +565,4 @@ class _DayDetailAccumulator {
     }
     return result;
   }
-}
-
-class _FactEntryStats {
-  _FactEntryStats({required this.factId, required this.words});
-
-  final String factId;
-  final int words;
 }

@@ -12,30 +12,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get timesLabel => 'Times';
 
   @override
-  String get recordSubmittedAiProcessing =>
-      'Record submitted, AI is processing...';
-
-  @override
   String modelSetAsDefault(Object modelId) {
     return 'Set $modelId as default model';
-  }
-
-  @override
-  String loadModelListFailed(Object error) {
-    return 'Failed to load model list: \n$error';
   }
 
   @override
   String get retry => 'Retry';
 
   @override
-  String get noModelsFound => 'No models found';
-
-  @override
   String get unknownModel => 'Unknown model';
-
-  @override
-  String get openAiModelConfig => 'OpenAI Model Config';
 
   @override
   String get notSet => 'Not set';
@@ -62,9 +47,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get reprocessKnowledgeBase => 'Reprocess knowledge base';
-
-  @override
   String get selectDateRangeOptional => 'Select date range (optional):';
 
   @override
@@ -89,20 +71,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get userIdNotFound => 'User ID not found';
 
   @override
-  String get reprocessTaskCreated =>
-      'Reprocess task created, running in background';
-
-  @override
   String createTaskFailed(Object error) {
     return 'Failed to create task: $error';
   }
-
-  @override
-  String get reprocessCards => 'Reprocess cards';
-
-  @override
-  String get reprocessCardsTaskCreated =>
-      'Reprocess cards task created, running in background';
 
   @override
   String get regenerateComments => 'Regenerate comments';
@@ -127,8 +98,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirmClearDataMessage => 'Clear data?';
 
   @override
-  String get confirmClearDataKeepFactsMessage =>
-      'Only the Facts directory (raw input) will be kept. All other workspace directories (Cards, Discoveries, KnowledgeInsights, PKM, _System, etc.) will be deleted.\n\nThis action cannot be undone!';
+  String get confirmClearDataDeletesWorkspaceMessage =>
+      'All local workspace data for the current user will be deleted, including cards, media, knowledge files, insights, memory, chat history, and system state.\n\nThis action cannot be undone!';
 
   @override
   String get clearFailedAgentContexts => 'Clear failed conversation context';
@@ -196,16 +167,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get systemAuthorization => 'System authorization';
 
   @override
-  String get modelAuthorization => 'Model authorization';
-
-  @override
-  String get pkmKnowledgeBase => 'PKM knowledge base';
-
-  @override
   String get aiCharacterConfig => 'AI character config';
-
-  @override
-  String get appLockConfig => 'App lock config';
 
   @override
   String get modelConfig => 'Model config';
@@ -252,6 +214,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get statistics => 'Stats';
+
+  @override
+  String get appLockConfig => 'App lock config';
 
   @override
   String get activityStats => 'Activity stats';
@@ -435,13 +400,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get totalEstimatedCost => 'Total estimated cost';
 
   @override
-  String get detailSubtitle => 'Detail';
-
-  @override
   String get close => 'Close';
-
-  @override
-  String get noFragments => 'No fragments';
 
   @override
   String get totalTokenConsumption => 'Total token consumption';
@@ -452,10 +411,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get timelineLoadFailedRetry =>
       'Timeline load failed, please retry later.';
-
-  @override
-  String get aggregatedLoadFailedRetry =>
-      'Failed to load aggregated data, please retry later.';
 
   @override
   String get newPerspective => 'New perspective';
@@ -476,9 +431,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String referenceWithTitle(Object title) {
     return 'Reference: $title';
   }
-
-  @override
-  String get discoveredTodoActions => 'Discovered todo actions';
 
   @override
   String get actionCenterTitle => 'Pending actions';
@@ -519,12 +471,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get no => 'No';
 
   @override
-  String get askSomethingHint => 'Ask something...';
-
-  @override
-  String get aiAssistant => 'AI Assistant';
-
-  @override
   String get footprintMap => 'Footprint map';
 
   @override
@@ -534,43 +480,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unknownPlace => 'Unknown place';
 
   @override
-  String get loadFailedRetry => 'Load failed, please retry.';
-
-  @override
-  String get noRecordsInPeriod => 'No records in this period.';
-
-  @override
   String get releaseToSend => 'Release to send';
 
   @override
   String get selectFromAlbum => 'Select from album';
-
-  @override
-  String get takePhoto => 'Take photo';
-
-  @override
-  String get enterContentOrMediaHint =>
-      'Enter content, select image or record audio.';
-
-  @override
-  String inputDraftLabel(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Draft · $count chars',
-      one: 'Draft · 1 char',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get discardDraftTitle => 'Discard this draft?';
-
-  @override
-  String get discardDraftMessage => 'The draft content will be cleared.';
-
-  @override
-  String get discardDraftTooltip => 'Discard draft';
 
   @override
   String get clipboardPreviewTitle => 'New clipboard';
@@ -582,21 +495,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clipboardPreviewPasteToInput => 'Paste to input';
 
   @override
-  String get tellAiWhatHappened => 'Tell AI what happened...';
-
-  @override
-  String recordingWithDuration(Object duration) {
-    return 'Recording: $duration';
-  }
-
-  @override
   String get playing => 'Playing...';
-
-  @override
-  String get recordedAudio => 'Recorded audio';
-
-  @override
-  String get recordLabel => 'Record';
 
   @override
   String get sendLabel => 'Send';
@@ -605,9 +504,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String attachedImagesMessage(Object count) {
     return 'Sent $count image(s)';
   }
-
-  @override
-  String get smartSuggesting => 'Smart suggesting...';
 
   @override
   String get noTaskData => 'No task data';
@@ -631,23 +527,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String retryCount(Object count) {
     return 'Retry: $count';
   }
-
-  @override
-  String get aiMaterialProcessFailed => 'AI material process failed';
-
-  @override
-  String get aiMaterialProcessDone => 'AI material process done';
-
-  @override
-  String get aiOrganizingMaterial => 'AI is organizing material';
-
-  @override
-  String get taskCompletedAddedToTimeline =>
-      'Task completed, card added to Timeline';
-
-  @override
-  String get processErrorRetryLater =>
-      'Some errors occurred, please retry later.';
 
   @override
   String get loadDetailFailedRetry => 'Load detail failed, please retry later.';
@@ -735,18 +614,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get todayTimeFlow => 'Today\'s time flow';
 
   @override
-  String get insightAssistant => 'Insight assistant';
-
-  @override
-  String get insightInputHint =>
-      'What would you like to know about your knowledge...';
-
-  @override
   String get aiInputHint =>
       'Whether it\'s memories or the present, I\'m here...';
-
-  @override
-  String get noContentInPeriod => 'No content in this period';
 
   @override
   String get nothingHere => 'Nothing here yet';
@@ -805,34 +674,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unnamedInsight => 'Unnamed insight';
 
   @override
-  String loadDirectoryFailed(Object error) {
-    return 'Failed to load directory: $error';
-  }
-
-  @override
-  String readFileFailed(Object error) {
-    return 'Failed to read file: $error';
-  }
-
-  @override
-  String get backToParent => 'Back';
-
-  @override
-  String get directoryEmpty => 'Directory is empty';
-
-  @override
   String get copiedToClipboard => 'Copied to clipboard';
 
   @override
   String get copy => 'Copy';
-
-  @override
-  String get binaryFile => 'Binary file';
-
-  @override
-  String fileSizeLabel(Object size) {
-    return 'File size: $size';
-  }
 
   @override
   String get selectedLocation => 'Selected location';
@@ -859,9 +704,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirmLocation => 'Confirm location';
 
   @override
-  String get userCreatedSuccess => 'User created successfully!';
-
-  @override
   String get welcomeToMemex => 'Welcome to Memex';
 
   @override
@@ -877,22 +719,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pleaseEnterUserId => 'Please enter your name';
 
   @override
-  String get userIdMinLength => 'Name must be at least 1 character';
-
-  @override
   String get userIdMaxLength => 'Name must not exceed 50 characters';
-
-  @override
-  String get userIdFormat => 'Name format is incorrect';
 
   @override
   String get startUsing => 'Continue';
 
   @override
   String get userIdTip => 'This will be used to personalize your experience.';
-
-  @override
-  String get openAiAuthInfo => 'OpenAI auth info';
 
   @override
   String get setupModelConfigTitle => 'Set up an AI model';
@@ -911,18 +744,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiServiceMemexRouteTitle => 'Connect through Memex';
 
   @override
-  String get aiServiceTitle => 'The AI journal for your real life';
-
-  @override
-  String get aiServiceSubtitle =>
-      'Turn scattered notes, photos, and voice records into a structured second brain.';
-
-  @override
   String get aiServiceLongDescription =>
       'Memex uses a multi-agent system to organize life records, knowledge notes, and social context, discover deeper insights, and provide AI companionship with persistent memory. Your data is stored as plain-text Markdown, preserving data freedom and portability.';
-
-  @override
-  String get aiServiceCustomModelTitle => 'Connect your own AI model';
 
   @override
   String get aiServiceCustomApiRouteTitle => 'I have an API key';
@@ -932,23 +755,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Choose this first if you already have an API key from OpenAI, Anthropic, DeepSeek, Gemini, or another provider.';
 
   @override
-  String get aiServiceStepAccount =>
-      'One account manages credit, billing, and usage history.';
-
-  @override
-  String get aiServiceStepBalance =>
-      'Pay as you go. Top up when balance runs low; no fixed monthly fee.';
-
-  @override
-  String get aiServiceStepEnable =>
-      'Once enabled, text, photo, and voice records enter the AI organization queue.';
-
-  @override
   String get enableAiService => 'Connect with Memex';
-
-  @override
-  String get aiServiceWaitingForPayment =>
-      'Sign in and choose credit to turn on';
 
   @override
   String get aiServiceReadyToast => 'AI organization is on';
@@ -964,21 +771,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get skipForNow => 'Skip for now';
 
   @override
-  String get modelAuth => 'Model auth';
-
-  @override
   String get clearAuth => 'Clear auth';
 
   @override
-  String get openAiAuthCleared => 'OpenAI auth cleared';
-
-  @override
   String get authorizing => 'Authorizing...';
-
-  @override
-  String openAiAuthSuccess(Object accountId) {
-    return 'OpenAI auth success! AccountId: $accountId';
-  }
 
   @override
   String authFailed(Object error) {
@@ -987,9 +783,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authorized => 'Authorized';
-
-  @override
-  String get viewAuthInfo => 'View auth info';
 
   @override
   String get config => 'Config';
@@ -1040,49 +833,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ignore => 'Ignore';
 
   @override
-  String get appLockOn => 'App lock enabled';
-
-  @override
-  String get appLockOff => 'App lock disabled';
-
-  @override
-  String get enableAppLockFirst => 'Please enable app lock first';
-
-  @override
-  String get enterFourDigitPassword => 'Enter 4-digit password';
-
-  @override
-  String get passwordSetAndLockOn => 'Password set and app lock enabled';
-
-  @override
-  String get appLockSettings => 'App lock settings';
-
-  @override
-  String get enableAppLock => 'Enable app lock';
-
-  @override
-  String get enableAppLockSubtitle =>
-      'Password required when launching the app';
-
-  @override
-  String get enableBiometrics => 'Enable biometrics';
-
-  @override
-  String get biometricsSubtitle => 'Use Face ID or Touch ID to unlock';
-
-  @override
-  String get changePassword => 'Change password';
-
-  @override
-  String get setFourDigitPassword => 'Set 4-digit password';
-
-  @override
-  String get reenterPasswordToConfirm => 'Re-enter password to confirm';
-
-  @override
-  String get passwordMismatch => 'Passwords do not match. Please try again.';
-
-  @override
   String get confirmDelete => 'Confirm delete';
 
   @override
@@ -1099,9 +849,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String deleteFailed(Object error) {
     return 'Delete failed: $error';
   }
-
-  @override
-  String get continueChat => 'Continue conversation...';
 
   @override
   String daysAgo(Object count) {
@@ -1209,10 +956,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aboutThisInsightHint =>
-      'What would you like to know about this insight...';
-
-  @override
   String get knowledgeInsight => 'Knowledge insight';
 
   @override
@@ -1229,9 +972,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get insightUnavailableMessage =>
       'This insight is still being generated or was updated. Refresh insights and try again later.';
-
-  @override
-  String get scheduleAggregation => 'Schedule aggregation';
 
   @override
   String get noScheduleAggregation => 'No schedule aggregation';
@@ -1272,9 +1012,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scheduleBriefingTitle => 'Schedule briefing';
 
   @override
-  String get scheduleBriefingNeedsUpdate => 'Needs update';
-
-  @override
   String get scheduleBriefingOpen => 'Open';
 
   @override
@@ -1291,11 +1028,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String scheduleBriefingConflictCount(Object count) {
-    return '$count conflicts';
-  }
-
-  @override
   String get updating => 'Updating...';
 
   @override
@@ -1306,6 +1038,49 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get disabled => 'Disabled';
+
+  @override
+  String get appLockOn => 'App lock enabled';
+
+  @override
+  String get appLockOff => 'App lock disabled';
+
+  @override
+  String get enableAppLockFirst => 'Please enable app lock first';
+
+  @override
+  String get enterFourDigitPassword => 'Enter 4-digit password';
+
+  @override
+  String get passwordSetAndLockOn => 'Password set and app lock enabled';
+
+  @override
+  String get appLockSettings => 'App lock settings';
+
+  @override
+  String get enableAppLock => 'Enable app lock';
+
+  @override
+  String get enableAppLockSubtitle =>
+      'Password required when launching the app';
+
+  @override
+  String get enableBiometrics => 'Enable biometrics';
+
+  @override
+  String get biometricsSubtitle => 'Use Face ID or Touch ID to unlock';
+
+  @override
+  String get changePassword => 'Change password';
+
+  @override
+  String get setFourDigitPassword => 'Set 4-digit password';
+
+  @override
+  String get reenterPasswordToConfirm => 'Re-enter password to confirm';
+
+  @override
+  String get passwordMismatch => 'Passwords do not match. Please try again.';
 
   @override
   String confirmDeleteCharacter(Object name) {
@@ -1329,13 +1104,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String loadCharacterFailed(Object error) {
     return 'Failed to load characters: $error';
   }
-
-  @override
-  String get characterDesignerHint =>
-      'Describe the character you want to create or update...';
-
-  @override
-  String get characterDesigner => 'Character designer';
 
   @override
   String get noTags => 'No tags';
@@ -1387,22 +1155,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pleaseEnterCharacterPersona => 'Please enter character persona';
 
   @override
-  String get systemFeaturesAndExtensions => 'System features & extensions';
-
-  @override
-  String get shareExtensionTitle => 'Share extension';
-
-  @override
-  String get shareExtensionSubtitle =>
-      'Share content to the app from system share sheet';
-
-  @override
-  String get screenTimeTitle => 'Screen Time (Screen Time API)';
-
-  @override
-  String get screenTimeSubtitle => 'Access app usage and attention data';
-
-  @override
   String permissionRequestError(Object error) {
     return 'Permission request error: $error';
   }
@@ -1423,12 +1175,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get authorizedGoToSettings =>
       'Authorized. Go to system settings to change.';
-
-  @override
-  String get goToSettingsShort => 'Open Settings';
-
-  @override
-  String get basicPermissions => 'Basic permissions';
 
   @override
   String get location => 'Location';
@@ -1483,31 +1229,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Load detail failed, please retry later.';
 
   @override
-  String get llmCallStats => 'LLM call stats';
-
-  @override
-  String get noLlmCallRecords => 'No LLM call records';
-
-  @override
   String get total => 'Total';
-
-  @override
-  String get callCount => 'Call count';
 
   @override
   String get estimatedCost => 'Estimated cost';
 
   @override
   String get byAgent => 'By Agent';
-
-  @override
-  String get cardGenerationAgent => 'Card generation Agent';
-
-  @override
-  String get knowledgeOrgAgent => 'Knowledge org Agent';
-
-  @override
-  String get commentGenerationAgent => 'Comment generation Agent';
 
   @override
   String get timeUpdated => 'Time updated';
@@ -1523,12 +1251,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get confirmDeleteCardMessage =>
       'Delete this card? This cannot be undone.';
-
-  @override
-  String get profileAgent => 'Profile Agent';
-
-  @override
-  String get assetAnalysis => 'Asset analysis';
 
   @override
   String get cardDetailNotFound => 'Card detail not found';
@@ -1558,29 +1280,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get timelineTemplateGalleryTitle => 'Timeline card templates';
 
   @override
-  String get categoryGeneral => 'General';
-
-  @override
   String get categoryTextual => 'Textual';
 
   @override
-  String get k411 =>
-      '## 什么是心流？  心流（Flow）是由心理学家米哈里·契克森米哈提出的一种心理状态。当你完全沉浸在一项具有挑战性但可完成的任务中，时间感消失，注意力高度集中，这就是心流。  > 人在做感兴趣的事情时，常常浑然忘我。  研究发现，心流状态下的人往往生产力最高，幸福感也最强。';
-
-  @override
   String get timelineFilterAll => 'ALL';
-
-  @override
-  String get timelineDays => 'Days';
-
-  @override
-  String get timelineWeeks => 'Weeks';
-
-  @override
-  String get timelineMonths => 'Months';
-
-  @override
-  String get timelineYears => 'Years';
 
   @override
   String get insights => 'Insights';
@@ -1680,9 +1383,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get setAsDefault => 'Set as default';
 
   @override
-  String get missingApiKey => 'Missing API Key';
-
-  @override
   String get invalidJsonInExtraField => 'Invalid JSON in Extra field';
 
   @override
@@ -1723,18 +1423,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientLabel => 'Model provider';
-
-  @override
-  String get geminiClient => 'Gemini';
-
-  @override
-  String get chatCompletionClient => 'OpenAI (ChatCompletion)';
-
-  @override
-  String get responsesClient => 'OpenAI (Responses)';
-
-  @override
-  String get bedrockClient => 'Bedrock';
 
   @override
   String get providerGroupOpenAi => 'OpenAI';
@@ -1806,12 +1494,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memexCreateAccount => 'Create Account';
 
   @override
-  String get memexSignInToMemex => 'Sign in to Memex AI';
-
-  @override
-  String get memexCreateMemexAccount => 'Create Memex AI account';
-
-  @override
   String get memexUsername => 'Username';
 
   @override
@@ -1825,12 +1507,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get memexTopUp => 'Top up to start using Memex AI';
-
-  @override
-  String get memexApplyCredentials => 'Apply Credentials';
-
-  @override
-  String get memexCredentialsApplied => 'Credentials applied';
 
   @override
   String get memexTopUpSuccess => 'Top up successful!';
@@ -2003,10 +1679,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chooseAvatar => 'Choose Avatar';
 
   @override
-  String get coachMarkConfigureModel =>
-      'Set up your AI model first to unlock all features 🔑';
-
-  @override
   String get configureNow => 'Configure Now';
 
   @override
@@ -2024,61 +1696,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedStatus => 'Failed';
 
   @override
-  String get viewDetails => 'View Details';
-
-  @override
   String get failureReason => 'Failure Reason';
-
-  @override
-  String get cardGenerationFailedTitle => 'Card generation failed';
-
-  @override
-  String get cardGenerationFailedDescription =>
-      'Your original record is saved. You can regenerate the card without creating a duplicate record.';
-
-  @override
-  String get regenerateCard => 'Regenerate Card';
-
-  @override
-  String get cardRegenerationStarted => 'Card regeneration started';
-
-  @override
-  String get cardRegenerationFailed => 'Failed to start card regeneration';
-
-  @override
-  String get cardRegeneratingTitle => 'Regenerating card';
-
-  @override
-  String get cardRegeneratingDescription =>
-      'Memex is rebuilding this card from the saved original record.';
-
-  @override
-  String failedCardsRetryTitle(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count cards failed to generate',
-      one: '1 card failed to generate',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get failedCardsRetryDescription =>
-      'Original records are saved. Retry all failed card generations from the saved records.';
-
-  @override
-  String get retryAllFailedCards => 'Retry All';
-
-  @override
-  String failedCardsRetryStarted(Object count) {
-    return 'Started regenerating $count failed cards';
-  }
-
-  @override
-  String failedCardsRetryPartial(Object retried, Object failed) {
-    return 'Started $retried retries. $failed cards need attention.';
-  }
 
   @override
   String get unknownError => 'Unknown error occurred';
@@ -2314,10 +1932,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dataStorage => 'Data Storage';
 
   @override
-  String get dataStorageDescription =>
-      'Choose where Memex stores your data. Custom folder or iCloud keeps data when you reinstall the app.';
-
-  @override
   String get dataStorageDescriptionAndroid =>
       'Choose a custom folder to store your workspace. Data is kept when you reinstall the app.';
 
@@ -2347,15 +1961,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sync your workspace across Apple devices. Data stays after reinstall.';
 
   @override
-  String get chooseFolder => 'Choose folder';
-
-  @override
   String storageLocationCurrent(Object location) {
     return 'Current: $location';
   }
-
-  @override
-  String get icloudNotAvailable => 'iCloud not available';
 
   @override
   String get icloudRequiresCapability =>
@@ -2369,14 +1977,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get switchingStorage => 'Switching storage…';
-
-  @override
-  String get customPathInvalid =>
-      'Selected folder is no longer accessible. Using app storage.';
-
-  @override
-  String get storagePermissionRequired =>
-      'Storage permission is needed to use a custom folder. Please allow it.';
 
   @override
   String get customFolderAccessDenied =>
@@ -2415,9 +2015,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deleteAccountConfirmMessage =>
       'This will permanently delete all your data including timeline cards, knowledge base, recordings, and settings. This action cannot be undone.';
-
-  @override
-  String get deleteAccountSuccess => 'All data has been deleted.';
 
   @override
   String deleteAccountTypeName(Object name) {
@@ -2550,9 +2147,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadSkill => 'Download Skill';
 
   @override
-  String get downloadSkillHint => 'Enter skill zip URL';
-
-  @override
   String get downloading => 'Downloading...';
 
   @override
@@ -2570,9 +2164,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String deleteConfirmMessage(String name) {
     return 'Are you sure you want to delete \"$name\"?';
   }
-
-  @override
-  String get emptyDirectory => 'Empty directory';
 
   @override
   String get invalidUrl => 'Please enter a valid URL';
@@ -2619,15 +2210,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacyPolicyDesc => 'How Memex handles your data';
-
-  @override
-  String get dataShareBanner =>
-      'When AI features are enabled, your data is sent to the configured provider for processing. Tap to learn more.';
-
-  @override
-  String llmConsentDataShareNote(Object provider) {
-    return 'Data sharing: Your data will be sent to $provider for AI processing.';
-  }
 
   @override
   String get llmAuthError =>
@@ -2686,11 +2268,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get speechModelConnecting => 'Connecting...';
 
   @override
-  String speechModelDownloadFailed(Object error) {
-    return 'Download failed: $error';
-  }
-
-  @override
   String get deleteSpeechModel => 'Delete speech model';
 
   @override
@@ -2711,9 +2288,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get speechTranscribing => 'Recognizing...';
-
-  @override
-  String get speechTranscriptionTitle => 'Transcription';
 
   @override
   String get speechNoResult => 'No speech detected';
@@ -2780,30 +2354,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get recommendedBadge => 'Recommended';
 
   @override
-  String get reanalyzeMediaAssets => 'Re-analyze media assets';
-
-  @override
-  String get reanalyzeMediaAssetsDesc =>
-      'Refreshes media analysis files before regenerating cards.';
-
-  @override
-  String get readOnlyMode => 'Chat';
-
-  @override
   String get readOnlyBadge => 'CHAT';
-
-  @override
-  String get chatModeLabel => 'Agent';
 
   @override
   String get switchCompanion => 'Switch companion';
 
   @override
   String get personaChatInputHint => 'Type a message...';
-
-  @override
-  String get personaChatEmptyHint =>
-      'Send the first message to begin this companion chat';
 
   @override
   String get today => 'Today';
@@ -2910,9 +2467,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get testCurrentLocation => 'Test current location';
-
-  @override
-  String get locationUnavailable => 'location unavailable';
 
   @override
   String locationTestFailed(String error) {
@@ -3335,14 +2889,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dismissTypeCardUpdate => 'Card updates';
-
-  @override
-  String get dismissAllConfirm => 'Clear all notifications?';
-
-  @override
-  String dismissTypeConfirm(Object type) {
-    return 'Clear all $type notifications?';
-  }
 
   @override
   String dismissedCount(Object count) {

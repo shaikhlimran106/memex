@@ -22,9 +22,7 @@ void main() {
           'comments': [
             {'id': 'c1', 'content': 'new comment'},
           ],
-          'content': 'raw fact content',
-          'asset_analyses': <String>[],
-          'asset_ocr': <String>[],
+          'fact': 'raw fact content',
         },
       );
 

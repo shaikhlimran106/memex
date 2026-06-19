@@ -30,7 +30,8 @@ class SpecSheetCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: const Color(0xFFF7F8FA),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.5)),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),

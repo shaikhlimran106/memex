@@ -38,8 +38,8 @@ class ConversationCard extends StatelessWidget {
 
           if (messages.isEmpty)
             const Center(
-                child:
-                    Text("No messages", style: TextStyle(color: const Color(0xFF99A1AF)))),
+                child: Text("No messages",
+                    style: TextStyle(color: const Color(0xFF99A1AF)))),
 
           // Chat Bubbles
           ...messages.map((m) {

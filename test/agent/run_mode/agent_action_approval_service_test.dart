@@ -19,7 +19,7 @@ void main() {
     test('auto-denies when no UI is attached to the session', () async {
       final approved = await service.requestApproval(
         sessionId: 'session-unattached',
-        toolName: 'submit_record',
+        toolName: 'save_timeline_card',
         summary: 'content',
       );
       expect(approved, isFalse);
@@ -72,7 +72,7 @@ void main() {
 
       final future = service.requestApproval(
         sessionId: 'session-c',
-        toolName: 'submit_record',
+        toolName: 'save_timeline_card',
         summary: 'pending record',
       );
       await Future<void>.delayed(Duration.zero);

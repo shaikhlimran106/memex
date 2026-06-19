@@ -19,8 +19,7 @@ class KnowledgeInsightSkill extends Skill {
               "Creates, updates, or removes Knowledge Insight cards: the chart-style visualizations (trends, breakdowns, recaps, comparisons) that surface patterns across many of the user's records, each rendered from a template and backed by the facts it draws on. "
               "Use when the user wants a cross-record insight, chart, recap, or trend, or when an existing insight card needs revising or deleting. "
               "Not for single-record timeline cards: use manage_timeline_card for those.",
-          systemPrompt:
-              Prompts.knowledgeInsightAgentKnowledgeInsightSkillPrompt(
+          systemPrompt: Prompts.knowledgeInsightSkillPrompt(
             UserStorage.l10n.knowledgeInsightLanguageInstruction,
           ),
           tools: [
@@ -521,8 +520,8 @@ Tool buildGetUserActivityStatsTool() {
       final safeDays = (days ?? 7).clamp(1, 90).toInt();
 
       try {
-        final snapshot = await UserStatsService(fileSystemService: fileSystem)
-            .fetchSnapshot(
+        final snapshot =
+            await UserStatsService(fileSystemService: fileSystem).fetchSnapshot(
           userId: userId,
           range: UserStatsDateRange.lastDays(safeDays),
         );

@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/user_storage.dart';
-import 'package:memex/data/services/file_system_service.dart';
 
 class InputDraft {
   final String id;

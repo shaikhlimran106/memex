@@ -69,10 +69,7 @@ Future<void> _handleCardFts(SearchDao searchDao, String op, String documentKey,
     case 'insert':
     case 'update':
       if (doc == null) return;
-      // The card's `fact` field is the source-of-truth original user input
-      // (verbatim text plus the meaningful content of any attachments), so it
-      // is the only content the card FTS index needs. Image-analysis / OCR
-      // sidecar text is intentionally not indexed separately.
+      // The card's `fact` field is the source text used for card search.
       final content = doc['fact'] as String? ?? '';
       final insightMap = doc['insight'] as Map<String, dynamic>?;
       await searchDao.upsertCardFts(

@@ -171,9 +171,9 @@ class CharacterService {
   ) async {
     final allDefaults = UserStorage.l10n.defaultCharacters;
     final charData = allDefaults.cast<Map<String, dynamic>?>().firstWhere(
-      (c) => c!['id'] == charId,
-      orElse: () => null,
-    );
+          (c) => c!['id'] == charId,
+          orElse: () => null,
+        );
     if (charData == null) return;
     await _seedCharacterFromData(userId, charsPath, charId, charData);
   }
