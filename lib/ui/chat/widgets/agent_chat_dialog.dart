@@ -197,6 +197,11 @@ bool shouldShowSuperAgentPhotoSuggestions({
 }
 
 @visibleForTesting
+bool canEditSuperAgentComposer({required bool isStreaming}) {
+  return !isStreaming;
+}
+
+@visibleForTesting
 Map<String, String> initialOriginalFilenamesForSelectedImages(
   List<XFile> images,
   Map<String, String> provided,
@@ -219,6 +224,8 @@ class AgentChatDialog extends StatefulWidget {
   final String? initialDraftText;
   final List<XFile> initialImages;
   final Map<String, String> initialImageOriginalFilenames;
+  @visibleForTesting
+  final bool initialIsStreamingForTesting;
 
   const AgentChatDialog({
     super.key,
@@ -228,6 +235,7 @@ class AgentChatDialog extends StatefulWidget {
     this.initialDraftText,
     this.initialImages = const [],
     this.initialImageOriginalFilenames = const {},
+    this.initialIsStreamingForTesting = false,
   });
 
   @override
@@ -263,7 +271,6 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   final List<XFile> _selectedImages = [];
   final Map<String, String> _originalFilenames = {};
   StreamSubscription<ChatEvent>? _chatSubscription;
-  final List<StreamSubscription<ChatEvent>> _queuedSendSubscriptions = [];
   Timer? _draftSaveDebounce;
   bool _isApplyingDraft = false;
   bool _isLoadingPhotoSuggestions = false;
@@ -278,6 +285,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   void initState() {
     super.initState();
     _currentSessionId = widget.initialSessionId;
+    _isStreaming = widget.initialIsStreamingForTesting;
     final initialDraftText = widget.initialDraftText;
     if (initialDraftText != null && initialDraftText.isNotEmpty) {
       _messageController.text = initialDraftText;
@@ -332,10 +340,6 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   @override
   void dispose() {
     _chatSubscription?.cancel();
-    for (final subscription in _queuedSendSubscriptions) {
-      subscription.cancel();
-    }
-    _queuedSendSubscriptions.clear();
     _approvalSubscription?.cancel();
     final sessionId = _currentSessionId;
     if (sessionId != null) {
@@ -623,10 +627,12 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     List<XFile> images = const [],
     Map<String, String>? imageOriginalFilenames,
   }) {
+    if (_isStreaming) {
+      _messageFocusNode.unfocus();
+      return;
+    }
     if (message.trim().isEmpty && images.isEmpty) return;
 
-    final queueBehindActiveRun =
-        _isStreaming && _currentSessionId != null && _chatSubscription != null;
     _messageFocusNode.unfocus();
     String finalMessage = message.trim();
     final displayText = finalMessage.isNotEmpty
@@ -669,11 +675,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       runMode: _runMode.wireName,
     );
     _recordSentImageHashes(images, imageOriginalFilenames);
-    if (queueBehindActiveRun) {
-      _listenToQueuedSend(stream);
-    } else {
-      _listenToChatStream(stream);
-    }
+    _listenToChatStream(stream);
   }
 
   /// Subscribes the dialog to a chat event stream — either a freshly started
@@ -710,30 +712,6 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     );
   }
 
-  /// Consumes the enqueue/session events from a send made while this dialog is
-  /// already attached to the active run. The existing live subscription remains
-  /// responsible for agent progress and responses.
-  void _listenToQueuedSend(Stream<ChatEvent> stream) {
-    late final StreamSubscription<ChatEvent> subscription;
-    subscription = stream.listen(
-      (event) {
-        if (!mounted) return;
-        if (event is ChatSessionCreatedEvent || event is ChatErrorEvent) {
-          _handleChatEvent(event);
-        }
-      },
-      onError: (e) {
-        if (!mounted) return;
-        setState(() => _items.add(ErrorItem(e.toString())));
-        _scrollToBottom();
-      },
-      onDone: () {
-        _queuedSendSubscriptions.remove(subscription);
-      },
-    );
-    _queuedSendSubscriptions.add(subscription);
-  }
-
   /// If this session has a run still executing (the dialog was closed while
   /// the agent worked), restore the streaming UI and replay missed events.
   Future<void> _maybeReattachToActiveRun() async {
@@ -743,6 +721,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     if (!mounted || sessionId != _currentSessionId) return;
 
     AgentActionApprovalService.instance.attachSession(sessionId);
+    _messageFocusNode.unfocus();
     setState(() {
       _isStreaming = true;
       _isLoadingAgent = true;
@@ -821,6 +800,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   void _handleChatEvent(ChatEvent event) {
     setState(() {
       if (event is ChatAgentStartedEvent) {
+        _messageFocusNode.unfocus();
         _isLoadingAgent = true;
         _nextResponseStartsNewMessage = true;
         return;
@@ -1357,6 +1337,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
 
   Widget _buildSuperAgentInput() {
     final isBusy = _isStreaming;
+    final canEdit = canEditSuperAgentComposer(isStreaming: isBusy);
     final showPhotoSuggestions = shouldShowSuperAgentPhotoSuggestions(
       isStreaming: isBusy,
       isLoading: _isLoadingPhotoSuggestions,
@@ -1408,21 +1389,27 @@ class _AgentChatDialogState extends State<AgentChatDialog>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  controller: _messageController,
-                  focusNode: _messageFocusNode,
-                  minLines: 1,
-                  maxLines: 5,
-                  textInputAction: TextInputAction.newline,
-                  decoration: InputDecoration(
-                    hintText: UserStorage.l10n.aiInputHint,
-                    hintStyle: const TextStyle(
-                      color: AppColors.textTertiary,
-                      fontSize: 15,
+                IgnorePointer(
+                  ignoring: !canEdit,
+                  child: TextField(
+                    controller: _messageController,
+                    focusNode: _messageFocusNode,
+                    readOnly: !canEdit,
+                    canRequestFocus: canEdit,
+                    enableInteractiveSelection: canEdit,
+                    minLines: 1,
+                    maxLines: 5,
+                    textInputAction: TextInputAction.newline,
+                    decoration: InputDecoration(
+                      hintText: UserStorage.l10n.aiInputHint,
+                      hintStyle: const TextStyle(
+                        color: AppColors.textTertiary,
+                        fontSize: 15,
+                      ),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
                     ),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1445,13 +1432,13 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                     Expanded(
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: _buildRunModeChip(),
+                        child: _buildRunModeChip(enabled: canEdit),
                       ),
                     ),
                     const SizedBox(width: 12),
                     GestureDetector(
                       key: const ValueKey('super_agent_publish_button'),
-                      onTap: _handleSuperAgentSubmit,
+                      onTap: canEdit ? _handleSuperAgentSubmit : null,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 160),
                         padding: const EdgeInsets.symmetric(
@@ -1459,7 +1446,9 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                           vertical: 11,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.textPrimary,
+                          color: canEdit
+                              ? AppColors.textPrimary
+                              : AppColors.textPrimary.withValues(alpha: 0.35),
                           borderRadius: BorderRadius.circular(24),
                         ),
                         child: Row(
@@ -1542,15 +1531,15 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     UserStorage.setSuperAgentRunMode(mode.wireName);
   }
 
-  Widget _buildRunModeChip() {
+  Widget _buildRunModeChip({required bool enabled}) {
     return GestureDetector(
       key: const ValueKey('super_agent_run_mode_chip'),
-      onTap: _showRunModePicker,
+      onTap: enabled ? _showRunModePicker : null,
       child: Container(
         height: 42,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFF7F8FA),
+          color: enabled ? const Color(0xFFF7F8FA) : const Color(0xFFF1F5F9),
           borderRadius: BorderRadius.circular(21),
         ),
         child: Row(

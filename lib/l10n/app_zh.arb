@@ -770,7 +770,7 @@
   "duplicateConfiguration": "复制配置",
   "duplicate": "复制",
   "keyIdLabel": "配置 ID",
-  "keyIdHelper": "用于区分多个模型配置，普通用户无需修改",
+  "keyIdHelper": "给这套配置起个名字，例如 deepseek 或 work-gpt。",
   "required": "必填",
   "clientLabel": "模型服务商",
   "providerGroupOpenAi": "OpenAI",

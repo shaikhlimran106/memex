@@ -770,7 +770,7 @@
   "duplicateConfiguration": "Duplicate Configuration",
   "duplicate": "Duplicate",
   "keyIdLabel": "Config ID",
-  "keyIdHelper": "Used to distinguish multiple model configs. Most users do not need to change it.",
+  "keyIdHelper": "Name this setup, such as deepseek or work-gpt.",
   "required": "Required",
   "clientLabel": "Model provider",
   "providerGroupOpenAi": "OpenAI",

@@ -104,6 +104,11 @@ void main() {
       );
     });
 
+    test('disables the composer while the super agent is running', () {
+      expect(canEditSuperAgentComposer(isStreaming: false), isTrue);
+      expect(canEditSuperAgentComposer(isStreaming: true), isFalse);
+    });
+
     test('keeps original filenames only for selected initial images', () {
       final selected = [
         XFile('/tmp/a.jpg'),
@@ -249,6 +254,31 @@ void main() {
       expect(find.text(UserStorage.l10n.sendLabel), findsOneWidget);
     });
 
+    testWidgets('running super agent keeps the composer unfocusable', (
+      tester,
+    ) async {
+      await _pumpDialog(tester, initialIsStreamingForTesting: true);
+
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.readOnly, isTrue);
+      expect(textField.canRequestFocus, isFalse);
+      expect(textField.enableInteractiveSelection, isFalse);
+
+      await tester.tap(find.byType(TextField), warnIfMissed: false);
+      await tester.pump();
+      expect(tester.testTextInput.isVisible, isFalse);
+
+      final publishButton = tester.widget<GestureDetector>(
+        find.byKey(const ValueKey('super_agent_publish_button')),
+      );
+      expect(publishButton.onTap, isNull);
+
+      final runModeChip = tester.widget<GestureDetector>(
+        find.byKey(const ValueKey('super_agent_run_mode_chip')),
+      );
+      expect(runModeChip.onTap, isNull);
+    });
+
     testWidgets('keeps super agent header actions tight to the right edge', (
       tester,
     ) async {
@@ -295,6 +325,7 @@ void main() {
 Future<void> _pumpDialog(
   WidgetTester tester, {
   Size viewportSize = const Size(390, 800),
+  bool initialIsStreamingForTesting = false,
 }) async {
   tester.view.physicalSize = viewportSize;
   tester.view.devicePixelRatio = 1.0;
@@ -302,11 +333,13 @@ Future<void> _pumpDialog(
   addTearDown(tester.view.resetDevicePixelRatio);
 
   await tester.pumpWidget(
-    const MaterialApp(
+    MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
-        body: AgentChatDialog(),
+        body: AgentChatDialog(
+          initialIsStreamingForTesting: initialIsStreamingForTesting,
+        ),
       ),
     ),
   );

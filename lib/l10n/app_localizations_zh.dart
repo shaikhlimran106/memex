@@ -1649,7 +1649,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keyIdLabel => '配置 ID';
 
   @override
-  String get keyIdHelper => '用于区分多个模型配置，普通用户无需修改';
+  String get keyIdHelper => '给这套配置起个名字，例如 deepseek 或 work-gpt。';
 
   @override
   String get required => '必填';

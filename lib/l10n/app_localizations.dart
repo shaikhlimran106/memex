@@ -3102,7 +3102,7 @@ abstract class AppLocalizations {
   /// No description provided for @keyIdHelper.
   ///
   /// In en, this message translates to:
-  /// **'Used to distinguish multiple model configs. Most users do not need to change it.'**
+  /// **'Name this setup, such as deepseek or work-gpt.'**
   String get keyIdHelper;
 
   /// No description provided for @required.

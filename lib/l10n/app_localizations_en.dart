@@ -1698,8 +1698,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get keyIdLabel => 'Config ID';
 
   @override
-  String get keyIdHelper =>
-      'Used to distinguish multiple model configs. Most users do not need to change it.';
+  String get keyIdHelper => 'Name this setup, such as deepseek or work-gpt.';
 
   @override
   String get required => 'Required';
