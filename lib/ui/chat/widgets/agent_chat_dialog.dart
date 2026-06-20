@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -160,10 +161,16 @@ const BorderRadius _agentChatSheetBorderRadius = BorderRadius.vertical(
 double resolveAgentChatDialogHeight(
   Size viewportSize, {
   required bool isFullScreen,
+  double keyboardInset = 0,
 }) {
-  return isFullScreen
+  final baseHeight = isFullScreen
       ? viewportSize.height
       : viewportSize.height * _agentChatSheetHeightFactor;
+  if (keyboardInset <= 0) return baseHeight;
+
+  final availableHeight = math.max(0.0, viewportSize.height - keyboardInset);
+  if (availableHeight <= 0) return baseHeight;
+  return math.min(baseHeight, availableHeight);
 }
 
 @visibleForTesting
@@ -177,7 +184,7 @@ double resolveSuperAgentInputBottomInset({
   required bool inputFocused,
   required bool isStreaming,
 }) {
-  return inputFocused && !isStreaming ? keyboardInset : 0;
+  return !isStreaming ? keyboardInset : 0;
 }
 
 @visibleForTesting
@@ -940,9 +947,15 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   @override
   Widget build(BuildContext context) {
     final viewportSize = MediaQuery.of(context).size;
+    final keyboardBottomOffset = resolveSuperAgentInputBottomInset(
+      keyboardInset: MediaQuery.of(context).viewInsets.bottom,
+      inputFocused: _messageFocusNode.hasFocus,
+      isStreaming: _isStreaming,
+    );
     final dialogHeight = resolveAgentChatDialogHeight(
       viewportSize,
       isFullScreen: _isFullScreen,
+      keyboardInset: keyboardBottomOffset,
     );
     final borderRadius = resolveAgentChatDialogBorderRadius(
       isFullScreen: _isFullScreen,
@@ -963,88 +976,101 @@ class _AgentChatDialogState extends State<AgentChatDialog>
           // Dialog
           SlideTransition(
             position: _slideAnimation,
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: AnimatedContainer(
-                key: const ValueKey('agent_chat_dialog_container'),
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
-                width: double.infinity,
-                height: dialogHeight,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: borderRadius,
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 40,
-                      offset: Offset(0, -10),
-                    ),
-                  ],
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: SafeArea(
-                  top: _isFullScreen,
-                  bottom: false,
-                  child: Column(
-                    children: [
-                      _buildHeader(),
-                      Expanded(
-                        child: Container(
-                          color: Colors.white,
-                          child: _isLoading
-                              ? const Center(child: AgentLogoLoading())
-                              : _items.isEmpty
-                                  ? _buildEmptyState()
-                                  : ListView.builder(
-                                      controller: _scrollController,
-                                      padding: const EdgeInsets.all(24),
-                                      itemCount: _items.length +
-                                          (_isLoadingAgent ? 1 : 0),
-                                      itemBuilder: (context, index) {
-                                        if (index == _items.length) {
-                                          return const Padding(
-                                            padding: EdgeInsets.only(
-                                              bottom: 24,
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                CircleAvatar(
-                                                  radius: 12,
-                                                  backgroundColor:
-                                                      AppColors.iconBgLight,
-                                                  child: SizedBox(
-                                                    width: 12,
-                                                    height: 12,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      color: AppColors.primary,
-                                                    ),
-                                                  ),
-                                                ),
-                                                SizedBox(width: 8),
-                                                Text(
-                                                  'Thinking...',
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                    color:
-                                                        AppColors.textTertiary,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        }
-                                        return _buildItem(_items[index]);
-                                      },
-                                    ),
-                        ),
+            child: AnimatedPadding(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.only(bottom: keyboardBottomOffset),
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: AnimatedContainer(
+                  key: const ValueKey('agent_chat_dialog_container'),
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  width: double.infinity,
+                  height: dialogHeight,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: borderRadius,
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 40,
+                        offset: Offset(0, -10),
                       ),
-                      _buildTokenUsageDisplay(),
-                      _buildContextIndicator(),
-                      _buildInput(),
                     ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: SafeArea(
+                    top: _isFullScreen,
+                    bottom: false,
+                    child: Column(
+                      children: [
+                        _buildHeader(),
+                        Expanded(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onTap: _messageFocusNode.unfocus,
+                            child: Container(
+                              color: Colors.white,
+                              child: _isLoading
+                                  ? const Center(child: AgentLogoLoading())
+                                  : _items.isEmpty
+                                      ? _buildEmptyState()
+                                      : ListView.builder(
+                                          controller: _scrollController,
+                                          keyboardDismissBehavior:
+                                              ScrollViewKeyboardDismissBehavior
+                                                  .onDrag,
+                                          padding: const EdgeInsets.all(24),
+                                          itemCount: _items.length +
+                                              (_isLoadingAgent ? 1 : 0),
+                                          itemBuilder: (context, index) {
+                                            if (index == _items.length) {
+                                              return const Padding(
+                                                padding: EdgeInsets.only(
+                                                  bottom: 24,
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    CircleAvatar(
+                                                      radius: 12,
+                                                      backgroundColor:
+                                                          AppColors.iconBgLight,
+                                                      child: SizedBox(
+                                                        width: 12,
+                                                        height: 12,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                          color:
+                                                              AppColors.primary,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 8),
+                                                    Text(
+                                                      'Thinking...',
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        color: AppColors
+                                                            .textTertiary,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            }
+                                            return _buildItem(_items[index]);
+                                          },
+                                        ),
+                            ),
+                          ),
+                        ),
+                        _buildTokenUsageDisplay(),
+                        _buildContextIndicator(),
+                        _buildInput(),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -1331,11 +1357,6 @@ class _AgentChatDialogState extends State<AgentChatDialog>
 
   Widget _buildSuperAgentInput() {
     final isBusy = _isStreaming;
-    final bottomInset = resolveSuperAgentInputBottomInset(
-      keyboardInset: MediaQuery.of(context).viewInsets.bottom,
-      inputFocused: _messageFocusNode.hasFocus,
-      isStreaming: isBusy,
-    );
     final showPhotoSuggestions = shouldShowSuperAgentPhotoSuggestions(
       isStreaming: isBusy,
       isLoading: _isLoadingPhotoSuggestions,
@@ -1343,7 +1364,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     );
 
     return Container(
-      padding: EdgeInsets.fromLTRB(16, 12, 16, bottomInset + 16),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: Color(0xFFF7F8FA))),

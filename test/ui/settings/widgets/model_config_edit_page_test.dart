@@ -77,6 +77,17 @@ void main() {
 
       final saveButton = find.byIcon(Icons.save);
       expect(saveButton, findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('model_config_bottom_save_button')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('model_config_bottom_save_button')),
+          matching: find.text('Save'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('saves duplicate config with unique key', (tester) async {

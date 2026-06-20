@@ -12,6 +12,7 @@ import 'package:memex/agent/state_util.dart';
 import 'package:memex/agent/super_agent/super_agent.dart';
 import 'package:memex/agent/super_agent/subagent/delegate_progress.dart';
 import 'package:memex/data/services/asset_safety_service.dart';
+import 'package:memex/data/services/agent_run_trace_service.dart';
 import 'package:memex/data/services/chat_history_sanitizer.dart';
 import 'package:memex/data/services/chat_run_registry.dart';
 import 'package:memex/data/services/custom_agent_config_service.dart';
@@ -39,9 +40,10 @@ export 'package:memex/data/model/chat_events.dart';
 // --- Chat Service ---
 
 class _ChatDelegateProgressSink implements DelegateProgressSink {
-  _ChatDelegateProgressSink(this._run);
+  _ChatDelegateProgressSink(this._run, this._trace);
 
   final ActiveChatRun _run;
+  final AgentRunTrace _trace;
   final Map<String, List<String>> _pendingDelegateCallIdsByBrief = {};
   final Map<String, String> _delegateParentIds = {};
   final Map<String, int> _childTraceCounters = {};
@@ -61,13 +63,14 @@ class _ChatDelegateProgressSink implements DelegateProgressSink {
     final parentCallId = _takePendingDelegateCallId(progress.taskBrief);
     if (parentCallId == null) return;
     _delegateParentIds[progress.delegateRunId] = parentCallId;
-    _run.add(ChatTraceStartedEvent(
+    final event = ChatTraceStartedEvent(
       id: parentCallId,
       kind: ChatTraceKind.delegate,
       name: 'delegate_to_subagent',
       args: progress.taskBrief,
       label: progress.childName,
-    ));
+    );
+    _run.add(event);
   }
 
   @override
@@ -79,14 +82,23 @@ class _ChatDelegateProgressSink implements DelegateProgressSink {
     final parentId = _delegateParentIds[progress.delegateRunId];
     if (parentId == null) return;
     final childTraceId = _nextChildTraceId(progress.delegateRunId, toolName);
-    _run.add(ChatTraceStartedEvent(
+    final event = ChatTraceStartedEvent(
       id: childTraceId,
       parentId: parentId,
       kind: ChatTraceKind.tool,
       name: toolName,
       args: arguments,
       label: progress.childName,
+    );
+    unawaited(_trace.recordTraceStarted(
+      id: event.id,
+      parentId: event.parentId,
+      kind: event.kind.name,
+      name: event.name,
+      args: event.args,
+      label: event.label,
     ));
+    _run.add(event);
   }
 
   @override
@@ -97,9 +109,15 @@ class _ChatDelegateProgressSink implements DelegateProgressSink {
     final parentId = _delegateParentIds[progress.delegateRunId];
     final childTraceId = _takeChildTraceId(progress.delegateRunId, result.name);
     if (parentId == null || childTraceId == null) return;
+    final resultText = _toolResultText(result);
     _run.add(ChatTraceCompletedEvent(
       id: childTraceId,
-      result: _toolResultPreview(result),
+      result: _preview(resultText, 300),
+      isError: result.isError,
+    ));
+    unawaited(_trace.recordTraceCompleted(
+      id: childTraceId,
+      result: resultText,
       isError: result.isError,
     ));
   }
@@ -115,29 +133,33 @@ class _ChatDelegateProgressSink implements DelegateProgressSink {
     _childTraceCounters.remove(progress.delegateRunId);
     _pendingChildTraceIdsByTool
         .removeWhere((key, _) => key.startsWith('${progress.delegateRunId}:'));
-    _run.add(ChatTraceCompletedEvent(
+    final event = ChatTraceCompletedEvent(
       id: parentId,
       status: status,
       result: summary,
       isError: status == 'failed',
+    );
+    unawaited(_trace.recordTraceCompleted(
+      id: event.id,
+      result: event.result,
+      isError: event.isError,
+      status: event.status,
     ));
+    _run.add(event);
   }
 
-  String _toolResultPreview(FunctionExecutionResult result) {
+  String _toolResultText(FunctionExecutionResult result) {
     final dynamic content = result.content;
-    final String preview;
     if (content is List) {
-      preview = content.map((e) {
+      return content.map((e) {
         if (e is TextPart) return e.text;
         return e.toString();
       }).join('\n');
     } else if (content is TextPart) {
-      preview = content.text;
+      return content.text;
     } else {
-      preview = content.toString();
+      return content.toString();
     }
-    if (preview.length <= 300) return preview;
-    return '${preview.substring(0, 300)}...';
   }
 
   String? _taskBriefFromArguments(String arguments) {
@@ -184,6 +206,11 @@ class _ChatDelegateProgressSink implements DelegateProgressSink {
 
   String _childTraceKey(String delegateRunId, String toolName) =>
       '$delegateRunId:$toolName';
+}
+
+String _preview(String text, int maxChars) {
+  if (text.length <= maxChars) return text;
+  return '${text.substring(0, maxChars)}...';
 }
 
 class ChatService {
@@ -468,6 +495,23 @@ class ChatService {
     required DateTime userMessageTime,
     required ActiveChatRun run,
   }) async {
+    final trace = await AgentRunTraceService.instance.startChatTurn(
+      userId: userId,
+      runId: taskId,
+      sessionId: sessionId,
+      turnId: turnId,
+      taskId: taskId,
+      agentName: agentName,
+      scene: scene,
+      sceneId: sceneId,
+      message: message,
+      imageCount: preparedImages.length,
+      refs: refs,
+      isQuickQuery: isQuickQuery,
+      runMode: runMode,
+      userMessageTime: userMessageTime,
+    );
+
     // 2. Initialize Agent
     StatefulAgent? agent;
     AgentController? controller;
@@ -497,6 +541,10 @@ class ChatService {
       );
       final client = resources.client;
       final modelConfig = resources.modelConfig;
+      await trace.recordModel(
+        model: modelConfig.model,
+        clientType: client.runtimeType.toString(),
+      );
 
       // Load State
       final state = await loadOrCreateAgentState(sessionId, {
@@ -622,6 +670,10 @@ class ChatService {
       }
     } catch (e) {
       _logger.severe('Failed to initialize agent', e);
+      await trace.recordError(
+        'Failed to initialize agent',
+        details: e.toString(),
+      );
       run.add(ChatErrorEvent('Failed to initialize agent: $e'));
       if (await _shouldCloseRunAfterTask(taskId)) {
         run.close();
@@ -630,7 +682,7 @@ class ChatService {
     }
 
     // 3. Setup Listeners & Run
-    final progressSink = _ChatDelegateProgressSink(run);
+    final progressSink = _ChatDelegateProgressSink(run, trace);
 
     // Forward events from agent controller to the run channel
     _setupControllerListeners(
@@ -641,6 +693,7 @@ class ChatService {
       turnId,
       taskId,
       progressSink,
+      trace,
     );
 
     // Build scene context reminder
@@ -758,6 +811,7 @@ class ChatService {
         });
       } catch (e) {
         _logger.severe('Agent run failed', e);
+        await trace.recordError('Agent run failed', details: e.toString());
         if (!run.isClosed) {
           run.add(ChatErrorEvent(e.toString()));
           if (await _shouldCloseRunAfterTask(taskId)) {
@@ -966,11 +1020,15 @@ class ChatService {
     String turnId,
     String taskId,
     _ChatDelegateProgressSink progressSink,
+    AgentRunTrace trace,
   ) {
-    // 1. Lifecycle Events
     // 1. Lifecycle Events
     controller.on((AgentStartedEvent event) {
       _logger.info('Agent started');
+      unawaited(trace.recordAgentStarted(
+        agentName: event.agent.name,
+        agentId: event.agent.id,
+      ));
       stream.add(ChatAgentStartedEvent());
     });
 
@@ -1030,6 +1088,11 @@ class ChatService {
       }
 
       if (event.error != null) {
+        await trace.recordError(
+          'Agent stopped with error',
+          details: event.error.toString(),
+        );
+        await trace.recordAgentStopped(error: event.error.toString());
         if (!stream.isClosed) {
           stream.add(ChatAgentStoppedEvent());
           stream.add(ChatErrorEvent(event.error.toString()));
@@ -1049,6 +1112,16 @@ class ChatService {
         }
       }
 
+      final usage = {
+        'prompt_tokens': totalPrompt,
+        'completion_tokens': totalCompletion,
+        'cached_tokens': totalCached,
+        if (turnCacheSemantics != null)
+          'cache_tokens_included_in_prompt': turnCacheSemantics,
+        'total_tokens': totalTokens,
+        'total_cost': totalCost,
+      };
+
       // Save AI response with usage stats
       final responseTime = DateTime.now();
       final sessionTotalUsage =
@@ -1061,18 +1134,13 @@ class ChatService {
                   [
                     {'type': 'text', 'text': response},
                   ],
-                  usage: {
-                    'prompt_tokens': totalPrompt,
-                    'completion_tokens': totalCompletion,
-                    'cached_tokens': totalCached,
-                    if (turnCacheSemantics != null)
-                      'cache_tokens_included_in_prompt': turnCacheSemantics,
-                    'total_tokens': totalTokens,
-                    'total_cost': totalCost,
-                  },
+                  usage: usage,
                   timestamp: responseTime,
                   turnId: turnId,
                 );
+
+      await trace.recordFinalResponse(response, usage: usage);
+      await trace.recordAgentStopped();
 
       // Emit Token Usage (Cumulative if available, else current turn)
       if (sessionTotalUsage != null) {
@@ -1138,6 +1206,7 @@ class ChatService {
         final emoji = getStatusEmoji(t.status.name);
         return '$emoji ${t.description}';
       }).join('\n\n');
+      unawaited(trace.recordPlan(planText));
       stream.add(ChatThoughtChunkEvent("Plan Updated:\n$planText"));
     });
 
@@ -1145,6 +1214,7 @@ class ChatService {
     controller.on((LLMChunkEvent event) {
       if (event.response.thought != null &&
           event.response.thought!.isNotEmpty) {
+        unawaited(trace.recordThoughtChunk(event.response.thought!));
         stream.add(ChatThoughtChunkEvent(event.response.thought!));
       }
 
@@ -1162,39 +1232,50 @@ class ChatService {
           arguments: event.functionCall.arguments,
         );
       }
-      stream.add(
-        ChatTraceStartedEvent(
-          id: event.functionCall.id,
-          kind: event.functionCall.name == 'delegate_to_subagent'
-              ? ChatTraceKind.delegate
-              : ChatTraceKind.tool,
-          name: event.functionCall.name,
-          args: event.functionCall.arguments.toString(),
+      final traceEvent = ChatTraceStartedEvent(
+        id: event.functionCall.id,
+        kind: event.functionCall.name == 'delegate_to_subagent'
+            ? ChatTraceKind.delegate
+            : ChatTraceKind.tool,
+        name: event.functionCall.name,
+        args: event.functionCall.arguments.toString(),
+      );
+      unawaited(
+        trace.recordTraceStarted(
+          id: traceEvent.id,
+          kind: traceEvent.kind.name,
+          name: traceEvent.name,
+          args: traceEvent.args,
         ),
       );
+      stream.add(traceEvent);
     });
 
     // 5. Tool Result
-    // 5. Tool Result
     controller.on((AfterToolCallEvent event) {
-      // Format result for display
       final dynamic content = event.result.content;
-      String resultPreview;
+      String resultText;
 
       if (content is List) {
-        resultPreview = content.map((e) {
+        resultText = content.map((e) {
           if (e is TextPart) return e.text;
           return e.toString();
         }).join('\n');
       } else if (content is TextPart) {
-        resultPreview = content.text;
+        resultText = content.text;
       } else {
-        resultPreview = content.toString();
+        resultText = content.toString();
       }
 
-      if (resultPreview.length > 300) {
-        resultPreview = '${resultPreview.substring(0, 300)}...';
-      }
+      final resultPreview = _preview(resultText, 300);
+      unawaited(
+        trace.recordTraceCompleted(
+          id: event.result.id,
+          result: resultText,
+          isError: event.result.isError,
+          metadata: event.result.metadata,
+        ),
+      );
       stream.add(
         ChatTraceCompletedEvent(
           id: event.result.id,

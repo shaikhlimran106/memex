@@ -11,7 +11,6 @@ import 'package:memex/ui/timeline/widgets/location_picker_page.dart';
 import 'package:memex/ui/calendar/view_models/calendar_viewmodel.dart';
 import 'package:provider/provider.dart';
 
-import 'package:flutter/gestures.dart';
 import 'package:memex/domain/models/card_detail_model.dart';
 import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/utils/toast_helper.dart';
@@ -32,6 +31,7 @@ import 'package:memex/ui/core/widgets/agent_logo_loading.dart';
 import 'package:memex/ui/character/widgets/persona_chat_screen.dart';
 import 'package:memex/utils/share_service.dart';
 import 'package:memex/ui/core/cards/native_card_factory.dart';
+import 'package:memex/ui/core/widgets/html_webview_card.dart';
 
 /// Timeline card detail screen - plays full card detail
 class TimelineCardDetailScreen extends StatefulWidget {
@@ -1109,77 +1109,15 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
                                       ),
                                     ),
 
-                                  // Content with tags
-                                  if (detail.rawContent.isNotEmpty ||
-                                      detail.tags.isNotEmpty)
-                                    Text.rich(
-                                      TextSpan(
-                                        children: [
-                                          TextSpan(
-                                            text: detail.rawContent,
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              color: Color(0xFF334155),
-                                              height: 1.6,
-                                            ),
-                                          ),
-                                          if (detail.rawContent.isNotEmpty &&
-                                              detail.tags.isNotEmpty)
-                                            const TextSpan(text: ' '),
-                                          ...detail.tags.map((tag) {
-                                            return TextSpan(
-                                              text: '#$tag',
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                color: Color(0xFF6366F1),
-                                                fontWeight: FontWeight.w400,
-                                                height: 1.25,
-                                                letterSpacing: 0,
-                                              ),
-                                              recognizer: TapGestureRecognizer()
-                                                ..onTap = () {
-                                                  Navigator.pop(
-                                                    context,
-                                                    {
-                                                      'action': 'filter_tag',
-                                                      'tag': tag,
-                                                    },
-                                                  );
-                                                },
-                                            );
-                                          }).expand(
-                                            (span) => [
-                                              span,
-                                              const TextSpan(text: ' '),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  else if (detail.tags.isNotEmpty)
-                                    Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: detail.tags.map((tag) {
-                                        return GestureDetector(
-                                          onTap: () {
-                                            Navigator.pop(context, {
-                                              'action': 'filter_tag',
-                                              'tag': tag,
-                                            });
-                                          },
-                                          child: Text(
-                                            '#$tag',
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              color: Color(0xFF6366F1),
-                                              fontWeight: FontWeight.w400,
-                                              letterSpacing: 0,
-                                            ),
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ),
+                                  TimelineCardDetailBodySection(
+                                    detail: detail,
+                                    onTagTap: (tag) {
+                                      Navigator.pop(context, {
+                                        'action': 'filter_tag',
+                                        'tag': tag,
+                                      });
+                                    },
+                                  ),
 
                                   const SizedBox(height: 16),
 
@@ -2023,6 +1961,180 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class TimelineCardDetailBodySection extends StatelessWidget {
+  const TimelineCardDetailBodySection({
+    super.key,
+    required this.detail,
+    this.onTagTap,
+  });
+
+  final CardDetailModel detail;
+  final ValueChanged<String>? onTagTap;
+
+  static const Set<String> _rawFallbackTemplateIds = {
+    'classic_card',
+    'audio_card',
+    'gallery_card',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final structuredConfigs =
+        detail.uiConfigs.where(_isRenderableStructuredConfig).toList();
+
+    if (structuredConfigs.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ...structuredConfigs.asMap().entries.map((entry) {
+            final index = entry.key;
+            final config = entry.value;
+            final isLast = index == structuredConfigs.length - 1;
+            return Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 8),
+              child: _buildConfig(config),
+            );
+          }),
+          if (detail.tags.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _TagWrap(tags: detail.tags, onTagTap: onTagTap),
+          ],
+        ],
+      );
+    }
+
+    if (detail.rawContent.isEmpty && detail.tags.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (detail.rawContent.isNotEmpty)
+          MarkdownBody(
+            data: detail.rawContent,
+            softLineBreak: true,
+            styleSheet: MarkdownStyleSheet(
+              p: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF334155),
+                height: 1.6,
+              ),
+              h1: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF334155),
+                height: 1.35,
+              ),
+              h2: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF334155),
+                height: 1.35,
+              ),
+              h3: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF334155),
+                height: 1.4,
+              ),
+              strong: const TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF334155),
+              ),
+              listBullet: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF6366F1),
+                height: 1.6,
+              ),
+              code: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF475569),
+                backgroundColor: Color(0xFFF7F8FA),
+                fontFamily: 'monospace',
+              ),
+              codeblockDecoration: BoxDecoration(
+                color: const Color(0xFFF7F8FA),
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        if (detail.rawContent.isNotEmpty && detail.tags.isNotEmpty)
+          const SizedBox(height: 8),
+        if (detail.tags.isNotEmpty)
+          _TagWrap(tags: detail.tags, onTagTap: onTagTap),
+      ],
+    );
+  }
+
+  bool _isRenderableStructuredConfig(UiConfig config) {
+    if (_rawFallbackTemplateIds.contains(config.templateId)) {
+      return false;
+    }
+    if (config.templateId == 'legacy_html') {
+      final html = config.data['html'] as String?;
+      return html != null && html.isNotEmpty;
+    }
+    return true;
+  }
+
+  Widget _buildConfig(UiConfig config) {
+    if (config.templateId == 'legacy_html') {
+      final html = config.data['html'] as String?;
+      if (html == null || html.isEmpty) {
+        return const SizedBox.shrink();
+      }
+      return HtmlWebViewCard(
+        html: html,
+        config: const HtmlWebViewConfig.timeline(),
+      );
+    }
+
+    return NativeCardFactory.build(
+      templateId: config.templateId,
+      data: config.data,
+      title: detail.title,
+      status: detail.status,
+      tags: detail.tags,
+      failureReason: detail.failureReason,
+      overrideTitle: false,
+    );
+  }
+}
+
+class _TagWrap extends StatelessWidget {
+  const _TagWrap({
+    required this.tags,
+    this.onTagTap,
+  });
+
+  final List<String> tags;
+  final ValueChanged<String>? onTagTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: tags.map((tag) {
+        return GestureDetector(
+          onTap: onTagTap == null ? null : () => onTagTap!(tag),
+          behavior: HitTestBehavior.opaque,
+          child: Text(
+            '#$tag',
+            style: const TextStyle(
+              fontSize: 16,
+              color: Color(0xFF6366F1),
+              fontWeight: FontWeight.w400,
+              letterSpacing: 0,
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

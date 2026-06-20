@@ -20,6 +20,22 @@ void main() {
 
       expect(resolveAgentChatDialogHeight(viewport, isFullScreen: false), 600);
       expect(resolveAgentChatDialogHeight(viewport, isFullScreen: true), 800);
+      expect(
+        resolveAgentChatDialogHeight(
+          viewport,
+          isFullScreen: false,
+          keyboardInset: 320,
+        ),
+        480,
+      );
+      expect(
+        resolveAgentChatDialogHeight(
+          viewport,
+          isFullScreen: true,
+          keyboardInset: 320,
+        ),
+        480,
+      );
     });
 
     test('uses rounded sheet corners only outside full screen', () {
@@ -33,7 +49,8 @@ void main() {
       );
     });
 
-    test('drops keyboard inset while the super agent is sending', () {
+    test('uses keyboard inset whenever the keyboard is visible and editable',
+        () {
       expect(
         resolveSuperAgentInputBottomInset(
           keyboardInset: 320,
@@ -56,7 +73,7 @@ void main() {
           inputFocused: false,
           isStreaming: false,
         ),
-        0,
+        320,
       );
     });
 
