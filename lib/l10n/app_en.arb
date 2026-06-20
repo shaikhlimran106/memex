@@ -35,6 +35,15 @@
     }
   },
   "createTaskFailed": "Failed to create task: {error}",
+  "reprocessCards": "Reprocess cards",
+  "reprocessCardsTaskCreated": "Reprocess request queued in Super Agent",
+  "reprocessCardsDownstreamMode": "Scope",
+  "reprocessCardsCardOnly": "Cards only",
+  "reprocessCardsCardOnlyDesc": "Ask Super Agent to review and regenerate the selected timeline cards.",
+  "reprocessCardsRerunDownstream": "Cards and related follow-ups",
+  "reprocessCardsRerunDownstreamDesc": "Ask Super Agent to also consider related PKM, schedule, and insight updates when needed.",
+  "reanalyzeMediaAssets": "Re-read media attachments",
+  "reanalyzeMediaAssetsDesc": "Ask Super Agent to inspect attached media again when regenerating cards.",
   "regenerateComments": "Regenerate comments",
   "regenerateCommentsTaskCreated": "Regenerate comments task created, running in background",
   "rebuildSearchIndex": "Rebuild search index",
@@ -212,8 +221,19 @@
   "releaseToSend": "Release to send",
   "selectFromAlbum": "Select from album",
   "clipboardPreviewTitle": "New clipboard",
+  "clipboardPreviewImageTitle": "Clipboard image",
+  "clipboardPreviewImageDescription": "Image ready to add",
   "clipboardPreviewUnprocessed": "Not pasted yet",
   "clipboardPreviewPasteToInput": "Paste to input",
+  "clipboardPreviewAddImageToInput": "Add image",
+  "clipboardPreviewImageFailed": "Couldn't read clipboard image",
+  "tellAiWhatHappened": "Tell AI what happened...",
+  "@recordingWithDuration": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "recordingWithDuration": "Recording: {duration}",
   "playing": "Playing...",
   "sendLabel": "Send",
   "attachedImagesMessage": "Sent {count} image(s)",
@@ -288,6 +308,59 @@
   "activityDetail": "Activity Detail",
   "noAgentActivityYet": "No agent activity yet",
   "processingEllipsis": "Processing...",
+  "agentBackgroundTitle": "Memex Agent",
+  "agentBackgroundPausedTitle": "Memex Agent paused",
+  "agentBackgroundNeedsAttentionTitle": "Memex Agent needs attention",
+  "agentBackgroundStageIdle": "Idle",
+  "agentBackgroundStageProcessing": "Processing",
+  "agentBackgroundStageQueued": "Queued",
+  "agentBackgroundStageRetrying": "Waiting to retry",
+  "agentBackgroundStagePaused": "Paused",
+  "agentBackgroundStageCompleted": "Completed",
+  "agentBackgroundStageNeedsAttention": "Needs attention",
+  "agentBackgroundStageAnalyzingMedia": "Analyzing media",
+  "agentBackgroundStageGeneratingCard": "Generating card",
+  "agentBackgroundStageUpdatingKnowledge": "Updating knowledge",
+  "agentBackgroundStagePreparingComment": "Preparing comment",
+  "agentBackgroundStageRoutingFollowUps": "Routing follow-ups",
+  "@agentBackgroundTaskSummary": {
+    "placeholders": {
+      "running": {},
+      "pending": {},
+      "retrying": {}
+    }
+  },
+  "agentBackgroundTaskSummary": "Running {running}, Pending {pending}, Retry {retrying}",
+  "@agentBackgroundTaskDetail": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "agentBackgroundTaskDetail": "Processing {count} queued task(s).",
+  "agentBackgroundNoTasks": "No background tasks.",
+  "agentBackgroundStarting": "Processing is starting.",
+  "agentBackgroundCompletedDetail": "All background tasks finished.",
+  "agentBackgroundFailedDetail": "Processing stopped with an error.",
+  "agentBackgroundPausedDetail": "Processing is paused and will continue later.",
+  "agentBackgroundQueuedDetail": "Waiting for the next processing step.",
+  "agentBackgroundRetryingDetail": "The current step will retry automatically.",
+  "agentBackgroundAnalyzeMediaDetail": "Reading attachments and local context.",
+  "agentBackgroundGeneratingCardDetail": "Turning the record into a timeline card.",
+  "agentBackgroundUpdatingKnowledgeDetail": "Updating local knowledge and memory.",
+  "agentBackgroundPreparingCommentDetail": "Preparing an assistant follow-up.",
+  "agentBackgroundRoutingFollowUpsDetail": "Checking follow-up actions for this card.",
+  "@agentBackgroundPausedStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "agentBackgroundPausedStatus": "Paused - {summary}",
+  "@agentBackgroundNeedsAttentionStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "agentBackgroundNeedsAttentionStatus": "Needs attention - {summary}",
   "settings": "Settings",
   "languageSettings": "Language",
   "languageSettingsDesc": "Change the app display language",
@@ -335,6 +408,41 @@
   "setupModelConfigSubtitle": "Memex needs a frontier AI model to organize records, analyze images, and generate insights. Choose one connection method.",
   "setupModelConfigComplete": "Complete & Go",
   "aiService": "Memex Model Service",
+  "aiModelHubTitle": "AI models and services",
+  "aiModelHubSubtitle": "Choose Memex's official service or bring your own provider. Advanced model routing stays available when you need it.",
+  "aiSetupCurrentStatusTitle": "Current setup",
+  "aiSetupStatusNotConfiguredTitle": "AI service is not configured",
+  "aiSetupStatusNotConfiguredDescription": "Choose one connection method to enable AI organization for records, media, and insights.",
+  "aiSetupStatusMemexTitle": "Using MemeX official service",
+  "aiSetupStatusMemexDescription": "Memex will use the official connection and API credentials managed by your MemeX account.",
+  "aiSetupStatusCustomTitle": "Using custom provider settings",
+  "aiSetupStatusCustomDescription": "Memex will use your configured provider credentials and model role selections.",
+  "aiSetupChooseConnectionTitle": "Choose a connection method",
+  "aiSetupChooseConnectionDescription": "Start with the path that matches how you want Memex to access AI models.",
+  "aiSetupOfficialRouteDescription": "Sign in to MemeX and use the official service without choosing providers, keys, or agent-level models.",
+  "aiSetupCustomRouteDescription": "Add your own provider credentials, choose the model Super Agent should use, and optionally override models per agent.",
+  "aiSetupCustomPageTitle": "Custom AI service",
+  "aiSetupCustomPageSubtitle": "Configure provider credentials first, then choose the model Memex should use.",
+  "aiSetupProviderCredentialsTitle": "Provider and API keys",
+  "aiSetupProviderCredentialsDescription": "Add or edit OpenAI, Anthropic, DeepSeek, Gemini, OpenRouter, Ollama, or another compatible provider.",
+  "modelRolesTitle": "Choose primary model",
+  "modelRolesDescription": "Super Agent uses one model for text and image inputs. Advanced agent overrides stay available below.",
+  "textModelRoleTitle": "Primary model",
+  "textModelRoleDescription": "Used by Super Agent for text, images, cards, knowledge, insights, chat, comments, schedule, and memory.",
+  "modelConnectionsTitle": "Model providers and API keys",
+  "modelConnectionsDescription": "Connect Memex's official service or add your own provider credentials.",
+  "relatedAiCapabilitiesTitle": "Advanced and related capabilities",
+  "relatedAiCapabilitiesDescription": "Fine-tune agent assignments, location provider, and speech transcription behavior.",
+  "aiSetupServiceCapabilitiesTitle": "Service capabilities",
+  "aiSetupServiceCapabilitiesDescription": "Choose the providers Memex uses for adjacent AI-powered capabilities such as speech and reverse geocoding.",
+  "aiSetupAdvancedCustomizationTitle": "Advanced model routing",
+  "aiSetupAdvancedCustomizationDescription": "For power users who want individual agents to use different providers or model configs.",
+  "locationProviderSettings": "Location provider",
+  "speechProviderSettings": "Speech transcription",
+  "advancedAgentModelAssignments": "Agent model assignments",
+  "openAdvancedAgentModelAssignments": "Override individual agents",
+  "noConfiguredModelOptions": "Add a provider or API key before choosing model roles.",
+  "modelSlotUpdated": "Model role updated",
   "aiServiceMemexRouteTitle": "Connect through Memex",
   "aiServiceLongDescription": "Memex uses a multi-agent system to organize life records, knowledge notes, and social context, discover deeper insights, and provide AI companionship with persistent memory. Your data is stored as plain-text Markdown, preserving data freedom and portability.",
   "aiServiceCustomApiRouteTitle": "I have an API key",
@@ -834,6 +942,21 @@
     }
   },
   "lastBackupAt": "Last backup: {time}",
+  "autoBackupRetention": "Retention",
+  "@autoBackupRetentionDays": {
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "autoBackupRetentionDays": "{days} days",
+  "autoBackupRetentionForever": "Keep forever",
+  "autoBackupMaxSize": "Storage cap",
+  "@autoBackupRetentionLimitHint": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "autoBackupRetentionLimitHint": "Automatic cleanup keeps automatic snapshots under {size}. Safety snapshots and manual exports are kept separately.",
   "createSnapshotNow": "Back up now",
   "backupLocationMenu": "Change location",
   "defaultBackupLocation": "Default backup folder",
@@ -842,6 +965,9 @@
   "chooseBackupLocationAndroidDesc": "Pick a folder with Android's system picker and grant Memex persistent access.",
   "storedBackups": "Stored Backups",
   "noStoredBackups": "Automatic backups will appear here after the first snapshot.",
+  "backupTypeAutoSnapshot": "Automatic snapshot",
+  "backupTypeSafetySnapshot": "Safety snapshot",
+  "backupTypeManualBackup": "Manual backup",
   "refresh": "Refresh",
   "restoreThisBackup": "Restore this backup",
   "deleteThisBackup": "Delete this backup",

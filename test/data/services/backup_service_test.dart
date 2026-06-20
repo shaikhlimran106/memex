@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/data/services/backup_service.dart';
@@ -48,8 +50,10 @@ void main() {
     _clearPathProviderChannelMock();
     _clearBackupStorageChannelMock();
     PathProviderPlatform.instance = originalPathProvider;
-    if (await tempDir.exists()) {
+    try {
       await tempDir.delete(recursive: true);
+    } on PathNotFoundException {
+      // Some restore paths can remove the fake temp root before tearDown runs.
     }
   });
 
@@ -79,6 +83,87 @@ void main() {
 
     expect(manifestJson['formatVersion'], 1);
     expect(manifestJson['entries'], isNotEmpty);
+  });
+
+  test('createBackup still compresses small text files', () async {
+    final outputDir = Directory(p.join(tempDir.path, 'Backups'));
+    final backupPath = await BackupService.createBackup(
+      outputDirectory: outputDir.path,
+    );
+
+    final archive = ZipDecoder().decodeBytes(
+      await File(backupPath).readAsBytes(),
+    );
+    final archivedCard = archive.files.firstWhere(
+      (file) => file.name == 'workspace/Cards/card.md',
+    );
+
+    expect(archivedCard.compression, CompressionType.deflate);
+    expect(utf8.decode(archivedCard.content), 'hello backup');
+  });
+
+  test('createBackup stores compressed media without recompressing', () async {
+    final workspace = Directory(
+      FileSystemService.instance.getWorkspacePath('backup-service-user'),
+    );
+    final mediaFile = File(p.join(workspace.path, 'Assets', 'clip.mp4'));
+    await mediaFile.create(recursive: true);
+    await mediaFile.writeAsBytes(List<int>.generate(1024, (index) => index));
+
+    final outputDir = Directory(p.join(tempDir.path, 'Backups'));
+    final backupPath = await BackupService.createBackup(
+      outputDirectory: outputDir.path,
+    );
+
+    final archive = ZipDecoder().decodeBytes(
+      await File(backupPath).readAsBytes(),
+    );
+    final archivedMedia = archive.files.firstWhere(
+      (file) => file.name == 'workspace/Assets/clip.mp4',
+    );
+
+    expect(archivedMedia.compression, CompressionType.none);
+    expect(archivedMedia.content, await mediaFile.readAsBytes());
+  });
+
+  test('createBackup stores large files without recompressing', () async {
+    final workspace = Directory(
+      FileSystemService.instance.getWorkspacePath('backup-service-user'),
+    );
+    final largeFile = File(p.join(workspace.path, 'Cards', 'large.bin'));
+    const largeFileSize = 16 * 1024 * 1024 + 1;
+    await _writeDeterministicBinaryFile(
+      largeFile,
+      sizeBytes: largeFileSize,
+      seed: 99,
+    );
+
+    final outputDir = Directory(p.join(tempDir.path, 'Backups'));
+    final backupPath = await BackupService.createBackup(
+      outputDirectory: outputDir.path,
+    );
+
+    final archive = ZipDecoder().decodeBytes(
+      await File(backupPath).readAsBytes(),
+    );
+    final archivedLargeFile = archive.files.firstWhere(
+      (file) => file.name == 'workspace/Cards/large.bin',
+    );
+    final manifest = archive.files.firstWhere(
+      (file) => file.name == 'manifest.json',
+    );
+    final manifestJson = jsonDecode(utf8.decode(manifest.content));
+    final entries = (manifestJson['entries'] as List)
+        .whereType<Map>()
+        .map((entry) => entry.cast<String, dynamic>());
+    final largeEntry = entries.firstWhere(
+      (entry) => entry['path'] == 'workspace/Cards/large.bin',
+    );
+
+    expect(archivedLargeFile.compression, CompressionType.none);
+    expect(archivedLargeFile.size, largeFileSize);
+    expect(largeEntry['size'], largeFileSize);
+    expect(largeEntry['sha256'], await _sha256File(largeFile));
   });
 
   test(
@@ -134,69 +219,160 @@ void main() {
     },
   );
 
+  test('automatic backup retention preference defaults and persists', () async {
+    expect(
+      await UserStorage.getAutoBackupRetentionDays('backup-service-user'),
+      UserStorage.defaultAutoBackupRetentionDays,
+    );
+
+    await UserStorage.setAutoBackupRetentionDays('backup-service-user', 14);
+    expect(
+      await UserStorage.getAutoBackupRetentionDays('backup-service-user'),
+      14,
+    );
+
+    await UserStorage.setAutoBackupRetentionDays('backup-service-user', null);
+    expect(
+      await UserStorage.getAutoBackupRetentionDays('backup-service-user'),
+      isNull,
+    );
+
+    expect(
+      () => UserStorage.setAutoBackupRetentionDays('backup-service-user', 0),
+      throwsArgumentError,
+    );
+
+    expect(
+      await UserStorage.getAutoBackupMaxBytes('backup-service-user'),
+      UserStorage.defaultAutoBackupMaxBytes,
+    );
+
+    await UserStorage.setAutoBackupMaxBytes('backup-service-user', 1024);
+    expect(
+        await UserStorage.getAutoBackupMaxBytes('backup-service-user'), 1024);
+
+    expect(
+      () => UserStorage.setAutoBackupMaxBytes('backup-service-user', 0),
+      throwsArgumentError,
+    );
+  });
+
   test(
-    'automatic backup retention keeps the newest seven daily snapshots',
+    'automatic backup retention deletes only expired automatic snapshots',
     () async {
       final backupDir = await BackupService.resolveDefaultBackupDirectory();
       final now = DateTime(2026, 5, 15, 12);
+      await UserStorage.setAutoBackupRetentionDays('backup-service-user', 7);
 
-      for (var i = 0; i < 9; i += 1) {
-        final file = File(
-          p.join(
-            backupDir.path,
-            'memex_auto_2026-05-${(i + 1).toString().padLeft(2, '0')}T00-00-00.memex',
-          ),
-        );
-        await file.writeAsBytes([i]);
-        await file.setLastModified(now.subtract(Duration(days: 9 - i)));
-      }
+      final recent = await _writeStoredBackupFile(
+        backupDir,
+        'memex_auto_recent.memex',
+        modified: now.subtract(const Duration(days: 6)),
+      );
+      final boundary = await _writeStoredBackupFile(
+        backupDir,
+        'memex_auto_boundary.memex',
+        modified: now.subtract(const Duration(days: 7)),
+      );
+      final expired = await _writeStoredBackupFile(
+        backupDir,
+        'memex_auto_expired.memex',
+        modified: now.subtract(const Duration(days: 8)),
+      );
+      final safety = await _writeStoredBackupFile(
+        backupDir,
+        'memex_safety_before_restore.memex',
+        modified: now.subtract(const Duration(days: 60)),
+      );
 
-      await BackupService.createStoredBackup();
+      final deleted = await BackupService.pruneAutoBackups(now: now);
 
-      final files = await backupDir
-          .list()
-          .where(
-            (entity) =>
-                entity is File &&
-                p.basename(entity.path).startsWith('memex_auto'),
-          )
-          .toList();
-
-      expect(files.length, lessThanOrEqualTo(7));
+      expect(deleted, 1);
+      expect(await recent.exists(), isTrue);
+      expect(await boundary.exists(), isTrue);
+      expect(await expired.exists(), isFalse);
+      expect(await safety.exists(), isTrue);
     },
   );
 
-  test('safety snapshots are kept outside automatic retention', () async {
+  test('automatic backup pruning always keeps the newest snapshot', () async {
     final backupDir = await BackupService.resolveDefaultBackupDirectory();
+    final now = DateTime(2026, 5, 15, 12);
+    await UserStorage.setAutoBackupRetentionDays('backup-service-user', 7);
 
-    for (var i = 0; i < 9; i += 1) {
-      final file = File(
-        p.join(
-          backupDir.path,
-          'memex_auto_2026-05-${(i + 1).toString().padLeft(2, '0')}T00-00-00.memex',
-        ),
+    final oldest = await _writeStoredBackupFile(
+      backupDir,
+      'memex_auto_oldest.memex',
+      modified: now.subtract(const Duration(days: 30)),
+    );
+    final newest = await _writeStoredBackupFile(
+      backupDir,
+      'memex_auto_newest.memex',
+      modified: now.subtract(const Duration(days: 20)),
+    );
+
+    final deleted = await BackupService.pruneAutoBackups(now: now);
+
+    expect(deleted, 1);
+    expect(await newest.exists(), isTrue);
+    expect(await oldest.exists(), isFalse);
+  });
+
+  test('automatic backup retention still caps forever history by total size',
+      () async {
+    final backupDir = await BackupService.resolveDefaultBackupDirectory();
+    final now = DateTime(2026, 5, 15, 12);
+    await UserStorage.setAutoBackupRetentionDays('backup-service-user', null);
+    await UserStorage.setAutoBackupMaxBytes('backup-service-user', 3);
+
+    for (var i = 0; i < 5; i += 1) {
+      await _writeStoredBackupFile(
+        backupDir,
+        'memex_auto_${i.toString().padLeft(2, '0')}.memex',
+        modified: now.subtract(Duration(minutes: i)),
+        sizeBytes: 1,
       );
-      await file.writeAsBytes([i]);
     }
 
-    final safety = await BackupService.createSafetySnapshot(
-      reason: 'before_storage_switch',
+    final deleted = await BackupService.pruneAutoBackups(now: now);
+    final remainingNames = await _storedBackupNames(backupDir);
+
+    expect(deleted, 2);
+    expect(remainingNames.length, 3);
+    expect(remainingNames, contains('memex_auto_00.memex'));
+    expect(remainingNames, contains('memex_auto_02.memex'));
+    expect(remainingNames, isNot(contains('memex_auto_03.memex')));
+    expect(remainingNames, isNot(contains('memex_auto_04.memex')));
+  });
+
+  test('automatic backup skip still prunes expired snapshots', () async {
+    await UserStorage.setAutoBackupEnabled('backup-service-user', true);
+    await UserStorage.setAutoBackupRetentionDays('backup-service-user', 7);
+    await UserStorage.setLastAutoBackupMetadata(
+      'backup-service-user',
+      createdAt: DateTime.now().subtract(const Duration(hours: 1)),
+      fingerprint: 'previous',
     );
-    await BackupService.createStoredBackup();
 
-    expect(await File(safety.filePath!).exists(), isTrue);
-    final safetyFiles = await backupDir
-        .list()
-        .where(
-          (entity) =>
-              entity is File &&
-              p
-                  .basename(entity.path)
-                  .startsWith('memex_safety_before_storage_switch'),
-        )
-        .toList();
+    final backupDir = await BackupService.resolveDefaultBackupDirectory();
+    final keep = await _writeStoredBackupFile(
+      backupDir,
+      'memex_auto_recent_skip.memex',
+      modified: DateTime.now().subtract(const Duration(days: 1)),
+    );
+    final expired = await _writeStoredBackupFile(
+      backupDir,
+      'memex_auto_expired_skip.memex',
+      modified: DateTime.now().subtract(const Duration(days: 8)),
+    );
 
-    expect(safetyFiles, isNotEmpty);
+    final snapshot = await BackupService.maybeCreateAutoBackup(
+      trigger: 'skip-prune-test',
+    );
+
+    expect(snapshot, isNull);
+    expect(await keep.exists(), isTrue);
+    expect(await expired.exists(), isFalse);
   });
 
   test('deleteStoredBackup removes only the selected local snapshot', () async {
@@ -293,6 +469,87 @@ void main() {
     expect(await historySafety.exists(), isTrue);
     expect(await File(backupPath).exists(), isTrue);
   });
+
+  test('restore stages and applies workspace files from backup', () async {
+    final exportedDir = Directory(p.join(tempDir.path, 'ExportedBackups'));
+    final backupPath = await BackupService.createBackup(
+      outputDirectory: exportedDir.path,
+    );
+
+    final workspace = Directory(
+      FileSystemService.instance.getWorkspacePath('backup-service-user'),
+    );
+    final cardFile = File(p.join(workspace.path, 'Cards', 'card.md'));
+    await cardFile.writeAsString('local changes after backup');
+
+    try {
+      await BackupService.restoreBackup(backupPath);
+    } finally {
+      if (AppDatabase.isInitialized) {
+        await AppDatabase.instance.close();
+      }
+    }
+
+    expect(await cardFile.readAsString(), 'hello backup');
+  });
+
+  test(
+    'restore keeps the main isolate responsive while extracting a larger backup',
+    () async {
+      final workspace = Directory(
+        FileSystemService.instance.getWorkspacePath('backup-service-user'),
+      );
+      final largeFilesDir = Directory(p.join(workspace.path, 'Cards', 'Large'));
+      const largeFileCount = 32;
+      const largeFileSize = 768 * 1024;
+
+      for (var i = 0; i < largeFileCount; i += 1) {
+        await _writeDeterministicBinaryFile(
+          File(p.join(largeFilesDir.path, 'payload_$i.bin')),
+          sizeBytes: largeFileSize,
+          seed: i + 1,
+        );
+      }
+
+      final exportedDir = Directory(p.join(tempDir.path, 'ExportedBackups'));
+      final backupPath = await BackupService.createBackup(
+        outputDirectory: exportedDir.path,
+      );
+
+      final mutatedFile = File(p.join(largeFilesDir.path, 'payload_0.bin'));
+      await mutatedFile.writeAsString('local mutation after backup');
+
+      var mainIsolateTicks = 0;
+      final timer = Timer.periodic(const Duration(milliseconds: 10), (_) {
+        mainIsolateTicks += 1;
+      });
+      final stopwatch = Stopwatch()..start();
+      try {
+        await BackupService.restoreBackup(backupPath).timeout(
+          const Duration(seconds: 30),
+        );
+      } finally {
+        timer.cancel();
+        stopwatch.stop();
+        if (AppDatabase.isInitialized) {
+          await AppDatabase.instance.close();
+        }
+      }
+
+      expect(stopwatch.elapsed, lessThan(const Duration(seconds: 20)));
+      expect(
+        mainIsolateTicks,
+        greaterThan(5),
+        reason: 'Restore should yield to the main isolate during extraction.',
+      );
+      expect(await mutatedFile.length(), largeFileSize);
+      expect(
+        await mutatedFile.openRead(0, 64).expand((bytes) => bytes).toList(),
+        _deterministicBytes(length: 64, seed: 1),
+      );
+    },
+    timeout: const Timeout(Duration(seconds: 60)),
+  );
 
   group('inspectBackup', () {
     test('reads backup manifest metadata', () async {
@@ -451,4 +708,68 @@ Future<File> _writeBackup(
   final file = File('${tempDir.path}/$fileName');
   await file.writeAsBytes(ZipEncoder().encode(archive));
   return file;
+}
+
+Future<File> _writeStoredBackupFile(
+  Directory backupDir,
+  String fileName, {
+  required DateTime modified,
+  int sizeBytes = 1,
+}) async {
+  final file = File(p.join(backupDir.path, fileName));
+  await file.writeAsBytes(List<int>.filled(sizeBytes, 1));
+  await file.setLastModified(modified);
+  return file;
+}
+
+Future<Set<String>> _storedBackupNames(Directory backupDir) async {
+  return backupDir
+      .list()
+      .where((entity) => entity is File && entity.path.endsWith('.memex'))
+      .map((entity) => p.basename(entity.path))
+      .toSet();
+}
+
+Future<void> _writeDeterministicBinaryFile(
+  File file, {
+  required int sizeBytes,
+  required int seed,
+}) async {
+  await file.parent.create(recursive: true);
+  final sink = file.openWrite();
+  var remaining = sizeBytes;
+  var state = seed;
+
+  while (remaining > 0) {
+    final chunkLength = remaining < 64 * 1024 ? remaining : 64 * 1024;
+    final chunk = _deterministicBytes(
+      length: chunkLength,
+      seed: state,
+      nextState: (value) => state = value,
+    );
+    sink.add(chunk);
+    remaining -= chunkLength;
+  }
+
+  await sink.close();
+}
+
+List<int> _deterministicBytes({
+  required int length,
+  required int seed,
+  void Function(int value)? nextState,
+}) {
+  var state = seed;
+  final bytes = List<int>.filled(length, 0);
+  for (var i = 0; i < bytes.length; i += 1) {
+    state = (state * 1103515245 + 12345) & 0x7fffffff;
+    bytes[i] = state & 0xff;
+  }
+  nextState?.call(state);
+  return bytes;
+}
+
+Future<String> _sha256File(File file) async {
+  final digest = await sha256.bind(file.openRead()).first;
+  return digest.toString();
 }

@@ -7,6 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'package:memex/config/app_flavor.dart';
+import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/db/app_database.dart';
 import 'package:memex/utils/logger.dart';
@@ -24,11 +25,36 @@ const _backupExtension = '.memex';
 const _autoBackupPrefix = 'memex_auto';
 const _safetyBackupPrefix = 'memex_safety';
 const _autoBackupInterval = Duration(hours: 24);
-const _autoBackupKeepRecent = 7;
-const _autoBackupMaxBytes = 2 * 1024 * 1024 * 1024; // 2 GB
+const _backupStoreWithoutCompressionThreshold = 16 * 1024 * 1024; // 16 MB
 const _backupManifestFileName = 'manifest.json';
 const _backupFormat = 'memex.backup';
 const _currentBackupSchemaVersion = 1;
+const _backupStoreWithoutCompressionExtensions = <String>{
+  '.7z',
+  '.aac',
+  '.avi',
+  '.bz2',
+  '.gif',
+  '.gz',
+  '.heic',
+  '.heif',
+  '.jpeg',
+  '.jpg',
+  '.m4a',
+  '.m4v',
+  '.mkv',
+  '.mov',
+  '.mp3',
+  '.mp4',
+  '.ogg',
+  '.opus',
+  '.pdf',
+  '.png',
+  '.rar',
+  '.webm',
+  '.webp',
+  '.zip',
+};
 
 /// Android Storage Access Framework directory selected for backups.
 class AndroidBackupDirectory {
@@ -76,6 +102,7 @@ class BackupSnapshot {
   });
 
   bool get isAndroidDocument => documentUri != null;
+  bool get isAutoSnapshot => name.startsWith(_autoBackupPrefix);
   bool get isSafetySnapshot => name.startsWith(_safetyBackupPrefix);
 }
 
@@ -323,99 +350,62 @@ class BackupService {
     final currentUserId = await UserStorage.getUserId();
     if (currentUserId == null) throw Exception('No user logged in');
     var databaseClosedForRestore = false;
+    Directory? stagingRoot;
 
     try {
-      await inspectBackup(backupFilePath);
+      onProgress?.call('Inspecting backup...');
+      final backupInfo = await inspectBackup(backupFilePath);
+      final normalizedPath = backupInfo.path;
 
-      onProgress?.call('Reading backup...');
-      final bytes = await File(
-        _normalizeFilePath(backupFilePath),
-      ).readAsBytes();
-      final archive = ZipDecoder().decodeBytes(bytes);
-      _validateManifest(archive);
+      onProgress?.call('Preparing restore...');
+      stagingRoot = await _createRestoreStagingDirectory();
+      final stagingWorkspacePath = path.join(stagingRoot.path, 'workspace');
+      final stagingDbPath = path.join(stagingRoot.path, 'db');
+      final stagedRestore = await Isolate.run(
+        () => _stageBackupRestoreArchive(
+          backupFilePath: normalizedPath,
+          stagingWorkspacePath: stagingWorkspacePath,
+          stagingDbPath: stagingDbPath,
+        ),
+      );
+      _logger.info(
+        'Staged restore from $normalizedPath '
+        '(${stagedRestore.workspaceFileCount} workspace files, '
+        '${stagedRestore.dbFileCount} DB files)',
+      );
 
-      // 1. Restore settings FIRST to get the correct userId from backup
+      // 1. Restore settings FIRST to get the correct userId and data root.
       onProgress?.call('Restoring settings...');
-      for (final file in archive) {
-        if (file.name == 'settings.json' && file.isFile) {
-          final jsonStr = utf8.decode(_archiveFileBytes(file));
-          final settings = jsonDecode(jsonStr) as Map<String, dynamic>;
-          final prefs = await SharedPreferences.getInstance();
-          for (final entry in settings.entries) {
-            final value = entry.value;
-            if (value is String) {
-              await prefs.setString(entry.key, value);
-            } else if (value is int) {
-              await prefs.setInt(entry.key, value);
-            } else if (value is double) {
-              await prefs.setDouble(entry.key, value);
-            } else if (value is bool) {
-              await prefs.setBool(entry.key, value);
-            } else if (value is List && value.every((item) => item is String)) {
-              await prefs.setStringList(entry.key, value.cast<String>());
-            }
-          }
-          _logger.info('Restored ${settings.length} settings');
-        }
-      }
+      await _restoreSettings(stagedRestore.settings);
+      _logger.info('Restored ${stagedRestore.settings.length} settings');
 
       // Use the restored userId (from backup settings) for workspace and DB paths
       final restoredUserId = await UserStorage.getUserId() ?? currentUserId;
+      final dataRoot = await UserStorage.resolveDataRoot(restoredUserId);
+      await FileSystemService.init(dataRoot);
       final fs = FileSystemService.instance;
       final workspacePath = fs.getWorkspacePath(restoredUserId);
       final appDir = await getApplicationDocumentsDirectory();
+      final supportDir = await getApplicationSupportDirectory();
 
-      // 2. Restore workspace files
-      onProgress?.call('Restoring workspace...');
-      for (final file in archive) {
-        if (!file.isFile || !file.name.startsWith('workspace/')) continue;
-
-        final relativePath = file.name.substring('workspace/'.length);
-        if (relativePath.isEmpty) continue;
-
-        final targetPath = path.normalize(
-          path.join(workspacePath, relativePath),
-        );
-        if (!_isPathWithin(workspacePath, targetPath)) {
-          throw Exception('Unsafe backup entry path: ${file.name}');
-        }
-
-        final targetDir = Directory(path.dirname(targetPath));
-        if (!await targetDir.exists()) {
-          await targetDir.create(recursive: true);
-        }
-        await File(targetPath).writeAsBytes(_archiveFileBytes(file));
-      }
-
-      // 3. Restore DB
+      // 2. Close current DB before replacing DB files.
       onProgress?.call('Restoring database...');
-      // Close current DB first
       if (AppDatabase.isInitialized) {
         databaseClosedForRestore = true;
         await AppDatabase.instance.close();
       }
 
-      for (final file in archive) {
-        if (file.name.startsWith('db/') && file.isFile) {
-          final dbFileName = path.basename(file.name);
-          // Try both possible locations
-          final supportDir = await getApplicationSupportDirectory();
-          final possibleTargets = [
-            path.join(appDir.path, dbFileName),
-            path.join(supportDir.path, dbFileName),
-          ];
-          // Write to whichever location already has the file, or support dir
-          String targetPath = possibleTargets.last;
-          for (final p in possibleTargets) {
-            if (await File(p).exists()) {
-              targetPath = p;
-              break;
-            }
-          }
-          await File(targetPath).writeAsBytes(_archiveFileBytes(file));
-          _logger.info('Restored DB to: $targetPath');
-        }
-      }
+      // 3. Apply staged workspace and DB files in a background isolate.
+      onProgress?.call('Restoring workspace...');
+      await Isolate.run(
+        () => _applyStagedBackupRestore(
+          stagingWorkspacePath: stagingWorkspacePath,
+          stagingDbPath: stagingDbPath,
+          workspacePath: workspacePath,
+          appDocumentsPath: appDir.path,
+          appSupportPath: supportDir.path,
+        ),
+      );
 
       // Re-init DB
       await AppDatabase.init(restoredUserId);
@@ -426,6 +416,12 @@ class BackupService {
       await fs.rebuildCardCache(restoredUserId);
 
       _logger.info('Backup restored successfully');
+      EventBusService.instance.emitEvent(
+        BackupRestoredMessage(
+          userId: restoredUserId,
+          sourcePath: normalizedPath,
+        ),
+      );
       return true;
     } catch (e, stack) {
       _logger.severe('Restore failed: $e', e, stack);
@@ -437,6 +433,15 @@ class BackupService {
         } catch (_) {}
       }
       rethrow;
+    } finally {
+      final dir = stagingRoot;
+      if (dir != null && await dir.exists()) {
+        try {
+          await dir.delete(recursive: true);
+        } catch (e) {
+          _logger.warning('Failed to delete restore staging dir: $e');
+        }
+      }
     }
   }
 
@@ -461,12 +466,13 @@ class BackupService {
         userId,
       );
 
-      if (!force &&
-          lastBackupAt != null &&
-          now.difference(lastBackupAt) < _autoBackupInterval) {
-        return null;
-      }
-      if (!force && lastFingerprint == fingerprint) {
+      final shouldSkip = !force &&
+          ((lastBackupAt != null &&
+                  now.difference(lastBackupAt) < _autoBackupInterval) ||
+              lastFingerprint == fingerprint);
+
+      if (shouldSkip) {
+        await pruneAutoBackups(now: now);
         return null;
       }
 
@@ -525,8 +531,9 @@ class BackupService {
           );
           final snapshot = _snapshotFromAndroidInfo(info);
           if (pruneAutoBackups) {
-            await _pruneAndroidTreeBackups(treeUri);
+            await BackupService.pruneAutoBackups(emitEvent: false);
           }
+          _emitBackupSnapshotsChanged('created', snapshotId: snapshot.id);
           return snapshot;
         } finally {
           final tempFile = File(tempPath);
@@ -553,9 +560,60 @@ class BackupService {
       filePath: backupPath,
     );
     if (pruneAutoBackups) {
-      await _pruneFileBackups(backupDir);
+      await BackupService.pruneAutoBackups(emitEvent: false);
     }
+    _emitBackupSnapshotsChanged('created', snapshotId: snapshot.id);
     return snapshot;
+  }
+
+  /// Apply the automatic backup retention policy without creating a new backup.
+  ///
+  /// Only snapshots created by the automatic system are removed. Safety
+  /// snapshots and manually exported files are intentionally left alone.
+  static Future<int> pruneAutoBackups({
+    DateTime? now,
+    bool emitEvent = true,
+  }) async {
+    final userId = await UserStorage.getUserId();
+    if (userId == null || userId.isEmpty) return 0;
+
+    final cleanupNow = now ?? DateTime.now();
+    final retentionDays = await UserStorage.getAutoBackupRetentionDays(userId);
+    final maxBytes = await UserStorage.getAutoBackupMaxBytes(userId);
+    var deleted = 0;
+
+    try {
+      final defaultDir = await resolveDefaultBackupDirectory();
+      deleted += await _pruneFileBackups(
+        defaultDir,
+        now: cleanupNow,
+        retentionDays: retentionDays,
+        maxBytes: maxBytes,
+      );
+    } catch (e, st) {
+      _logger.warning('Failed to prune default backups: $e', e, st);
+    }
+
+    if (Platform.isAndroid) {
+      final treeUri = await UserStorage.getAndroidBackupTreeUri(userId);
+      if (treeUri != null && treeUri.isNotEmpty) {
+        try {
+          deleted += await _pruneAndroidTreeBackups(
+            treeUri,
+            now: cleanupNow,
+            retentionDays: retentionDays,
+            maxBytes: maxBytes,
+          );
+        } catch (e, st) {
+          _logger.warning('Failed to prune Android backups: $e', e, st);
+        }
+      }
+    }
+
+    if (deleted > 0 && emitEvent) {
+      _emitBackupSnapshotsChanged('pruned');
+    }
+    return deleted;
   }
 
   /// Restore a stored snapshot. Android SAF snapshots are copied to a temp file
@@ -595,6 +653,7 @@ class BackupService {
   static Future<void> deleteStoredBackup(BackupSnapshot snapshot) async {
     if (snapshot.isAndroidDocument) {
       await _deleteAndroidDocument(snapshot.documentUri!);
+      _emitBackupSnapshotsChanged('deleted', snapshotId: snapshot.id);
       return;
     }
 
@@ -614,6 +673,7 @@ class BackupService {
     if (await file.exists()) {
       await file.delete();
     }
+    _emitBackupSnapshotsChanged('deleted', snapshotId: snapshot.id);
   }
 
   /// List automatic/safety backups from both the platform default directory and
@@ -752,6 +812,43 @@ class BackupService {
     return dir;
   }
 
+  static Future<Directory> _createRestoreStagingDirectory() async {
+    final tempDir = await getTemporaryDirectory();
+    final dir = Directory(
+      path.join(
+        tempDir.path,
+        'memex_restore_${DateTime.now().microsecondsSinceEpoch}',
+      ),
+    );
+    return dir.create(recursive: true);
+  }
+
+  static Future<void> _restoreSettings(Map<String, dynamic> settings) async {
+    if (settings.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    for (final entry in settings.entries) {
+      final value = entry.value;
+      if (value is String) {
+        await prefs.setString(entry.key, value);
+      } else if (value is int) {
+        await prefs.setInt(entry.key, value);
+      } else if (value is double) {
+        await prefs.setDouble(entry.key, value);
+      } else if (value is bool) {
+        await prefs.setBool(entry.key, value);
+      } else if (value is List && value.every((item) => item is String)) {
+        await prefs.setStringList(entry.key, value.cast<String>());
+      }
+    }
+  }
+
+  static void _emitBackupSnapshotsChanged(String reason, {String? snapshotId}) {
+    EventBusService.instance.emitEvent(
+      BackupSnapshotsChangedMessage(reason: reason, snapshotId: snapshotId),
+    );
+  }
+
   /// Get estimated backup size (workspace + DB).
   static Future<int> estimateBackupSize() async {
     final userId = await UserStorage.getUserId();
@@ -759,35 +856,6 @@ class BackupService {
 
     final stats = await _collectSourceStats(userId);
     return stats.totalSize;
-  }
-
-  static void _validateManifest(Archive archive) {
-    final manifestFile = _findArchiveFile(archive, _backupManifestFileName);
-    if (manifestFile == null) {
-      _logger.warning('Backup has no manifest.json; treating as legacy backup');
-      return;
-    }
-
-    final manifestJson = utf8.decode(_archiveFileBytes(manifestFile));
-    final manifest = jsonDecode(manifestJson) as Map<String, dynamic>;
-    final entries = manifest['entries'];
-    if (entries is! List) return;
-
-    for (final entry in entries) {
-      if (entry is! Map) continue;
-      final entryPath = entry['path'] as String?;
-      final expectedSha = entry['sha256'] as String?;
-      if (entryPath == null || expectedSha == null) continue;
-
-      final file = _findArchiveFile(archive, entryPath);
-      if (file == null || !file.isFile) {
-        throw Exception('Backup is missing manifest entry: $entryPath');
-      }
-      final actualSha = sha256.convert(_archiveFileBytes(file)).toString();
-      if (actualSha != expectedSha) {
-        throw Exception('Backup checksum mismatch: $entryPath');
-      }
-    }
   }
 
   static ArchiveFile? _findArchiveFile(Archive archive, String name) {
@@ -798,7 +866,7 @@ class BackupService {
   }
 
   static List<int> _archiveFileBytes(ArchiveFile file) {
-    return List<int>.from(file.content as List);
+    return file.readBytes() ?? const <int>[];
   }
 
   static String _timestampForFile(DateTime time) {
@@ -961,7 +1029,12 @@ class BackupService {
     return result;
   }
 
-  static Future<void> _pruneFileBackups(Directory dir) async {
+  static Future<int> _pruneFileBackups(
+    Directory dir, {
+    required DateTime now,
+    required int? retentionDays,
+    required int maxBytes,
+  }) async {
     final snapshots = (await _listFileBackups(dir))
         .where((snapshot) => snapshot.name.startsWith(_autoBackupPrefix))
         .toList()
@@ -969,9 +1042,16 @@ class BackupService {
 
     var kept = 0;
     var keptBytes = 0;
+    var deleted = 0;
     for (final snapshot in snapshots) {
-      final shouldKeep = kept < _autoBackupKeepRecent &&
-          keptBytes + snapshot.sizeBytes <= _autoBackupMaxBytes;
+      final shouldKeep = _shouldKeepAutoBackup(
+        snapshot: snapshot,
+        now: now,
+        retentionDays: retentionDays,
+        maxBytes: maxBytes,
+        keptCount: kept,
+        keptBytes: keptBytes,
+      );
       if (shouldKeep) {
         kept += 1;
         keptBytes += snapshot.sizeBytes;
@@ -984,14 +1064,21 @@ class BackupService {
         final file = File(filePath);
         if (await file.exists()) {
           await file.delete();
+          deleted += 1;
         }
       } catch (e) {
         _logger.warning('Failed to delete old backup $filePath: $e');
       }
     }
+    return deleted;
   }
 
-  static Future<void> _pruneAndroidTreeBackups(String treeUri) async {
+  static Future<int> _pruneAndroidTreeBackups(
+    String treeUri, {
+    required DateTime now,
+    required int? retentionDays,
+    required int maxBytes,
+  }) async {
     final snapshots = (await _listAndroidTreeBackups(treeUri))
         .where((snapshot) => snapshot.name.startsWith(_autoBackupPrefix))
         .toList()
@@ -999,9 +1086,16 @@ class BackupService {
 
     var kept = 0;
     var keptBytes = 0;
+    var deleted = 0;
     for (final snapshot in snapshots) {
-      final shouldKeep = kept < _autoBackupKeepRecent &&
-          keptBytes + snapshot.sizeBytes <= _autoBackupMaxBytes;
+      final shouldKeep = _shouldKeepAutoBackup(
+        snapshot: snapshot,
+        now: now,
+        retentionDays: retentionDays,
+        maxBytes: maxBytes,
+        keptCount: kept,
+        keptBytes: keptBytes,
+      );
       if (shouldKeep) {
         kept += 1;
         keptBytes += snapshot.sizeBytes;
@@ -1012,10 +1106,31 @@ class BackupService {
       if (documentUri == null) continue;
       try {
         await _deleteAndroidDocument(documentUri);
+        deleted += 1;
       } catch (e) {
         _logger.warning('Failed to delete old Android backup $documentUri: $e');
       }
     }
+    return deleted;
+  }
+
+  static bool _shouldKeepAutoBackup({
+    required BackupSnapshot snapshot,
+    required DateTime now,
+    required int? retentionDays,
+    required int maxBytes,
+    required int keptCount,
+    required int keptBytes,
+  }) {
+    if (keptCount == 0) return true;
+
+    final cutoff = retentionDays == null
+        ? null
+        : now.subtract(Duration(days: retentionDays));
+    final expiredByAge = cutoff != null && snapshot.createdAt.isBefore(cutoff);
+    if (expiredByAge) return false;
+
+    return keptBytes + snapshot.sizeBytes <= maxBytes;
   }
 
   static Future<void> _deleteAndroidDocument(String documentUri) async {
@@ -1039,47 +1154,63 @@ class BackupService {
       );
     }
 
-    final bytes = await file.readAsBytes();
-    final archive = _decodeBackup(bytes);
-    ArchiveFile? manifestFile;
-    for (final file in archive.files) {
-      if (file.isFile && file.name == _backupManifestFileName) {
-        manifestFile = file;
-        break;
-      }
-    }
+    final stat = await file.stat();
+    return Isolate.run(
+      () => _inspectBackupFile(
+        backupFilePath: normalizedPath,
+        sizeBytes: stat.size,
+      ),
+    );
+  }
 
-    if (manifestFile == null) {
-      if (!_looksLikeLegacyBackup(archive)) {
-        throw const InvalidBackupFileException(
-          'Invalid backup file. Please select a .memex file.',
+  static BackupFileInfo _inspectBackupFile({
+    required String backupFilePath,
+    required int sizeBytes,
+  }) {
+    final archive = _decodeBackupFile(backupFilePath);
+    ArchiveFile? manifestFile;
+    try {
+      for (final file in archive.files) {
+        if (file.isFile && file.name == _backupManifestFileName) {
+          manifestFile = file;
+          break;
+        }
+      }
+
+      if (manifestFile == null) {
+        if (!_looksLikeLegacyBackup(archive)) {
+          throw const InvalidBackupFileException(
+            'Invalid backup file. Please select a .memex file.',
+          );
+        }
+        return BackupFileInfo(
+          path: backupFilePath,
+          sizeBytes: sizeBytes,
+          manifest: null,
         );
       }
+
+      final manifest = _readManifest(manifestFile);
+      if (manifest.format != _backupFormat) {
+        throw InvalidBackupFileException(
+          'Unsupported backup format: ${manifest.format}',
+        );
+      }
+      if (manifest.backupSchemaVersion > _currentBackupSchemaVersion) {
+        throw UnsupportedBackupVersionException(
+          backupSchemaVersion: manifest.backupSchemaVersion,
+          supportedSchemaVersion: _currentBackupSchemaVersion,
+        );
+      }
+
       return BackupFileInfo(
-        path: normalizedPath,
-        sizeBytes: bytes.length,
-        manifest: null,
+        path: backupFilePath,
+        sizeBytes: sizeBytes,
+        manifest: manifest,
       );
+    } finally {
+      archive.clearSync();
     }
-
-    final manifest = _readManifest(manifestFile);
-    if (manifest.format != _backupFormat) {
-      throw InvalidBackupFileException(
-        'Unsupported backup format: ${manifest.format}',
-      );
-    }
-    if (manifest.backupSchemaVersion > _currentBackupSchemaVersion) {
-      throw UnsupportedBackupVersionException(
-        backupSchemaVersion: manifest.backupSchemaVersion,
-        supportedSchemaVersion: _currentBackupSchemaVersion,
-      );
-    }
-
-    return BackupFileInfo(
-      path: normalizedPath,
-      sizeBytes: bytes.length,
-      manifest: manifest,
-    );
   }
 
   static bool _looksLikeLegacyBackup(Archive archive) {
@@ -1091,9 +1222,9 @@ class BackupService {
     );
   }
 
-  static Archive _decodeBackup(List<int> bytes) {
+  static Archive _decodeBackupFile(String backupFilePath) {
     try {
-      return ZipDecoder().decodeBytes(bytes);
+      return ZipDecoder().decodeStream(InputFileStream(backupFilePath));
     } catch (_) {
       throw const InvalidBackupFileException(
         'Invalid backup file. Please select a .memex file.',
@@ -1120,6 +1251,267 @@ class BackupService {
       }
     }
     return filePath;
+  }
+}
+
+Future<_StagedRestoreResult> _stageBackupRestoreArchive({
+  required String backupFilePath,
+  required String stagingWorkspacePath,
+  required String stagingDbPath,
+}) async {
+  final archive = BackupService._decodeBackupFile(backupFilePath);
+
+  try {
+    final manifestFile = BackupService._findArchiveFile(
+      archive,
+      _backupManifestFileName,
+    );
+    final manifest =
+        manifestFile == null ? null : BackupService._readManifest(manifestFile);
+    if (manifest != null) {
+      _validateBackupManifestHeader(manifest);
+    }
+
+    final expectedShas = _manifestEntryShas(manifest);
+    final verifiedEntries = <String>{};
+    var looksLikeBackup = false;
+    var workspaceFileCount = 0;
+    var dbFileCount = 0;
+    var settings = <String, dynamic>{};
+
+    for (final file in archive) {
+      if (!file.isFile) continue;
+
+      if (file.name == 'settings.json') {
+        looksLikeBackup = true;
+        final bytes = BackupService._archiveFileBytes(file);
+        _verifyEntrySha(
+          file.name,
+          sha256.convert(bytes).toString(),
+          expectedShas,
+          verifiedEntries,
+        );
+        final decoded = jsonDecode(utf8.decode(bytes));
+        if (decoded is Map) {
+          settings = decoded.cast<String, dynamic>();
+        } else {
+          throw const InvalidBackupFileException('Invalid backup settings.');
+        }
+        continue;
+      }
+
+      if (file.name.startsWith('workspace/')) {
+        looksLikeBackup = true;
+        final relativePath = file.name.substring('workspace/'.length);
+        if (relativePath.isEmpty) continue;
+
+        final targetPath = path.normalize(
+          path.join(stagingWorkspacePath, relativePath),
+        );
+        if (!BackupService._isPathWithin(stagingWorkspacePath, targetPath)) {
+          throw Exception('Unsafe backup entry path: ${file.name}');
+        }
+
+        await _extractArchiveFile(file, targetPath);
+        await _verifyExtractedFileSha(
+          file.name,
+          targetPath,
+          expectedShas,
+          verifiedEntries,
+        );
+        workspaceFileCount += 1;
+        continue;
+      }
+
+      if (file.name.startsWith('db/')) {
+        looksLikeBackup = true;
+        final relativePath = file.name.substring('db/'.length);
+        if (relativePath.isEmpty ||
+            path.basename(relativePath) != relativePath) {
+          throw Exception('Unsafe backup entry path: ${file.name}');
+        }
+
+        final targetPath = path.normalize(
+          path.join(stagingDbPath, relativePath),
+        );
+        if (!BackupService._isPathWithin(stagingDbPath, targetPath)) {
+          throw Exception('Unsafe backup entry path: ${file.name}');
+        }
+
+        await _extractArchiveFile(file, targetPath);
+        await _verifyExtractedFileSha(
+          file.name,
+          targetPath,
+          expectedShas,
+          verifiedEntries,
+        );
+        dbFileCount += 1;
+      }
+    }
+
+    if (manifest == null && !looksLikeBackup) {
+      throw const InvalidBackupFileException(
+        'Invalid backup file. Please select a .memex file.',
+      );
+    }
+
+    for (final entryPath in expectedShas.keys) {
+      if (!verifiedEntries.contains(entryPath)) {
+        throw Exception('Backup is missing manifest entry: $entryPath');
+      }
+    }
+
+    return _StagedRestoreResult(
+      settings: settings,
+      workspaceFileCount: workspaceFileCount,
+      dbFileCount: dbFileCount,
+    );
+  } finally {
+    archive.clearSync();
+  }
+}
+
+Future<void> _applyStagedBackupRestore({
+  required String stagingWorkspacePath,
+  required String stagingDbPath,
+  required String workspacePath,
+  required String appDocumentsPath,
+  required String appSupportPath,
+}) async {
+  final stagingWorkspace = Directory(stagingWorkspacePath);
+  if (await stagingWorkspace.exists()) {
+    await for (final entity in stagingWorkspace.list(
+      recursive: true,
+      followLinks: false,
+    )) {
+      if (entity is! File) continue;
+
+      final relativePath = path.relative(
+        entity.path,
+        from: stagingWorkspacePath,
+      );
+      final targetPath = path.normalize(path.join(workspacePath, relativePath));
+      if (!BackupService._isPathWithin(workspacePath, targetPath)) {
+        throw Exception('Unsafe staged workspace path: $relativePath');
+      }
+      await _moveFileReplacing(entity, targetPath);
+    }
+  }
+
+  final stagingDb = Directory(stagingDbPath);
+  if (await stagingDb.exists()) {
+    await for (final entity in stagingDb.list(followLinks: false)) {
+      if (entity is! File) continue;
+
+      final dbFileName = path.basename(entity.path);
+      final possibleTargets = [
+        path.join(appDocumentsPath, dbFileName),
+        path.join(appSupportPath, dbFileName),
+      ];
+      var targetPath = possibleTargets.last;
+      for (final candidate in possibleTargets) {
+        if (await File(candidate).exists()) {
+          targetPath = candidate;
+          break;
+        }
+      }
+      await _moveFileReplacing(entity, targetPath);
+    }
+  }
+}
+
+void _validateBackupManifestHeader(BackupManifest manifest) {
+  if (manifest.format != _backupFormat) {
+    throw InvalidBackupFileException(
+      'Unsupported backup format: ${manifest.format}',
+    );
+  }
+  if (manifest.backupSchemaVersion > _currentBackupSchemaVersion) {
+    throw UnsupportedBackupVersionException(
+      backupSchemaVersion: manifest.backupSchemaVersion,
+      supportedSchemaVersion: _currentBackupSchemaVersion,
+    );
+  }
+}
+
+Map<String, String> _manifestEntryShas(BackupManifest? manifest) {
+  if (manifest == null) return const {};
+
+  final result = <String, String>{};
+  for (final entry in manifest.entries) {
+    final entryPath = entry['path'] as String?;
+    final expectedSha = entry['sha256'] as String?;
+    if (entryPath == null || expectedSha == null) continue;
+    result[entryPath] = expectedSha;
+  }
+  return result;
+}
+
+Future<void> _extractArchiveFile(ArchiveFile file, String targetPath) async {
+  final targetDir = Directory(path.dirname(targetPath));
+  if (!await targetDir.exists()) {
+    await targetDir.create(recursive: true);
+  }
+
+  final output = OutputFileStream(targetPath);
+  try {
+    file.writeContent(output);
+  } finally {
+    output.closeSync();
+  }
+}
+
+Future<void> _verifyExtractedFileSha(
+  String entryPath,
+  String targetPath,
+  Map<String, String> expectedShas,
+  Set<String> verifiedEntries,
+) async {
+  final expectedSha = expectedShas[entryPath];
+  if (expectedSha == null) return;
+
+  final actualSha = await _sha256FilePath(targetPath);
+  _verifyEntrySha(entryPath, actualSha, expectedShas, verifiedEntries);
+}
+
+void _verifyEntrySha(
+  String entryPath,
+  String actualSha,
+  Map<String, String> expectedShas,
+  Set<String> verifiedEntries,
+) {
+  final expectedSha = expectedShas[entryPath];
+  if (expectedSha == null) return;
+
+  verifiedEntries.add(entryPath);
+  if (actualSha != expectedSha) {
+    throw Exception('Backup checksum mismatch: $entryPath');
+  }
+}
+
+Future<String> _sha256FilePath(String filePath) async {
+  final digest = await sha256.bind(File(filePath).openRead()).first;
+  return digest.toString();
+}
+
+Future<void> _moveFileReplacing(File source, String targetPath) async {
+  final targetDir = Directory(path.dirname(targetPath));
+  if (!await targetDir.exists()) {
+    await targetDir.create(recursive: true);
+  }
+
+  final targetFile = File(targetPath);
+  if (await targetFile.exists()) {
+    await targetFile.delete();
+  }
+
+  try {
+    await source.rename(targetPath);
+  } catch (_) {
+    await source.openRead().pipe(targetFile.openWrite());
+    if (await source.exists()) {
+      await source.delete();
+    }
   }
 }
 
@@ -1251,13 +1643,51 @@ Future<void> _addFileToBackupArchive(
   String archivePath,
   List<Map<String, dynamic>> manifestEntries,
 ) async {
-  final bytes = await file.readAsBytes();
-  _addBytesToBackupArchive(
+  final stat = await file.stat();
+  final digest = await _sha256FilePath(file.path);
+  await _addFileStreamToBackupArchive(
     encoder,
+    file,
     archivePath,
-    bytes,
-    manifestEntries: manifestEntries,
+    stat,
+    storeWithoutCompression: _shouldStoreFileWithoutCompression(
+      file.path,
+      stat.size,
+    ),
   );
+  manifestEntries.add({
+    'path': archivePath,
+    'size': stat.size,
+    'sha256': digest,
+  });
+}
+
+Future<void> _addFileStreamToBackupArchive(
+  ZipFileEncoder encoder,
+  File file,
+  String archivePath,
+  FileStat stat, {
+  required bool storeWithoutCompression,
+}) async {
+  final fileStream = InputFileStream(file.path);
+  final archiveFile = ArchiveFile.stream(archivePath, fileStream)
+    ..lastModTime = stat.modified.millisecondsSinceEpoch ~/ 1000
+    ..mode = stat.mode;
+  if (storeWithoutCompression) {
+    archiveFile.compression = CompressionType.none;
+  }
+
+  try {
+    encoder.addArchiveFile(archiveFile);
+  } finally {
+    await fileStream.close();
+  }
+}
+
+bool _shouldStoreFileWithoutCompression(String filePath, int fileSize) {
+  if (fileSize >= _backupStoreWithoutCompressionThreshold) return true;
+  final extension = path.extension(filePath).toLowerCase();
+  return _backupStoreWithoutCompressionExtensions.contains(extension);
 }
 
 void _addBytesToBackupArchive(
@@ -1293,5 +1723,17 @@ class _BackupArchiveResult {
   const _BackupArchiveResult({
     required this.sizeBytes,
     required this.fileCount,
+  });
+}
+
+class _StagedRestoreResult {
+  final Map<String, dynamic> settings;
+  final int workspaceFileCount;
+  final int dbFileCount;
+
+  const _StagedRestoreResult({
+    required this.settings,
+    required this.workspaceFileCount,
+    required this.dbFileCount,
   });
 }

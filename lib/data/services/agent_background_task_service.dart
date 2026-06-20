@@ -2,8 +2,11 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:memex/data/services/agent_background_status.dart';
+import 'package:memex/data/services/agent_run_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/utils/logger.dart';
+import 'package:memex/utils/user_storage.dart';
 
 /// Keeps iOS informed while Memex agent tasks are active.
 ///
@@ -23,6 +26,7 @@ class AgentBackgroundTaskService {
   final _logger = getLogger('AgentBackgroundTaskService');
 
   StreamSubscription<TaskActivitySnapshot>? _taskSubscription;
+  StreamSubscription<AgentRunSnapshot?>? _runSubscription;
   Timer? _backgroundCompletionPoller;
   bool _bridgeInitialized = false;
   bool _executorReady = false;
@@ -31,6 +35,8 @@ class AgentBackgroundTaskService {
   Set<String>? _progressActiveTaskIds;
   int _progressCompleted = 0;
   int _progressTotal = 0;
+  TaskActivitySnapshot _latestTaskSnapshot = const TaskActivitySnapshot.empty();
+  AgentRunSnapshot? _latestRunSnapshot;
 
   Future<void> initializeNativeBridge() async {
     if (!Platform.isIOS || _bridgeInitialized) return;
@@ -57,6 +63,7 @@ class AgentBackgroundTaskService {
 
     _executorReady = true;
     await _taskSubscription?.cancel();
+    await _runSubscription?.cancel();
     _taskSubscription =
         LocalTaskExecutor.instance.taskActivitySnapshotStream.listen(
       (snapshot) => unawaited(
@@ -70,8 +77,24 @@ class AgentBackgroundTaskService {
         );
       },
     );
+    _runSubscription = AgentRunService.instance.watchLatestVisibleRun().listen(
+      (snapshot) {
+        _latestRunSnapshot = snapshot;
+        unawaited(
+          _syncSnapshot(_latestTaskSnapshot, reason: 'agent_run_changed'),
+        );
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        _logger.warning(
+          'Agent run stream failed',
+          error,
+          stackTrace,
+        );
+      },
+    );
 
     final snapshot = await LocalTaskExecutor.instance.getTaskActivitySnapshot();
+    _latestRunSnapshot = await AgentRunService.instance.getLatestVisibleRun();
     await _syncSnapshot(snapshot, reason: 'executor_ready');
 
     if (_pendingNativeRun) {
@@ -89,7 +112,11 @@ class AgentBackgroundTaskService {
     _backgroundCompletionPoller?.cancel();
     _backgroundCompletionPoller = null;
     await _taskSubscription?.cancel();
+    await _runSubscription?.cancel();
     _taskSubscription = null;
+    _runSubscription = null;
+    _latestTaskSnapshot = const TaskActivitySnapshot.empty();
+    _latestRunSnapshot = null;
 
     try {
       await _channel.invokeMethod<void>('setTaskActivity', {
@@ -131,8 +158,9 @@ class AgentBackgroundTaskService {
       case 'backgroundTaskExpired':
         final args = call.arguments as Map<Object?, Object?>?;
         final reason = args?['reason']?.toString() ?? 'native_expired';
-        await LocalTaskExecutor.instance
-            .recordGracefulShutdown(reason: 'ios_$reason');
+        await AgentRunService.instance.markActiveRunsPausedBySystem(
+          message: UserStorage.l10n.agentBackgroundPausedDetail,
+        );
         _backgroundCompletionPoller?.cancel();
         _backgroundCompletionPoller = null;
         _nativeBackgroundRunOpen = false;
@@ -195,21 +223,54 @@ class AgentBackgroundTaskService {
   }) async {
     if (!Platform.isIOS || !_bridgeInitialized) return;
 
-    final progress = _progressFor(snapshot);
+    _latestTaskSnapshot = snapshot;
+    final runSnapshot = _latestRunSnapshot ??
+        await AgentRunService.instance.getLatestVisibleRun();
+    final progress = runSnapshot == null
+        ? _progressFor(snapshot)
+        : _TaskProgress(
+            completed: runSnapshot.completedUnits,
+            total: runSnapshot.totalUnits,
+          );
+    final runKeepsBackgroundOpen = switch (runSnapshot?.state) {
+      AgentRunState.queued ||
+      AgentRunState.running ||
+      AgentRunState.pausedBySystem =>
+        true,
+      _ => false,
+    };
+    final hasVisibleWork = snapshot.hasActiveTasks || runKeepsBackgroundOpen;
+    final pending = snapshot.total == 0
+        ? runSnapshot?.remainingTasks ?? snapshot.pending
+        : snapshot.pending;
+    final processing = snapshot.processing;
+    final retrying = snapshot.retrying;
+    final status = AgentBackgroundStatus.fromActivity(
+      taskSnapshot: snapshot,
+      runSnapshot: runSnapshot,
+    );
 
     try {
       await _channel.invokeMethod<void>('setTaskActivity', {
-        'pending': snapshot.pending,
-        'processing': snapshot.processing,
-        'retrying': snapshot.retrying,
-        'total': snapshot.total,
+        'pending': pending,
+        'processing': processing,
+        'retrying': retrying,
+        'total': pending + processing + retrying,
+        'taskSummary': status.taskSummary,
+        'statusText': status.statusText,
         'progressCompleted': progress.completed,
         'progressTotal': progress.total,
-        'hasActiveTasks': snapshot.hasActiveTasks,
+        'runId': runSnapshot?.id,
+        'factId': runSnapshot?.factId,
+        'state': runSnapshot == null ? null : _platformState(runSnapshot.state),
+        'title': status.title,
+        'stage': status.stage,
+        'detail': status.detail,
+        'hasActiveTasks': hasVisibleWork,
         'reason': reason,
       });
 
-      if (!snapshot.hasActiveTasks) {
+      if (!hasVisibleWork) {
         await _completeNativeBackgroundRun(
           success: true,
           reason: 'snapshot_empty',
@@ -287,6 +348,15 @@ class AgentBackgroundTaskService {
     _progressCompleted = 0;
     _progressTotal = 0;
   }
+}
+
+String _platformState(AgentRunState state) {
+  return switch (state) {
+    AgentRunState.queued || AgentRunState.running => 'active',
+    AgentRunState.pausedBySystem => 'paused',
+    AgentRunState.completed => 'completed',
+    AgentRunState.failed => 'failed',
+  };
 }
 
 class _TaskProgress {

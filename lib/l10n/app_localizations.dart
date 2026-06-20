@@ -218,6 +218,60 @@ abstract class AppLocalizations {
   /// **'Failed to create task: {error}'**
   String createTaskFailed(Object error);
 
+  /// No description provided for @reprocessCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Reprocess cards'**
+  String get reprocessCards;
+
+  /// No description provided for @reprocessCardsTaskCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Reprocess request queued in Super Agent'**
+  String get reprocessCardsTaskCreated;
+
+  /// No description provided for @reprocessCardsDownstreamMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Scope'**
+  String get reprocessCardsDownstreamMode;
+
+  /// No description provided for @reprocessCardsCardOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Cards only'**
+  String get reprocessCardsCardOnly;
+
+  /// No description provided for @reprocessCardsCardOnlyDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask Super Agent to review and regenerate the selected timeline cards.'**
+  String get reprocessCardsCardOnlyDesc;
+
+  /// No description provided for @reprocessCardsRerunDownstream.
+  ///
+  /// In en, this message translates to:
+  /// **'Cards and related follow-ups'**
+  String get reprocessCardsRerunDownstream;
+
+  /// No description provided for @reprocessCardsRerunDownstreamDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask Super Agent to also consider related PKM, schedule, and insight updates when needed.'**
+  String get reprocessCardsRerunDownstreamDesc;
+
+  /// No description provided for @reanalyzeMediaAssets.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-read media attachments'**
+  String get reanalyzeMediaAssets;
+
+  /// No description provided for @reanalyzeMediaAssetsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask Super Agent to inspect attached media again when regenerating cards.'**
+  String get reanalyzeMediaAssetsDesc;
+
   /// No description provided for @regenerateComments.
   ///
   /// In en, this message translates to:
@@ -974,6 +1028,18 @@ abstract class AppLocalizations {
   /// **'New clipboard'**
   String get clipboardPreviewTitle;
 
+  /// No description provided for @clipboardPreviewImageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clipboard image'**
+  String get clipboardPreviewImageTitle;
+
+  /// No description provided for @clipboardPreviewImageDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Image ready to add'**
+  String get clipboardPreviewImageDescription;
+
   /// No description provided for @clipboardPreviewUnprocessed.
   ///
   /// In en, this message translates to:
@@ -985,6 +1051,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Paste to input'**
   String get clipboardPreviewPasteToInput;
+
+  /// No description provided for @clipboardPreviewAddImageToInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Add image'**
+  String get clipboardPreviewAddImageToInput;
+
+  /// No description provided for @clipboardPreviewImageFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read clipboard image'**
+  String get clipboardPreviewImageFailed;
+
+  /// No description provided for @tellAiWhatHappened.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell AI what happened...'**
+  String get tellAiWhatHappened;
+
+  /// No description provided for @recordingWithDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording: {duration}'**
+  String recordingWithDuration(Object duration);
 
   /// No description provided for @playing.
   ///
@@ -1244,6 +1334,193 @@ abstract class AppLocalizations {
   /// **'Processing...'**
   String get processingEllipsis;
 
+  /// No description provided for @agentBackgroundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex Agent'**
+  String get agentBackgroundTitle;
+
+  /// No description provided for @agentBackgroundPausedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex Agent paused'**
+  String get agentBackgroundPausedTitle;
+
+  /// No description provided for @agentBackgroundNeedsAttentionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex Agent needs attention'**
+  String get agentBackgroundNeedsAttentionTitle;
+
+  /// No description provided for @agentBackgroundStageIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Idle'**
+  String get agentBackgroundStageIdle;
+
+  /// No description provided for @agentBackgroundStageProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing'**
+  String get agentBackgroundStageProcessing;
+
+  /// No description provided for @agentBackgroundStageQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get agentBackgroundStageQueued;
+
+  /// No description provided for @agentBackgroundStageRetrying.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting to retry'**
+  String get agentBackgroundStageRetrying;
+
+  /// No description provided for @agentBackgroundStagePaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get agentBackgroundStagePaused;
+
+  /// No description provided for @agentBackgroundStageCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get agentBackgroundStageCompleted;
+
+  /// No description provided for @agentBackgroundStageNeedsAttention.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs attention'**
+  String get agentBackgroundStageNeedsAttention;
+
+  /// No description provided for @agentBackgroundStageAnalyzingMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzing media'**
+  String get agentBackgroundStageAnalyzingMedia;
+
+  /// No description provided for @agentBackgroundStageGeneratingCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating card'**
+  String get agentBackgroundStageGeneratingCard;
+
+  /// No description provided for @agentBackgroundStageUpdatingKnowledge.
+  ///
+  /// In en, this message translates to:
+  /// **'Updating knowledge'**
+  String get agentBackgroundStageUpdatingKnowledge;
+
+  /// No description provided for @agentBackgroundStagePreparingComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing comment'**
+  String get agentBackgroundStagePreparingComment;
+
+  /// No description provided for @agentBackgroundStageRoutingFollowUps.
+  ///
+  /// In en, this message translates to:
+  /// **'Routing follow-ups'**
+  String get agentBackgroundStageRoutingFollowUps;
+
+  /// No description provided for @agentBackgroundTaskSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Running {running}, Pending {pending}, Retry {retrying}'**
+  String agentBackgroundTaskSummary(
+      Object running, Object pending, Object retrying);
+
+  /// No description provided for @agentBackgroundTaskDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing {count} queued task(s).'**
+  String agentBackgroundTaskDetail(Object count);
+
+  /// No description provided for @agentBackgroundNoTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'No background tasks.'**
+  String get agentBackgroundNoTasks;
+
+  /// No description provided for @agentBackgroundStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing is starting.'**
+  String get agentBackgroundStarting;
+
+  /// No description provided for @agentBackgroundCompletedDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'All background tasks finished.'**
+  String get agentBackgroundCompletedDetail;
+
+  /// No description provided for @agentBackgroundFailedDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing stopped with an error.'**
+  String get agentBackgroundFailedDetail;
+
+  /// No description provided for @agentBackgroundPausedDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing is paused and will continue later.'**
+  String get agentBackgroundPausedDetail;
+
+  /// No description provided for @agentBackgroundQueuedDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for the next processing step.'**
+  String get agentBackgroundQueuedDetail;
+
+  /// No description provided for @agentBackgroundRetryingDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'The current step will retry automatically.'**
+  String get agentBackgroundRetryingDetail;
+
+  /// No description provided for @agentBackgroundAnalyzeMediaDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading attachments and local context.'**
+  String get agentBackgroundAnalyzeMediaDetail;
+
+  /// No description provided for @agentBackgroundGeneratingCardDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Turning the record into a timeline card.'**
+  String get agentBackgroundGeneratingCardDetail;
+
+  /// No description provided for @agentBackgroundUpdatingKnowledgeDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Updating local knowledge and memory.'**
+  String get agentBackgroundUpdatingKnowledgeDetail;
+
+  /// No description provided for @agentBackgroundPreparingCommentDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing an assistant follow-up.'**
+  String get agentBackgroundPreparingCommentDetail;
+
+  /// No description provided for @agentBackgroundRoutingFollowUpsDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking follow-up actions for this card.'**
+  String get agentBackgroundRoutingFollowUpsDetail;
+
+  /// No description provided for @agentBackgroundPausedStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused - {summary}'**
+  String agentBackgroundPausedStatus(Object summary);
+
+  /// No description provided for @agentBackgroundNeedsAttentionStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs attention - {summary}'**
+  String agentBackgroundNeedsAttentionStatus(Object summary);
+
   /// No description provided for @settings.
   ///
   /// In en, this message translates to:
@@ -1429,6 +1706,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Memex Model Service'**
   String get aiService;
+
+  /// No description provided for @aiModelHubTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI models and services'**
+  String get aiModelHubTitle;
+
+  /// No description provided for @aiModelHubSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Memex\'s official service or bring your own provider. Advanced model routing stays available when you need it.'**
+  String get aiModelHubSubtitle;
+
+  /// No description provided for @aiSetupCurrentStatusTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Current setup'**
+  String get aiSetupCurrentStatusTitle;
+
+  /// No description provided for @aiSetupStatusNotConfiguredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI service is not configured'**
+  String get aiSetupStatusNotConfiguredTitle;
+
+  /// No description provided for @aiSetupStatusNotConfiguredDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose one connection method to enable AI organization for records, media, and insights.'**
+  String get aiSetupStatusNotConfiguredDescription;
+
+  /// No description provided for @aiSetupStatusMemexTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Using MemeX official service'**
+  String get aiSetupStatusMemexTitle;
+
+  /// No description provided for @aiSetupStatusMemexDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex will use the official connection and API credentials managed by your MemeX account.'**
+  String get aiSetupStatusMemexDescription;
+
+  /// No description provided for @aiSetupStatusCustomTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Using custom provider settings'**
+  String get aiSetupStatusCustomTitle;
+
+  /// No description provided for @aiSetupStatusCustomDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex will use your configured provider credentials and model role selections.'**
+  String get aiSetupStatusCustomDescription;
+
+  /// No description provided for @aiSetupChooseConnectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a connection method'**
+  String get aiSetupChooseConnectionTitle;
+
+  /// No description provided for @aiSetupChooseConnectionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Start with the path that matches how you want Memex to access AI models.'**
+  String get aiSetupChooseConnectionDescription;
+
+  /// No description provided for @aiSetupOfficialRouteDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to MemeX and use the official service without choosing providers, keys, or agent-level models.'**
+  String get aiSetupOfficialRouteDescription;
+
+  /// No description provided for @aiSetupCustomRouteDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your own provider credentials, choose the model Super Agent should use, and optionally override models per agent.'**
+  String get aiSetupCustomRouteDescription;
+
+  /// No description provided for @aiSetupCustomPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom AI service'**
+  String get aiSetupCustomPageTitle;
+
+  /// No description provided for @aiSetupCustomPageSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure provider credentials first, then choose the model Memex should use.'**
+  String get aiSetupCustomPageSubtitle;
+
+  /// No description provided for @aiSetupProviderCredentialsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider and API keys'**
+  String get aiSetupProviderCredentialsTitle;
+
+  /// No description provided for @aiSetupProviderCredentialsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Add or edit OpenAI, Anthropic, DeepSeek, Gemini, OpenRouter, Ollama, or another compatible provider.'**
+  String get aiSetupProviderCredentialsDescription;
+
+  /// No description provided for @modelRolesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose primary model'**
+  String get modelRolesTitle;
+
+  /// No description provided for @modelRolesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Super Agent uses one model for text and image inputs. Advanced agent overrides stay available below.'**
+  String get modelRolesDescription;
+
+  /// No description provided for @textModelRoleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Primary model'**
+  String get textModelRoleTitle;
+
+  /// No description provided for @textModelRoleDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Used by Super Agent for text, images, cards, knowledge, insights, chat, comments, schedule, and memory.'**
+  String get textModelRoleDescription;
+
+  /// No description provided for @modelConnectionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Model providers and API keys'**
+  String get modelConnectionsTitle;
+
+  /// No description provided for @modelConnectionsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect Memex\'s official service or add your own provider credentials.'**
+  String get modelConnectionsDescription;
+
+  /// No description provided for @relatedAiCapabilitiesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced and related capabilities'**
+  String get relatedAiCapabilitiesTitle;
+
+  /// No description provided for @relatedAiCapabilitiesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Fine-tune agent assignments, location provider, and speech transcription behavior.'**
+  String get relatedAiCapabilitiesDescription;
+
+  /// No description provided for @aiSetupServiceCapabilitiesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Service capabilities'**
+  String get aiSetupServiceCapabilitiesTitle;
+
+  /// No description provided for @aiSetupServiceCapabilitiesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the providers Memex uses for adjacent AI-powered capabilities such as speech and reverse geocoding.'**
+  String get aiSetupServiceCapabilitiesDescription;
+
+  /// No description provided for @aiSetupAdvancedCustomizationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced model routing'**
+  String get aiSetupAdvancedCustomizationTitle;
+
+  /// No description provided for @aiSetupAdvancedCustomizationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'For power users who want individual agents to use different providers or model configs.'**
+  String get aiSetupAdvancedCustomizationDescription;
+
+  /// No description provided for @locationProviderSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Location provider'**
+  String get locationProviderSettings;
+
+  /// No description provided for @speechProviderSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Speech transcription'**
+  String get speechProviderSettings;
+
+  /// No description provided for @advancedAgentModelAssignments.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent model assignments'**
+  String get advancedAgentModelAssignments;
+
+  /// No description provided for @openAdvancedAgentModelAssignments.
+  ///
+  /// In en, this message translates to:
+  /// **'Override individual agents'**
+  String get openAdvancedAgentModelAssignments;
+
+  /// No description provided for @noConfiguredModelOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a provider or API key before choosing model roles.'**
+  String get noConfiguredModelOptions;
+
+  /// No description provided for @modelSlotUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Model role updated'**
+  String get modelSlotUpdated;
 
   /// No description provided for @aiServiceMemexRouteTitle.
   ///
@@ -3404,6 +3891,36 @@ abstract class AppLocalizations {
   /// **'Last backup: {time}'**
   String lastBackupAt(Object time);
 
+  /// No description provided for @autoBackupRetention.
+  ///
+  /// In en, this message translates to:
+  /// **'Retention'**
+  String get autoBackupRetention;
+
+  /// No description provided for @autoBackupRetentionDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days'**
+  String autoBackupRetentionDays(Object days);
+
+  /// No description provided for @autoBackupRetentionForever.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep forever'**
+  String get autoBackupRetentionForever;
+
+  /// No description provided for @autoBackupMaxSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage cap'**
+  String get autoBackupMaxSize;
+
+  /// No description provided for @autoBackupRetentionLimitHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic cleanup keeps automatic snapshots under {size}. Safety snapshots and manual exports are kept separately.'**
+  String autoBackupRetentionLimitHint(Object size);
+
   /// No description provided for @createSnapshotNow.
   ///
   /// In en, this message translates to:
@@ -3451,6 +3968,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Automatic backups will appear here after the first snapshot.'**
   String get noStoredBackups;
+
+  /// No description provided for @backupTypeAutoSnapshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic snapshot'**
+  String get backupTypeAutoSnapshot;
+
+  /// No description provided for @backupTypeSafetySnapshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety snapshot'**
+  String get backupTypeSafetySnapshot;
+
+  /// No description provided for @backupTypeManualBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual backup'**
+  String get backupTypeManualBackup;
 
   /// No description provided for @refresh.
   ///

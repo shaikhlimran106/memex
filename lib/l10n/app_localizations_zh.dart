@@ -75,6 +75,34 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get reprocessCards => '重新处理卡片';
+
+  @override
+  String get reprocessCardsTaskCreated => '已交给 Super Agent 重新处理';
+
+  @override
+  String get reprocessCardsDownstreamMode => '处理范围';
+
+  @override
+  String get reprocessCardsCardOnly => '只处理卡片';
+
+  @override
+  String get reprocessCardsCardOnlyDesc => '让 Super Agent 检查并重新生成选中的时间线卡片。';
+
+  @override
+  String get reprocessCardsRerunDownstream => '卡片和相关后续';
+
+  @override
+  String get reprocessCardsRerunDownstreamDesc =>
+      '让 Super Agent 在需要时一并考虑 PKM、日程和洞察更新。';
+
+  @override
+  String get reanalyzeMediaAssets => '重新读取媒体附件';
+
+  @override
+  String get reanalyzeMediaAssetsDesc => '重新生成卡片时，让 Super Agent 在需要时再次查看附件内容。';
+
+  @override
   String get regenerateComments => '重新生成评论';
 
   @override
@@ -482,10 +510,30 @@ class AppLocalizationsZh extends AppLocalizations {
   String get clipboardPreviewTitle => '新剪贴板';
 
   @override
+  String get clipboardPreviewImageTitle => '剪贴板图片';
+
+  @override
+  String get clipboardPreviewImageDescription => '可添加到输入框';
+
+  @override
   String get clipboardPreviewUnprocessed => '未处理';
 
   @override
   String get clipboardPreviewPasteToInput => '粘贴到输入框';
+
+  @override
+  String get clipboardPreviewAddImageToInput => '添加图片';
+
+  @override
+  String get clipboardPreviewImageFailed => '无法读取剪贴板图片';
+
+  @override
+  String get tellAiWhatHappened => '告诉AI发生了什么...';
+
+  @override
+  String recordingWithDuration(Object duration) {
+    return '录音中: $duration';
+  }
 
   @override
   String get playing => '播放中...';
@@ -631,6 +679,108 @@ class AppLocalizationsZh extends AppLocalizations {
   String get processingEllipsis => '处理中...';
 
   @override
+  String get agentBackgroundTitle => 'Memex Agent';
+
+  @override
+  String get agentBackgroundPausedTitle => 'Memex Agent 已暂停';
+
+  @override
+  String get agentBackgroundNeedsAttentionTitle => 'Memex Agent 需要处理';
+
+  @override
+  String get agentBackgroundStageIdle => '空闲';
+
+  @override
+  String get agentBackgroundStageProcessing => '处理中';
+
+  @override
+  String get agentBackgroundStageQueued => '排队中';
+
+  @override
+  String get agentBackgroundStageRetrying => '等待重试';
+
+  @override
+  String get agentBackgroundStagePaused => '已暂停';
+
+  @override
+  String get agentBackgroundStageCompleted => '已完成';
+
+  @override
+  String get agentBackgroundStageNeedsAttention => '需要处理';
+
+  @override
+  String get agentBackgroundStageAnalyzingMedia => '分析素材中';
+
+  @override
+  String get agentBackgroundStageGeneratingCard => '生成卡片中';
+
+  @override
+  String get agentBackgroundStageUpdatingKnowledge => '更新知识中';
+
+  @override
+  String get agentBackgroundStagePreparingComment => '准备评论中';
+
+  @override
+  String get agentBackgroundStageRoutingFollowUps => '分发后续任务中';
+
+  @override
+  String agentBackgroundTaskSummary(
+      Object running, Object pending, Object retrying) {
+    return '执行中 $running，排队中 $pending，重试中 $retrying';
+  }
+
+  @override
+  String agentBackgroundTaskDetail(Object count) {
+    return '正在处理 $count 个后台任务。';
+  }
+
+  @override
+  String get agentBackgroundNoTasks => '暂无后台任务。';
+
+  @override
+  String get agentBackgroundStarting => '后台处理正在启动。';
+
+  @override
+  String get agentBackgroundCompletedDetail => '所有后台任务已完成。';
+
+  @override
+  String get agentBackgroundFailedDetail => '后台处理遇到错误。';
+
+  @override
+  String get agentBackgroundPausedDetail => '后台处理已暂停，稍后会继续。';
+
+  @override
+  String get agentBackgroundQueuedDetail => '正在等待下一个处理步骤。';
+
+  @override
+  String get agentBackgroundRetryingDetail => '当前步骤将自动重试。';
+
+  @override
+  String get agentBackgroundAnalyzeMediaDetail => '正在读取附件和本地上下文。';
+
+  @override
+  String get agentBackgroundGeneratingCardDetail => '正在把记录生成时间线卡片。';
+
+  @override
+  String get agentBackgroundUpdatingKnowledgeDetail => '正在更新本地知识和记忆。';
+
+  @override
+  String get agentBackgroundPreparingCommentDetail => '正在准备助手跟进评论。';
+
+  @override
+  String get agentBackgroundRoutingFollowUpsDetail => '正在检查这张卡片的后续动作。';
+
+  @override
+  String agentBackgroundPausedStatus(Object summary) {
+    return '已暂停 - $summary';
+  }
+
+  @override
+  String agentBackgroundNeedsAttentionStatus(Object summary) {
+    return '需要处理 - $summary';
+  }
+
+  @override
   String get settings => '设置';
 
   @override
@@ -729,6 +879,123 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiService => 'Memex 模型服务';
+
+  @override
+  String get aiModelHubTitle => 'AI 模型与服务';
+
+  @override
+  String get aiModelHubSubtitle => '先选择使用 MemeX 官方服务，或接入自己的服务商；需要时再进入高级模型分配。';
+
+  @override
+  String get aiSetupCurrentStatusTitle => '当前配置';
+
+  @override
+  String get aiSetupStatusNotConfiguredTitle => '尚未配置 AI 服务';
+
+  @override
+  String get aiSetupStatusNotConfiguredDescription =>
+      '选择一种连接方式后，Memex 才能开始整理记录、分析媒体并生成洞察。';
+
+  @override
+  String get aiSetupStatusMemexTitle => '正在使用 MemeX 官方服务';
+
+  @override
+  String get aiSetupStatusMemexDescription =>
+      'Memex 会使用 MemeX 账号管理的官方连接和 API 凭证。';
+
+  @override
+  String get aiSetupStatusCustomTitle => '正在使用自定义服务商';
+
+  @override
+  String get aiSetupStatusCustomDescription =>
+      'Memex 会使用你配置的服务商凭证，以及文本/视觉模型用途选择。';
+
+  @override
+  String get aiSetupChooseConnectionTitle => '选择连接方式';
+
+  @override
+  String get aiSetupChooseConnectionDescription =>
+      '先选择你希望 Memex 通过哪条路径访问 AI 模型。';
+
+  @override
+  String get aiSetupOfficialRouteDescription =>
+      '登录 MemeX 后直接使用官方服务，不需要理解 provider、API Key 或单个 Agent 模型。';
+
+  @override
+  String get aiSetupCustomRouteDescription =>
+      '添加自己的服务商凭证，选择 Super Agent 使用的模型；需要时可进一步为单个 Agent 覆盖模型。';
+
+  @override
+  String get aiSetupCustomPageTitle => '自定义 AI 服务';
+
+  @override
+  String get aiSetupCustomPageSubtitle => '先配置服务商和 API Key，再选择 Memex 使用的模型。';
+
+  @override
+  String get aiSetupProviderCredentialsTitle => '服务商与 API Key';
+
+  @override
+  String get aiSetupProviderCredentialsDescription =>
+      '添加或编辑 OpenAI、Anthropic、DeepSeek、Gemini、OpenRouter、Ollama 等兼容服务商。';
+
+  @override
+  String get modelRolesTitle => '选择主模型';
+
+  @override
+  String get modelRolesDescription =>
+      'Super Agent 使用同一个模型处理文本和图片输入。需要时仍可在下方为单个 Agent 高级覆盖。';
+
+  @override
+  String get textModelRoleTitle => '主模型';
+
+  @override
+  String get textModelRoleDescription =>
+      '供 Super Agent 处理文本、图片、卡片、知识库、洞察、聊天、评论、日程和记忆总结。';
+
+  @override
+  String get modelConnectionsTitle => '模型服务商与 API Key';
+
+  @override
+  String get modelConnectionsDescription => '可以连接 Memex 官方服务，也可以添加你自己的服务商凭证。';
+
+  @override
+  String get relatedAiCapabilitiesTitle => '高级与相关能力';
+
+  @override
+  String get relatedAiCapabilitiesDescription =>
+      '调整单个 Agent 的模型分配、位置服务商和语音识别方式。';
+
+  @override
+  String get aiSetupServiceCapabilitiesTitle => '服务能力';
+
+  @override
+  String get aiSetupServiceCapabilitiesDescription =>
+      '配置语音识别、逆地理编码等相邻 AI 能力使用的服务方式。';
+
+  @override
+  String get aiSetupAdvancedCustomizationTitle => '高级模型路由';
+
+  @override
+  String get aiSetupAdvancedCustomizationDescription =>
+      '适合希望不同 Agent 使用不同服务商或模型配置的高级用户。';
+
+  @override
+  String get locationProviderSettings => '位置服务商';
+
+  @override
+  String get speechProviderSettings => '语音识别';
+
+  @override
+  String get advancedAgentModelAssignments => 'Agent 模型分配';
+
+  @override
+  String get openAdvancedAgentModelAssignments => '为单个 Agent 覆盖模型';
+
+  @override
+  String get noConfiguredModelOptions => '请先添加模型服务商或 API Key，再选择模型用途。';
+
+  @override
+  String get modelSlotUpdated => '模型用途已更新';
 
   @override
   String get aiServiceMemexRouteTitle => '通过 Memex 连接';
@@ -1800,6 +2067,25 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get autoBackupRetention => '保留';
+
+  @override
+  String autoBackupRetentionDays(Object days) {
+    return '$days 天';
+  }
+
+  @override
+  String get autoBackupRetentionForever => '永久保留';
+
+  @override
+  String get autoBackupMaxSize => '空间上限';
+
+  @override
+  String autoBackupRetentionLimitHint(Object size) {
+    return '自动清理会让自动快照总大小不超过 $size。安全快照和手动导出备份会单独保留。';
+  }
+
+  @override
   String get createSnapshotNow => '立即备份';
 
   @override
@@ -1823,6 +2109,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get noStoredBackups => '创建第一个自动快照后会显示在这里。';
+
+  @override
+  String get backupTypeAutoSnapshot => '自动快照';
+
+  @override
+  String get backupTypeSafetySnapshot => '安全快照';
+
+  @override
+  String get backupTypeManualBackup => '手动备份';
 
   @override
   String get refresh => '刷新';

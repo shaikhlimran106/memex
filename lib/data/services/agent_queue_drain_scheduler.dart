@@ -11,6 +11,8 @@ class WorkmanagerAgentQueueDrainScheduler implements AgentQueueDrainScheduler {
   static const String uniqueName = 'agent_queue_drain';
   static const String taskName = 'agentQueueDrainTask';
   static const String tag = 'agent_queue';
+  @visibleForTesting
+  static const ExistingWorkPolicy existingWorkPolicy = ExistingWorkPolicy.keep;
 
   @override
   Future<void> schedule({
@@ -33,7 +35,7 @@ class WorkmanagerAgentQueueDrainScheduler implements AgentQueueDrainScheduler {
         requiresDeviceIdle: false,
         requiresStorageNotLow: false,
       ),
-      existingWorkPolicy: ExistingWorkPolicy.replace,
+      existingWorkPolicy: existingWorkPolicy,
       tag: tag,
       outOfQuotaPolicy:
           expedited ? OutOfQuotaPolicy.runAsNonExpeditedWorkRequest : null,

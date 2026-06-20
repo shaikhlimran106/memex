@@ -4,6 +4,8 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:intl/intl.dart';
 import 'package:memex/data/services/agent_activity_service.dart';
 import 'package:memex/data/services/agent_background_coordinator.dart';
+import 'package:memex/data/services/agent_background_status.dart';
+import 'package:memex/data/services/agent_run_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/utils/user_storage.dart';
 
@@ -12,6 +14,8 @@ class AgentActivityWidget extends StatefulWidget {
   final bool forceVisible;
   final TaskActivitySnapshot initialTaskSnapshot;
   final Stream<TaskActivitySnapshot>? taskActivitySnapshotStream;
+  final AgentRunSnapshot? initialRunSnapshot;
+  final Stream<AgentRunSnapshot?>? runSnapshotStream;
 
   const AgentActivityWidget({
     super.key,
@@ -19,6 +23,8 @@ class AgentActivityWidget extends StatefulWidget {
     this.forceVisible = false,
     this.initialTaskSnapshot = const TaskActivitySnapshot.empty(),
     this.taskActivitySnapshotStream,
+    this.initialRunSnapshot,
+    this.runSnapshotStream,
   });
 
   @override
@@ -32,9 +38,11 @@ class _AgentActivityWidgetState extends State<AgentActivityWidget>
   LocalTaskExecutor? _executor;
   StreamSubscription<AgentActivityMessageModel>? _subscription;
   StreamSubscription<TaskActivitySnapshot>? _taskSubscription;
+  StreamSubscription<AgentRunSnapshot?>? _runSubscription;
   StreamSubscription<void>? _openActivitySubscription;
   Timer? _historyLoadTimer;
   TaskActivitySnapshot _taskSnapshot = const TaskActivitySnapshot.empty();
+  AgentRunSnapshot? _runSnapshot;
 
   late AnimationController _bounceController;
 
@@ -45,10 +53,18 @@ class _AgentActivityWidgetState extends State<AgentActivityWidget>
   }
 
   bool get _isActive {
+    final status = _status;
     return widget.forceVisible ||
         _hasRunningAgent ||
-        _taskSnapshot.hasActiveTasks;
+        _taskSnapshot.hasActiveTasks ||
+        status.shouldShowSystemSurface;
   }
+
+  AgentBackgroundStatus get _status => AgentBackgroundStatus.fromActivity(
+        taskSnapshot: _taskSnapshot,
+        latestMessage: _latestMessage,
+        runSnapshot: _runSnapshot,
+      );
 
   @override
   void initState() {
@@ -58,6 +74,7 @@ class _AgentActivityWidgetState extends State<AgentActivityWidget>
       duration: const Duration(milliseconds: 400),
     )..repeat(reverse: true);
     _taskSnapshot = widget.initialTaskSnapshot;
+    _runSnapshot = widget.initialRunSnapshot;
 
     try {
       _service = AgentActivityService.instance;
@@ -100,6 +117,16 @@ class _AgentActivityWidgetState extends State<AgentActivityWidget>
       });
     } catch (_) {}
 
+    try {
+      final runStream = widget.runSnapshotStream ??
+          AgentRunService.instance.watchLatestVisibleRun();
+      _runSubscription = runStream.listen((snapshot) {
+        if (mounted) {
+          setState(() => _runSnapshot = snapshot);
+        }
+      });
+    } catch (_) {}
+
     _historyLoadTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) _loadLatestFromDb();
     });
@@ -118,6 +145,7 @@ class _AgentActivityWidgetState extends State<AgentActivityWidget>
   void dispose() {
     _subscription?.cancel();
     _taskSubscription?.cancel();
+    _runSubscription?.cancel();
     _openActivitySubscription?.cancel();
     _historyLoadTimer?.cancel();
     _bounceController.dispose();
@@ -138,7 +166,9 @@ class _AgentActivityWidgetState extends State<AgentActivityWidget>
         builder: (context) => _DetailSheet(
           initialMessage: _latestMessage,
           initialTaskSnapshot: _taskSnapshot,
+          initialRunSnapshot: _runSnapshot,
           taskActivitySnapshotStream: widget.taskActivitySnapshotStream,
+          runSnapshotStream: widget.runSnapshotStream,
         ),
       );
     } finally {
@@ -149,6 +179,7 @@ class _AgentActivityWidgetState extends State<AgentActivityWidget>
   @override
   Widget build(BuildContext context) {
     if (!_isActive) return const SizedBox.shrink();
+    final status = _status;
 
     return GestureDetector(
       onTap: _showDetail,
@@ -200,10 +231,8 @@ class _AgentActivityWidgetState extends State<AgentActivityWidget>
                     ),
                   ),
                   Text(
-                    _taskSnapshot.hasActiveTasks
-                        ? UserStorage.l10n.insightProcessingBacklogMessage(
-                            _taskSnapshot.total,
-                          )
+                    status.hasActiveTasks
+                        ? status.taskSummary
                         : UserStorage.l10n.keepAppOpen,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -231,12 +260,16 @@ class _AgentActivityWidgetState extends State<AgentActivityWidget>
 class _DetailSheet extends StatefulWidget {
   final AgentActivityMessageModel? initialMessage;
   final TaskActivitySnapshot initialTaskSnapshot;
+  final AgentRunSnapshot? initialRunSnapshot;
   final Stream<TaskActivitySnapshot>? taskActivitySnapshotStream;
+  final Stream<AgentRunSnapshot?>? runSnapshotStream;
 
   const _DetailSheet({
     this.initialMessage,
     this.initialTaskSnapshot = const TaskActivitySnapshot.empty(),
+    this.initialRunSnapshot,
     this.taskActivitySnapshotStream,
+    this.runSnapshotStream,
   });
 
   @override
@@ -247,8 +280,10 @@ class _DetailSheetState extends State<_DetailSheet>
     with SingleTickerProviderStateMixin {
   AgentActivityMessageModel? _message;
   TaskActivitySnapshot _taskSnapshot = const TaskActivitySnapshot.empty();
+  AgentRunSnapshot? _runSnapshot;
   StreamSubscription<AgentActivityMessageModel>? _subscription;
   StreamSubscription<TaskActivitySnapshot>? _taskSubscription;
+  StreamSubscription<AgentRunSnapshot?>? _runSubscription;
   AgentActivityService? _service;
   LocalTaskExecutor? _executor;
 
@@ -263,6 +298,7 @@ class _DetailSheetState extends State<_DetailSheet>
     )..repeat(reverse: true);
     _message = widget.initialMessage;
     _taskSnapshot = widget.initialTaskSnapshot;
+    _runSnapshot = widget.initialRunSnapshot;
     try {
       _service = AgentActivityService.instance;
       _executor = LocalTaskExecutor.instance;
@@ -273,6 +309,11 @@ class _DetailSheetState extends State<_DetailSheet>
       final taskStream = widget.taskActivitySnapshotStream ??
           _executor?.taskActivitySnapshotStream;
       _taskSubscription = taskStream?.listen(_handleTaskSnapshot);
+    } catch (_) {}
+    try {
+      final runStream = widget.runSnapshotStream ??
+          AgentRunService.instance.watchLatestVisibleRun();
+      _runSubscription = runStream.listen(_handleRunSnapshot);
     } catch (_) {}
   }
 
@@ -295,10 +336,16 @@ class _DetailSheetState extends State<_DetailSheet>
     setState(() => _taskSnapshot = snapshot);
   }
 
+  void _handleRunSnapshot(AgentRunSnapshot? snapshot) {
+    if (!mounted) return;
+    setState(() => _runSnapshot = snapshot);
+  }
+
   @override
   void dispose() {
     _subscription?.cancel();
     _taskSubscription?.cancel();
+    _runSubscription?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
@@ -476,8 +523,9 @@ class _DetailSheetState extends State<_DetailSheet>
   }
 
   Widget _buildWaitingState() {
-    final statusText = _taskSnapshot.hasActiveTasks
-        ? UserStorage.l10n.insightProcessingBacklogMessage(_taskSnapshot.total)
+    final status = _status;
+    final statusText = status.hasActiveTasks
+        ? status.taskSummary
         : UserStorage.l10n.noAgentActivityYet;
 
     return Center(
@@ -513,11 +561,12 @@ class _DetailSheetState extends State<_DetailSheet>
   }
 
   Widget _buildTaskSummary() {
-    if (!_taskSnapshot.hasActiveTasks) return const SizedBox.shrink();
+    final status = _status;
+    if (!status.hasActiveTasks) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: Text(
-        UserStorage.l10n.insightProcessingBacklogMessage(_taskSnapshot.total),
+        status.taskSummary,
         style: const TextStyle(
           color: Color(0xFF64748B),
           fontSize: 13,
@@ -526,6 +575,12 @@ class _DetailSheetState extends State<_DetailSheet>
       ),
     );
   }
+
+  AgentBackgroundStatus get _status => AgentBackgroundStatus.fromActivity(
+        taskSnapshot: _taskSnapshot,
+        latestMessage: _message,
+        runSnapshot: _runSnapshot,
+      );
 
   Widget _buildIcon(AgentActivityType type) {
     IconData iconData;

@@ -76,6 +76,37 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get reprocessCards => 'Reprocess cards';
+
+  @override
+  String get reprocessCardsTaskCreated =>
+      'Reprocess request queued in Super Agent';
+
+  @override
+  String get reprocessCardsDownstreamMode => 'Scope';
+
+  @override
+  String get reprocessCardsCardOnly => 'Cards only';
+
+  @override
+  String get reprocessCardsCardOnlyDesc =>
+      'Ask Super Agent to review and regenerate the selected timeline cards.';
+
+  @override
+  String get reprocessCardsRerunDownstream => 'Cards and related follow-ups';
+
+  @override
+  String get reprocessCardsRerunDownstreamDesc =>
+      'Ask Super Agent to also consider related PKM, schedule, and insight updates when needed.';
+
+  @override
+  String get reanalyzeMediaAssets => 'Re-read media attachments';
+
+  @override
+  String get reanalyzeMediaAssetsDesc =>
+      'Ask Super Agent to inspect attached media again when regenerating cards.';
+
+  @override
   String get regenerateComments => 'Regenerate comments';
 
   @override
@@ -489,10 +520,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clipboardPreviewTitle => 'New clipboard';
 
   @override
+  String get clipboardPreviewImageTitle => 'Clipboard image';
+
+  @override
+  String get clipboardPreviewImageDescription => 'Image ready to add';
+
+  @override
   String get clipboardPreviewUnprocessed => 'Not pasted yet';
 
   @override
   String get clipboardPreviewPasteToInput => 'Paste to input';
+
+  @override
+  String get clipboardPreviewAddImageToInput => 'Add image';
+
+  @override
+  String get clipboardPreviewImageFailed => 'Couldn\'t read clipboard image';
+
+  @override
+  String get tellAiWhatHappened => 'Tell AI what happened...';
+
+  @override
+  String recordingWithDuration(Object duration) {
+    return 'Recording: $duration';
+  }
 
   @override
   String get playing => 'Playing...';
@@ -640,6 +691,117 @@ class AppLocalizationsEn extends AppLocalizations {
   String get processingEllipsis => 'Processing...';
 
   @override
+  String get agentBackgroundTitle => 'Memex Agent';
+
+  @override
+  String get agentBackgroundPausedTitle => 'Memex Agent paused';
+
+  @override
+  String get agentBackgroundNeedsAttentionTitle =>
+      'Memex Agent needs attention';
+
+  @override
+  String get agentBackgroundStageIdle => 'Idle';
+
+  @override
+  String get agentBackgroundStageProcessing => 'Processing';
+
+  @override
+  String get agentBackgroundStageQueued => 'Queued';
+
+  @override
+  String get agentBackgroundStageRetrying => 'Waiting to retry';
+
+  @override
+  String get agentBackgroundStagePaused => 'Paused';
+
+  @override
+  String get agentBackgroundStageCompleted => 'Completed';
+
+  @override
+  String get agentBackgroundStageNeedsAttention => 'Needs attention';
+
+  @override
+  String get agentBackgroundStageAnalyzingMedia => 'Analyzing media';
+
+  @override
+  String get agentBackgroundStageGeneratingCard => 'Generating card';
+
+  @override
+  String get agentBackgroundStageUpdatingKnowledge => 'Updating knowledge';
+
+  @override
+  String get agentBackgroundStagePreparingComment => 'Preparing comment';
+
+  @override
+  String get agentBackgroundStageRoutingFollowUps => 'Routing follow-ups';
+
+  @override
+  String agentBackgroundTaskSummary(
+      Object running, Object pending, Object retrying) {
+    return 'Running $running, Pending $pending, Retry $retrying';
+  }
+
+  @override
+  String agentBackgroundTaskDetail(Object count) {
+    return 'Processing $count queued task(s).';
+  }
+
+  @override
+  String get agentBackgroundNoTasks => 'No background tasks.';
+
+  @override
+  String get agentBackgroundStarting => 'Processing is starting.';
+
+  @override
+  String get agentBackgroundCompletedDetail => 'All background tasks finished.';
+
+  @override
+  String get agentBackgroundFailedDetail => 'Processing stopped with an error.';
+
+  @override
+  String get agentBackgroundPausedDetail =>
+      'Processing is paused and will continue later.';
+
+  @override
+  String get agentBackgroundQueuedDetail =>
+      'Waiting for the next processing step.';
+
+  @override
+  String get agentBackgroundRetryingDetail =>
+      'The current step will retry automatically.';
+
+  @override
+  String get agentBackgroundAnalyzeMediaDetail =>
+      'Reading attachments and local context.';
+
+  @override
+  String get agentBackgroundGeneratingCardDetail =>
+      'Turning the record into a timeline card.';
+
+  @override
+  String get agentBackgroundUpdatingKnowledgeDetail =>
+      'Updating local knowledge and memory.';
+
+  @override
+  String get agentBackgroundPreparingCommentDetail =>
+      'Preparing an assistant follow-up.';
+
+  @override
+  String get agentBackgroundRoutingFollowUpsDetail =>
+      'Checking follow-up actions for this card.';
+
+  @override
+  String agentBackgroundPausedStatus(Object summary) {
+    return 'Paused - $summary';
+  }
+
+  @override
+  String agentBackgroundNeedsAttentionStatus(Object summary) {
+    return 'Needs attention - $summary';
+  }
+
+  @override
   String get settings => 'Settings';
 
   @override
@@ -739,6 +901,127 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiService => 'Memex Model Service';
+
+  @override
+  String get aiModelHubTitle => 'AI models and services';
+
+  @override
+  String get aiModelHubSubtitle =>
+      'Choose Memex\'s official service or bring your own provider. Advanced model routing stays available when you need it.';
+
+  @override
+  String get aiSetupCurrentStatusTitle => 'Current setup';
+
+  @override
+  String get aiSetupStatusNotConfiguredTitle => 'AI service is not configured';
+
+  @override
+  String get aiSetupStatusNotConfiguredDescription =>
+      'Choose one connection method to enable AI organization for records, media, and insights.';
+
+  @override
+  String get aiSetupStatusMemexTitle => 'Using MemeX official service';
+
+  @override
+  String get aiSetupStatusMemexDescription =>
+      'Memex will use the official connection and API credentials managed by your MemeX account.';
+
+  @override
+  String get aiSetupStatusCustomTitle => 'Using custom provider settings';
+
+  @override
+  String get aiSetupStatusCustomDescription =>
+      'Memex will use your configured provider credentials and model role selections.';
+
+  @override
+  String get aiSetupChooseConnectionTitle => 'Choose a connection method';
+
+  @override
+  String get aiSetupChooseConnectionDescription =>
+      'Start with the path that matches how you want Memex to access AI models.';
+
+  @override
+  String get aiSetupOfficialRouteDescription =>
+      'Sign in to MemeX and use the official service without choosing providers, keys, or agent-level models.';
+
+  @override
+  String get aiSetupCustomRouteDescription =>
+      'Add your own provider credentials, choose the model Super Agent should use, and optionally override models per agent.';
+
+  @override
+  String get aiSetupCustomPageTitle => 'Custom AI service';
+
+  @override
+  String get aiSetupCustomPageSubtitle =>
+      'Configure provider credentials first, then choose the model Memex should use.';
+
+  @override
+  String get aiSetupProviderCredentialsTitle => 'Provider and API keys';
+
+  @override
+  String get aiSetupProviderCredentialsDescription =>
+      'Add or edit OpenAI, Anthropic, DeepSeek, Gemini, OpenRouter, Ollama, or another compatible provider.';
+
+  @override
+  String get modelRolesTitle => 'Choose primary model';
+
+  @override
+  String get modelRolesDescription =>
+      'Super Agent uses one model for text and image inputs. Advanced agent overrides stay available below.';
+
+  @override
+  String get textModelRoleTitle => 'Primary model';
+
+  @override
+  String get textModelRoleDescription =>
+      'Used by Super Agent for text, images, cards, knowledge, insights, chat, comments, schedule, and memory.';
+
+  @override
+  String get modelConnectionsTitle => 'Model providers and API keys';
+
+  @override
+  String get modelConnectionsDescription =>
+      'Connect Memex\'s official service or add your own provider credentials.';
+
+  @override
+  String get relatedAiCapabilitiesTitle => 'Advanced and related capabilities';
+
+  @override
+  String get relatedAiCapabilitiesDescription =>
+      'Fine-tune agent assignments, location provider, and speech transcription behavior.';
+
+  @override
+  String get aiSetupServiceCapabilitiesTitle => 'Service capabilities';
+
+  @override
+  String get aiSetupServiceCapabilitiesDescription =>
+      'Choose the providers Memex uses for adjacent AI-powered capabilities such as speech and reverse geocoding.';
+
+  @override
+  String get aiSetupAdvancedCustomizationTitle => 'Advanced model routing';
+
+  @override
+  String get aiSetupAdvancedCustomizationDescription =>
+      'For power users who want individual agents to use different providers or model configs.';
+
+  @override
+  String get locationProviderSettings => 'Location provider';
+
+  @override
+  String get speechProviderSettings => 'Speech transcription';
+
+  @override
+  String get advancedAgentModelAssignments => 'Agent model assignments';
+
+  @override
+  String get openAdvancedAgentModelAssignments => 'Override individual agents';
+
+  @override
+  String get noConfiguredModelOptions =>
+      'Add a provider or API key before choosing model roles.';
+
+  @override
+  String get modelSlotUpdated => 'Model role updated';
 
   @override
   String get aiServiceMemexRouteTitle => 'Connect through Memex';
@@ -1847,6 +2130,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get autoBackupRetention => 'Retention';
+
+  @override
+  String autoBackupRetentionDays(Object days) {
+    return '$days days';
+  }
+
+  @override
+  String get autoBackupRetentionForever => 'Keep forever';
+
+  @override
+  String get autoBackupMaxSize => 'Storage cap';
+
+  @override
+  String autoBackupRetentionLimitHint(Object size) {
+    return 'Automatic cleanup keeps automatic snapshots under $size. Safety snapshots and manual exports are kept separately.';
+  }
+
+  @override
   String get createSnapshotNow => 'Back up now';
 
   @override
@@ -1872,6 +2174,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noStoredBackups =>
       'Automatic backups will appear here after the first snapshot.';
+
+  @override
+  String get backupTypeAutoSnapshot => 'Automatic snapshot';
+
+  @override
+  String get backupTypeSafetySnapshot => 'Safety snapshot';
+
+  @override
+  String get backupTypeManualBackup => 'Manual backup';
 
   @override
   String get refresh => 'Refresh';

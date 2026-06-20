@@ -21,6 +21,8 @@ Configure these in GitHub repository settings:
   default Anthropic endpoint.
 - Variable `AI_PR_REVIEW_ENFORCE`: optional. Leave empty or `false` for shadow
   mode. Set to `true` when `human_review_required=true` should fail the workflow.
+- Variable `AI_REVIEW_MAX_DIFF_BYTES`: optional. Defaults to `1000000`; lower it
+  only if the model gateway cannot reliably handle near-1MB review contexts.
 
 Secret values must live only in GitHub Secrets. Do not put them in the
 repository, PR body, workflow logs, or artifacts.
@@ -46,7 +48,15 @@ AI review must consult:
 - `docs/pr-policy-preflight.en.md`
 - `docs/pr-ai-review.en.md`
 - PR title, body, changed files, and diff
-- Policy preflight / Flutter quality artifacts when available
+- Prepared diff metadata in `pr-ai-review-input/pr-diff-metadata.json`
+- Prepared policy preflight files in `pr-ai-review-input/`
+- Flutter quality artifacts when available
+
+Policy Preflight only reports deterministic governance and trust-boundary hard
+rules. AI review owns contextual interpretation: test evidence, architecture
+keywords, localization or UI behavior, broad diffs, sparse PR descriptions, and
+whether generated files that changed with their source look consistent with the
+expected codegen path.
 
 ## Risk Levels
 

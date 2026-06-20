@@ -148,7 +148,19 @@
 					<string>ShareMedia-$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 					</array>
 				</dict>
+				<dict>
+					<key>CFBundleTypeRole</key>
+					<string>Editor</string>
+					<key>CFBundleURLName</key>
+					<string>com.memexlab.memex.app-actions</string>
+					<key>CFBundleURLSchemes</key>
+					<array>
+						<string>memex</string>
+					</array>
+				</dict>
 			</array>
+			<key>FlutterDeepLinkingEnabled</key>
+			<false/>
 			<key>UTExportedTypeDeclarations</key>
 			<array>
 				<dict>

@@ -1,19 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:logging/logging.dart';
-import 'package:memex/config/app_config.dart';
 import 'package:memex/routing/routes.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/data/repositories/memex_router.dart';
-import 'package:memex/data/services/sandbox_user_clone_service.dart';
-import 'package:memex/main.dart' show rootScaffoldMessengerKey, rootShellKey;
-import 'package:memex/utils/toast_helper.dart';
-import 'package:memex/utils/logger.dart';
-import 'package:memex/ui/app_lock/widgets/app_lock_settings_page.dart';
 import 'package:memex/ui/settings/widgets/ai_service_setup_page.dart';
-import 'package:memex/ui/settings/widgets/model_config_list_page.dart';
 import 'package:memex/ui/settings/widgets/system_authorization_page.dart';
-import 'package:memex/ui/settings/widgets/debug_settings_page.dart';
+import 'package:memex/ui/settings/widgets/debug_settings_screen.dart';
 import 'package:memex/ui/settings/widgets/settings_page.dart';
 import 'package:memex/ui/settings/widgets/settings_search_screen.dart';
 import 'package:memex/ui/settings/view_models/settings_search_viewmodel.dart';
@@ -33,14 +25,9 @@ class PersonalCenterScreen extends StatefulWidget {
 
 class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
   final MemexRouter _memexRouter = MemexRouter();
-  final Logger _logger = getLogger('PersonalCenterScreen');
   String? _userId;
   String? _userEmail;
 
-  bool _isReprocessingComments = false;
-  bool _isRebuildingSearchIndex = false;
-  bool _isClearingFailedAgentContexts = false;
-  bool _isCloningTestUser = false;
   bool _showAuthBadge = false;
   String? _userAvatar;
 
@@ -98,416 +85,9 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
     return imported.relativePath;
   }
 
-  Future<void> _clearToken() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(UserStorage.l10n.confirmClear),
-        content: Text(UserStorage.l10n.confirmClearTokenMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(UserStorage.l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text(UserStorage.l10n.confirm),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        await UserStorage.clearUser();
-        // Reset user-related globals so next login re-inits (DB, router, task executor).
-        _memexRouter.resetForLogout();
-        if (mounted) {
-          ToastHelper.showSuccessWithKey(
-            _scaffoldMessengerKey,
-            UserStorage.l10n.tokenCleared,
-          );
-          // navigate to setup screen
-          context.go(AppRoutes.userSetup);
-        }
-      } catch (e) {
-        if (mounted) {
-          ToastHelper.showErrorWithKey(
-            _scaffoldMessengerKey,
-            UserStorage.l10n.clearTokenFailed(e.toString()),
-          );
-        }
-      }
-    }
-  }
-
-  Future<void> _reprocessComments() async {
-    if (_isReprocessingComments) return;
-
-    // show dialog for user to choose params
-    DateTime? dateFrom;
-    DateTime? dateTo;
-    int? limit;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(UserStorage.l10n.regenerateComments),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(UserStorage.l10n.selectDateRangeOptional),
-                const SizedBox(height: 8),
-                ListTile(
-                  title: Text(UserStorage.l10n.startDate),
-                  trailing: TextButton(
-                    onPressed: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now(),
-                      );
-                      if (date != null) {
-                        setDialogState(() {
-                          dateFrom = date;
-                        });
-                      }
-                    },
-                    child: Text(
-                      dateFrom == null
-                          ? UserStorage.l10n.select
-                          : '${dateFrom!.year}-${dateFrom!.month.toString().padLeft(2, '0')}-${dateFrom!.day.toString().padLeft(2, '0')}',
-                    ),
-                  ),
-                ),
-                ListTile(
-                  title: Text(UserStorage.l10n.endDate),
-                  trailing: TextButton(
-                    onPressed: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: dateTo ?? DateTime.now(),
-                        firstDate: dateFrom ?? DateTime(2020),
-                        lastDate: DateTime.now(),
-                      );
-                      if (date != null) {
-                        setDialogState(() {
-                          dateTo = date;
-                        });
-                      }
-                    },
-                    child: Text(
-                      dateTo == null
-                          ? UserStorage.l10n.select
-                          : '${dateTo!.year}-${dateTo!.month.toString().padLeft(2, '0')}-${dateTo!.day.toString().padLeft(2, '0')}',
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  decoration: InputDecoration(
-                    labelText: UserStorage.l10n.processLimitOptional,
-                    hintText: UserStorage.l10n.leaveEmptyForAll,
-                  ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    limit = int.tryParse(value);
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(UserStorage.l10n.cancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(UserStorage.l10n.startProcessing),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    setState(() {
-      _isReprocessingComments = true;
-    });
-
-    try {
-      final userId = await UserStorage.getUserId();
-      if (userId == null) {
-        if (mounted) {
-          setState(() {
-            _isReprocessingComments = false;
-          });
-          ToastHelper.showErrorWithKey(
-            _scaffoldMessengerKey,
-            UserStorage.l10n.userIdNotFound,
-          );
-        }
-        return;
-      }
-
-      // build payload
-      final payload = <String, dynamic>{};
-      final dateFromValue = dateFrom;
-      if (dateFromValue != null) {
-        payload['date_from'] = dateFromValue.toIso8601String().substring(0, 10);
-      }
-      final dateToValue = dateTo;
-      if (dateToValue != null) {
-        payload['date_to'] = dateToValue.toIso8601String().substring(0, 10);
-      }
-      final limitValue = limit;
-      if (limitValue != null && limitValue > 0) {
-        payload['limit'] = limitValue;
-      }
-
-      // enqueue task
-      await _memexRouter.enqueueTask(
-        taskType: 'reprocess_comments_task',
-        payload: payload,
-        bizId: 'reprocess_comments_${DateTime.now().millisecondsSinceEpoch}',
-      );
-
-      if (mounted) {
-        setState(() {
-          _isReprocessingComments = false;
-        });
-        ToastHelper.showSuccessWithKey(
-          _scaffoldMessengerKey,
-          UserStorage.l10n.regenerateCommentsTaskCreated,
-        );
-      }
-    } catch (e) {
-      _logger.severe('Error reprocessing comments: $e', e);
-      if (mounted) {
-        setState(() {
-          _isReprocessingComments = false;
-        });
-        ToastHelper.showErrorWithKey(
-          _scaffoldMessengerKey,
-          UserStorage.l10n.createTaskFailed(e),
-        );
-      }
-    }
-  }
-
-  bool _isClearingData = false;
-
-  Future<void> _rebuildSearchIndex() async {
-    if (_isRebuildingSearchIndex) return;
-    setState(() => _isRebuildingSearchIndex = true);
-    try {
-      await _memexRouter.rebuildAllFtsIndexes();
-      if (mounted) {
-        ToastHelper.showSuccessWithKey(
-          _scaffoldMessengerKey,
-          UserStorage.l10n.rebuildSearchIndexSuccess,
-        );
-      }
-    } catch (e) {
-      _logger.severe('Error rebuilding search index: $e', e);
-      if (mounted) {
-        ToastHelper.showErrorWithKey(
-          _scaffoldMessengerKey,
-          UserStorage.l10n.rebuildSearchIndexFailed,
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isRebuildingSearchIndex = false);
-      }
-    }
-  }
-
-  Future<void> _clearFailedAgentContexts() async {
-    if (_isClearingFailedAgentContexts) return;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(UserStorage.l10n.clearFailedAgentContexts),
-        content: Text(UserStorage.l10n.confirmClearFailedAgentContextsMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(UserStorage.l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text(UserStorage.l10n.confirmClear),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    setState(() => _isClearingFailedAgentContexts = true);
-    try {
-      final deletedCount =
-          await _memexRouter.clearFailedAgentConversationContexts();
-      if (!mounted) return;
-      ToastHelper.showSuccessWithKey(
-        _scaffoldMessengerKey,
-        UserStorage.l10n.failedAgentContextsCleared(deletedCount),
-      );
-    } catch (e) {
-      _logger.severe('Error clearing failed agent contexts: $e', e);
-      if (!mounted) return;
-      ToastHelper.showErrorWithKey(
-        _scaffoldMessengerKey,
-        UserStorage.l10n.clearFailedAgentContextsFailed(e),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isClearingFailedAgentContexts = false);
-      }
-    }
-  }
-
-  Future<void> _cloneToTestUser() async {
-    if (_isCloningTestUser) return;
-
-    final request = await _showCloneToTestUserDialog();
-    if (request == null) return;
-
-    setState(() => _isCloningTestUser = true);
-    final sourceUserId = await UserStorage.getUserId();
-    try {
-      _memexRouter.resetForLogout();
-      final result = await SandboxUserCloneService.instance
-          .cloneCurrentUserToLocalTestUser(
-        targetUserId: request.targetUserId,
-        overwriteTarget: request.overwriteTarget,
-      );
-      await UserStorage.saveUser(result.targetUserId);
-      _memexRouter.resetForLogout();
-      await _memexRouter.switchUser(result.targetUserId);
-      await _memexRouter.applyWorkspaceStorageChange();
-
-      if (!mounted) return;
-      Navigator.of(context).popUntil((route) => route.isFirst);
-      rootShellKey.currentState?.resetAndRecheck();
-      ToastHelper.showSuccessWithKey(
-        rootScaffoldMessengerKey,
-        UserStorage.l10n.testUserCloneSuccess(result.targetUserId),
-      );
-    } catch (e, stack) {
-      _logger.severe('Clone to test user failed: $e', e, stack);
-      if (sourceUserId != null && sourceUserId.isNotEmpty) {
-        try {
-          await UserStorage.saveUser(sourceUserId);
-          _memexRouter.resetForLogout();
-          await _memexRouter.switchUser(sourceUserId);
-        } catch (restoreError, restoreStack) {
-          _logger.severe(
-            'Failed to restore source user after clone failure: $restoreError',
-            restoreError,
-            restoreStack,
-          );
-        }
-      }
-      if (!mounted) return;
-      ToastHelper.showErrorWithKey(
-        _scaffoldMessengerKey,
-        UserStorage.l10n.testUserCloneFailed(e),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isCloningTestUser = false);
-      }
-    }
-  }
-
-  Future<_CloneToTestUserRequest?> _showCloneToTestUserDialog() async {
-    return showDialog<_CloneToTestUserRequest>(
-      context: context,
-      builder: (dialogContext) => const _CloneToTestUserDialog(),
-    );
-  }
-
-  Future<void> _clearData() async {
-    if (_isClearingData) return;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(UserStorage.l10n.clearData),
-        content: Text(
-          '${UserStorage.l10n.confirmClearDataMessage}\n'
-          '${UserStorage.l10n.confirmClearDataDeletesWorkspaceMessage}',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(UserStorage.l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text(UserStorage.l10n.confirmClear),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    setState(() {
-      _isClearingData = true;
-    });
-
-    try {
-      final userId = await UserStorage.getUserId();
-      if (userId == null) {
-        throw Exception(UserStorage.l10n.userIdNotFound);
-      }
-
-      // use MemexRouter to clear all data
-      await _memexRouter.clearData();
-
-      if (mounted) {
-        ToastHelper.showSuccessWithKey(
-          _scaffoldMessengerKey,
-          UserStorage.l10n.dataClearedSuccess,
-        );
-      }
-    } catch (e, stack) {
-      _logger.severe('Clear data failed: $e', e, stack);
-      if (mounted) {
-        ToastHelper.showErrorWithKey(
-          _scaffoldMessengerKey,
-          UserStorage.l10n.clearDataFailed(e),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isClearingData = false;
-        });
-      }
-    }
-  }
-
-  final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey =
-      GlobalKey<ScaffoldMessengerState>();
-
   @override
   Widget build(BuildContext context) {
     return ScaffoldMessenger(
-      key: _scaffoldMessengerKey,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: DraggableScrollableSheet(
@@ -683,44 +263,14 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                           ),
                           const SizedBox(height: 12),
                           _buildFunctionTab(
-                            icon: Icons.lock_outline,
-                            title: UserStorage.l10n.appLockConfig,
+                            icon: Icons.auto_awesome_rounded,
+                            title: UserStorage.l10n.aiModelHubTitle,
                             onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
-                                      const AppLockSettingsPage(),
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          if (AppConfig.enableMemexModelService) ...[
-                            _buildFunctionTab(
-                              icon: Icons.auto_awesome_rounded,
-                              title: UserStorage.l10n.aiService,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const AiServiceSetupPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                          ],
-                          _buildFunctionTab(
-                            icon: Icons.settings_input_component_outlined,
-                            title: UserStorage.l10n.modelConfig,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const ModelConfigListPage(),
+                                      const AiServiceSetupPage(),
                                 ),
                               );
                             },
@@ -733,9 +283,8 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => ExperimentalLabPage(
-                                    router: _memexRouter,
-                                  ),
+                                  builder: (context) =>
+                                      ExperimentalLabPage(router: _memexRouter),
                                 ),
                               );
                             },
@@ -777,25 +326,9 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => DebugSettingsPage(
-                                    onClearToken: () async => _clearToken(),
-                                    onClearData: () async => _clearData(),
-                                    onClearFailedAgentContexts: () async =>
-                                        _clearFailedAgentContexts(),
-                                    onCloneToTestUser: () async =>
-                                        _cloneToTestUser(),
-                                    onReprocessComments: () async =>
-                                        _reprocessComments(),
-                                    onRebuildSearchIndex: () async =>
-                                        _rebuildSearchIndex(),
-                                    isClearingData: _isClearingData,
-                                    isReprocessingComments:
-                                        _isReprocessingComments,
-                                    isClearingFailedAgentContexts:
-                                        _isClearingFailedAgentContexts,
-                                    isCloningTestUser: _isCloningTestUser,
-                                    isRebuildingSearchIndex:
-                                        _isRebuildingSearchIndex,
+                                  builder: (context) =>
+                                      DebugSettingsScreen.forRouter(
+                                    router: _memexRouter,
                                   ),
                                 ),
                               );
@@ -888,103 +421,6 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _CloneToTestUserRequest {
-  final String targetUserId;
-  final bool overwriteTarget;
-
-  const _CloneToTestUserRequest({
-    required this.targetUserId,
-    required this.overwriteTarget,
-  });
-}
-
-class _CloneToTestUserDialog extends StatefulWidget {
-  const _CloneToTestUserDialog();
-
-  @override
-  State<_CloneToTestUserDialog> createState() => _CloneToTestUserDialogState();
-}
-
-class _CloneToTestUserDialogState extends State<_CloneToTestUserDialog> {
-  static final RegExp _validUserId = RegExp(r'^[A-Za-z0-9_-]+$');
-
-  final TextEditingController _controller = TextEditingController(text: 'test');
-  bool _overwriteTarget = false;
-  bool _touched = false;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    final targetUserId = _controller.text.trim();
-    if (!_validUserId.hasMatch(targetUserId)) {
-      setState(() => _touched = true);
-      return;
-    }
-    Navigator.of(context).pop(
-      _CloneToTestUserRequest(
-        targetUserId: targetUserId,
-        overwriteTarget: _overwriteTarget,
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final targetUserId = _controller.text.trim();
-    final isValid = _validUserId.hasMatch(targetUserId);
-
-    return AlertDialog(
-      title: Text(UserStorage.l10n.cloneToTestUser),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(UserStorage.l10n.confirmCloneToTestUserMessage),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _controller,
-            autofocus: true,
-            textInputAction: TextInputAction.done,
-            decoration: InputDecoration(
-              labelText: UserStorage.l10n.testUserIdLabel,
-              helperText: UserStorage.l10n.testUserIdHelper,
-              errorText: _touched && !isValid
-                  ? UserStorage.l10n.testUserIdInvalid
-                  : null,
-            ),
-            onChanged: (_) => setState(() => _touched = true),
-            onSubmitted: (_) => _submit(),
-          ),
-          const SizedBox(height: 8),
-          CheckboxListTile(
-            value: _overwriteTarget,
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-            title: Text(UserStorage.l10n.overwriteExistingTestUser),
-            onChanged: (value) {
-              setState(() => _overwriteTarget = value ?? false);
-            },
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(UserStorage.l10n.cancel),
-        ),
-        TextButton(
-          onPressed: isValid ? _submit : null,
-          child: Text(UserStorage.l10n.confirm),
-        ),
-      ],
     );
   }
 }

@@ -30,6 +30,7 @@ void openSuperAgentDialog(
   BuildContext context, {
   String? initialDraftText,
   List<XFile> initialImages = const [],
+  Map<String, String> initialImageOriginalFilenames = const {},
   String? sceneId,
   List<Map<String, String>>? initialRefs,
 }) {
@@ -51,6 +52,7 @@ void openSuperAgentDialog(
             initialRefs: initialRefs,
             initialDraftText: initialDraftText,
             initialImages: initialImages,
+            initialImageOriginalFilenames: initialImageOriginalFilenames,
           );
         },
       );

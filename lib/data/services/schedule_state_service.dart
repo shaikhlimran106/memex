@@ -185,10 +185,53 @@ class ScheduleStateService {
     List<ScheduleSubtask>? subtasks,
     required String sourceFactId,
     bool syncDeviceAction = false,
+    bool dedupeBySourceFactId = false,
     DateTime? now,
   }) async {
     return _lock.synchronized(() async {
       final clock = now ?? DateTime.now();
+      final state = await read(userId);
+      final existingIndex = dedupeBySourceFactId
+          ? state.pending.indexWhere(
+              (item) => item.sourceFactIds.contains(sourceFactId),
+            )
+          : -1;
+      if (dedupeBySourceFactId && existingIndex >= 0) {
+        final existing = state.pending[existingIndex];
+        var item = existing.copyWith(
+          kind: kind,
+          title: title,
+          description: description,
+          startTime: startTime,
+          endTime: endTime,
+          dueAt: dueAt,
+          location: location,
+          priority: priority,
+          subtasks: subtasks ?? const <ScheduleSubtask>[],
+          syncDeviceAction: syncDeviceAction,
+          updatedAt: clock,
+          clearDescription: description == null,
+          clearStartTime: startTime == null,
+          clearEndTime: endTime == null,
+          clearDueAt: dueAt == null,
+          clearLocation: location == null,
+          clearPriority: priority == null,
+        );
+        item = await _maintainDeviceAction(userId, item);
+
+        final pending = state.pending.toList();
+        pending[existingIndex] = item;
+        pending.sort(compareSchedulePendingItems);
+        final updated = state.copyWith(generatedAt: clock, pending: pending);
+        await write(userId, updated);
+        _logger.info(
+          'Schedule pending item updated for existing source, '
+          'userId=$userId, itemId=${item.id}, sourceFactId=$sourceFactId, '
+          'kind=${item.kind}, title=${item.title}',
+        );
+        return updated;
+      }
+
       var item = SchedulePendingItem(
         id: 'pi_${const Uuid().v4().substring(0, 8)}',
         kind: kind,
@@ -207,7 +250,6 @@ class ScheduleStateService {
       );
       item = await _maintainDeviceAction(userId, item);
 
-      final state = await read(userId);
       final pending = [...state.pending, item]
         ..sort(compareSchedulePendingItems);
       final updated = state.copyWith(generatedAt: clock, pending: pending);

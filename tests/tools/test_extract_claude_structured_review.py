@@ -39,6 +39,27 @@ class ExtractClaudeStructuredReviewTest(unittest.TestCase):
         self.assertIsNotNone(parsed)
         self.assertEqual(parsed["risk_level"], "medium")
 
+    def test_marks_missing_confidence_from_otherwise_complete_review(self):
+        data = review(risk_level="low")
+        del data["confidence"]
+
+        parsed = parse_json_object(
+            "I've reviewed the PR.\n```json\n"
+            + json.dumps(data, ensure_ascii=False)
+            + "\n```"
+        )
+
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed["confidence"], "not_provided")
+
+    def test_rejects_review_missing_unrecoverable_required_key(self):
+        data = review()
+        del data["risk_level"]
+
+        parsed = parse_json_object(json.dumps(data, ensure_ascii=False))
+
+        self.assertIsNone(parsed)
+
     def test_extracts_last_assistant_json_from_execution_file(self):
         first = review(risk_level="high")
         second = review(risk_level="low")
@@ -73,6 +94,29 @@ class ExtractClaudeStructuredReviewTest(unittest.TestCase):
 
         self.assertIsNotNone(parsed)
         self.assertEqual(parsed["risk_level"], "low")
+
+    def test_extracts_result_json_with_missing_confidence_marker(self):
+        data = review(risk_level="medium")
+        del data["confidence"]
+        messages = [
+            {
+                "type": "result",
+                "subtype": "success",
+                "result": "Done.\n```json\n"
+                + json.dumps(data, ensure_ascii=False)
+                + "\n```",
+            }
+        ]
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "claude-execution-output.json"
+            path.write_text(json.dumps(messages), encoding="utf-8")
+
+            parsed = extract_from_execution_file(path)
+
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed["risk_level"], "medium")
+        self.assertEqual(parsed["confidence"], "not_provided")
 
 
 if __name__ == "__main__":

@@ -68,6 +68,7 @@ import 'package:memex/agent/state_util.dart';
 import 'package:memex/agent/skills/knowledge_insight/native_widgets.dart';
 import 'package:memex/utils/result.dart';
 import 'package:memex/domain/models/system_event.dart';
+import 'package:memex/domain/models/event_bus_message.dart';
 import 'package:memex/domain/models/user_stats_model.dart';
 
 /// Local data service for Memex. Handles all data operations via local storage (FileSystemService, DB).
@@ -1425,15 +1426,35 @@ class MemexRouter {
 
   Future<void> saveLLMConfigs(List<LLMConfig> configs) async {
     await UserStorage.saveLLMConfigs(configs);
+    _emitLLMConfigChanged(configs, reason: 'saved');
   }
 
-  Future<void> resetLLMConfigs() => UserStorage.resetLLMConfigs();
+  Future<void> resetLLMConfigs() async {
+    await UserStorage.resetLLMConfigs();
+    final configs = await UserStorage.getLLMConfigs();
+    _emitLLMConfigChanged(configs, reason: 'reset');
+  }
 
   Future<String> getDefaultLLMConfigKey() =>
       UserStorage.getDefaultLLMConfigKey();
 
-  Future<void> setDefaultLLMConfigKey(String configKey) =>
-      UserStorage.setDefaultLLMConfigKey(configKey);
+  Future<void> setDefaultLLMConfigKey(String configKey) async {
+    await UserStorage.setDefaultLLMConfigKey(configKey);
+    final configs = await UserStorage.getLLMConfigs();
+    _emitLLMConfigChanged(configs, reason: 'default_changed');
+  }
+
+  void _emitLLMConfigChanged(
+    List<LLMConfig> configs, {
+    required String reason,
+  }) {
+    EventBusService.instance.emitEvent(
+      LLMConfigChangedMessage(
+        hasValidConfig: configs.any((c) => c.isValid),
+        reason: reason,
+      ),
+    );
+  }
 
   Future<AgentConfig> getAgentConfig(String agentId) =>
       UserStorage.getAgentConfig(agentId);

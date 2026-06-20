@@ -6,10 +6,10 @@ class AgentDefinitions {
 
   /// Order here drives the display order in the agent configuration screen.
   static const Map<String, String> displayNames = {
-    commentAgent: 'Comments',
     chatAgent: 'Chat',
+    commentAgent: 'Comments',
     companionAgent: 'Companion',
-    profileAgent: 'Memory summary',
+    profileAgent: 'Memory',
   };
 
   /// Agent IDs exposed in the model configuration screen.

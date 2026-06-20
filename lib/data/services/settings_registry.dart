@@ -8,15 +8,13 @@ import 'package:memex/domain/models/settings_item.dart';
 import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/ui/settings/widgets/ai_service_setup_page.dart';
 import 'package:memex/ui/settings/widgets/system_authorization_page.dart';
-import 'package:memex/ui/settings/widgets/model_config_list_page.dart';
 import 'package:memex/ui/settings/widgets/agent_config_list_page.dart';
 import 'package:memex/ui/settings/widgets/settings_page.dart';
-import 'package:memex/ui/settings/widgets/debug_settings_page.dart';
+import 'package:memex/ui/settings/widgets/debug_settings_screen.dart';
 import 'package:memex/ui/settings/widgets/data_storage_page.dart';
 import 'package:memex/ui/settings/widgets/backup_restore_page.dart';
 import 'package:memex/ui/settings/widgets/location_context_settings_page.dart';
 import 'package:memex/ui/settings/widgets/experimental_lab_page.dart';
-import 'package:memex/ui/app_lock/widgets/app_lock_settings_page.dart';
 import 'package:memex/ui/memory/view_models/memory_viewmodel.dart';
 import 'package:memex/ui/memory/widgets/memory_screen.dart';
 import 'package:memex/ui/character/view_models/character_viewmodel.dart';
@@ -69,30 +67,6 @@ class SettingsRegistry {
           ),
           parentPathGetter: () => [UserStorage.l10n.personalCenter],
         ),
-        SettingsItem(
-          id: 'app_lock',
-          titleGetter: () => UserStorage.l10n.appLockConfig,
-          descriptionGetter: () => UserStorage.l10n.enableAppLockSubtitle,
-          keywords: const [
-            '应用锁',
-            '锁定',
-            '密码',
-            '生物识别',
-            '面容',
-            '指纹',
-            'app lock',
-            'lock',
-            'password',
-            'biometrics',
-            'face id',
-            'touch id',
-          ],
-          icon: Icons.lock_outline,
-          navigationTarget: NavigationTarget(
-            pageBuilder: (_) => const AppLockSettingsPage(),
-          ),
-          parentPathGetter: () => [UserStorage.l10n.personalCenter],
-        ),
         if (AppConfig.enableMemexModelService)
           SettingsItem(
             id: 'ai_service',
@@ -123,8 +97,8 @@ class SettingsRegistry {
           ),
         SettingsItem(
           id: 'model_config',
-          titleGetter: () => UserStorage.l10n.modelConfig,
-          descriptionGetter: () => UserStorage.l10n.modelConfiguration,
+          titleGetter: () => UserStorage.l10n.aiModelHubTitle,
+          descriptionGetter: () => UserStorage.l10n.aiModelHubSubtitle,
           keywords: const [
             '模型',
             'API',
@@ -134,20 +108,25 @@ class SettingsRegistry {
             '配置',
             '接口',
             '服务商',
+            '视觉模型',
+            '文本模型',
             'token',
             'model',
             'api key',
             'endpoint',
             'llm',
+            'vision model',
+            'text model',
+            'media model',
             'openai',
             'claude',
             'gemini',
             'deepseek',
             'provider',
           ],
-          icon: Icons.settings_input_component_outlined,
+          icon: Icons.auto_awesome_rounded,
           navigationTarget: NavigationTarget(
-            pageBuilder: (_) => const ModelConfigListPage(),
+            pageBuilder: (_) => const AiServiceSetupPage(),
           ),
           parentPathGetter: () => [UserStorage.l10n.personalCenter],
         ),
@@ -167,9 +146,8 @@ class SettingsRegistry {
           ],
           icon: Icons.science_outlined,
           navigationTarget: NavigationTarget(
-            pageBuilder: (context) => ExperimentalLabPage(
-              router: context.read<MemexRouter>(),
-            ),
+            pageBuilder: (context) =>
+                ExperimentalLabPage(router: context.read<MemexRouter>()),
           ),
           parentPathGetter: () => [UserStorage.l10n.personalCenter],
         ),
@@ -279,20 +257,8 @@ class SettingsRegistry {
             'logout',
           ],
           icon: Icons.bug_report_outlined,
-          navigationTarget: NavigationTarget(
-            pageBuilder: (_) => DebugSettingsPage(
-              onClearToken: () async {},
-              onClearData: () async {},
-              onClearFailedAgentContexts: () async {},
-              onCloneToTestUser: () async {},
-              onReprocessComments: () async {},
-              onRebuildSearchIndex: () async {},
-              isClearingData: false,
-              isClearingFailedAgentContexts: false,
-              isCloningTestUser: false,
-              isReprocessingComments: false,
-              isRebuildingSearchIndex: false,
-            ),
+          navigationTarget: const NavigationTarget(
+            pageBuilder: DebugSettingsScreen.fromContext,
           ),
           parentPathGetter: () => [UserStorage.l10n.personalCenter],
         ),
@@ -305,27 +271,26 @@ class SettingsRegistry {
             '智能体',
             '代理',
             '分配模型',
-            '卡片处理',
-            '知识提取',
+            'Super Agent',
+            '超级智能体',
             '评论生成',
             '聊天',
-            '图片分析',
+            '陪伴',
+            '记忆总结',
             'agent config',
             'agent model',
-            'card agent',
-            'knowledge',
+            'super agent',
             'comment',
             'chat',
+            'companion',
+            'memory summary',
             'debug',
           ],
           icon: Icons.people_outline,
           navigationTarget: NavigationTarget(
             pageBuilder: (_) => const AgentConfigListPage(),
           ),
-          parentPathGetter: () => [
-            UserStorage.l10n.personalCenter,
-            'Debug',
-          ],
+          parentPathGetter: () => [UserStorage.l10n.personalCenter, 'Debug'],
         ),
       ];
 
@@ -356,8 +321,10 @@ class SettingsRegistry {
           navigationTarget: NavigationTarget(
             pageBuilder: (_) => const SettingsPage(),
           ),
-          parentPathGetter: () =>
-              [UserStorage.l10n.personalCenter, UserStorage.l10n.settings],
+          parentPathGetter: () => [
+            UserStorage.l10n.personalCenter,
+            UserStorage.l10n.settings,
+          ],
         ),
         SettingsItem(
           id: 'settings.local_speech',
@@ -384,8 +351,10 @@ class SettingsRegistry {
           navigationTarget: NavigationTarget(
             pageBuilder: (_) => const SettingsPage(),
           ),
-          parentPathGetter: () =>
-              [UserStorage.l10n.personalCenter, UserStorage.l10n.settings],
+          parentPathGetter: () => [
+            UserStorage.l10n.personalCenter,
+            UserStorage.l10n.settings,
+          ],
         ),
         if (Platform.isAndroid && AppFlavor.isEarly)
           SettingsItem(
@@ -413,8 +382,10 @@ class SettingsRegistry {
             navigationTarget: NavigationTarget(
               pageBuilder: (_) => const SettingsPage(),
             ),
-            parentPathGetter: () =>
-                [UserStorage.l10n.personalCenter, UserStorage.l10n.settings],
+            parentPathGetter: () => [
+              UserStorage.l10n.personalCenter,
+              UserStorage.l10n.settings,
+            ],
           ),
         SettingsItem(
           id: 'settings.show_insight',
@@ -440,8 +411,10 @@ class SettingsRegistry {
           navigationTarget: NavigationTarget(
             pageBuilder: (_) => const SettingsPage(),
           ),
-          parentPathGetter: () =>
-              [UserStorage.l10n.personalCenter, UserStorage.l10n.settings],
+          parentPathGetter: () => [
+            UserStorage.l10n.personalCenter,
+            UserStorage.l10n.settings,
+          ],
         ),
         SettingsItem(
           id: 'settings.character_comment',
@@ -468,8 +441,10 @@ class SettingsRegistry {
           navigationTarget: NavigationTarget(
             pageBuilder: (_) => const SettingsPage(),
           ),
-          parentPathGetter: () =>
-              [UserStorage.l10n.personalCenter, UserStorage.l10n.settings],
+          parentPathGetter: () => [
+            UserStorage.l10n.personalCenter,
+            UserStorage.l10n.settings,
+          ],
         ),
         SettingsItem(
           id: 'settings.max_comment_characters',
@@ -494,8 +469,10 @@ class SettingsRegistry {
           navigationTarget: NavigationTarget(
             pageBuilder: (_) => const SettingsPage(),
           ),
-          parentPathGetter: () =>
-              [UserStorage.l10n.personalCenter, UserStorage.l10n.settings],
+          parentPathGetter: () => [
+            UserStorage.l10n.personalCenter,
+            UserStorage.l10n.settings,
+          ],
         ),
         SettingsItem(
           id: 'settings.data_storage',
@@ -523,8 +500,10 @@ class SettingsRegistry {
           navigationTarget: NavigationTarget(
             pageBuilder: (_) => const DataStoragePage(),
           ),
-          parentPathGetter: () =>
-              [UserStorage.l10n.personalCenter, UserStorage.l10n.settings],
+          parentPathGetter: () => [
+            UserStorage.l10n.personalCenter,
+            UserStorage.l10n.settings,
+          ],
         ),
         SettingsItem(
           id: 'settings.location_context',
@@ -554,8 +533,10 @@ class SettingsRegistry {
           navigationTarget: NavigationTarget(
             pageBuilder: (_) => const LocationContextSettingsPage(),
           ),
-          parentPathGetter: () =>
-              [UserStorage.l10n.personalCenter, UserStorage.l10n.settings],
+          parentPathGetter: () => [
+            UserStorage.l10n.personalCenter,
+            UserStorage.l10n.settings,
+          ],
         ),
         SettingsItem(
           id: 'settings.backup_restore',
@@ -587,8 +568,10 @@ class SettingsRegistry {
           navigationTarget: NavigationTarget(
             pageBuilder: (_) => const BackupRestorePage(),
           ),
-          parentPathGetter: () =>
-              [UserStorage.l10n.personalCenter, UserStorage.l10n.settings],
+          parentPathGetter: () => [
+            UserStorage.l10n.personalCenter,
+            UserStorage.l10n.settings,
+          ],
         ),
         SettingsItem(
           id: 'settings.privacy_policy',
@@ -611,8 +594,10 @@ class SettingsRegistry {
           navigationTarget: NavigationTarget(
             pageBuilder: (_) => const SettingsPage(),
           ),
-          parentPathGetter: () =>
-              [UserStorage.l10n.personalCenter, UserStorage.l10n.settings],
+          parentPathGetter: () => [
+            UserStorage.l10n.personalCenter,
+            UserStorage.l10n.settings,
+          ],
         ),
       ];
 }

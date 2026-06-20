@@ -16,6 +16,8 @@ maintainer 判断。规则稳定后，再通过仓库变量决定是否把高风
   或企业 LLM gateway。不配置时使用默认 Anthropic endpoint。
 - Variable `AI_PR_REVIEW_ENFORCE`：可选。保持为空或 `false` 时为 shadow mode；
   设置为 `true` 后，AI 判断 `human_review_required=true` 会让 workflow 失败。
+- Variable `AI_REVIEW_MAX_DIFF_BYTES`：可选。默认 `1000000`；只有模型网关无法稳定处理
+  接近 1MB 的 review context 时才建议调低。
 
 密钥值只能配置在 GitHub Secrets 中，不能写入仓库、PR 描述、workflow 日志或 artifact。
 
@@ -39,7 +41,13 @@ AI 审查必须参考：
 - `docs/pr-policy-preflight.zh.md`
 - `docs/pr-ai-review.zh.md`
 - PR title、body、changed files 和 diff
-- 已生成的 policy preflight / Flutter quality artifact（如果可用）
+- `pr-ai-review-input/pr-diff-metadata.json` 中准备好的 diff metadata
+- `pr-ai-review-input/` 中准备好的 policy preflight 文件
+- 已生成的 Flutter quality artifact（如果可用）
+
+Policy Preflight 只报告治理面和信任边界的确定性硬规则。AI Review 负责结合上下文判断：
+测试证据、架构敏感关键词、本地化或 UI 行为、大范围 diff、PR 描述过少，以及 generated
+file 和源文件一起变化时是否符合预期 codegen 链路。
 
 ## 风险等级
 

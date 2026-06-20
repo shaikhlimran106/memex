@@ -3,8 +3,8 @@
 Policy Preflight is a deterministic rule check for pull requests. It does not
 call AI, run Flutter, execute PR code, or decide whether the code is
 semantically correct. It treats the PR as data and looks for governance,
-trust-boundary, and objective policy signals from PR metadata, changed files,
-and diff content.
+trust-boundary, and objective hard-policy signals from PR metadata, changed
+files, and diff content.
 
 In the current shadow phase, Preflight only reports a decision. Its decision is
 not a merge blocker yet.
@@ -65,7 +65,8 @@ the diff. Maintainer review is required.
 ### `low_risk`
 
 No deterministic rule found a reason to reject the PR or require maintainer
-review. Warnings, AI review, and normal CI can still raise additional concerns.
+review. AI review and normal CI can still raise additional semantic, quality, or
+test-evidence concerns.
 
 ## Reject Rules
 
@@ -88,25 +89,23 @@ These rules produce `high_risk`.
 | GitHub configuration or workflow | `.github/**` changed | CI, release, and repository automation can change the trust boundary. |
 | Analyzer/lint configuration | `analysis_options.yaml` changed | Lint configuration affects the trustworthiness of `flutter analyze`. |
 | Review policy control | Preflight docs, the preflight script, or CODEOWNERS-style files changed | Review rules themselves should receive maintainer eyes. |
-| Diff truncated | Diff exceeds the configured byte limit | Reviewers and AI cannot see the full change. |
+| Diff truncated | Diff exceeds the configured byte limit, currently 1,000,000 bytes by default | Reviewers and AI cannot see the full change. |
 | Binary file outside low-risk asset path | Binary file changed outside `assets/icons/**` | Binary content is hard to review from diff. |
 
-## Warning Rules
+## Out of Scope
 
-Warnings do not change a PR to `high_risk` by themselves. They only provide
-attention signals for reviewers or AI review.
+Policy Preflight should not own semantic review or attention heuristics. The
+following signals belong to `PR AI Review`, where they can be interpreted with
+the actual diff and PR context:
 
-| Rule | How it is checked | Why it warns |
-| --- | --- | --- |
-| Generated Dart with source | Generated file and matching source file both changed | This usually means codegen and should be traceable. |
-| Localization pair mismatch | Only one of `lib/l10n/app_en.arb` or `lib/l10n/app_zh.arb` changed | User-facing strings usually need to stay in sync across languages. |
-| Many changed files | Changed file count exceeds the attention threshold | Broad changes need clearer validation context. |
-| Large diff | Total changed lines exceed the attention threshold | Large diffs need clearer validation context. |
-| Large single-file change | One file exceeds the attention threshold | Large concentrated changes deserve reviewer attention. |
-| Missing test signal | Production Dart files changed without test files or a clear test plan | The PR may still be fine, but evidence is missing. |
-| Missing PR title | PR title is empty | Review context is incomplete. |
-| Missing PR body | PR body is empty | Review context is incomplete. |
-| Sensitive keyword | Added lines include keywords such as `UserStorage`, `PermissionRule`, `GlobalEventBus`, `apiKey`, or `deleteSync` | These words are not necessarily wrong, but AI or reviewers should notice them. |
+- Missing or weak test evidence.
+- User-facing localization or UI behavior concerns.
+- Sensitive architecture keywords such as `UserStorage`, `PermissionRule`,
+  `GlobalEventBus`, `apiKey`, or `deleteSync`.
+- Broad diffs, large single-file changes, and review-context quality such as a
+  sparse PR title or body.
+- Whether a generated file that changed with its source was produced by the
+  expected codegen path.
 
 ## Shadow-Mode Behavior
 
@@ -114,8 +113,9 @@ During shadow mode:
 
 - `low_risk`, `high_risk`, and `reject` are all reported.
 - The workflow exits successfully so the PR is not blocked.
-- Results are written to the workflow summary, posted as a PR comment, and
-  uploaded as artifacts.
+- Results are written to the workflow summary and uploaded as artifacts. The
+  separate preflight-summary workflow may include them in the combined PR
+  comment.
 
 After calibration, a separate gate can decide how to use the result as a merge
 requirement.

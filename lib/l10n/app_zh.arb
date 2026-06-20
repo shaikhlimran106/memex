@@ -35,6 +35,15 @@
     }
   },
   "createTaskFailed": "创建任务失败: {error}",
+  "reprocessCards": "重新处理卡片",
+  "reprocessCardsTaskCreated": "已交给 Super Agent 重新处理",
+  "reprocessCardsDownstreamMode": "处理范围",
+  "reprocessCardsCardOnly": "只处理卡片",
+  "reprocessCardsCardOnlyDesc": "让 Super Agent 检查并重新生成选中的时间线卡片。",
+  "reprocessCardsRerunDownstream": "卡片和相关后续",
+  "reprocessCardsRerunDownstreamDesc": "让 Super Agent 在需要时一并考虑 PKM、日程和洞察更新。",
+  "reanalyzeMediaAssets": "重新读取媒体附件",
+  "reanalyzeMediaAssetsDesc": "重新生成卡片时，让 Super Agent 在需要时再次查看附件内容。",
   "regenerateComments": "重新生成评论",
   "regenerateCommentsTaskCreated": "重新生成评论任务已创建，正在后台处理中",
   "rebuildSearchIndex": "重建搜索索引",
@@ -212,8 +221,19 @@
   "releaseToSend": "松开 发送",
   "selectFromAlbum": "从相册选择",
   "clipboardPreviewTitle": "新剪贴板",
+  "clipboardPreviewImageTitle": "剪贴板图片",
+  "clipboardPreviewImageDescription": "可添加到输入框",
   "clipboardPreviewUnprocessed": "未处理",
   "clipboardPreviewPasteToInput": "粘贴到输入框",
+  "clipboardPreviewAddImageToInput": "添加图片",
+  "clipboardPreviewImageFailed": "无法读取剪贴板图片",
+  "tellAiWhatHappened": "告诉AI发生了什么...",
+  "@recordingWithDuration": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "recordingWithDuration": "录音中: {duration}",
   "playing": "播放中...",
   "sendLabel": "发送",
   "attachedImagesMessage": "发送了 {count} 张图片",
@@ -288,6 +308,59 @@
   "activityDetail": "活动详情",
   "noAgentActivityYet": "暂无 Agent 活动",
   "processingEllipsis": "处理中...",
+  "agentBackgroundTitle": "Memex Agent",
+  "agentBackgroundPausedTitle": "Memex Agent 已暂停",
+  "agentBackgroundNeedsAttentionTitle": "Memex Agent 需要处理",
+  "agentBackgroundStageIdle": "空闲",
+  "agentBackgroundStageProcessing": "处理中",
+  "agentBackgroundStageQueued": "排队中",
+  "agentBackgroundStageRetrying": "等待重试",
+  "agentBackgroundStagePaused": "已暂停",
+  "agentBackgroundStageCompleted": "已完成",
+  "agentBackgroundStageNeedsAttention": "需要处理",
+  "agentBackgroundStageAnalyzingMedia": "分析素材中",
+  "agentBackgroundStageGeneratingCard": "生成卡片中",
+  "agentBackgroundStageUpdatingKnowledge": "更新知识中",
+  "agentBackgroundStagePreparingComment": "准备评论中",
+  "agentBackgroundStageRoutingFollowUps": "分发后续任务中",
+  "@agentBackgroundTaskSummary": {
+    "placeholders": {
+      "running": {},
+      "pending": {},
+      "retrying": {}
+    }
+  },
+  "agentBackgroundTaskSummary": "执行中 {running}，排队中 {pending}，重试中 {retrying}",
+  "@agentBackgroundTaskDetail": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "agentBackgroundTaskDetail": "正在处理 {count} 个后台任务。",
+  "agentBackgroundNoTasks": "暂无后台任务。",
+  "agentBackgroundStarting": "后台处理正在启动。",
+  "agentBackgroundCompletedDetail": "所有后台任务已完成。",
+  "agentBackgroundFailedDetail": "后台处理遇到错误。",
+  "agentBackgroundPausedDetail": "后台处理已暂停，稍后会继续。",
+  "agentBackgroundQueuedDetail": "正在等待下一个处理步骤。",
+  "agentBackgroundRetryingDetail": "当前步骤将自动重试。",
+  "agentBackgroundAnalyzeMediaDetail": "正在读取附件和本地上下文。",
+  "agentBackgroundGeneratingCardDetail": "正在把记录生成时间线卡片。",
+  "agentBackgroundUpdatingKnowledgeDetail": "正在更新本地知识和记忆。",
+  "agentBackgroundPreparingCommentDetail": "正在准备助手跟进评论。",
+  "agentBackgroundRoutingFollowUpsDetail": "正在检查这张卡片的后续动作。",
+  "@agentBackgroundPausedStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "agentBackgroundPausedStatus": "已暂停 - {summary}",
+  "@agentBackgroundNeedsAttentionStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "agentBackgroundNeedsAttentionStatus": "需要处理 - {summary}",
   "settings": "设置",
   "languageSettings": "语言",
   "languageSettingsDesc": "更改应用显示语言",
@@ -335,6 +408,41 @@
   "setupModelConfigSubtitle": "Memex 需要一个前沿 AI 模型来整理记录、分析图片并生成洞察。选择一种连接方式即可。",
   "setupModelConfigComplete": "配置完成，开启旅程",
   "aiService": "Memex 模型服务",
+  "aiModelHubTitle": "AI 模型与服务",
+  "aiModelHubSubtitle": "先选择使用 MemeX 官方服务，或接入自己的服务商；需要时再进入高级模型分配。",
+  "aiSetupCurrentStatusTitle": "当前配置",
+  "aiSetupStatusNotConfiguredTitle": "尚未配置 AI 服务",
+  "aiSetupStatusNotConfiguredDescription": "选择一种连接方式后，Memex 才能开始整理记录、分析媒体并生成洞察。",
+  "aiSetupStatusMemexTitle": "正在使用 MemeX 官方服务",
+  "aiSetupStatusMemexDescription": "Memex 会使用 MemeX 账号管理的官方连接和 API 凭证。",
+  "aiSetupStatusCustomTitle": "正在使用自定义服务商",
+  "aiSetupStatusCustomDescription": "Memex 会使用你配置的服务商凭证，以及文本/视觉模型用途选择。",
+  "aiSetupChooseConnectionTitle": "选择连接方式",
+  "aiSetupChooseConnectionDescription": "先选择你希望 Memex 通过哪条路径访问 AI 模型。",
+  "aiSetupOfficialRouteDescription": "登录 MemeX 后直接使用官方服务，不需要理解 provider、API Key 或单个 Agent 模型。",
+  "aiSetupCustomRouteDescription": "添加自己的服务商凭证，选择 Super Agent 使用的模型；需要时可进一步为单个 Agent 覆盖模型。",
+  "aiSetupCustomPageTitle": "自定义 AI 服务",
+  "aiSetupCustomPageSubtitle": "先配置服务商和 API Key，再选择 Memex 使用的模型。",
+  "aiSetupProviderCredentialsTitle": "服务商与 API Key",
+  "aiSetupProviderCredentialsDescription": "添加或编辑 OpenAI、Anthropic、DeepSeek、Gemini、OpenRouter、Ollama 等兼容服务商。",
+  "modelRolesTitle": "选择主模型",
+  "modelRolesDescription": "Super Agent 使用同一个模型处理文本和图片输入。需要时仍可在下方为单个 Agent 高级覆盖。",
+  "textModelRoleTitle": "主模型",
+  "textModelRoleDescription": "供 Super Agent 处理文本、图片、卡片、知识库、洞察、聊天、评论、日程和记忆总结。",
+  "modelConnectionsTitle": "模型服务商与 API Key",
+  "modelConnectionsDescription": "可以连接 Memex 官方服务，也可以添加你自己的服务商凭证。",
+  "relatedAiCapabilitiesTitle": "高级与相关能力",
+  "relatedAiCapabilitiesDescription": "调整单个 Agent 的模型分配、位置服务商和语音识别方式。",
+  "aiSetupServiceCapabilitiesTitle": "服务能力",
+  "aiSetupServiceCapabilitiesDescription": "配置语音识别、逆地理编码等相邻 AI 能力使用的服务方式。",
+  "aiSetupAdvancedCustomizationTitle": "高级模型路由",
+  "aiSetupAdvancedCustomizationDescription": "适合希望不同 Agent 使用不同服务商或模型配置的高级用户。",
+  "locationProviderSettings": "位置服务商",
+  "speechProviderSettings": "语音识别",
+  "advancedAgentModelAssignments": "Agent 模型分配",
+  "openAdvancedAgentModelAssignments": "为单个 Agent 覆盖模型",
+  "noConfiguredModelOptions": "请先添加模型服务商或 API Key，再选择模型用途。",
+  "modelSlotUpdated": "模型用途已更新",
   "aiServiceMemexRouteTitle": "通过 Memex 连接",
   "aiServiceLongDescription": "Memex 利用多 Agent 架构自动整理你的生活记录、知识笔记与社交关系，深度挖掘洞察，并提供具有持久记忆的 AI 陪伴。所有数据均以纯文本 Markdown 存储，赋予你绝对的数据自由与跨平台迁移能力。",
   "aiServiceCustomApiRouteTitle": "我有 API Key",
@@ -819,6 +927,21 @@
     }
   },
   "lastBackupAt": "上次备份：{time}",
+  "autoBackupRetention": "保留",
+  "@autoBackupRetentionDays": {
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "autoBackupRetentionDays": "{days} 天",
+  "autoBackupRetentionForever": "永久保留",
+  "autoBackupMaxSize": "空间上限",
+  "@autoBackupRetentionLimitHint": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "autoBackupRetentionLimitHint": "自动清理会让自动快照总大小不超过 {size}。安全快照和手动导出备份会单独保留。",
   "createSnapshotNow": "立即备份",
   "backupLocationMenu": "更改位置",
   "defaultBackupLocation": "默认备份文件夹",
@@ -827,6 +950,9 @@
   "chooseBackupLocationAndroidDesc": "使用 Android 系统选择器选择文件夹，并授予 Memex 持久访问权限。",
   "storedBackups": "已保存备份",
   "noStoredBackups": "创建第一个自动快照后会显示在这里。",
+  "backupTypeAutoSnapshot": "自动快照",
+  "backupTypeSafetySnapshot": "安全快照",
+  "backupTypeManualBackup": "手动备份",
   "refresh": "刷新",
   "restoreThisBackup": "恢复此备份",
   "deleteThisBackup": "删除此备份",

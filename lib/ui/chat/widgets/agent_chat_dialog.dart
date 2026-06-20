@@ -189,6 +189,21 @@ bool shouldShowSuperAgentPhotoSuggestions({
   return !isStreaming && (isLoading || hasSuggestions);
 }
 
+@visibleForTesting
+Map<String, String> initialOriginalFilenamesForSelectedImages(
+  List<XFile> images,
+  Map<String, String> provided,
+) {
+  if (images.isEmpty || provided.isEmpty) return const <String, String>{};
+
+  final selectedPaths = images.map((image) => image.path).toSet();
+  return {
+    for (final entry in provided.entries)
+      if (selectedPaths.contains(entry.key) && entry.value.trim().isNotEmpty)
+        entry.key: entry.value,
+  };
+}
+
 /// Agent Chat Dialog with Real-time Event Streaming
 class AgentChatDialog extends StatefulWidget {
   final String? initialSessionId;
@@ -196,6 +211,7 @@ class AgentChatDialog extends StatefulWidget {
   final List<Map<String, String>>? initialRefs;
   final String? initialDraftText;
   final List<XFile> initialImages;
+  final Map<String, String> initialImageOriginalFilenames;
 
   const AgentChatDialog({
     super.key,
@@ -204,6 +220,7 @@ class AgentChatDialog extends StatefulWidget {
     this.initialRefs,
     this.initialDraftText,
     this.initialImages = const [],
+    this.initialImageOriginalFilenames = const {},
   });
 
   @override
@@ -263,6 +280,12 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     }
     _messageController.addListener(_handleDraftTextChanged);
     _selectedImages.addAll(widget.initialImages);
+    _originalFilenames.addAll(
+      initialOriginalFilenamesForSelectedImages(
+        widget.initialImages,
+        widget.initialImageOriginalFilenames,
+      ),
+    );
     unawaited(_loadActiveDraftIfNeeded());
     unawaited(_loadPhotoSuggestions());
 

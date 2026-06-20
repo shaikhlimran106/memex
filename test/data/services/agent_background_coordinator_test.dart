@@ -9,6 +9,7 @@ import 'package:memex/data/services/agent_background_coordinator.dart';
 import 'package:memex/data/services/agent_background_platform.dart';
 import 'package:memex/data/services/agent_background_status.dart';
 import 'package:memex/data/services/agent_queue_drain_scheduler.dart';
+import 'package:memex/data/services/agent_run_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/db/app_database.dart';
 
@@ -20,6 +21,7 @@ void main() {
   late _FakeActivityService activityService;
   late _FakePlatform platform;
   late _FakeScheduler scheduler;
+  late AgentRunService runService;
   late AgentBackgroundCoordinator coordinator;
 
   setUp(() {
@@ -29,9 +31,11 @@ void main() {
     activityService = _FakeActivityService();
     platform = _FakePlatform();
     scheduler = _FakeScheduler();
+    runService = AgentRunService.forTesting(db: db);
     coordinator = AgentBackgroundCoordinator(
       platform: platform,
       scheduler: scheduler,
+      runService: runService,
       initialLifecycleState: AppLifecycleState.paused,
     );
   });
@@ -39,7 +43,7 @@ void main() {
   tearDown(() async {
     await coordinator.stop();
     await activityService.dispose();
-    executor.stop();
+    await executor.stop();
     await db.close();
   });
 
@@ -69,6 +73,8 @@ void main() {
 
     expect(platform.updates.last.stage, 'Updating PKM');
     expect(platform.updates.last.detail, 'Writing local notes');
+    expect(platform.updates.last.summary, 'Writing local notes');
+    expect(platform.updates.last.summary, isNot(contains('Updating PKM')));
     expect(scheduler.scheduleCount, 1);
   });
 
@@ -76,6 +82,7 @@ void main() {
     coordinator = AgentBackgroundCoordinator(
       platform: platform,
       scheduler: scheduler,
+      runService: runService,
       initialLifecycleState: AppLifecycleState.resumed,
     );
     coordinator.start(executor: executor, activityService: activityService);
@@ -178,6 +185,7 @@ void main() {
 
       expect(platform.updates.last.state, AgentBackgroundRunState.active);
       expect(platform.updates.last.detail, 'Will retry automatically');
+      expect(platform.updates.last.summary, 'Will retry automatically');
       expect(platform.finished, isEmpty);
       expect(scheduler.cancelCount, cancelCountBeforeError);
     },
@@ -248,6 +256,67 @@ void main() {
     expect(platform.events, ['update:active:bg=true', 'stop']);
     expect(scheduler.events, ['cancel']);
   });
+
+  test(
+    'normal app launch keeps durable run progress visible in foreground',
+    () async {
+      coordinator = AgentBackgroundCoordinator(
+        platform: platform,
+        scheduler: scheduler,
+        runService: runService,
+        initialLifecycleState: AppLifecycleState.resumed,
+      );
+      await runService.createForSubmittedInput(
+        userId: 'user-a',
+        factId: 'fact-1',
+      );
+      await _insertTask(
+        db,
+        id: 'turn',
+        status: 'processing',
+        runId: 'fact-1',
+        type: 'super_agent_chat_turn_task',
+      );
+      await runService.markTaskStarted(
+        runId: 'fact-1',
+        taskId: 'turn',
+        taskType: 'super_agent_chat_turn_task',
+      );
+
+      coordinator.start(executor: executor, activityService: activityService);
+
+      await _waitUntil(() => platform.updates.isNotEmpty);
+      expect(platform.updates.last.state, AgentBackgroundRunState.active);
+      expect(platform.updates.last.runId, 'fact-1');
+      expect(platform.updates.last.stage, 'Running Super Agent');
+      expect(platform.updates.last.progressCompleted, 20);
+      expect(platform.updateBackgroundFlags.last, isFalse);
+      expect(scheduler.scheduleCount, 0);
+    },
+  );
+
+  test(
+    'paused durable run remains visible without live task snapshot',
+    () async {
+      await runService.createForSubmittedInput(
+        userId: 'user-a',
+        factId: 'fact-2',
+      );
+      await runService.markActiveRunsPausedBySystem(
+        userId: 'user-a',
+        message: 'Background time expired. Memex will continue later.',
+      );
+
+      coordinator.start(executor: executor, activityService: activityService);
+
+      await _waitUntil(() => platform.updates.isNotEmpty);
+      expect(platform.updates.last.state, AgentBackgroundRunState.paused);
+      expect(platform.updates.last.runId, 'fact-2');
+      expect(platform.updates.last.detail, contains('continue later'));
+      expect(platform.updateBackgroundFlags.last, isTrue);
+      expect(scheduler.scheduleCount, 0);
+    },
+  );
 }
 
 class _FakePlatform implements AgentBackgroundPlatform {
@@ -389,13 +458,16 @@ Future<void> _insertTask(
   AppDatabase db, {
   required String id,
   required String status,
+  String type = 'agent_task',
+  String? runId,
 }) async {
   final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
   await db.into(db.tasks).insert(
         TasksCompanion.insert(
           id: id,
-          type: 'agent_task',
+          type: type,
           payload: const Value('{}'),
+          runId: Value(runId),
           status: status,
           createdAt: Value(now),
           updatedAt: Value(now),

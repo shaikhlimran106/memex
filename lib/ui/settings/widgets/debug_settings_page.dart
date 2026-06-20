@@ -17,11 +17,13 @@ class DebugSettingsPage extends StatelessWidget {
   final Future<void> Function() onClearData;
   final Future<void> Function() onClearFailedAgentContexts;
   final Future<void> Function() onCloneToTestUser;
+  final Future<void> Function() onReprocessCards;
   final Future<void> Function() onReprocessComments;
   final Future<void> Function() onRebuildSearchIndex;
   final bool isClearingData;
   final bool isClearingFailedAgentContexts;
   final bool isCloningTestUser;
+  final bool isReprocessingCards;
   final bool isReprocessingComments;
   final bool isRebuildingSearchIndex;
 
@@ -31,11 +33,13 @@ class DebugSettingsPage extends StatelessWidget {
     required this.onClearData,
     required this.onClearFailedAgentContexts,
     required this.onCloneToTestUser,
+    required this.onReprocessCards,
     required this.onReprocessComments,
     required this.onRebuildSearchIndex,
     required this.isClearingData,
     required this.isClearingFailedAgentContexts,
     required this.isCloningTestUser,
+    required this.isReprocessingCards,
     required this.isReprocessingComments,
     required this.isRebuildingSearchIndex,
   });
@@ -234,6 +238,14 @@ class DebugSettingsPage extends StatelessWidget {
             title: UserStorage.l10n.clearFailedAgentContexts,
             onTap: onClearFailedAgentContexts,
             isLoading: isClearingFailedAgentContexts,
+          ),
+          const SizedBox(height: 12),
+          _buildFunctionTab(
+            context: context,
+            icon: Icons.credit_card_outlined,
+            title: UserStorage.l10n.reprocessCards,
+            onTap: onReprocessCards,
+            isLoading: isReprocessingCards,
           ),
           const SizedBox(height: 12),
           _buildFunctionTab(

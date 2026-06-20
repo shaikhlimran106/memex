@@ -7,6 +7,7 @@ import 'package:memex/data/services/agent_background_coordinator.dart';
 import 'package:memex/data/services/agent_background_platform.dart';
 import 'package:memex/data/services/agent_background_status.dart';
 import 'package:memex/data/services/agent_queue_drain_scheduler.dart';
+import 'package:memex/data/services/agent_run_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/l10n/app_localizations.dart';
 import 'package:memex/ui/agent_activity/widgets/agent_activity_widget.dart';
@@ -17,7 +18,10 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({'user_id': 'agent-activity-test'});
+    SharedPreferences.setMockInitialValues({
+      'user_id': 'agent-activity-test',
+      'language': 'en',
+    });
     await UserStorage.initL10n();
     AgentActivityService.setInstance(LocalAgentActivityService.instance);
   });
@@ -31,6 +35,8 @@ void main() {
     TaskActivitySnapshot initialTaskSnapshot =
         const TaskActivitySnapshot.empty(),
     Stream<TaskActivitySnapshot>? taskActivitySnapshotStream,
+    AgentRunSnapshot? initialRunSnapshot,
+    Stream<AgentRunSnapshot?>? runSnapshotStream,
   }) {
     return MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -42,6 +48,9 @@ void main() {
             initialTaskSnapshot: initialTaskSnapshot,
             taskActivitySnapshotStream: taskActivitySnapshotStream ??
                 const Stream<TaskActivitySnapshot>.empty(),
+            initialRunSnapshot: initialRunSnapshot,
+            runSnapshotStream:
+                runSnapshotStream ?? const Stream<AgentRunSnapshot?>.empty(),
           ),
         ),
       ),
@@ -86,8 +95,16 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 350));
 
-    final oneTaskMessage = UserStorage.l10n.insightProcessingBacklogMessage(1);
-    final twoTaskMessage = UserStorage.l10n.insightProcessingBacklogMessage(2);
+    final oneTaskMessage = formatAgentTaskSummary(
+      pending: 1,
+      processing: 0,
+      retrying: 0,
+    );
+    final twoTaskMessage = formatAgentTaskSummary(
+      pending: 1,
+      processing: 1,
+      retrying: 0,
+    );
     expect(find.text(oneTaskMessage), findsOneWidget);
 
     await tester.tap(find.text('AI is processing...'));
@@ -128,7 +145,43 @@ void main() {
     await tester.tap(find.text('AI is processing...'));
     await tester.pump(const Duration(milliseconds: 350));
 
-    expect(find.text('1 background tasks are still processing.'), findsWidgets);
+    expect(find.text('Running 0, Pending 1, Retry 0'), findsWidgets);
+
+    Navigator.of(tester.element(find.text('Activity Detail'))).pop();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('shows durable run status after returning from notification', (
+    tester,
+  ) async {
+    final run = AgentRunSnapshot(
+      id: 'run-1',
+      userId: 'agent-activity-test',
+      factId: 'fact-1',
+      state: AgentRunState.running,
+      stage: 'Running Super Agent',
+      message: 'Memex is processing the conversation turn.',
+      completedUnits: 20,
+      totalUnits: 100,
+      remainingTasks: 4,
+      currentTaskId: 'task-1',
+      currentTaskType: 'super_agent_chat_turn_task',
+      updatedAt: DateTime(2026, 1, 1),
+    );
+
+    await tester.pumpWidget(buildHost(initialRunSnapshot: run));
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.text('AI is processing...'), findsOneWidget);
+    expect(find.text('Running 0, Pending 4, Retry 0'), findsOneWidget);
+
+    await tester.tap(find.text('AI is processing...'));
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.text('Activity Detail'), findsOneWidget);
+    expect(find.text('Running 0, Pending 4, Retry 0'), findsWidgets);
 
     Navigator.of(tester.element(find.text('Activity Detail'))).pop();
     await tester.pump(const Duration(milliseconds: 350));
@@ -159,6 +212,59 @@ void main() {
     await tester.pump();
     platform.dispose();
   });
+
+  testWidgets(
+    'notification action opens detail and renders live background activity',
+    (tester) async {
+      final platform = _FakePlatform();
+      final coordinator = AgentBackgroundCoordinator(
+        platform: platform,
+        scheduler: _NoopScheduler(),
+      );
+      setAgentBackgroundCoordinatorForTesting(coordinator);
+
+      await tester.pumpWidget(
+        buildHost(
+          initialTaskSnapshot: const TaskActivitySnapshot(
+            pending: 1,
+            processing: 1,
+            retrying: 0,
+          ),
+        ),
+      );
+      emitAgentBackgroundOpenActivityForTesting();
+      await tester.pump(const Duration(milliseconds: 350));
+
+      final taskSummary = formatAgentTaskSummary(
+        pending: 1,
+        processing: 1,
+        retrying: 0,
+      );
+
+      expect(find.text('Activity Detail'), findsOneWidget);
+      expect(find.text(taskSummary), findsWidgets);
+
+      await AgentActivityService.instance.pushMessage(
+        type: AgentActivityType.info,
+        title: 'Background notification step',
+        content: 'Live notification body',
+        agentName: 'Worker Agent',
+        agentId: 'worker-agent',
+        userId: 'agent-activity-test',
+      );
+      await tester.pump();
+
+      expect(find.text('Live notification body'), findsOneWidget);
+      expect(find.textContaining('Worker Agent'), findsOneWidget);
+      expect(find.text(taskSummary), findsWidgets);
+
+      Navigator.of(tester.element(find.text('Activity Detail'))).pop();
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      platform.dispose();
+    },
+  );
 }
 
 class _FakePlatform implements AgentBackgroundPlatform {

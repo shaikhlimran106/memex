@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:memex/l10n/app_localizations.dart';
 import 'package:memex/ui/chat/widgets/agent_chat_dialog.dart';
 import 'package:memex/utils/user_storage.dart';
@@ -83,6 +84,22 @@ void main() {
           hasSuggestions: true,
         ),
         isFalse,
+      );
+    });
+
+    test('keeps original filenames only for selected initial images', () {
+      final selected = [
+        XFile('/tmp/a.jpg'),
+        XFile('/tmp/b.jpg'),
+      ];
+
+      expect(
+        initialOriginalFilenamesForSelectedImages(selected, {
+          '/tmp/a.jpg': 'camera-original.jpg',
+          '/tmp/b.jpg': ' ',
+          '/tmp/unused.jpg': 'unused.jpg',
+        }),
+        {'/tmp/a.jpg': 'camera-original.jpg'},
       );
     });
   });

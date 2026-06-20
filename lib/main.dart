@@ -60,7 +60,8 @@ import 'package:memex/ui/main_screen/widgets/share_intent_handler.dart';
 import 'package:memex/ui/settings/widgets/backup_restore_confirm_dialog.dart';
 import 'package:memex/ui/chat/widgets/open_super_agent_dialog.dart';
 import 'package:quick_actions/quick_actions.dart';
-import 'package:memex/data/services/quick_action_service.dart';
+import 'package:memex/data/services/app_action_link_service.dart';
+import 'package:memex/data/services/app_action_service.dart';
 import 'package:memex/data/services/speech_transcription_service.dart';
 import 'package:memex/utils/wakelock_manager.dart';
 import 'package:memex/data/services/clipboard_preview_service.dart';
@@ -123,8 +124,12 @@ void main() async {
   // Initialize quick actions (app icon long-press shortcuts).
   const QuickActions quickActions = QuickActions();
   quickActions.initialize((String shortcutType) {
-    QuickActionService.instance.handleAction(shortcutType);
+    AppActionService.instance.handleAction(
+      shortcutType,
+      source: 'quick_action',
+    );
   });
+  unawaited(AppActionLinkService.instance.initialize());
 
   runApp(
     MultiProvider(
@@ -402,20 +407,23 @@ class _MemexAppState extends State<MemexApp> with WidgetsBindingObserver {
           ThemeMode.light, // Unified light mode, disabling adaptive dark mode
       routerConfig: widget.router,
       builder: (context, child) {
-        return Stack(
-          children: [
-            if (child != null) child,
-            if (_isLocked && _hasUser)
-              _requiresAuth
-                  ? LockScreen(
-                      onUnlock: () {
-                        setState(() {
-                          _isLocked = false;
-                        });
-                      },
-                    )
-                  : const PrivacyScreen(),
-          ],
+        return _AppActionReadiness(
+          canHandleActions: !_isLocked,
+          child: Stack(
+            children: [
+              if (child != null) child,
+              if (_isLocked && _hasUser)
+                _requiresAuth
+                    ? LockScreen(
+                        onUnlock: () {
+                          setState(() {
+                            _isLocked = false;
+                          });
+                        },
+                      )
+                    : const PrivacyScreen(),
+            ],
+          ),
         );
       },
       localizationsDelegates: const [
@@ -426,6 +434,27 @@ class _MemexAppState extends State<MemexApp> with WidgetsBindingObserver {
       ],
       supportedLocales: AppLocalizations.supportedLocales,
     );
+  }
+}
+
+class _AppActionReadiness extends InheritedWidget {
+  const _AppActionReadiness({
+    required this.canHandleActions,
+    required super.child,
+  });
+
+  final bool canHandleActions;
+
+  static bool of(BuildContext context) {
+    return context
+            .dependOnInheritedWidgetOfExactType<_AppActionReadiness>()
+            ?.canHandleActions ??
+        true;
+  }
+
+  @override
+  bool updateShouldNotify(_AppActionReadiness oldWidget) {
+    return canHandleActions != oldWidget.canHandleActions;
   }
 }
 
@@ -475,6 +504,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   late final ShareIntentHandler _shareIntentHandler;
   ClipboardPreviewCandidate? _homeClipboardCandidate;
   bool _isCheckingHomeClipboard = false;
+  StreamSubscription<String>? _appActionSubscription;
+  bool _canHandleAppActions = false;
+  bool _hasRequestedInitialAppActionCheck = false;
+  bool _isAppActionCheckScheduled = false;
 
   // Agent Button Position - REMOVED (Moved to Main App)
 
@@ -530,20 +563,40 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           _openSuperAgentDialog(
             initialDraftText: data.text,
             initialImages: data.images,
+            initialImageOriginalFilenames:
+                _originalFilenamesFromImages(data.images),
           );
         });
       },
       onBackupFileShared: _handleExternalBackupFile,
     )..init();
 
-    // Consume pending quick action (app icon long-press shortcut).
-    QuickActionService.instance.attach();
-    _consumeQuickActionIfNeeded();
+    AppActionService.instance.attach();
+    _appActionSubscription = AppActionService.instance.actionStream.listen((_) {
+      _consumeAppActionIfReady(waitForLateAction: false);
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) unawaited(_checkHomeClipboardPreview());
     });
     _scheduleEarlyUpdateCheck();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final canHandleActions = _AppActionReadiness.of(context);
+    _canHandleAppActions = canHandleActions;
+
+    if (!_canHandleAppActions) return;
+    if (!_hasRequestedInitialAppActionCheck) {
+      _hasRequestedInitialAppActionCheck = true;
+      _consumeAppActionIfReady(waitForLateAction: true);
+      return;
+    }
+    if (AppActionService.instance.hasPendingAction) {
+      _consumeAppActionIfReady(waitForLateAction: false);
+    }
   }
 
   void _scheduleEarlyUpdateCheck() {
@@ -814,12 +867,21 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   void _openSuperAgentDialog({
     String? initialDraftText,
     List<XFile> initialImages = const [],
+    Map<String, String> initialImageOriginalFilenames = const {},
   }) {
     openSuperAgentDialog(
       context,
       initialDraftText: initialDraftText,
       initialImages: initialImages,
+      initialImageOriginalFilenames: initialImageOriginalFilenames,
     );
+  }
+
+  Map<String, String> _originalFilenamesFromImages(List<XFile> images) {
+    return {
+      for (final image in images)
+        if (image.name.trim().isNotEmpty) image.path: image.name,
+    };
   }
 
   void _handleAICoreButtonLongPressStart() {
@@ -1008,7 +1070,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _memoryButtonTapTimer?.cancel();
     _knowledgeBaseButtonTapTimer?.cancel();
-    QuickActionService.instance.detach();
+    _appActionSubscription?.cancel();
+    AppActionService.instance.detach();
     _shareIntentHandler.dispose();
     _eventBus.removeHandler(
       EventBusMessageType.invalidModelConfig,
@@ -1341,19 +1404,38 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// Consume a pending quick action (e.g. "记一下" from app icon long-press).
-  /// Handles cold-start (action queued before widget built) and warm-start
-  /// (action arrives while app is in background).
-  void _consumeQuickActionIfNeeded() {
+  /// Consume a pending app action (quick action or deep link) once the main UI
+  /// is ready and the app-lock overlay is not active.
+  void _consumeAppActionIfReady({required bool waitForLateAction}) {
+    if (!_canHandleAppActions || _isAppActionCheckScheduled) return;
+    _isAppActionCheckScheduled = true;
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final action = await QuickActionService.instance.consumePendingAction();
-      if (!mounted) return;
-      if (action == 'quick_note') {
-        _logger.info('Quick action: opening Super Agent');
-        setState(() => _homeClipboardCandidate = null);
-        _openSuperAgentDialog();
+      if (!mounted || !_canHandleAppActions) {
+        _isAppActionCheckScheduled = false;
+        return;
       }
+
+      final action = waitForLateAction
+          ? await AppActionService.instance.consumePendingAction()
+          : AppActionService.instance.consumeIfPending();
+      _isAppActionCheckScheduled = false;
+
+      if (!mounted || !_canHandleAppActions) return;
+      _handleAppAction(action);
     });
+  }
+
+  void _handleAppAction(String? action) {
+    if (action == null) return;
+    if (action != AppActionService.quickNoteAction) {
+      _logger.info('Ignoring unsupported app action: $action');
+      return;
+    }
+
+    _logger.info('Quick note app action: opening Super Agent');
+    setState(() => _homeClipboardCandidate = null);
+    _openSuperAgentDialog();
   }
 
   Future<void> _handleExternalBackupFile(String backupFilePath) async {
@@ -1459,25 +1541,18 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused) {
       // Reset consumed-action dedup so the same shortcut can be triggered
       // on the next foreground session.
-      QuickActionService.instance.resetConsumed();
+      AppActionService.instance.resetConsumed();
     }
     // when app enters foreground, ensure event bus is connected
     if (state == AppLifecycleState.resumed) {
       if (!_eventBus.isConnected) {
         _eventBus.connect();
       }
-      // Consume any quick action that arrived while in background.
-      // Use synchronous check — platform callback fires before resumed,
-      // so no need for the 2-sec wait (which could catch a re-delivered intent).
-      final action = QuickActionService.instance.consumeIfPending();
-      if (action == 'quick_note' && mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            _logger.info('Quick action (resumed): opening Super Agent');
-            setState(() => _homeClipboardCandidate = null);
-            _openSuperAgentDialog();
-          }
-        });
+      // Consume any app action that arrived while in background. Use a
+      // synchronous check because platform callbacks normally fire before
+      // resumed; foreground link events are handled by actionStream.
+      if (_canHandleAppActions && AppActionService.instance.hasPendingAction) {
+        _consumeAppActionIfReady(waitForLateAction: false);
       } else {
         unawaited(_checkHomeClipboardPreview());
       }
@@ -1486,25 +1561,70 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   Future<void> _checkHomeClipboardPreview() async {
     if (_isCheckingHomeClipboard || DemoService.instance.isActive) {
+      _logger.info(
+        'Home clipboard preview check skipped: '
+        'checking=$_isCheckingHomeClipboard, demo=${DemoService.instance.isActive}',
+      );
       return;
     }
 
+    _logger.info('Home clipboard preview check started');
     _isCheckingHomeClipboard = true;
-    final candidate = await _clipboardPreviewService.fetchUnhandledText();
+    final candidate = await _clipboardPreviewService.fetchUnhandledCandidate();
     _isCheckingHomeClipboard = false;
 
     if (!mounted) return;
+    _logger.info(
+      'Home clipboard preview check result: '
+      '${_describeHomeClipboardCandidate(candidate)}',
+    );
     setState(() => _homeClipboardCandidate = candidate);
+  }
+
+  String _describeHomeClipboardCandidate(ClipboardPreviewCandidate? candidate) {
+    if (candidate == null) return '<none>';
+    if (candidate.isImage) {
+      return 'image mime=${candidate.mimeType}, fileName=${candidate.fileName}, '
+          'uri=${candidate.imageUri}';
+    }
+    return 'text len=${candidate.text?.runes.length ?? 0}, '
+        'preview=${candidate.previewText}';
   }
 
   Future<void> _openHomeClipboardInSuperAgent() async {
     final candidate = _homeClipboardCandidate;
     if (candidate == null) return;
 
+    if (candidate.isImage) {
+      final image = await _clipboardPreviewService.materializeImage(candidate);
+      if (image == null) {
+        ToastHelper.showInfoWithKey(
+          rootScaffoldMessengerKey,
+          UserStorage.l10n.clipboardPreviewImageFailed,
+        );
+        return;
+      }
+      await _clipboardPreviewService.markHandled(candidate);
+      if (!mounted) return;
+      setState(() => _homeClipboardCandidate = null);
+      final originalFileName = candidate.fileName;
+      _openSuperAgentDialog(
+        initialImages: [image],
+        initialImageOriginalFilenames:
+            originalFileName == null || originalFileName.trim().isEmpty
+                ? const {}
+                : {image.path: originalFileName},
+      );
+      return;
+    }
+
+    final text = candidate.text;
+    if (text == null || text.isEmpty) return;
+
     await _clipboardPreviewService.markHandled(candidate);
     if (!mounted) return;
     setState(() => _homeClipboardCandidate = null);
-    _openSuperAgentDialog(initialDraftText: candidate.text);
+    _openSuperAgentDialog(initialDraftText: text);
   }
 
   Future<void> _dismissHomeClipboardPreview() async {

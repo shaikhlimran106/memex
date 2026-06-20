@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:logging/logging.dart';
 import 'package:drift/drift.dart';
+import 'package:memex/data/services/sqlite_busy_retry.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/db/app_database.dart';
 
@@ -16,7 +17,7 @@ enum AgentActivityType {
   warn,
   plan,
   thought_chunk,
-  output_chunk
+  output_chunk,
 }
 
 /// Model for UI consumption
@@ -73,7 +74,8 @@ abstract class AgentActivityService {
   static AgentActivityService get instance {
     if (_instance == null) {
       throw Exception(
-          'AgentActivityService not initialized. Use MemexRouter to initialize it.');
+        'AgentActivityService not initialized. Use MemexRouter to initialize it.',
+      );
     }
     return _instance!;
   }
@@ -108,6 +110,8 @@ class LocalAgentActivityService implements AgentActivityService {
   final Logger _logger = Logger('LocalAgentActivityService');
   final _messageController =
       StreamController<AgentActivityMessageModel>.broadcast();
+  static const int _databaseMaxAttempts = 4;
+  static const Duration _databaseRetryDelay = Duration(milliseconds: 120);
 
   @override
   Stream<AgentActivityMessageModel> get messageStream =>
@@ -169,21 +173,18 @@ class LocalAgentActivityService implements AgentActivityService {
       if (type != AgentActivityType.thought_chunk &&
           type != AgentActivityType.output_chunk) {
         try {
-          final db = AppDatabase.instance;
-          id = await db.into(db.agentActivityMessages).insert(
-                AgentActivityMessagesCompanion.insert(
-                  type: type.name,
-                  title: title,
-                  content: Value(finalContent),
-                  icon: Value(icon),
-                  agentName: Value(agentName),
-                  agentId: Value(agentId),
-                  scene: Value(scene),
-                  sceneId: Value(sceneId),
-                  userId: Value(userId),
-                  timestamp: now,
-                ),
-              );
+          id = await _insertMessageWithRetry(
+            type: type,
+            title: title,
+            content: finalContent,
+            icon: icon,
+            agentName: agentName,
+            agentId: agentId,
+            scene: scene,
+            sceneId: sceneId,
+            userId: userId,
+            timestamp: now,
+          );
         } catch (e) {
           if (e.toString().contains("Database not initialized")) {
             // silent ignore
@@ -212,11 +213,51 @@ class LocalAgentActivityService implements AgentActivityService {
       if (type != AgentActivityType.thought_chunk &&
           type != AgentActivityType.output_chunk) {
         _logger.info(
-            'Pushed agent activity: [$type] $title (Agent: $agentName, ID: $agentId)');
+          'Pushed agent activity: [$type] $title (Agent: $agentName, ID: $agentId)',
+        );
       }
     } catch (e, stackTrace) {
       _logger.severe('Failed to push agent activity message', e, stackTrace);
     }
+  }
+
+  Future<int> _insertMessageWithRetry({
+    required AgentActivityType type,
+    required String title,
+    required String? content,
+    required String? icon,
+    required String agentName,
+    required String agentId,
+    required String? scene,
+    required String? sceneId,
+    required String? userId,
+    required DateTime timestamp,
+  }) async {
+    return SqliteBusyRetry.run<int>(
+      operation: 'persist agent activity message',
+      logger: _logger,
+      maxAttempts: _databaseMaxAttempts,
+      retryDelay: _databaseRetryDelay,
+      action: () async {
+        final db = AppDatabase.instance;
+        return await db
+            .into(db.agentActivityMessages)
+            .insert(
+              AgentActivityMessagesCompanion.insert(
+                type: type.name,
+                title: title,
+                content: Value(content),
+                icon: Value(icon),
+                agentName: Value(agentName),
+                agentId: Value(agentId),
+                scene: Value(scene),
+                sceneId: Value(sceneId),
+                userId: Value(userId),
+                timestamp: timestamp,
+              ),
+            );
+      },
+    );
   }
 
   @override
