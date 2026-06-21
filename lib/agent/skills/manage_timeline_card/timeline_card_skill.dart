@@ -303,7 +303,8 @@ class TimelineCardSkill extends Skill {
                   throw ArgumentError(
                       "ui_configs[$i] must be an object (Map), got ${raw.runtimeType}.");
                 }
-                final config = Map<String, dynamic>.from(raw);
+                final config = _canonicalizeUiConfigAssetReferences(
+                    Map<String, dynamic>.from(raw));
                 validateUiConfig(
                   config,
                   customTemplateFields: customTemplateFields,
@@ -626,5 +627,44 @@ class TimelineCardSkill extends Skill {
     }
     throw ArgumentError(
         '$name must be an array or a JSON-encoded array string, got ${value.runtimeType}.');
+  }
+
+  static Map<String, dynamic> _canonicalizeUiConfigAssetReferences(
+      Map<String, dynamic> config) {
+    final normalized = Map<String, dynamic>.from(config);
+    final data = normalized['data'];
+    if (data is Map) {
+      normalized['data'] =
+          _canonicalizeUiConfigValue(Map<String, dynamic>.from(data));
+    }
+    return normalized;
+  }
+
+  static dynamic _canonicalizeUiConfigValue(dynamic value) {
+    const internalFsPrefix = '/_Internal/fs/';
+
+    if (value is String) {
+      if (!value.startsWith(internalFsPrefix)) {
+        return value;
+      }
+      final filename = value.substring(internalFsPrefix.length);
+      if (filename.isEmpty) {
+        return value;
+      }
+      return 'fs://$filename';
+    }
+
+    if (value is List) {
+      return value.map(_canonicalizeUiConfigValue).toList();
+    }
+
+    if (value is Map) {
+      return {
+        for (final entry in value.entries)
+          entry.key.toString(): _canonicalizeUiConfigValue(entry.value),
+      };
+    }
+
+    return value;
   }
 }

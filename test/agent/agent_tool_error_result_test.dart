@@ -172,6 +172,49 @@ void main() {
       expect(card?.tags, ['Knowledge']);
     });
 
+    test('save_timeline_card canonicalizes internal fs proxy paths', () async {
+      final tool = TimelineCardSkill(
+        forceActivate: true,
+        stopAfterSuccessSaveCard: true,
+      ).tools!.singleWhere((tool) => tool.name == 'save_timeline_card');
+      const factId = '2026/05/18.md#ts_7';
+      await _seedPlaceholderCard(userId, factId);
+
+      final result = await _runToolCall(
+        tool: tool,
+        arguments: {
+          'fact_id': factId,
+          'title': 'Bookstore umbrella',
+          'fact': 'Bought an umbrella at the bookstore.',
+          'ui_configs': [
+            {
+              'template_id': 'gallery',
+              'data': {
+                'title': 'Bookstore umbrella',
+                'image_urls': [
+                  '/_Internal/fs/img_20260621_ts_0_no_1.HEIC',
+                  'fs://img_20260621_ts_0_no_2.HEIC',
+                ],
+              },
+            },
+          ],
+        },
+        metadata: {'userId': userId},
+      );
+
+      final card = await FileSystemService.instance.readCardFile(
+        userId,
+        factId,
+      );
+
+      expect(result.isError, isFalse);
+      expect(card?.uiConfigs.single.templateId, 'gallery');
+      expect(card?.uiConfigs.single.data['image_urls'], [
+        'fs://img_20260621_ts_0_no_1.HEIC',
+        'fs://img_20260621_ts_0_no_2.HEIC',
+      ]);
+    });
+
     test('save_timeline_card accepts saved custom HTML templates', () async {
       final tool = TimelineCardSkill(
         forceActivate: true,

@@ -83,39 +83,58 @@ bool isNativeCard(String? templateId) {
   return _nativeCardTemplates.contains(templateId);
 }
 
-/// Replace fs:// URLs in data recursively
+const String _internalFsPrefix = '/_Internal/fs/';
+
+String? _toFsUri(String value) {
+  if (value.startsWith('fs://')) {
+    return value;
+  }
+
+  if (value.startsWith(_internalFsPrefix)) {
+    final filename = value.substring(_internalFsPrefix.length);
+    if (filename.isEmpty) {
+      return null;
+    }
+    return 'fs://$filename';
+  }
+
+  return null;
+}
+
+Future<dynamic> _replaceFsValue(dynamic value, String userId) async {
+  if (value is String) {
+    final fsUri = _toFsUri(value);
+    if (fsUri != null) {
+      return FileSystemService.convertFsToLocalHttp(fsUri, userId);
+    }
+    return value;
+  }
+
+  if (value is List) {
+    final processedList = <dynamic>[];
+    for (final item in value) {
+      processedList.add(await _replaceFsValue(item, userId));
+    }
+    return processedList;
+  }
+
+  if (value is Map) {
+    return replaceFsInData(Map<String, dynamic>.from(value), userId);
+  }
+
+  return value;
+}
+
+/// Replace local asset references in data recursively.
+///
+/// `fs://...` is the canonical persisted form. `/_Internal/fs/...` can appear
+/// in older or model-generated card data from WebView-oriented paths; normalize
+/// it here so existing native cards can still render their local assets.
 Future<Map<String, dynamic>> replaceFsInData(
     Map<String, dynamic> data, String userId) async {
   final result = <String, dynamic>{};
   for (final entry in data.entries) {
-    final key = entry.key;
-    final value = entry.value;
-
-    if (value is String && value.startsWith('fs://')) {
-      // Replace fs:// URL with HTTP URL
-      result[key] = await FileSystemService.convertFsToLocalHttp(value, userId);
-    } else if (value is List) {
-      // Process list items
-      final processedList = <dynamic>[];
-      for (final item in value) {
-        if (item is String && item.startsWith('fs://')) {
-          processedList
-              .add(await FileSystemService.convertFsToLocalHttp(item, userId));
-        } else if (item is Map) {
-          processedList.add(
-              await replaceFsInData(Map<String, dynamic>.from(item), userId));
-        } else {
-          processedList.add(item);
-        }
-      }
-      result[key] = processedList;
-    } else if (value is Map) {
-      // Recursively process nested maps
-      result[key] =
-          await replaceFsInData(Map<String, dynamic>.from(value), userId);
-    } else {
-      result[key] = value;
-    }
+    result[entry.key] = await _replaceFsValue(entry.value, userId);
   }
   return result;
 }

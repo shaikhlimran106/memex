@@ -66,6 +66,54 @@ void main() {
     );
   });
 
+  test('replaceFsInData normalizes internal fs proxy paths', () async {
+    const userId = 'native_user';
+
+    final processed = await replaceFsInData(
+      {
+        'image_urls': [
+          '/_Internal/fs/img_20260621_ts_0_no_1.HEIC',
+          'fs://img_20260621_ts_0_no_2.HEIC',
+        ],
+        'nested': {
+          'cover': '/_Internal/fs/img_20260621_ts_0_no_3.HEIC',
+        },
+        'title': 'Umbrella',
+      },
+      userId,
+    );
+
+    final imageUrls = processed['image_urls'] as List<dynamic>;
+    expect(
+      imageUrls[0],
+      allOf(
+        isA<String>(),
+        contains('http://127.0.0.1:'),
+        contains('/assets/$userId/img_20260621_ts_0_no_1.HEIC'),
+        contains('token='),
+      ),
+    );
+    expect(
+      imageUrls[1],
+      allOf(
+        isA<String>(),
+        contains('http://127.0.0.1:'),
+        contains('/assets/$userId/img_20260621_ts_0_no_2.HEIC'),
+        contains('token='),
+      ),
+    );
+
+    final nested = processed['nested'] as Map<String, dynamic>;
+    expect(
+      nested['cover'],
+      allOf(
+        isA<String>(),
+        contains('/assets/$userId/img_20260621_ts_0_no_3.HEIC'),
+      ),
+    );
+    expect(processed['title'], 'Umbrella');
+  });
+
   test('renderCard prefers saved HTML template over built-in template id',
       () async {
     const userId = 'override_user';
