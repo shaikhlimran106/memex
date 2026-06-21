@@ -6,6 +6,7 @@ import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/llm_call_record_service.dart';
 import 'package:memex/data/services/character_service.dart';
 import 'package:memex/data/services/card_renderer.dart';
+import 'package:memex/data/services/timeline_card_event_publisher.dart';
 import 'package:memex/utils/token_usage_utils.dart';
 
 final _logger = getLogger('CardDetailEndpoint');
@@ -443,6 +444,12 @@ Future<bool> updateCardTimeEndpoint(String cardId, int timestamp) async {
       return false;
     }
 
+    await emitTimelineCardUpdated(
+      userId: userId,
+      cardId: cardId,
+      cardData: updatedCardData,
+    );
+
     _logger.info('Updated user_fixed_timestamp for card $cardId to $timestamp');
     return true;
   } catch (e) {
@@ -499,6 +506,12 @@ Future<bool> updateCardLocationEndpoint(
         'Updated card location for $cardId, but failed to save reusable user location mark: $name',
       );
     }
+
+    await emitTimelineCardUpdated(
+      userId: userId,
+      cardId: cardId,
+      cardData: updatedCardData,
+    );
 
     _logger.info('Updated user_fixed_location for card $cardId');
     return true;

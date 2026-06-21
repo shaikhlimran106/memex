@@ -11,6 +11,7 @@ import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/global_event_bus.dart';
 import 'package:memex/data/services/memory_sync_service.dart';
+import 'package:memex/data/services/timeline_card_event_publisher.dart';
 import 'package:memex/domain/models/system_event.dart';
 import 'package:memex/agent/skills/manage_timeline_card/timeline_templates.dart';
 import 'package:memex/utils/user_storage.dart';
@@ -490,6 +491,20 @@ class TimelineCardSkill extends Skill {
                   "Card file not found for fact_id: $resolvedFactId, maybe it has been deleted");
             }
             rollbackPlaceholderFactId = null;
+
+            if (isNewCard) {
+              await emitTimelineCardAdded(
+                userId: userId,
+                cardId: resolvedFactId,
+                cardData: updatedCardData,
+              );
+            } else {
+              await emitTimelineCardUpdated(
+                userId: userId,
+                cardId: resolvedFactId,
+                cardData: updatedCardData,
+              );
+            }
 
             // Log event
             try {

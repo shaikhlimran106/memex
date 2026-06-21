@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/data/repositories/card.dart';
+import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/utils/user_storage.dart';
@@ -19,6 +20,8 @@ void main() {
     await UserStorage.setLocale(const Locale('en'));
     tempDir = await Directory.systemTemp.createTemp('memex_card_location_');
     await FileSystemService.init(tempDir.path);
+    EventBusService.instance.clearHandlers();
+    await EventBusService.instance.connect();
 
     await FileSystemService.instance.safeWriteCardFile(
       userId,
@@ -35,6 +38,7 @@ void main() {
   });
 
   tearDown(() async {
+    EventBusService.instance.clearHandlers();
     if (await tempDir.exists()) {
       await tempDir.delete(recursive: true);
     }
@@ -42,12 +46,21 @@ void main() {
 
   test('updateCardLocation stores card override and reusable location mark',
       () async {
+    CardUpdatedMessage? observedTimelineUpdate;
+    EventBusService.instance.addHandler(
+      EventBusMessageType.cardUpdated,
+      (message) {
+        observedTimelineUpdate = message as CardUpdatedMessage;
+      },
+    );
+
     final ok = await updateCardLocationEndpoint(
       cardId,
       31.2304,
       121.4737,
       'People Square',
     );
+    await Future<void>.delayed(Duration.zero);
 
     expect(ok, isTrue);
 
@@ -57,6 +70,9 @@ void main() {
     expect(card.userFixedLocation?.name, 'People Square');
     expect(card.userFixedLocation?.lat, closeTo(31.2304, 0.000001));
     expect(card.userFixedLocation?.lng, closeTo(121.4737, 0.000001));
+    expect(observedTimelineUpdate, isNotNull);
+    expect(observedTimelineUpdate!.id, cardId);
+    expect(observedTimelineUpdate!.address, 'People Square');
 
     final markedLocation = await FileSystemService.instance
         .getUserLocationByName(userId, 'People Square');

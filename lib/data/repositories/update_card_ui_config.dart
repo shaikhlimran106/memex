@@ -4,6 +4,7 @@ import 'package:memex/utils/user_storage.dart';
 import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/domain/models/system_event.dart';
 import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/data/services/timeline_card_event_publisher.dart';
 
 final _logger = getLogger('UpdateCardUiConfigEndpoint');
 FileSystemService get _fileSystemService => FileSystemService.instance;
@@ -61,6 +62,11 @@ Future<bool> updateCardUiConfigEndpoint(
     }
 
     _logger.info('Updated ui_config at index $configIndex for $cardId');
+    await emitTimelineCardUpdated(
+      userId: userId,
+      cardId: cardId,
+      cardData: updatedCardData,
+    );
     await _publishCardUiConfigUpdated(
       userId: userId,
       cardId: cardId,

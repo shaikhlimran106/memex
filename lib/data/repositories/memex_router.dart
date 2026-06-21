@@ -24,7 +24,6 @@ import 'package:memex/data/repositories/get_timeline_card.dart'; // Import for f
 import 'package:logging/logging.dart';
 import 'package:memex/data/services/card_renderer.dart';
 import 'package:memex/data/services/event_handlers/schedule_state_on_card_change_handler.dart';
-import 'package:memex/data/services/event_handlers/timeline_card_change_handler.dart';
 import 'package:memex/data/services/schedule_state_service.dart';
 import 'package:memex/domain/models/timeline_card_model.dart';
 import 'package:memex/domain/models/card_model.dart';
@@ -195,14 +194,6 @@ class MemexRouter {
       subscription: EventSyncSubscription<DataChangeRecord>(
         subscriptionId: 'schedule_state_on_card_change',
         handler: handleScheduleStateOnCardChanged,
-      ),
-    );
-
-    eventBus.subscribeSync<DataChangeRecord>(
-      eventType: SystemEventTypes.dataChanged,
-      subscription: EventSyncSubscription<DataChangeRecord>(
-        subscriptionId: 'timeline_card_change',
-        handler: handleTimelineCardChanged,
       ),
     );
 
