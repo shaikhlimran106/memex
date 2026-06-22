@@ -65,25 +65,18 @@ void main() {
       vm.dispose();
     });
 
-    test('refresh triggers agent and reloads aggregation on success', () async {
-      var refreshCount = 0;
+    test('refresh reloads local aggregation data', () async {
       var loadCount = 0;
       final vm = ScheduleAggregatorViewModel(
-        refreshAggregation: () async {
-          refreshCount += 1;
-          return const Ok<void>.v();
-        },
         loadAggregation: () async {
           loadCount += 1;
           return _aggregation(id: 'fresh');
         },
-        refreshReloadDelay: Duration.zero,
         listenToEvents: false,
       );
 
       await vm.refreshAggregation();
 
-      expect(refreshCount, 1);
       expect(loadCount, 1);
       expect(vm.aggregation?.id, 'fresh');
       expect(vm.isLoading, isFalse);
@@ -94,58 +87,42 @@ void main() {
       vm.dispose();
     });
 
-    test('refreshing state only tracks agent-triggered refresh', () async {
-      final refreshCompleter = Completer<Result<void>>();
-      var loadCount = 0;
+    test('refreshing state tracks local reload', () async {
+      final loadCompleter = Completer<ScheduleViewData?>();
       final vm = ScheduleAggregatorViewModel(
-        refreshAggregation: () => refreshCompleter.future,
-        loadAggregation: () async {
-          loadCount += 1;
-          return _aggregation(id: 'refreshed_$loadCount');
-        },
-        refreshReloadDelay: const Duration(seconds: 5),
+        loadAggregation: () => loadCompleter.future,
+        listenToEvents: false,
       );
 
       final refresh = vm.refreshAggregation();
 
       expect(vm.isLoading, isTrue);
       expect(vm.isRefreshing, isTrue);
-      refreshCompleter.complete(const Ok<void>.v());
+      loadCompleter.complete(_aggregation(id: 'refreshed'));
+      await refresh;
       await Future<void>.delayed(Duration.zero);
 
-      expect(vm.isRefreshing, isTrue);
-      EventBusService.instance.emitEvent(
-        ScheduleAggregationUpdatedMessage(aggregationId: 'refreshed'),
-      );
-      await refresh;
-
-      expect(loadCount, 1);
-      expect(vm.aggregation?.id, 'refreshed_1');
+      expect(vm.aggregation?.id, 'refreshed');
       expect(vm.isLoading, isFalse);
       expect(vm.isRefreshing, isFalse);
 
       vm.dispose();
     });
 
-    test('refresh does not reload when agent trigger fails', () async {
-      var loadCount = 0;
+    test('refresh reports local load failures', () async {
       final vm = ScheduleAggregatorViewModel(
-        refreshAggregation: () async => Error<void>(Exception('no model')),
         loadAggregation: () async {
-          loadCount += 1;
-          return _aggregation(id: 'should_not_load');
+          throw Exception('failed');
         },
-        refreshReloadDelay: Duration.zero,
         listenToEvents: false,
       );
 
       await vm.refreshAggregation();
 
-      expect(loadCount, 0);
       expect(vm.hasData, isFalse);
       expect(vm.isLoading, isFalse);
       expect(vm.isRefreshing, isFalse);
-      expect(vm.error, contains('no model'));
+      expect(vm.error, 'Failed to load schedule data');
 
       vm.dispose();
     });

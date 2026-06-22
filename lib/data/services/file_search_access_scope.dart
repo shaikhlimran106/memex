@@ -7,12 +7,16 @@ typedef FilePathAccessPredicate = bool Function(String path);
 /// directory-level search can be delegated to an external search engine.
 class FileSearchAccessScope {
   final FilePathAccessPredicate allowsRead;
+  final FilePathAccessPredicate? canTraverse;
   final List<String> excludedPaths;
   final bool canUseDirectorySearch;
 
   const FileSearchAccessScope({
     required this.allowsRead,
+    this.canTraverse,
     this.excludedPaths = const [],
     this.canUseDirectorySearch = true,
   });
+
+  bool allowsTraversal(String path) => (canTraverse ?? allowsRead)(path);
 }

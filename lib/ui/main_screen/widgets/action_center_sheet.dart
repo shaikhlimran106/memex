@@ -8,20 +8,14 @@ import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/ui/card_attachments/card_attachment_data.dart';
 import 'package:memex/ui/card_attachments/card_attachment_factory.dart';
 import 'package:memex/ui/core/widgets/agent_logo_loading.dart';
-import 'package:memex/domain/models/card_generation_retry_result.dart';
-import 'package:memex/data/repositories/memex_router.dart';
 
 class ActionCenterSheet extends StatefulWidget {
   const ActionCenterSheet({
     super.key,
     this.loadPendingAttachments,
-    this.loadFailedCardCount,
-    this.retryAllFailedCards,
   });
 
   final Future<List<CardAttachmentData>> Function()? loadPendingAttachments;
-  final Future<int> Function()? loadFailedCardCount;
-  final Future<CardGenerationRetryResult> Function()? retryAllFailedCards;
 
   @override
   State<ActionCenterSheet> createState() => _ActionCenterSheetState();
@@ -30,10 +24,8 @@ class ActionCenterSheet extends StatefulWidget {
 class _ActionCenterSheetState extends State<ActionCenterSheet>
     with SingleTickerProviderStateMixin {
   List<CardAttachmentData>? _items;
-  int _failedCardCount = 0;
   bool _isLoading = true;
   bool _isDismissing = false;
-  bool _isRetryingFailedCards = false;
 
   late final AnimationController _fadeController;
   late final Animation<double> _fadeAnimation;
@@ -83,19 +75,15 @@ class _ActionCenterSheetState extends State<ActionCenterSheet>
   }
 
   Future<void> _load() async {
-    final loadAttachments =
-        widget.loadPendingAttachments ??
+    final loadAttachments = widget.loadPendingAttachments ??
         CardAttachmentService.instance.getPendingAttachments;
-    final loadFailedCount =
-        widget.loadFailedCardCount ?? MemexRouter().countFailedCardGenerations;
-    final results = await Future.wait([loadAttachments(), loadFailedCount()]);
+    final items = await loadAttachments();
     if (!mounted) return;
     setState(() {
-      _items = results[0] as List<CardAttachmentData>;
-      _failedCardCount = results[1] as int;
+      _items = items;
       _isLoading = false;
     });
-    if ((_items ?? const []).isNotEmpty || _failedCardCount > 0) {
+    if ((_items ?? const []).isNotEmpty) {
       _fadeController.forward();
     }
   }
@@ -168,42 +156,6 @@ class _ActionCenterSheetState extends State<ActionCenterSheet>
     }
   }
 
-  Future<void> _retryAllFailedCards() async {
-    if (_isRetryingFailedCards) return;
-    setState(() => _isRetryingFailedCards = true);
-    HapticFeedback.mediumImpact();
-
-    try {
-      final retryAll =
-          widget.retryAllFailedCards ??
-          MemexRouter().retryAllFailedCardGenerations;
-      final result = await retryAll();
-      if (!mounted) return;
-
-      final l10n = UserStorage.l10n;
-      final failed = result.errors.length;
-      final message = failed == 0
-          ? l10n.failedCardsRetryStarted(result.retried)
-          : l10n.failedCardsRetryPartial(result.retried, failed);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      await _load();
-    } finally {
-      if (mounted) {
-        setState(() => _isRetryingFailedCards = false);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!AppDatabase.isInitialized) {
@@ -266,8 +218,8 @@ class _ActionCenterSheetState extends State<ActionCenterSheet>
   Widget _buildHeader(ColorScheme colorScheme) {
     final l10n = UserStorage.l10n;
     final attachmentCount = _items?.length ?? 0;
-    final hasItems = attachmentCount > 0 || _failedCardCount > 0;
-    final itemCount = attachmentCount + (_failedCardCount > 0 ? 1 : 0);
+    final hasItems = attachmentCount > 0;
+    final itemCount = attachmentCount;
     final hasMultipleTypes = _countByType().length > 1;
     final hasDismissibleItems = attachmentCount > 0;
 
@@ -338,7 +290,7 @@ class _ActionCenterSheetState extends State<ActionCenterSheet>
 
     final items = _items ?? const [];
 
-    if (items.isEmpty && _failedCardCount == 0) {
+    if (items.isEmpty) {
       return FadeTransition(
         opacity: _fadeAnimation,
         child: Center(
@@ -376,131 +328,15 @@ class _ActionCenterSheetState extends State<ActionCenterSheet>
 
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(0, 12, 0, 24),
-      itemCount: items.length + (_failedCardCount > 0 ? 1 : 0),
+      itemCount: items.length,
       separatorBuilder: (context, index) => const SizedBox(height: 6),
       itemBuilder: (context, index) {
-        if (_failedCardCount > 0 && index == 0) {
-          return _FailedCardsRetryCard(
-            count: _failedCardCount,
-            isRetrying: _isRetryingFailedCards,
-            onRetryAll: _retryAllFailedCards,
-          );
-        }
-
-        final itemIndex = _failedCardCount > 0 ? index - 1 : index;
-        final item = items[itemIndex];
+        final item = items[index];
         return KeyedSubtree(
           key: ValueKey(item.id),
           child: CardAttachmentFactory.build(item),
         );
       },
-    );
-  }
-}
-
-class _FailedCardsRetryCard extends StatelessWidget {
-  const _FailedCardsRetryCard({
-    required this.count,
-    required this.isRetrying,
-    required this.onRetryAll,
-  });
-
-  final int count;
-  final bool isRetrying;
-  final VoidCallback onRetryAll;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = UserStorage.l10n;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFFBEB),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFFFBBF24).withValues(alpha: 0.4),
-            width: 0.8,
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.refresh_rounded,
-                color: Color(0xFFD97706),
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.failedCardsRetryTitle(count),
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF92400E),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    l10n.failedCardsRetryDescription,
-                    style: TextStyle(
-                      fontSize: 13,
-                      height: 1.45,
-                      color: const Color(0xFF92400E).withValues(alpha: 0.72),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: isRetrying ? null : onRetryAll,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFD97706),
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: const Color(
-                        0xFFD97706,
-                      ).withValues(alpha: 0.35),
-                      minimumSize: const Size(0, 36),
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    icon: isRetrying
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 1.7,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.refresh_rounded, size: 17),
-                    label: Text(
-                      l10n.retryAllFailedCards,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

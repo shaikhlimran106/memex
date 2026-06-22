@@ -36,7 +36,8 @@ String? _validateList(
 final List<NativeWidgetDefinition> nativeWidgets = [
   NativeWidgetDefinition(
     id: "map_card_v1",
-    description: "Map Card - Visualize location data, tracks or check-in points",
+    description:
+        "Map Card - Visualize location data, tracks or check-in points",
     promptStructure: '''
 interface MapCardData {
   locations: Array<{
@@ -170,7 +171,8 @@ interface ContrastCardData {
   ),
   NativeWidgetDefinition(
     id: "gallery_card_v1",
-    description: "Gallery Card - Show multiple images in parallel (items, comparison or gallery)",
+    description:
+        "Gallery Card - Show multiple images in parallel (items, comparison or gallery)",
     promptStructure: '''
 interface GalleryCardData {
   headline?: string; // Main headline
@@ -194,7 +196,8 @@ interface GalleryCardData {
   ),
   NativeWidgetDefinition(
     id: "bubble_chart_card_v1",
-    description: "Topic Bubble Insight Card - Show keyword or topic distribution",
+    description:
+        "Topic Bubble Insight Card - Show keyword or topic distribution",
     promptStructure: '''
 interface BubbleChartCardData {
   bubbles: Array<{
@@ -249,7 +252,8 @@ interface ProgressChartCardData {
   ),
   NativeWidgetDefinition(
     id: "radar_chart_card_v1",
-    description: "Radar Card - Show multi-dimensional balance, capability or feature distribution",
+    description:
+        "Radar Card - Show multi-dimensional balance, capability or feature distribution",
     promptStructure: '''
 interface RadarChartCardData {
   badge?: string; // Top-right badge (e.g. 'Focus this month')
@@ -361,7 +365,8 @@ interface TimelineCardData {
   ),
   NativeWidgetDefinition(
     id: "summary_card_v1",
-    description: "Summary Card - Show weekly/daily reports, retrospectives or summaries",
+    description:
+        "Summary Card - Show weekly/daily reports, retrospectives or summaries",
     promptStructure: '''
 interface SummaryCardData {
   tag?: string; // Tag (e.g. 'WEEKLY REVIEW')

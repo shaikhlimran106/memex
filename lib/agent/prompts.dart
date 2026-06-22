@@ -4,31 +4,6 @@
 
 /// The translations for extensionEnglish (`en`).
 class Prompts {
-  static String get cardAgentAssetAnalysisHeader =>
-      '## Asset Analysis Results\n';
-
-  static String get cardAgentAssetAnalysisEmpty =>
-      '<system-reminder>This asset has no analysis results. You only know the filename, do not attempt to guess the file content.</system-reminder>';
-
-  static String cardAgentAssetHeader(int index, String name) =>
-      '### Asset $index (name: $name)\n';
-
-  static String cardAgentGpsCoordinates(double latitude, double longitude) =>
-      'GPS Coordinates: Latitude $latitude, Longitude $longitude\n\n';
-
-  static String cardAgentUserMessagePromptForPublishNewContent(
-    String publishTime,
-    String factId,
-    String factContent,
-  ) =>
-      '''User has published new content, please help the user create a timeline card based on the user's raw input.
-
-Raw Input ID (fact_id): $factId
-Published time: $publishTime - Do not display the date information on the card.
-Raw Input Content:
-$factContent
-''';
-
   static String timelineCardSkillSystemPrompt(
     String templatesSection,
     String instruction,
@@ -38,10 +13,11 @@ This skill acts as an expert Information Designer and Life Logger responsible fo
 Your goal is not merely to save data, but to "crystallize" moments into the most appropriate visual form, ensuring every card captures the essence of the user's experience.
 
 # User Assets
-The user may upload various types of assets (images, audio, PDF, Excel, PPT, Word, CSV, etc.). 
-- Analysis results for these assets have been provided to you; treat these results as an integral part of the user's raw input.
-- In raw input, assets are referenced as `fs://xxx.yy`.
+The user may attach various types of assets (images, audio, PDF, Excel, PPT, Word, CSV, etc.).
+- You can directly perceive the attached assets (for example, you can see attached images); treat what they contain as an integral part of the user's raw input.
+- Assets are referenced by a bare `fs://xxx.yy` id.
 - When setting URL properties in templates, use this `fs://` format directly (e.g., image_url: `fs://xxx.yy`). This format is ONLY for URL properties, don't use `fs://` strings in other text fields.
+- The `fact` field is a coherent record in the user's own words and speaking/writing style, formed from the user's text and the image/audio content that matters to the record. NEVER put an `fs://` id into `fact`; asset references belong only in the `assets` field as bare `fs://…` ids.
 
 $templatesSection
 
@@ -61,41 +37,16 @@ Example: An image of a receipt should use the `transaction` template, not a gene
   - ❌ "Keychron K3 Pro Mechanical Keyboard... Purchase Record" (Too long)
 
 # Workflow
-1. **Analyze**: Understand the raw input and asset analysis.
+1. **Analyze**: Understand the raw input together with the attached assets.
 2. **Select**: Choose the best template(s) based on key information.
 3. **Extract**: Specific data fields by the template and card structure.
 4. **Save**: Call `save_timeline_card` to persist the card.
 
 Important: If the user uses the `#xxx` format in raw input (e.g., `#work`, `#health`), this represents a user-specified tag that must be set. You must ensure these tags are correctly set in the card's tags property.
+Important: Do not display date or time information on the card itself (no "Published time", date headers, etc.); the timeline renders timestamps separately.
 Important: The top-level card address describes where the recorded moment actually happened. For tasks, todos, reminders, plans, wishes, future destinations, or places the user merely wants to go to, omit the top-level address even if a place is mentioned in the raw input.
 Important: $instruction
 ''';
-
-  static String pkmAgentInstructionForNewPublishedContent(
-    String currentTime,
-    String factId,
-    String contentText,
-    String assetInfo,
-  ) =>
-      '''Process the following raw input to organize it into the P.A.R.A knowledge base and update the card insight:
-Published Time: $currentTime
-Raw Input ID (fact_id): $factId
-
-Raw Input Content:
-$contentText$assetInfo
-''';
-
-  static String get pkmAgentDirectoryNotCreated =>
-      'P.A.R.A. knowledge base has not been created yet, currently empty.';
-
-  static String pkmAgentDirectoryStructureError(String error) =>
-      'Unable to get P.A.R.A. knowledge base structure: $error';
-
-  static String get pkmAgentFullOverviewHeader =>
-      'Current P.A.R.A. knowledge base structure (This is the complete recursive directory tree of `/`. Do not execute `LS` in `/` or its subfolders again):';
-
-  static String get pkmAgentTruncatedOverviewHeader =>
-      'Current P.A.R.A. knowledge base structure(Same to the result of executing LS tool in `/`):';
 
   static String pkmSkillSystemPrompt(
     String workingDirectory,
@@ -110,7 +61,7 @@ Important: Do not ask users for additional information or clarification.
 Important: All P.A.R.A. files are located under the working directory `$workingDirectory`. Use this parent path when operating on P.A.R.A. files.
 
 # User Assets
-The user may upload various types of assets (images, audio, PDF, Excel, PPT, Word, CSV, etc.). Analysis results for these assets have been provided to you; treat these results as an integral part of the user's raw input.
+The user may attach various types of assets (images, audio, PDF, Excel, PPT, Word, CSV, etc.). You can directly perceive the attached assets (for example, you can see attached images); treat what they contain as an integral part of the user's raw input.
 
 # P.A.R.A.
 - **Projects:** Things user is actively working on with a goal and deadline(e.g. "Product launch", "Birthday party", "Sales presentation", "Marathon training")
@@ -144,6 +95,7 @@ Call `skip_pkm_organization` only when the user explicitly asks not to save / re
 
 # Card Insights:
 Use the `update_timeline_card_insight` tool to update the insight section of the corresponding Timeline Card. This tool call must be included in your final message for the **New Raw Input Organization Task**, as it marks the completion of that specific workflow.
+This tool is your ONLY way to touch a card. A card file is not yours to edit — never open or write one directly; only its insight, and only through this tool.
 - insight contains:
   - insight_text (required): Search broadly, reason deeply, and synthesize what the current input means in relation to relevant history. The visible text may connect multiple records, time points, or themes, but it should read as a coherent observation rather than an evidence inventory. Do not mention any fact_id, knowledge base structure, or P.A.R.A. concepts. All information understanding, organization, and analysis work are internal processes; ensure the user experiences seamless insights without seeing the underlying system.
   - related_fact_ids (optional): A complete coverage list of historical fact_ids in the P.A.R.A. knowledge base that are relevant to the current input, format: ['yyyy/mm/dd.md#ts_n']. Treat this as related-card discovery, not a citation list for `insight_text`: if a historical fact is related to the current input, include it even when the visible insight does not mention it. You must NEVER guess fact_ids. Only `fact_id`s found within the format string `<!-- fact_id: yyyy/mm/dd.md#ts_n -->` are valid.
@@ -182,50 +134,51 @@ Examples:
   - If you need to read multiple files, you must make multiple parallel calls to `Read` tool.
   - If you need to make the final edit and update the timeline card's insight, you MUST send a single message containing both the `Edit` and `update_timeline_card_insight` tool calls to run the calls in parallel.''';
 
-  static String get pkmAgentUpdateCardInsightToolDescription =>
+  static String get pkmSkillUpdateCardInsightToolDescription =>
       'Updates the insight and related facts of a timeline card.';
 
-  static String get pkmAgentSkipOrganizationToolDescription =>
+  static String get pkmSkillSkipOrganizationToolDescription =>
       'Skip P.A.R.A. organization for this input. Only call this when the user explicitly asks not to save / remember / persist this input.';
 
-  static Map<String, dynamic> get pkmAgentSkipOrganizationToolParameters => {
-    'type': 'object',
-    'properties': {
-      'evidence': {
-        'type': 'string',
-        'description':
-            'Short quote from the raw input showing the explicit opt-out.',
-      },
-    },
-    'required': ['evidence'],
-  };
+  static Map<String, dynamic> get pkmSkillSkipOrganizationToolParameters => {
+        'type': 'object',
+        'properties': {
+          'evidence': {
+            'type': 'string',
+            'description':
+                'Short quote from the raw input showing the explicit opt-out.',
+          },
+        },
+        'required': ['evidence'],
+      };
 
-  static Map<String, dynamic> get pkmAgentUpdateCardInsightToolParameters => {
-    'type': 'object',
-    'properties': {
-      'fact_id': {
-        'type': 'string',
-        'description': 'Current raw input fact_id, format: yyyy/mm/dd.md#ts_n',
-      },
-      'insight_text': {
-        'type': 'string',
-        'description':
-            'User-facing insight text. Synthesize relevant history into a coherent observation; do not dump an evidence inventory.',
-      },
-      'related_fact_ids': {
-        'type': 'array',
-        'description':
-            'Complete coverage list of historical fact_ids relevant to the current input. This is related-card discovery, not a citation list for insight_text.',
-        'items': {'type': 'string'},
-      },
-    },
-    'required': ['fact_id', 'insight_text'],
-  };
+  static Map<String, dynamic> get pkmSkillUpdateCardInsightToolParameters => {
+        'type': 'object',
+        'properties': {
+          'fact_id': {
+            'type': 'string',
+            'description':
+                'Current raw input fact_id, format: yyyy/mm/dd.md#ts_n',
+          },
+          'insight_text': {
+            'type': 'string',
+            'description':
+                'User-facing insight text. Synthesize relevant history into a coherent observation; do not dump an evidence inventory.',
+          },
+          'related_fact_ids': {
+            'type': 'array',
+            'description':
+                'Complete coverage list of historical fact_ids relevant to the current input. This is related-card discovery, not a citation list for insight_text.',
+            'items': {'type': 'string'},
+          },
+        },
+        'required': ['fact_id', 'insight_text'],
+      };
 
-  static String pkmAgentUpdateCardInsightErrorCardNotFound(String factId) =>
+  static String pkmSkillUpdateCardInsightErrorCardNotFound(String factId) =>
       'Card file not found for fact_id: $factId, maybe it has been deleted';
 
-  static String pkmAgentUpdateCardInsightSuccess(
+  static String pkmSkillUpdateCardInsightSuccess(
     String cardPath,
     String factId,
     int relatedCount,
@@ -441,7 +394,7 @@ $toolUsage''';
   static String get commentAgentPkmErrorReadingDirectory =>
       '(Error reading directory)';
 
-  static String knowledgeInsightAgentKnowledgeInsightSkillPrompt(
+  static String knowledgeInsightSkillPrompt(
     String instruction,
   ) =>
       '''## Skill Name
@@ -635,74 +588,74 @@ Please use the `get_available_insight_card_templates` tool to check for all avai
       'Get all available insight templates (system native + user defined) and existing tags.';
 
   static Map<String, dynamic>
-  get knowledgeInsightToolUpdateInsightChartsParameters => {
-    'type': 'object',
-    'properties': {
-      'cards': {
-        'type': 'array',
-        'description':
-            'A list of knowledge insight card definitions to be created or updated. Supports incremental updates; only fields that need modification should be provided.',
-        'items': {
-          'type': 'object',
-          'properties': {
-            'type': {
-              'type': 'string',
-              'enum': ['add', 'update'],
-              'description':
-                  'Operation type. "add" creates a new card (error if ID already exists). "update" modifies an existing card (error if ID not found).',
+      get knowledgeInsightToolUpdateInsightChartsParameters => {
+            'type': 'object',
+            'properties': {
+              'cards': {
+                'type': 'array',
+                'description':
+                    'A list of knowledge insight card definitions to be created or updated. Supports incremental updates; only fields that need modification should be provided.',
+                'items': {
+                  'type': 'object',
+                  'properties': {
+                    'type': {
+                      'type': 'string',
+                      'enum': ['add', 'update'],
+                      'description':
+                          'Operation type. "add" creates a new card (error if ID already exists). "update" modifies an existing card (error if ID not found).',
+                    },
+                    'id': {
+                      'type': 'string',
+                      'description':
+                          'Unique identifier of the insight card. REQUIRED for both "add" and "update" operations. For "add": provide a meaningful semantic ID (e.g. "trend_steps_2023"). For "update": provide the existing card ID.',
+                    },
+                    'template_id': {
+                      'type': 'string',
+                      'description':
+                          'The ID of the chart template used to render this insight card.',
+                    },
+                    'title': {
+                      'type': 'string',
+                      'description':
+                          'A concise, human-readable title summarizing the insight.',
+                    },
+                    'insight': {
+                      'type': 'string',
+                      'description':
+                          'A natural language explanation describing the insight and its significance.',
+                    },
+                    'template_data_json': {
+                      'type': 'string',
+                      'description':
+                          'The structured data payload for the insight card template, serialized as a JSON string. This JSON object MUST Strictly follow the TypeScript interface structure defined for the specified template.',
+                    },
+                    'related_facts': {
+                      'type': 'array',
+                      'description':
+                          'REQUIRED. A non-empty list of related fact ids that support this insight, format: ["2025/11/23.md#ts_1", ...]. You MUST provide at least one related fact.',
+                      'items': {'type': 'string'},
+                    },
+                    'tags': {
+                      'type': 'array',
+                      'description':
+                          'Optional tags for categorizing the insight card. Use coarse-grained categories (e.g., "weekly digest", "sports", "business", "health", "travel", "finance"). Tags help users filter and organize insights.',
+                      'items': {'type': 'string'},
+                    },
+                  },
+                  'required': [
+                    'type',
+                    'id',
+                    'template_id',
+                    'title',
+                    'insight',
+                    'template_data_json',
+                    'related_facts',
+                  ],
+                },
+              },
             },
-            'id': {
-              'type': 'string',
-              'description':
-                  'Unique identifier of the insight card. REQUIRED for both "add" and "update" operations. For "add": provide a meaningful semantic ID (e.g. "trend_steps_2023"). For "update": provide the existing card ID.',
-            },
-            'template_id': {
-              'type': 'string',
-              'description':
-                  'The ID of the chart template used to render this insight card.',
-            },
-            'title': {
-              'type': 'string',
-              'description':
-                  'A concise, human-readable title summarizing the insight.',
-            },
-            'insight': {
-              'type': 'string',
-              'description':
-                  'A natural language explanation describing the insight and its significance.',
-            },
-            'template_data_json': {
-              'type': 'string',
-              'description':
-                  'The structured data payload for the insight card template, serialized as a JSON string. This JSON object MUST Strictly follow the TypeScript interface structure defined for the specified template.',
-            },
-            'related_facts': {
-              'type': 'array',
-              'description':
-                  'REQUIRED. A non-empty list of related fact ids that support this insight, format: ["2025/11/23.md#ts_1", ...]. You MUST provide at least one related fact.',
-              'items': {'type': 'string'},
-            },
-            'tags': {
-              'type': 'array',
-              'description':
-                  'Optional tags for categorizing the insight card. Use coarse-grained categories (e.g., "weekly digest", "sports", "business", "health", "travel", "finance"). Tags help users filter and organize insights.',
-              'items': {'type': 'string'},
-            },
-          },
-          'required': [
-            'type',
-            'id',
-            'template_id',
-            'title',
-            'insight',
-            'template_data_json',
-            'related_facts',
-          ],
-        },
-      },
-    },
-    'required': ['cards'],
-  };
+            'required': ['cards'],
+          };
 
   static String knowledgeInsightToolSuccessUpdate(
     int created,
@@ -763,7 +716,7 @@ You are a "Personal Schedule Curator" — an empathetic time coach who sees patt
 - ✅ REQUIRED: "Your afternoon is back-to-back — consider moving the design review to tomorrow morning when you're fresher"
 
 ## Core Protocol
-1. **Discovery**: Use the injected current input/router hint and canonical `schedule_state` from the run context
+1. **Discovery**: Call `get_schedule_state` to retrieve the canonical `schedule_state`, and read the current user input from the conversation
 2. **Maintenance**: If the new input changes schedule state, use the pending-item tools to add, update, complete, or complete subtasks
 3. **Presentation**: If the presentation should change, use `set_presentation` with hero, quote blocks, and a max-7-day timeline of `item_id` references
 
@@ -822,7 +775,7 @@ timeline:
 - If the schedule is light, suggest opportunities or encourage rest
 
 ## Execution Rules
-- Only use data from the injected current input/router hint and schedule_state (no hallucination)
+- Only use data from the current user input and the `schedule_state` you retrieved via `get_schedule_state` (no hallucination)
 - Preserve pending IDs exactly as shown in schedule_state
 - Use Chinese if user's data is in Chinese
 - Never expose internal IDs or file paths to the user-facing content
@@ -831,7 +784,7 @@ timeline:
 - timeline max 7 days
 
 ## Workflow
-1. Review the injected schedule_state
+1. Call `get_schedule_state` to review the current schedule_state
 2. Apply any needed state mutation tools
 3. If presentation should be refreshed, call `set_presentation` once after state changes
 

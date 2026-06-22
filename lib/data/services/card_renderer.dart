@@ -1,9 +1,8 @@
-import 'dart:io';
-import 'package:path/path.dart' as path;
 import 'package:memex/utils/logger.dart';
 import 'file_system_service.dart';
 import 'package:memex/domain/models/card_detail_model.dart';
 import 'package:memex/domain/models/card_model.dart';
+import 'asset_reference_service.dart';
 import 'html_templates.dart';
 
 final _logger = getLogger('CardRenderer');
@@ -60,7 +59,6 @@ const Set<String> _nativeCardTemplates = {
   'trend_chart_card_v1',
   'bar_chart_card_v1',
   'timeline_card_v1',
-  'system_task',
   'schedule_briefing',
 };
 
@@ -85,39 +83,35 @@ bool isNativeCard(String? templateId) {
   return _nativeCardTemplates.contains(templateId);
 }
 
-/// Replace fs:// URLs in data recursively
+Future<dynamic> _replaceFsValue(dynamic value, String userId) async {
+  if (value is String) {
+    if (value.startsWith('fs://')) {
+      return FileSystemService.convertFsToLocalHttp(value, userId);
+    }
+    return value;
+  }
+
+  if (value is List) {
+    final processedList = <dynamic>[];
+    for (final item in value) {
+      processedList.add(await _replaceFsValue(item, userId));
+    }
+    return processedList;
+  }
+
+  if (value is Map) {
+    return replaceFsInData(Map<String, dynamic>.from(value), userId);
+  }
+
+  return value;
+}
+
+/// Replace canonical local asset references in data recursively.
 Future<Map<String, dynamic>> replaceFsInData(
     Map<String, dynamic> data, String userId) async {
   final result = <String, dynamic>{};
   for (final entry in data.entries) {
-    final key = entry.key;
-    final value = entry.value;
-
-    if (value is String && value.startsWith('fs://')) {
-      // Replace fs:// URL with HTTP URL
-      result[key] = await FileSystemService.convertFsToLocalHttp(value, userId);
-    } else if (value is List) {
-      // Process list items
-      final processedList = <dynamic>[];
-      for (final item in value) {
-        if (item is String && item.startsWith('fs://')) {
-          processedList
-              .add(await FileSystemService.convertFsToLocalHttp(item, userId));
-        } else if (item is Map) {
-          processedList.add(
-              await replaceFsInData(Map<String, dynamic>.from(item), userId));
-        } else {
-          processedList.add(item);
-        }
-      }
-      result[key] = processedList;
-    } else if (value is Map) {
-      // Recursively process nested maps
-      result[key] =
-          await replaceFsInData(Map<String, dynamic>.from(value), userId);
-    } else {
-      result[key] = value;
-    }
+    result[entry.key] = await _replaceFsValue(entry.value, userId);
   }
   return result;
 }
@@ -196,43 +190,53 @@ Future<CardRenderResult> renderCard({
   final processedConfigs = <UiConfig>[];
 
   for (var config in uiConfigs) {
-    if (isNativeCard(config.templateId)) {
+    final htmlTemplate =
+        await fileSystemService.readTemplateHtml(userId, config.templateId);
+    if (htmlTemplate != null) {
+      try {
+        var htmlContent =
+            fileSystemService.renderHtmlTemplate(htmlTemplate, config.data);
+        htmlContent =
+            await fileSystemService.replaceFsInHtml(htmlContent, userId);
+
+        // Convert to legacy_html config so UI knows to render as WebView.
+        processedConfigs.add(
+            UiConfig(templateId: 'legacy_html', data: {'html': htmlContent}));
+      } catch (e) {
+        _logger
+            .warning('Failed to render HTML template ${config.templateId}: $e');
+        final processedData = await replaceFsInData(config.data, userId);
+        processedConfigs
+            .add(UiConfig(templateId: config.templateId, data: processedData));
+      }
+    } else if (isNativeCard(config.templateId)) {
       // Native or already processed HTML (though usually not expected in input)
       final processedData = await replaceFsInData(config.data, userId);
       processedConfigs
           .add(UiConfig(templateId: config.templateId, data: processedData));
     } else {
-      // Try to render as HTML template using custom template ID
       final validTemplateId = config.templateId;
-      final templateData = config.data;
 
-      final htmlTemplate =
-          await fileSystemService.readTemplateHtml(userId, validTemplateId);
+      // Unknown template and no HTML file found.
+      // For legacy_html we need to normalize embedded fs:// references in
+      // the html payload in addition to normal data field replacement.
+      final processedData = await replaceFsInData(config.data, userId);
 
-      if (htmlTemplate != null) {
-        try {
-          var htmlContent =
-              fileSystemService.renderHtmlTemplate(htmlTemplate, templateData);
-          htmlContent =
+      Map<String, dynamic> updatedData = processedData;
+      if (validTemplateId == 'legacy_html') {
+        final htmlContent = processedData['html'];
+        if (htmlContent is String) {
+          final replacedHtml =
               await fileSystemService.replaceFsInHtml(htmlContent, userId);
-
-          // Convert to legacy_html config so UI knows to render as WebView
-          processedConfigs.add(
-              UiConfig(templateId: 'legacy_html', data: {'html': htmlContent}));
-        } catch (e) {
-          _logger
-              .warning('Failed to render HTML template $validTemplateId: $e');
-          // Add original as fallback (will likely show error in UI)
-          final processedData = await replaceFsInData(config.data, userId);
-          processedConfigs
-              .add(UiConfig(templateId: validTemplateId, data: processedData));
+          updatedData = {
+            ...processedData,
+            'html': replacedHtml,
+          };
         }
-      } else {
-        // Unknown template and no HTML file found -> Treat as native (will likely show error in UI)
-        final processedData = await replaceFsInData(config.data, userId);
-        processedConfigs
-            .add(UiConfig(templateId: validTemplateId, data: processedData));
       }
+
+      processedConfigs
+          .add(UiConfig(templateId: validTemplateId, data: updatedData));
     }
   }
 
@@ -242,74 +246,37 @@ Future<CardRenderResult> renderCard({
   );
 }
 
-/// Extract assets and raw text from fact content
-/// Returns a map with 'assets' (List<AssetData>) and 'rawText' (String?)
+/// Extract display assets and raw text from a card's own fields.
+///
+/// Assets come from [CardData.assets] (a list of markdown-style references
+/// `![image](fs://…)` / `[audio](fs://…)`); raw text comes from
+/// [CardData.fact]. Returns a map with 'assets' (List<AssetData>) and
+/// 'rawText' (String?).
 Future<Map<String, dynamic>> extractAssetsAndRawText(
-    String userId, String? factContent) async {
+    String userId, CardData card) async {
   final assets = <AssetData>[];
-  String? rawText;
 
-  if (factContent != null && factContent.isNotEmpty) {
-    final rawContent = factContent;
+  // Each entry is a full markdown reference. Images use the `![...](fs://…)`
+  // form (leading `!`); audio uses `[...](fs://…)`.
+  for (final ref in card.assets) {
+    final asset = await AssetReferenceService.resolveExisting(
+      userId: userId,
+      reference: ref,
+    );
+    if (asset == null) continue;
 
-    // extract image and audio assets
-    final imgPattern = RegExp(r'!\[.*?\]\(fs://([^\)]+)\)');
-    final imgMatches = imgPattern.allMatches(rawContent);
-    final imgFiles = <String>[];
-    for (final match in imgMatches) {
-      final imgFile = match.group(1)!;
-      imgFiles.add(imgFile);
-
-      // build full asset path
-      final fileSystemService = FileSystemService.instance;
-      final assetsPath = fileSystemService.getAssetsPath(userId);
-      final imgPath = path.join(assetsPath, imgFile);
-      final imgFileObj = File(imgPath);
-      if (await imgFileObj.exists()) {
-        // in local mode, convert to local HTTP URL
-        final url = await FileSystemService.convertFsToLocalHttp(
-            'fs://$imgFile', userId);
-        assets.add(AssetData(
-          type: 'image',
-          url: url,
-        ));
-      }
-    }
-
-    // find audio: [audio](fs://xxx.m4a)
-    final audioPattern = RegExp(r'\[.*?\]\(fs://([^\)]+)\)');
-    final audioMatches = audioPattern.allMatches(rawContent);
-    for (final match in audioMatches) {
-      final audioFile = match.group(1)!;
-      // skip image files (already handled)
-      if (!imgFiles.contains(audioFile)) {
-        final fileSystemService = FileSystemService.instance;
-        final assetsPath = fileSystemService.getAssetsPath(userId);
-        final audioPath = path.join(assetsPath, audioFile);
-        final audioFileObj = File(audioPath);
-        if (await audioFileObj.exists()) {
-          // in local mode, convert to local HTTP URL
-          final url = await FileSystemService.convertFsToLocalHttp(
-              'fs://$audioFile', userId);
-          assets.add(AssetData(
-            type: 'audio',
-            url: url,
-          ));
-        }
-      }
-    }
-
-    // extract raw text (strip image and audio markers)
-    rawText = rawContent
-        .replaceAll(
-            RegExp(r'!\[.*?\]\(fs://[^\)]+\)'), '') // remove image markers
-        .replaceAll(
-            RegExp(r'\[.*?\]\(fs://[^\)]+\)'), '') // remove audio markers
-        .trim();
+    final url =
+        await FileSystemService.convertFsToLocalHttp(asset.fsUri, userId);
+    assets.add(AssetData(
+      type: asset.type == AssetReferenceType.image ? 'image' : 'audio',
+      url: url,
+    ));
   }
+
+  final rawText = card.fact?.trim();
 
   return {
     'assets': assets,
-    'rawText': rawText,
+    'rawText': (rawText != null && rawText.isNotEmpty) ? rawText : null,
   };
 }

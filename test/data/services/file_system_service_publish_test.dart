@@ -4,9 +4,9 @@ import 'package:memex/data/services/global_event_bus.dart';
 
 /// Tests for the FileSystemService publish contract.
 ///
-/// FileSystemService has many dependencies (AppDatabase, BaseFileService,
-/// extractFactContentFromFile, etc.) that make full integration testing
-/// impractical in a unit test context. Instead, we verify:
+/// FileSystemService has dependencies (AppDatabase, BaseFileService, etc.) that
+/// make full integration testing impractical in a unit test context. Instead,
+/// we verify:
 ///
 /// 1. The DataChangeRecord construction logic (op-intent determination)
 /// 2. The publish contract by subscribing to GlobalEventBus and verifying

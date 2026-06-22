@@ -150,7 +150,7 @@ class _DebugSettingsScreenState extends State<DebugSettingsScreen> {
         title: Text(UserStorage.l10n.clearData),
         content: Text(
           '${UserStorage.l10n.confirmClearDataMessage}\n'
-          '${UserStorage.l10n.confirmClearDataKeepFactsMessage}',
+          '${UserStorage.l10n.confirmClearDataDeletesWorkspaceMessage}',
         ),
         actions: [
           TextButton(
@@ -232,6 +232,39 @@ class _DebugSettingsScreenState extends State<DebugSettingsScreen> {
     }
   }
 
+  Future<void> _cloneToTestUser() async {
+    if (_viewModel.isCloningTestUser) return;
+
+    final options = await _showCloneToTestUserDialog();
+    if (options == null) return;
+
+    try {
+      final result = await _viewModel.cloneToTestUser(
+        targetUserId: options.targetUserId,
+        overwriteTarget: options.overwriteTarget,
+      );
+      if (!mounted || result == null) return;
+      ToastHelper.showSuccessWithKey(
+        _scaffoldMessengerKey,
+        UserStorage.l10n.testUserCloneSuccess(result.targetUserId),
+      );
+      context.go(AppRoutes.home);
+    } on DebugSettingsUserNotFoundException {
+      if (!mounted) return;
+      ToastHelper.showErrorWithKey(
+        _scaffoldMessengerKey,
+        UserStorage.l10n.userIdNotFound,
+      );
+    } catch (e, stack) {
+      _logger.severe('Clone to test user failed: $e', e, stack);
+      if (!mounted) return;
+      ToastHelper.showErrorWithKey(
+        _scaffoldMessengerKey,
+        UserStorage.l10n.testUserCloneFailed(e),
+      );
+    }
+  }
+
   Future<void> _reprocessCards() async {
     if (_viewModel.isReprocessingCards) return;
 
@@ -292,39 +325,6 @@ class _DebugSettingsScreenState extends State<DebugSettingsScreen> {
     }
   }
 
-  Future<void> _reprocessKnowledgeBase() async {
-    if (_viewModel.isReprocessingKnowledgeBase) return;
-
-    final options = await _showDateRangeTaskDialog(
-      title: UserStorage.l10n.reprocessKnowledgeBase,
-    );
-    if (options == null) return;
-
-    try {
-      final created = await _viewModel.createReprocessKnowledgeBaseTask(
-        options,
-      );
-      if (!mounted || !created) return;
-      ToastHelper.showSuccessWithKey(
-        _scaffoldMessengerKey,
-        UserStorage.l10n.reprocessTaskCreated,
-      );
-    } on DebugSettingsUserNotFoundException {
-      if (!mounted) return;
-      ToastHelper.showErrorWithKey(
-        _scaffoldMessengerKey,
-        UserStorage.l10n.userIdNotFound,
-      );
-    } catch (e, stack) {
-      _logger.severe('Error reprocessing knowledge base: $e', e, stack);
-      if (!mounted) return;
-      ToastHelper.showErrorWithKey(
-        _scaffoldMessengerKey,
-        UserStorage.l10n.createTaskFailed(e),
-      );
-    }
-  }
-
   Future<void> _rebuildSearchIndex() async {
     if (_viewModel.isRebuildingSearchIndex) return;
 
@@ -343,6 +343,73 @@ class _DebugSettingsScreenState extends State<DebugSettingsScreen> {
         UserStorage.l10n.rebuildSearchIndexFailed,
       );
     }
+  }
+
+  Future<_CloneToTestUserOptions?> _showCloneToTestUserDialog() {
+    final formKey = GlobalKey<FormState>();
+    final targetController = TextEditingController(text: 'test');
+    var overwriteTarget = false;
+
+    return showDialog<_CloneToTestUserOptions>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(UserStorage.l10n.cloneToTestUser),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(UserStorage.l10n.confirmCloneToTestUserMessage),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: targetController,
+                  decoration: InputDecoration(
+                    labelText: UserStorage.l10n.testUserIdLabel,
+                    helperText: UserStorage.l10n.testUserIdHelper,
+                  ),
+                  validator: (value) {
+                    final text = value?.trim() ?? '';
+                    if (RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(text)) {
+                      return null;
+                    }
+                    return UserStorage.l10n.testUserIdInvalid;
+                  },
+                ),
+                const SizedBox(height: 8),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: overwriteTarget,
+                  title: Text(UserStorage.l10n.overwriteExistingTestUser),
+                  onChanged: (value) {
+                    setDialogState(() => overwriteTarget = value ?? false);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(UserStorage.l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () {
+                if (!(formKey.currentState?.validate() ?? false)) return;
+                Navigator.of(context).pop(
+                  _CloneToTestUserOptions(
+                    targetUserId: targetController.text.trim(),
+                    overwriteTarget: overwriteTarget,
+                  ),
+                );
+              },
+              child: Text(UserStorage.l10n.confirm),
+            ),
+          ],
+        ),
+      ),
+    ).whenComplete(targetController.dispose);
   }
 
   Future<DebugDateRangeTaskOptions?> _showDateRangeTaskDialog({
@@ -460,20 +527,30 @@ class _DebugSettingsScreenState extends State<DebugSettingsScreen> {
             onClearToken: _clearToken,
             onClearData: _clearData,
             onClearFailedAgentContexts: _clearFailedAgentContexts,
+            onCloneToTestUser: _cloneToTestUser,
             onReprocessCards: _reprocessCards,
             onReprocessComments: _reprocessComments,
-            onReprocessKnowledgeBase: _reprocessKnowledgeBase,
             onRebuildSearchIndex: _rebuildSearchIndex,
             isClearingData: _viewModel.isClearingData,
             isClearingFailedAgentContexts:
                 _viewModel.isClearingFailedAgentContexts,
+            isCloningTestUser: _viewModel.isCloningTestUser,
             isReprocessingCards: _viewModel.isReprocessingCards,
             isReprocessingComments: _viewModel.isReprocessingComments,
-            isReprocessingKnowledgeBase: _viewModel.isReprocessingKnowledgeBase,
             isRebuildingSearchIndex: _viewModel.isRebuildingSearchIndex,
           );
         },
       ),
     );
   }
+}
+
+class _CloneToTestUserOptions {
+  const _CloneToTestUserOptions({
+    required this.targetUserId,
+    required this.overwriteTarget,
+  });
+
+  final String targetUserId;
+  final bool overwriteTarget;
 }

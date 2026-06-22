@@ -211,36 +211,3 @@ int? _extractStatusCode(Object error) {
   final match = RegExp(r'\b([45]\d{2})\b').firstMatch(actual.toString());
   return match != null ? int.tryParse(match.group(1)!) : null;
 }
-
-/// Check if the upstream `handle_analyze_assets` task failed for this bizId.
-/// If it failed AND [combinedText] contains no user text (media-only input),
-/// throw a [NonRetryableLlmException] so downstream agents fail immediately
-/// with the original asset analysis error.
-///
-/// [combinedText] is the raw fact content which may contain asset markers
-/// like `![...](fs://...)` and `[audio](fs://...)`.
-Future<void> failIfAssetAnalysisFailed({
-  required String? bizId,
-  required String combinedText,
-}) async {
-  if (bizId == null) return;
-
-  final assetError = await LocalTaskExecutor.instance
-      .getTaskErrorByBizId('handle_analyze_assets', bizId);
-  if (assetError == null) return; // not failed or no such task
-
-  // Strip asset markers to check if there's any user text
-  final textOnly = combinedText
-      .replaceAll(RegExp(r'!\[.*?\]\(fs://[^\)]+\)'), '') // images
-      .replaceAll(RegExp(r'\[.*?\]\(fs://[^\)]+\)'), '') // audio
-      .trim();
-
-  if (textOnly.isEmpty) {
-    // Media-only input with failed analysis — no point running the agent
-    // Pass the raw error string so getLocalizedErrorMessage can extract details
-    throw NonRetryableLlmException(
-      'Media analysis failed',
-      originalError: Exception(assetError),
-    );
-  }
-}

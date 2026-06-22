@@ -5,14 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/data/services/event_bus_service.dart';
-import 'package:memex/domain/models/card_detail_model.dart';
 import 'package:memex/domain/models/tag_model.dart';
 import 'package:memex/domain/models/timeline_card_model.dart';
 import 'package:memex/ui/card_attachments/card_attachment_data.dart';
-import 'package:memex/ui/core/widgets/agent_logo_loading.dart';
 import 'package:memex/ui/timeline/view_models/timeline_viewmodel.dart';
-import 'package:memex/ui/timeline/widgets/failed_card_recovery_banner.dart';
-import 'package:memex/ui/timeline/widgets/timeline_card_detail_screen.dart';
 import 'package:memex/utils/result.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -62,7 +58,6 @@ void main() {
     'timeline refresh renders cards and settles while auxiliary queries hang or fail',
     (tester) async {
       final hangingAttachments = Completer<List<CardAttachmentData>>();
-      final hangingFailedCount = Completer<int>();
       final vm = _timelineViewModel(
         fetchTimelineCards: ({
           int page = 1,
@@ -83,7 +78,6 @@ void main() {
         },
         fetchPendingAttachments: () =>
             Future.error(StateError('pending badge failed')),
-        countFailedCardGenerations: () => hangingFailedCount.future,
       );
 
       await tester.pumpWidget(_TimelineHarness(viewModel: vm));
@@ -182,53 +176,6 @@ void main() {
       vm.dispose();
     },
   );
-
-  for (final scenario in [
-    _ActiveTaskScenario(
-      name: 'hangs',
-      fetcher: (_) => Completer<bool>().future,
-    ),
-    _ActiveTaskScenario(
-      name: 'fails',
-      fetcher: (_) => Future.error(StateError('task lookup failed')),
-    ),
-  ]) {
-    testWidgets(
-      'detail renders main content when hasActiveTaskForCard ${scenario.name}',
-      (tester) async {
-        await tester.pumpWidget(
-          MaterialApp(
-            home: TimelineCardDetailScreen(
-              cardId: 'detail-card',
-              activeTaskQueryTimeout: const Duration(milliseconds: 10),
-              enableRouterSideEffects: false,
-              fetchCardDetail: (_) async => _cardDetail(
-                title: 'Detail survives ${scenario.name} task lookup',
-                content: 'The detail body is visible.',
-                status: 'processing',
-              ),
-              hasActiveTaskForCard: scenario.fetcher,
-            ),
-          ),
-        );
-
-        await tester.pump();
-        await tester.pump();
-
-        expect(
-          find.text('Detail survives ${scenario.name} task lookup'),
-          findsOneWidget,
-        );
-        expect(find.text('The detail body is visible.'), findsOneWidget);
-        expect(find.byType(AgentLogoLoading), findsNothing);
-
-        await tester.pump(const Duration(milliseconds: 20));
-
-        expect(find.byType(CardProcessingStatusBanner), findsOneWidget);
-        expect(find.text(UserStorage.l10n.cardRegeneratingTitle), findsNothing);
-      },
-    );
-  }
 }
 
 TimelineViewModel _timelineViewModel({
@@ -236,7 +183,6 @@ TimelineViewModel _timelineViewModel({
   TimelineTagsFetcher? fetchTags,
   TimelineAttachmentFetcher? fetchAttachmentForCard,
   PendingAttachmentsFetcher? fetchPendingAttachments,
-  FailedCardCountFetcher? countFailedCardGenerations,
 }) {
   return TimelineViewModel.forTest(
     autoLoad: false,
@@ -256,7 +202,6 @@ TimelineViewModel _timelineViewModel({
         fetchAttachmentForCard ?? (_) async => const <CardAttachmentData>[],
     fetchPendingAttachments:
         fetchPendingAttachments ?? () async => const <CardAttachmentData>[],
-    countFailedCardGenerations: countFailedCardGenerations ?? () async => 0,
   );
 }
 
@@ -289,13 +234,6 @@ class _TimelineHarness extends StatelessWidget {
   }
 }
 
-class _ActiveTaskScenario {
-  const _ActiveTaskScenario({required this.name, required this.fetcher});
-
-  final String name;
-  final ActiveCardTaskFetcher fetcher;
-}
-
 TimelineCardModel _timelineCard(String id, String title) {
   return TimelineCardModel(
     id: id,
@@ -306,26 +244,5 @@ TimelineCardModel _timelineCard(String id, String title) {
     uiConfigs: [
       UiConfig(templateId: 'classic_card', data: {'content': title}),
     ],
-  );
-}
-
-CardDetailModel _cardDetail({
-  required String title,
-  required String content,
-  String status = 'completed',
-}) {
-  return CardDetailModel(
-    id: 'detail-card',
-    title: title,
-    timestamp: DateTime(2026, 6, 16, 9),
-    address: 'Unknown',
-    tags: const [],
-    rawContent: content,
-    insight: InsightData.fromJson(const {}),
-    assets: const [],
-    uiConfigs: [
-      UiConfig(templateId: 'classic_card', data: {'content': content}),
-    ],
-    status: status,
   );
 }

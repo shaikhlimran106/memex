@@ -104,21 +104,16 @@ Future<InsightDetailModel> getKnowledgeInsightDetail(String insightId) async {
           continue;
         }
 
-        // Read fact content for extracting assets and raw text
-        final factInfo =
-            await _fileSystemService.extractFactContentFromFile(userId, factId);
-        final factContent = factInfo?.content;
-
         // Use unified renderCard method to process card
         final renderResult = await renderCard(
           userId: userId,
           cardData: timelineCardData,
-          factContent: factContent,
+          factContent: timelineCardData.fact,
         );
 
         // Extract assets and rawText (needed for UI toggle)
         final assetsAndText =
-            await extractAssetsAndRawText(userId, factContent);
+            await extractAssetsAndRawText(userId, timelineCardData);
         final assets = assetsAndText['assets'] as List<AssetData>;
         final rawText = assetsAndText['rawText'] as String?;
 

@@ -19,20 +19,12 @@ class SystemEventTypes {
   static const String userInputSubmitted = 'user_input_submitted';
   static const String cardCommentPosted = 'card_comment_posted';
   static const String cardUiConfigUpdated = 'card_ui_config_updated';
-  static const String knowledgeInsightRefreshRequested =
-      'knowledge_insight_refresh_requested';
-  static const String scheduleAggregationRequested =
-      'schedule_aggregation_requested';
-  static const String clarificationAnswered = 'clarification_answered';
   static const String dataChanged = 'data_changed';
 
   static const List<String> allTypes = [
     userInputSubmitted,
     cardCommentPosted,
     cardUiConfigUpdated,
-    knowledgeInsightRefreshRequested,
-    scheduleAggregationRequested,
-    clarificationAnswered,
     dataChanged,
   ];
 }
@@ -95,18 +87,6 @@ class CardCommentPostedPayload {
         if (replyToId != null) 'reply_to_id': replyToId,
         if (locationContextReminder != null)
           'location_context_reminder': locationContextReminder,
-      };
-}
-
-class ClarificationAnsweredPayload {
-  ClarificationAnsweredPayload({
-    required this.requestId,
-  });
-
-  final String requestId;
-
-  Map<String, dynamic> toJson() => {
-        'request_id': requestId,
       };
 }
 

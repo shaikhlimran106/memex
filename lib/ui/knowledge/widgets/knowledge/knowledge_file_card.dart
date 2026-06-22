@@ -73,7 +73,6 @@ class KnowledgeFileCard extends StatelessWidget {
                   Text(
                     name,
                     style: const TextStyle(
-                      
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       height: 20 / 14,
@@ -94,7 +93,6 @@ class KnowledgeFileCard extends StatelessWidget {
                         Text(
                           UserStorage.l10n.aiGeneratedLabel,
                           style: const TextStyle(
-                            
                             fontSize: 10,
                             fontWeight: FontWeight.w400,
                             height: 20 / 10,

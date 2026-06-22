@@ -334,4 +334,3 @@ class LocalAssetServer {
         address.address.startsWith('::ffff:127.');
   }
 }
-

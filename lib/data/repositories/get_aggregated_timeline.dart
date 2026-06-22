@@ -226,11 +226,10 @@ Future<List<String>> _extractImages(
   for (final card in cards) {
     if (images.length >= 5) break;
     try {
-      final factInfo = await fileSystemService.extractFactContentFromFile(
-          userId, card.factId);
-      if (factInfo == null) continue;
-      final assetsAndText =
-          await extractAssetsAndRawText(userId, factInfo.content);
+      final cardData =
+          await fileSystemService.readCardFile(userId, card.factId);
+      if (cardData == null) continue;
+      final assetsAndText = await extractAssetsAndRawText(userId, cardData);
       final assets = assetsAndText['assets'] as List<AssetData>;
       for (final asset in assets) {
         if (asset.type == 'image' && images.length < 5) {

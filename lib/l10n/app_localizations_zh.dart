@@ -12,29 +12,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get timesLabel => '次数';
 
   @override
-  String get recordSubmittedAiProcessing => '记录已提交，AI 正在处理中...';
-
-  @override
   String modelSetAsDefault(Object modelId) {
     return '已将 $modelId 设为默认模型';
-  }
-
-  @override
-  String loadModelListFailed(Object error) {
-    return '加载模型列表失败: \n$error';
   }
 
   @override
   String get retry => '重试';
 
   @override
-  String get noModelsFound => '没有找到可用的模型';
-
-  @override
   String get unknownModel => '未知模型';
-
-  @override
-  String get openAiModelConfig => 'OpenAI 模型配置';
 
   @override
   String get notSet => '未设置';
@@ -58,9 +44,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String clearTokenFailed(Object error) {
     return '清除用户失败: $error';
   }
-
-  @override
-  String get reprocessKnowledgeBase => '重新处理知识库';
 
   @override
   String get selectDateRangeOptional => '选择日期范围（可选）：';
@@ -87,9 +70,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get userIdNotFound => '未找到用户ID';
 
   @override
-  String get reprocessTaskCreated => '重新处理任务已创建，正在后台处理中';
-
-  @override
   String createTaskFailed(Object error) {
     return '创建任务失败: $error';
   }
@@ -98,24 +78,29 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reprocessCards => '重新处理卡片';
 
   @override
-  String get reprocessCardsTaskCreated => '重新处理卡片任务已创建，正在后台处理中';
+  String get reprocessCardsTaskCreated => '已交给 Super Agent 重新处理';
 
   @override
-  String get reprocessCardsDownstreamMode => '下游重跑';
+  String get reprocessCardsDownstreamMode => '处理范围';
 
   @override
-  String get reprocessCardsCardOnly => '只重新生成卡片';
+  String get reprocessCardsCardOnly => '只处理卡片';
 
   @override
-  String get reprocessCardsCardOnlyDesc =>
-      '默认选项。只重建 card YAML/template，不触发下游 agent。';
+  String get reprocessCardsCardOnlyDesc => '让 Super Agent 检查并重新生成选中的时间线卡片。';
 
   @override
-  String get reprocessCardsRerunDownstream => '同时重跑下游 agent';
+  String get reprocessCardsRerunDownstream => '卡片和相关后续';
 
   @override
   String get reprocessCardsRerunDownstreamDesc =>
-      '每张卡片成功后重放 post-card routing，由路由按需触发日程聚合。';
+      '让 Super Agent 在需要时一并考虑 PKM、日程和洞察更新。';
+
+  @override
+  String get reanalyzeMediaAssets => '重新读取媒体附件';
+
+  @override
+  String get reanalyzeMediaAssetsDesc => '重新生成卡片时，让 Super Agent 在需要时再次查看附件内容。';
 
   @override
   String get regenerateComments => '重新生成评论';
@@ -139,8 +124,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get confirmClearDataMessage => '确定要清除数据吗？\n';
 
   @override
-  String get confirmClearDataKeepFactsMessage =>
-      '将仅保留 Facts 目录（原始记录），删除工作区内其他所有目录（Cards、Discoveries、KnowledgeInsights、PKM、_System 等）。\n\n此操作不可恢复！';
+  String get confirmClearDataDeletesWorkspaceMessage =>
+      '当前用户的本地工作区数据都会被删除，包括卡片、媒体、知识文件、洞察、记忆、聊天历史和系统状态。\n\n此操作不可恢复！';
 
   @override
   String get clearFailedAgentContexts => '清除失败的对话上下文';
@@ -157,6 +142,35 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String clearFailedAgentContextsFailed(Object error) {
     return '清除对话上下文失败: $error';
+  }
+
+  @override
+  String get cloneToTestUser => '克隆为测试用户';
+
+  @override
+  String get confirmCloneToTestUserMessage =>
+      '将当前工作区复制到一个新的本地测试用户并切换过去。不会复制 Agent 运行态，当前用户数据不会被修改。';
+
+  @override
+  String get testUserIdLabel => '测试用户名';
+
+  @override
+  String get testUserIdHelper => '只能使用英文、数字、中划线或下划线。';
+
+  @override
+  String get testUserIdInvalid => '只能使用英文、数字、中划线或下划线。';
+
+  @override
+  String get overwriteExistingTestUser => '覆盖同名测试用户';
+
+  @override
+  String testUserCloneSuccess(Object userId) {
+    return '已切换到测试用户 $userId';
+  }
+
+  @override
+  String testUserCloneFailed(Object error) {
+    return '克隆测试用户失败: $error';
   }
 
   @override
@@ -177,16 +191,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get systemAuthorization => '系统授权';
 
   @override
-  String get modelAuthorization => '模型授权';
-
-  @override
-  String get pkmKnowledgeBase => 'PKM知识库';
-
-  @override
   String get aiCharacterConfig => 'AI 角色配置';
-
-  @override
-  String get appLockConfig => '应用锁配置';
 
   @override
   String get modelConfig => '模型配置';
@@ -232,6 +237,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get statistics => '统计';
+
+  @override
+  String get appLockConfig => '应用锁配置';
 
   @override
   String get activityStats => '活动统计';
@@ -414,13 +422,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get totalEstimatedCost => '总预估费用';
 
   @override
-  String get detailSubtitle => '详情';
-
-  @override
   String get close => '关闭';
-
-  @override
-  String get noFragments => '暂无碎片';
 
   @override
   String get totalTokenConsumption => '总 Token 消耗';
@@ -430,9 +432,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get timelineLoadFailedRetry => '时间轴加载失败，请稍后重试';
-
-  @override
-  String get aggregatedLoadFailedRetry => '加载聚合数据失败，请稍后重试';
 
   @override
   String get newPerspective => '新的视角';
@@ -453,9 +452,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String referenceWithTitle(Object title) {
     return '引用: $title';
   }
-
-  @override
-  String get discoveredTodoActions => '发现的待办动作';
 
   @override
   String get actionCenterTitle => '待处理事项';
@@ -496,12 +492,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get no => '否';
 
   @override
-  String get askSomethingHint => '问点什么...';
-
-  @override
-  String get aiAssistant => 'AI助手';
-
-  @override
   String get footprintMap => '足迹地图';
 
   @override
@@ -511,36 +501,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get unknownPlace => '未知地点';
 
   @override
-  String get loadFailedRetry => '加载失败, 请重试';
-
-  @override
-  String get noRecordsInPeriod => '该周期内无记录';
-
-  @override
   String get releaseToSend => '松开 发送';
 
   @override
   String get selectFromAlbum => '从相册选择';
-
-  @override
-  String get takePhoto => '拍照';
-
-  @override
-  String get enterContentOrMediaHint => '请输入内容、选择图片或录制音频';
-
-  @override
-  String inputDraftLabel(num count) {
-    return '草稿 · $count 字';
-  }
-
-  @override
-  String get discardDraftTitle => '丢弃这份草稿？';
-
-  @override
-  String get discardDraftMessage => '草稿内容会被清空。';
-
-  @override
-  String get discardDraftTooltip => '丢弃草稿';
 
   @override
   String get clipboardPreviewTitle => '新剪贴板';
@@ -575,13 +539,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playing => '播放中...';
 
   @override
-  String get recordedAudio => '已录制音频';
+  String get sendLabel => '发送';
 
   @override
-  String get recordLabel => '记录';
-
-  @override
-  String get smartSuggesting => '智能建议中...';
+  String attachedImagesMessage(Object count) {
+    return '发送了 $count 张图片';
+  }
 
   @override
   String get noTaskData => '暂无任务数据';
@@ -605,21 +568,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String retryCount(Object count) {
     return '重试: $count';
   }
-
-  @override
-  String get aiMaterialProcessFailed => 'AI 素材处理失败';
-
-  @override
-  String get aiMaterialProcessDone => 'AI 素材处理完成';
-
-  @override
-  String get aiOrganizingMaterial => 'AI 正在整理素材';
-
-  @override
-  String get taskCompletedAddedToTimeline => '任务已圆满完成，卡片已加入 Timeline';
-
-  @override
-  String get processErrorRetryLater => '处理过程中发生了一些错误，请稍后重试';
 
   @override
   String get loadDetailFailedRetry => '加载详情失败，请稍后重试';
@@ -707,16 +655,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get todayTimeFlow => '今日时间流';
 
   @override
-  String get insightAssistant => '洞察助手';
-
-  @override
-  String get insightInputHint => '关于知识洞察，你想了解什么...';
-
-  @override
   String get aiInputHint => '无论是回忆还是当下，我都准备好了...';
-
-  @override
-  String get noContentInPeriod => '该时间段无内容';
 
   @override
   String get nothingHere => '还没有任何内容';
@@ -876,34 +815,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get unnamedInsight => '未命名洞察';
 
   @override
-  String loadDirectoryFailed(Object error) {
-    return '加载目录失败: $error';
-  }
-
-  @override
-  String readFileFailed(Object error) {
-    return '读取文件失败: $error';
-  }
-
-  @override
-  String get backToParent => '返回上级';
-
-  @override
-  String get directoryEmpty => '目录为空';
-
-  @override
   String get copiedToClipboard => '已复制到剪贴板';
 
   @override
   String get copy => '复制';
-
-  @override
-  String get binaryFile => '二进制文件';
-
-  @override
-  String fileSizeLabel(Object size) {
-    return '文件大小: $size';
-  }
 
   @override
   String get selectedLocation => '已选位置';
@@ -929,9 +844,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get confirmLocation => '确认位置';
 
   @override
-  String get userCreatedSuccess => '用户创建成功！';
-
-  @override
   String get welcomeToMemex => '欢迎来到 Memex';
 
   @override
@@ -947,22 +859,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pleaseEnterUserId => '名字不能为空哦';
 
   @override
-  String get userIdMinLength => '名字太短啦，至少需要1个字符';
-
-  @override
   String get userIdMaxLength => '名字太长啦，不能超过50个字符';
-
-  @override
-  String get userIdFormat => '名字格式有误';
 
   @override
   String get startUsing => '下一步';
 
   @override
   String get userIdTip => '开启你的专属记忆。';
-
-  @override
-  String get openAiAuthInfo => 'OpenAI 授权信息';
 
   @override
   String get setupModelConfigTitle => '配置 AI 模型';
@@ -1020,14 +923,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiSetupCustomRouteDescription =>
-      '添加自己的服务商凭证，选择文本模型和视觉模型；需要时可进一步为单个 Agent 覆盖模型。';
+      '添加自己的服务商凭证，选择 Super Agent 使用的模型；需要时可进一步为单个 Agent 覆盖模型。';
 
   @override
   String get aiSetupCustomPageTitle => '自定义 AI 服务';
 
   @override
-  String get aiSetupCustomPageSubtitle =>
-      '先配置服务商和 API Key，再选择 Memex 用于文本和视觉的模型。';
+  String get aiSetupCustomPageSubtitle => '先配置服务商和 API Key，再选择 Memex 使用的模型。';
 
   @override
   String get aiSetupProviderCredentialsTitle => '服务商与 API Key';
@@ -1037,26 +939,18 @@ class AppLocalizationsZh extends AppLocalizations {
       '添加或编辑 OpenAI、Anthropic、DeepSeek、Gemini、OpenRouter、Ollama 等兼容服务商。';
 
   @override
-  String get modelRolesTitle => '选择模型用途';
+  String get modelRolesTitle => '选择主模型';
 
   @override
   String get modelRolesDescription =>
-      '大多数用户只需要一个文本模型和一个支持视觉的模型。需要时仍可在下方为单个 Agent 高级覆盖。';
+      'Super Agent 使用同一个模型处理文本和图片输入。需要时仍可在下方为单个 Agent 高级覆盖。';
 
   @override
-  String get textModelRoleTitle => '文本模型';
+  String get textModelRoleTitle => '主模型';
 
   @override
-  String get textModelRoleDescription => '用于卡片、知识库、洞察、聊天、评论、日程和记忆总结。';
-
-  @override
-  String get visionModelRoleTitle => '视觉模型';
-
-  @override
-  String get visionModelRoleDescription => '用于图片/媒体分析；关闭本地语音识别时，也用于云端音频转写。';
-
-  @override
-  String get followTextModel => '跟随文本模型';
+  String get textModelRoleDescription =>
+      '供 Super Agent 处理文本、图片、卡片、知识库、洞察、聊天、评论、日程和记忆总结。';
 
   @override
   String get modelConnectionsTitle => '模型服务商与 API Key';
@@ -1104,24 +998,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get modelSlotUpdated => '模型用途已更新';
 
   @override
-  String get visionModelNonMultimodalWarning =>
-      '当前模型未被识别为支持图片输入；除非服务商实际支持视觉，否则媒体分析可能失败。';
-
-  @override
   String get aiServiceMemexRouteTitle => '通过 Memex 连接';
-
-  @override
-  String get aiServiceTitle => '为真实生活打造的 AI 日记';
-
-  @override
-  String get aiServiceSubtitle => '将零散的笔记、照片和语音，自动转化为结构化的第二大脑。';
 
   @override
   String get aiServiceLongDescription =>
       'Memex 利用多 Agent 架构自动整理你的生活记录、知识笔记与社交关系，深度挖掘洞察，并提供具有持久记忆的 AI 陪伴。所有数据均以纯文本 Markdown 存储，赋予你绝对的数据自由与跨平台迁移能力。';
-
-  @override
-  String get aiServiceCustomModelTitle => '连接自有 AI 模型';
 
   @override
   String get aiServiceCustomApiRouteTitle => '我有 API Key';
@@ -1131,19 +1012,7 @@ class AppLocalizationsZh extends AppLocalizations {
       '已有 OpenAI、Anthropic、DeepSeek、Gemini 等服务的 API Key 时，优先选择这项。';
 
   @override
-  String get aiServiceStepAccount => '一个账号管理额度、账单和使用记录。';
-
-  @override
-  String get aiServiceStepBalance => '按量消耗，余额不足时再充值；没有固定月费。';
-
-  @override
-  String get aiServiceStepEnable => '开启后，文字、照片和语音记录会自动进入 AI 整理队列。';
-
-  @override
   String get enableAiService => '使用 Memex 连接';
-
-  @override
-  String get aiServiceWaitingForPayment => '登录并选择额度后开启';
 
   @override
   String get aiServiceReadyToast => 'AI 整理已开启';
@@ -1159,21 +1028,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get skipForNow => '暂不配置，先逛逛';
 
   @override
-  String get modelAuth => '模型授权';
-
-  @override
   String get clearAuth => '清除授权';
 
   @override
-  String get openAiAuthCleared => '已清除 OpenAI 授权';
-
-  @override
   String get authorizing => '正在授权中...';
-
-  @override
-  String openAiAuthSuccess(Object accountId) {
-    return 'OpenAI 授权成功！AccountId: $accountId';
-  }
 
   @override
   String authFailed(Object error) {
@@ -1182,9 +1040,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get authorized => '已授权';
-
-  @override
-  String get viewAuthInfo => '查看授权信息';
 
   @override
   String get config => '配置';
@@ -1235,48 +1090,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get ignore => '忽略';
 
   @override
-  String get appLockOn => '应用锁已开启';
-
-  @override
-  String get appLockOff => '应用锁已关闭';
-
-  @override
-  String get enableAppLockFirst => '请先启用应用锁';
-
-  @override
-  String get enterFourDigitPassword => '请输入4位数字密码';
-
-  @override
-  String get passwordSetAndLockOn => '密码已设置并开启应用锁';
-
-  @override
-  String get appLockSettings => '应用锁配置';
-
-  @override
-  String get enableAppLock => '启用应用锁';
-
-  @override
-  String get enableAppLockSubtitle => '启用后，启动应用需要验证密码';
-
-  @override
-  String get enableBiometrics => '启用生物识别';
-
-  @override
-  String get biometricsSubtitle => '解锁时可以使用面容ID或触控ID';
-
-  @override
-  String get changePassword => '修改密码';
-
-  @override
-  String get setFourDigitPassword => '设置4位密码';
-
-  @override
-  String get reenterPasswordToConfirm => '请再次输入密码以确认';
-
-  @override
-  String get passwordMismatch => '两次输入的密码不一致，请重新输入';
-
-  @override
   String get confirmDelete => '确认删除';
 
   @override
@@ -1292,9 +1105,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String deleteFailed(Object error) {
     return '删除失败: $error';
   }
-
-  @override
-  String get continueChat => '继续对话...';
 
   @override
   String daysAgo(Object count) {
@@ -1400,9 +1210,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get aboutThisInsightHint => '关于这个洞察，你想了解什么...';
-
-  @override
   String get knowledgeInsight => '知识洞察';
 
   @override
@@ -1418,9 +1225,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get insightUnavailableMessage => '这个洞察仍在生成中，或已被更新。请刷新洞察后稍后再试。';
-
-  @override
-  String get scheduleAggregation => '日程聚合';
 
   @override
   String get noScheduleAggregation => '暂无日程聚合';
@@ -1459,9 +1263,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scheduleBriefingTitle => '日程简报';
 
   @override
-  String get scheduleBriefingNeedsUpdate => '待更新';
-
-  @override
   String get scheduleBriefingOpen => '查看';
 
   @override
@@ -1478,11 +1279,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String scheduleBriefingConflictCount(Object count) {
-    return '冲突 $count';
-  }
-
-  @override
   String get updating => '更新中...';
 
   @override
@@ -1493,6 +1289,48 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get disabled => '已禁用';
+
+  @override
+  String get appLockOn => '应用锁已开启';
+
+  @override
+  String get appLockOff => '应用锁已关闭';
+
+  @override
+  String get enableAppLockFirst => '请先启用应用锁';
+
+  @override
+  String get enterFourDigitPassword => '请输入4位数字密码';
+
+  @override
+  String get passwordSetAndLockOn => '密码已设置并开启应用锁';
+
+  @override
+  String get appLockSettings => '应用锁配置';
+
+  @override
+  String get enableAppLock => '启用应用锁';
+
+  @override
+  String get enableAppLockSubtitle => '启用后，启动应用需要验证密码';
+
+  @override
+  String get enableBiometrics => '启用生物识别';
+
+  @override
+  String get biometricsSubtitle => '解锁时可以使用面容ID或触控ID';
+
+  @override
+  String get changePassword => '修改密码';
+
+  @override
+  String get setFourDigitPassword => '设置4位密码';
+
+  @override
+  String get reenterPasswordToConfirm => '请再次输入密码以确认';
+
+  @override
+  String get passwordMismatch => '两次输入的密码不一致，请重新输入';
 
   @override
   String confirmDeleteCharacter(Object name) {
@@ -1515,12 +1353,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String loadCharacterFailed(Object error) {
     return '加载角色失败: $error';
   }
-
-  @override
-  String get characterDesignerHint => '描述你想要创建或更新的角色...';
-
-  @override
-  String get characterDesigner => '角色设计师';
 
   @override
   String get noTags => '无标签';
@@ -1571,21 +1403,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pleaseEnterCharacterPersona => '请输入角色完整设定';
 
   @override
-  String get systemFeaturesAndExtensions => '系统功能与扩展';
-
-  @override
-  String get shareExtensionTitle => '分享扩展 (Share Extension)';
-
-  @override
-  String get shareExtensionSubtitle => '允许通过系统分享菜单将内容分享至应用';
-
-  @override
-  String get screenTimeTitle => '屏幕使用时间 (Screen Time API)';
-
-  @override
-  String get screenTimeSubtitle => '授权访问应用使用时长与注意力数据';
-
-  @override
   String permissionRequestError(Object error) {
     return '权限请求异常: $error';
   }
@@ -1605,12 +1422,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get authorizedGoToSettings => '已授权，如需修改请前往系统设置';
-
-  @override
-  String get goToSettingsShort => '前往设置';
-
-  @override
-  String get basicPermissions => '基础权限';
 
   @override
   String get location => '定位';
@@ -1658,31 +1469,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loadDetailFailedRetryShort => '加载详情失败，请稍后重试';
 
   @override
-  String get llmCallStats => 'LLM 调用统计';
-
-  @override
-  String get noLlmCallRecords => '暂无 LLM 调用记录';
-
-  @override
   String get total => '总计';
-
-  @override
-  String get callCount => '调用次数';
 
   @override
   String get estimatedCost => '预估费用';
 
   @override
   String get byAgent => '按 Agent 统计';
-
-  @override
-  String get cardGenerationAgent => '卡片生成 Agent';
-
-  @override
-  String get knowledgeOrgAgent => '知识库整理 Agent';
-
-  @override
-  String get commentGenerationAgent => '评论生成 Agent';
 
   @override
   String get timeUpdated => '时间已更新';
@@ -1697,12 +1490,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get confirmDeleteCardMessage => '确定要删除这张卡片吗？此操作不可恢复。';
-
-  @override
-  String get profileAgent => '用户画像 Agent';
-
-  @override
-  String get assetAnalysis => '媒资分析';
 
   @override
   String get cardDetailNotFound => '未找到卡片详情';
@@ -1732,29 +1519,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get timelineTemplateGalleryTitle => 'Timeline 卡片模板展示';
 
   @override
-  String get categoryGeneral => '通用 (General)';
-
-  @override
   String get categoryTextual => '文字 (Textual)';
 
   @override
-  String get k411 =>
-      '## 什么是心流？\n\n心流（Flow）是由心理学家米哈里·契克森米哈提出的一种心理状态。当你完全沉浸在一项具有挑战性但可完成的任务中，时间感消失，注意力高度集中，这就是心流。\n\n> 人在做感兴趣的事情时，常常浑然忘我。\n\n研究发现，心流状态下的人往往生产力最高，幸福感也最强。';
-
-  @override
   String get timelineFilterAll => '全部';
-
-  @override
-  String get timelineDays => '日';
-
-  @override
-  String get timelineWeeks => '周';
-
-  @override
-  String get timelineMonths => '月';
-
-  @override
-  String get timelineYears => '年';
 
   @override
   String get insights => '洞察';
@@ -1851,9 +1619,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get setAsDefault => '设为默认';
 
   @override
-  String get missingApiKey => '缺少 API Key';
-
-  @override
   String get invalidJsonInExtraField => '扩展字段 JSON 格式无效';
 
   @override
@@ -1884,25 +1649,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keyIdLabel => '配置 ID';
 
   @override
-  String get keyIdHelper => '用于区分多个模型配置，普通用户无需修改';
+  String get keyIdHelper => '给这套配置起个名字，例如 deepseek 或 work-gpt。';
 
   @override
   String get required => '必填';
 
   @override
   String get clientLabel => '模型服务商';
-
-  @override
-  String get geminiClient => 'Gemini';
-
-  @override
-  String get chatCompletionClient => 'OpenAI (ChatCompletion)';
-
-  @override
-  String get responsesClient => 'OpenAI (Responses)';
-
-  @override
-  String get bedrockClient => 'Bedrock';
 
   @override
   String get providerGroupOpenAi => 'OpenAI';
@@ -1974,12 +1727,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get memexCreateAccount => '注册';
 
   @override
-  String get memexSignInToMemex => '登录 Memex AI';
-
-  @override
-  String get memexCreateMemexAccount => '注册 Memex AI 账号';
-
-  @override
   String get memexUsername => '用户名';
 
   @override
@@ -1993,12 +1740,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get memexTopUp => '充值后即可使用 Memex AI';
-
-  @override
-  String get memexApplyCredentials => '应用凭证';
-
-  @override
-  String get memexCredentialsApplied => '凭证已应用';
 
   @override
   String get memexTopUpSuccess => '充值成功！';
@@ -2169,9 +1910,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chooseAvatar => '选择头像';
 
   @override
-  String get coachMarkConfigureModel => '先配置 AI 模型，解锁全部功能 🔑';
-
-  @override
   String get configureNow => '立即配置';
 
   @override
@@ -2187,52 +1925,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get failedStatus => '处理失败';
 
   @override
-  String get viewDetails => '查看详情';
-
-  @override
   String get failureReason => '失败原因';
-
-  @override
-  String get cardGenerationFailedTitle => '卡片生成失败';
-
-  @override
-  String get cardGenerationFailedDescription => '原始记录已保存，可以重新生成卡片，不会重复创建记录。';
-
-  @override
-  String get regenerateCard => '重新生成卡片';
-
-  @override
-  String get cardRegenerationStarted => '已开始重新生成卡片';
-
-  @override
-  String get cardRegenerationFailed => '未能开始重新生成卡片';
-
-  @override
-  String get cardRegeneratingTitle => '正在重新生成卡片';
-
-  @override
-  String get cardRegeneratingDescription => 'Memex 正在根据已保存的原始记录重建这张卡片。';
-
-  @override
-  String failedCardsRetryTitle(num count) {
-    return '$count 张卡片生成失败';
-  }
-
-  @override
-  String get failedCardsRetryDescription => '原始记录都已保存。可以从已保存的记录重新生成这些卡片。';
-
-  @override
-  String get retryAllFailedCards => '全部重试';
-
-  @override
-  String failedCardsRetryStarted(Object count) {
-    return '已开始重新生成 $count 张失败卡片';
-  }
-
-  @override
-  String failedCardsRetryPartial(Object retried, Object failed) {
-    return '已开始 $retried 个重试，$failed 张卡片需要处理。';
-  }
 
   @override
   String get unknownError => '发生未知错误';
@@ -2485,10 +2178,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dataStorage => '数据存储';
 
   @override
-  String get dataStorageDescription =>
-      '选择 Memex 存储数据的位置。自定义文件夹或 iCloud 可在卸载重装后保留数据。';
-
-  @override
   String get dataStorageDescriptionAndroid => '选择自定义文件夹存放工作区数据，卸载重装后仍可保留。';
 
   @override
@@ -2513,15 +2202,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get storageLocationICloudDesc => '在 Apple 设备间同步工作区，卸载重装后数据可保留。';
 
   @override
-  String get chooseFolder => '选择文件夹';
-
-  @override
   String storageLocationCurrent(Object location) {
     return '当前：$location';
   }
-
-  @override
-  String get icloudNotAvailable => 'iCloud 不可用';
 
   @override
   String get icloudRequiresCapability => '请先登录 iCloud 账号并开启 iCloud Drive 同步功能。';
@@ -2534,12 +2217,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get switchingStorage => '正在切换存储…';
-
-  @override
-  String get customPathInvalid => '所选文件夹无法访问，已改用应用存储。';
-
-  @override
-  String get storagePermissionRequired => '使用自定义文件夹需要存储权限，请允许访问。';
 
   @override
   String get customFolderAccessDenied => '无法读写该文件夹，请授予存储权限或选择其他位置。';
@@ -2576,9 +2253,6 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get deleteAccountConfirmMessage =>
       '此操作将永久删除您的所有数据，包括时间线卡片、知识库、录音和设置。此操作不可撤销。';
-
-  @override
-  String get deleteAccountSuccess => '所有数据已删除。';
 
   @override
   String deleteAccountTypeName(Object name) {
@@ -2710,9 +2384,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get downloadSkill => '下载 Skill';
 
   @override
-  String get downloadSkillHint => '输入 Skill zip 文件 URL';
-
-  @override
   String get downloading => '下载中...';
 
   @override
@@ -2730,9 +2401,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String deleteConfirmMessage(String name) {
     return '确定要删除「$name」吗？';
   }
-
-  @override
-  String get emptyDirectory => '空目录';
 
   @override
   String get invalidUrl => '请输入有效的 URL';
@@ -2779,14 +2447,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get privacyPolicyDesc => '了解 Memex 如何处理您的数据';
-
-  @override
-  String get dataShareBanner => '启用 AI 功能后，您的数据将发送至配置的服务商进行处理。点击了解详情。';
-
-  @override
-  String llmConsentDataShareNote(Object provider) {
-    return '数据共享提示：您的数据将发送至 $provider 进行 AI 处理。';
-  }
 
   @override
   String get llmAuthError => 'API 认证失败，请在设置中检查 LLM 配置。';
@@ -2839,11 +2499,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get speechModelConnecting => '连接中...';
 
   @override
-  String speechModelDownloadFailed(Object error) {
-    return '下载失败: $error';
-  }
-
-  @override
   String get deleteSpeechModel => '删除语音识别模型';
 
   @override
@@ -2863,9 +2518,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get speechTranscribing => '正在识别...';
-
-  @override
-  String get speechTranscriptionTitle => '语音识别结果';
 
   @override
   String get speechNoResult => '未识别到语音内容';
@@ -2930,28 +2582,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get recommendedBadge => '推荐';
 
   @override
-  String get reanalyzeMediaAssets => '重新分析图片/音频';
-
-  @override
-  String get reanalyzeMediaAssetsDesc => '会先刷新 Facts/assets 下的媒体分析，再重新生成卡片。';
-
-  @override
-  String get readOnlyMode => '对话';
-
-  @override
   String get readOnlyBadge => '对话';
-
-  @override
-  String get chatModeLabel => '智能体';
 
   @override
   String get switchCompanion => '切换角色';
 
   @override
   String get personaChatInputHint => '输入消息...';
-
-  @override
-  String get personaChatEmptyHint => '发出第一条消息，让这段陪伴开始';
 
   @override
   String get today => '今天';
@@ -3053,9 +2690,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get testCurrentLocation => '测试当前位置';
-
-  @override
-  String get locationUnavailable => '位置不可用';
 
   @override
   String locationTestFailed(String error) {
@@ -3456,14 +3090,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get dismissTypeCardUpdate => '卡片更新';
-
-  @override
-  String get dismissAllConfirm => '确定清除全部通知？';
-
-  @override
-  String dismissTypeConfirm(Object type) {
-    return '确定清除所有$type通知？';
-  }
 
   @override
   String dismissedCount(Object count) {

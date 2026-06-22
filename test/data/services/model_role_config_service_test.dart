@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/data/services/model_role_config_service.dart';
-import 'package:memex/domain/models/agent_definitions.dart';
 import 'package:memex/domain/models/llm_config.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,8 +20,8 @@ void main() {
       baseUrl: 'https://api.openai.com/v1',
     );
 
-    const visionConfig = LLMConfig(
-      key: 'vision-main',
+    const otherConfig = LLMConfig(
+      key: 'other-main',
       type: LLMConfig.typeChatCompletion,
       modelId: 'gpt-5.4',
       apiKey: 'sk-test',
@@ -57,28 +56,18 @@ void main() {
       );
     });
 
-    test('loadSelection and setters normalize blank role keys', () async {
-      await UserStorage.saveLLMConfigs(const [textConfig, visionConfig]);
+    test('loadSelection and setters normalize primary model keys', () async {
+      await UserStorage.saveLLMConfigs(const [textConfig, otherConfig]);
       await ModelRoleConfigService.setTextModel(' ${textConfig.key} ');
-      await ModelRoleConfigService.setVisionModel(' ${visionConfig.key} ');
 
       final selection = await ModelRoleConfigService.loadSelection();
-      final mediaAgentConfig = await UserStorage.getAgentConfig(
-        AgentDefinitions.analyzeAssets,
-      );
 
       expect(selection.textConfigKey, textConfig.key);
-      expect(selection.visionConfigKey, visionConfig.key);
-      expect(mediaAgentConfig.llmConfigKey, visionConfig.key);
 
-      await ModelRoleConfigService.setVisionModel('   ');
+      await ModelRoleConfigService.setTextModel('   ');
       final resetSelection = await ModelRoleConfigService.loadSelection();
-      final resetMediaAgentConfig = await UserStorage.getAgentConfig(
-        AgentDefinitions.analyzeAssets,
-      );
 
-      expect(resetSelection.visionConfigKey, isNull);
-      expect(resetMediaAgentConfig.llmConfigKey, isNull);
+      expect(resetSelection.textConfigKey, textConfig.key);
     });
   });
 }

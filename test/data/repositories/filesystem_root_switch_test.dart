@@ -1,11 +1,12 @@
 import 'dart:io';
 
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:memex/data/repositories/submit_input.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/local_asset_server.dart';
+import 'package:memex/db/app_database.dart';
+import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/utils/user_storage.dart';
-import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -18,6 +19,9 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       await UserStorage.initL10n();
+      final db = AppDatabase.forTesting(NativeDatabase.memory());
+      AppDatabase.setTestInstance(db);
+      addTearDown(db.close);
       rootA = await Directory.systemTemp.createTemp('memex_root_a_');
       rootB = await Directory.systemTemp.createTemp('memex_root_b_');
     });
@@ -32,29 +36,41 @@ void main() {
       }
     });
 
-    test('submitInput resolves the active root at call time', () async {
+    test('card writes resolve the active root at call time', () async {
       const userA = 'root_switch_a';
       const userB = 'root_switch_b';
 
       await FileSystemService.init(rootA.path);
-      await submitInput(userA, [
-        {'type': 'text', 'text': 'note written into root A'},
-      ]);
+      await FileSystemService.instance.safeWriteCardFile(
+        userA,
+        '2026/06/18.md#ts_1',
+        const CardData(
+          factId: '2026/06/18.md#ts_1',
+          timestamp: 1,
+          status: 'completed',
+          tags: [],
+          uiConfigs: [],
+          fact: 'note written into root A',
+        ),
+      );
 
       await FileSystemService.init(rootB.path);
-      final result = await submitInput(userB, [
-        {'type': 'text', 'text': 'note written into root B'},
-      ]);
-
-      final factId = result['fact_id'] as String;
-      final factPath = factId.split('#').first;
-      final rootBFact = p.join(
-        FileSystemService.instance.getFactsPath(userB),
-        factPath,
+      const factId = '2026/06/18.md#ts_1';
+      await FileSystemService.instance.safeWriteCardFile(
+        userB,
+        factId,
+        const CardData(
+          factId: factId,
+          timestamp: 2,
+          status: 'completed',
+          tags: [],
+          uiConfigs: [],
+          fact: 'note written into root B',
+        ),
       );
       final rootBCard = FileSystemService.instance.getCardPath(userB, factId);
 
-      expect(File(rootBFact).readAsStringSync(), contains('root B'));
+      expect(File(rootBCard).readAsStringSync(), contains('root B'));
       expect(File(rootBCard).existsSync(), isTrue);
       expect(await _rootContains(rootA, 'note written into root B'), isFalse);
     });

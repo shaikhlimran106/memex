@@ -26,7 +26,7 @@ abstract class AgentBackgroundPlatform {
 
 class MethodChannelAgentBackgroundPlatform implements AgentBackgroundPlatform {
   MethodChannelAgentBackgroundPlatform({MethodChannel? channel})
-    : _channel = channel ?? const MethodChannel(_channelName) {
+      : _channel = channel ?? const MethodChannel(_channelName) {
     _channel.setMethodCallHandler(_handleMethodCall);
   }
 

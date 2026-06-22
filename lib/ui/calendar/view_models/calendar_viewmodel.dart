@@ -34,11 +34,13 @@ class CalendarViewModel extends ChangeNotifier {
   }
 
   void setFocusedMonth(DateTime month) {
-    if (_focusedMonth.year == month.year && _focusedMonth.month == month.month) {
+    if (_focusedMonth.year == month.year &&
+        _focusedMonth.month == month.month) {
       return;
     }
     _focusedMonth = month;
-    if (_selectedDate.year != month.year || _selectedDate.month != month.month) {
+    if (_selectedDate.year != month.year ||
+        _selectedDate.month != month.month) {
       _selectedDate = DateTime(month.year, month.month, 1);
     }
     notifyListeners();

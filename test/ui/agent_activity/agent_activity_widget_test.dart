@@ -161,13 +161,13 @@ void main() {
       userId: 'agent-activity-test',
       factId: 'fact-1',
       state: AgentRunState.running,
-      stage: 'Generating card',
-      message: 'Turning the record into a timeline card.',
-      completedUnits: 30,
+      stage: 'Running Super Agent',
+      message: 'Memex is processing the conversation turn.',
+      completedUnits: 20,
       totalUnits: 100,
       remainingTasks: 4,
       currentTaskId: 'task-1',
-      currentTaskType: 'card_agent_task',
+      currentTaskType: 'super_agent_chat_turn_task',
       updatedAt: DateTime(2026, 1, 1),
     );
 

@@ -33,7 +33,6 @@ typedef ScheduleBriefingCardFetcher = Future<Result<TimelineCardModel?>>
 typedef TimelineAttachmentFetcher = Future<List<CardAttachmentData>> Function(
     String factId);
 typedef PendingAttachmentsFetcher = Future<List<CardAttachmentData>> Function();
-typedef FailedCardCountFetcher = Future<int> Function();
 
 /// Upserts a card into a timeline list by stable card id.
 ///
@@ -99,7 +98,6 @@ class TimelineViewModel extends ChangeNotifier {
     ScheduleBriefingCardFetcher? fetchScheduleBriefingCard,
     TimelineAttachmentFetcher? fetchAttachmentForCard,
     PendingAttachmentsFetcher? fetchPendingAttachments,
-    FailedCardCountFetcher? countFailedCardGenerations,
     Duration auxiliaryQueryTimeout = defaultAuxiliaryQueryTimeout,
     bool autoLoad = true,
   }) : this._(
@@ -125,8 +123,6 @@ class TimelineViewModel extends ChangeNotifier {
               CardAttachmentService.instance.getAttachments,
           fetchPendingAttachments: fetchPendingAttachments ??
               CardAttachmentService.instance.getPendingAttachments,
-          countFailedCardGenerations:
-              countFailedCardGenerations ?? router.countFailedCardGenerations,
           auxiliaryQueryTimeout: auxiliaryQueryTimeout,
           autoLoad: autoLoad,
         );
@@ -138,7 +134,6 @@ class TimelineViewModel extends ChangeNotifier {
     ScheduleBriefingCardFetcher? fetchScheduleBriefingCard,
     TimelineAttachmentFetcher? fetchAttachmentForCard,
     PendingAttachmentsFetcher? fetchPendingAttachments,
-    FailedCardCountFetcher? countFailedCardGenerations,
     Duration auxiliaryQueryTimeout = defaultAuxiliaryQueryTimeout,
     bool autoLoad = false,
   }) {
@@ -159,7 +154,6 @@ class TimelineViewModel extends ChangeNotifier {
           fetchAttachmentForCard ?? (_) async => const <CardAttachmentData>[],
       fetchPendingAttachments:
           fetchPendingAttachments ?? () async => const <CardAttachmentData>[],
-      countFailedCardGenerations: countFailedCardGenerations ?? () async => 0,
       auxiliaryQueryTimeout: auxiliaryQueryTimeout,
       autoLoad: autoLoad,
     );
@@ -171,7 +165,6 @@ class TimelineViewModel extends ChangeNotifier {
     required ScheduleBriefingCardFetcher fetchScheduleBriefingCard,
     required TimelineAttachmentFetcher fetchAttachmentForCard,
     required PendingAttachmentsFetcher fetchPendingAttachments,
-    required FailedCardCountFetcher countFailedCardGenerations,
     required Duration auxiliaryQueryTimeout,
     required bool autoLoad,
   })  : _fetchTimelineCards = fetchTimelineCards,
@@ -179,7 +172,6 @@ class TimelineViewModel extends ChangeNotifier {
         _fetchScheduleBriefingCard = fetchScheduleBriefingCard,
         _fetchAttachmentForCard = fetchAttachmentForCard,
         _fetchPendingAttachments = fetchPendingAttachments,
-        _countFailedCardGenerations = countFailedCardGenerations,
         _auxiliaryQueryTimeout = auxiliaryQueryTimeout {
     load = Command0<void>(_loadInitial);
     if (autoLoad) {
@@ -193,7 +185,6 @@ class TimelineViewModel extends ChangeNotifier {
   final ScheduleBriefingCardFetcher _fetchScheduleBriefingCard;
   final TimelineAttachmentFetcher _fetchAttachmentForCard;
   final PendingAttachmentsFetcher _fetchPendingAttachments;
-  final FailedCardCountFetcher _countFailedCardGenerations;
   final Duration _auxiliaryQueryTimeout;
 
   static const int pageLimit = 20;
@@ -209,7 +200,6 @@ class TimelineViewModel extends ChangeNotifier {
   int _loadGeneration = 0;
   int? _visibleLoadGeneration;
   String? errorMessage;
-  bool isSubmitting = false;
 
   // Card attachments (system actions, clarification requests, etc.)
   // Keyed by factId.
@@ -423,14 +413,10 @@ class TimelineViewModel extends ChangeNotifier {
       label: 'refresh pending attachment count',
       query: _fetchPendingAttachments,
     );
-    final failedCardCount = await _runAuxiliaryQuery<int>(
-      label: 'refresh failed card generation count',
-      query: _countFailedCardGenerations,
-    );
-    if (pending == null || failedCardCount == null) {
+    if (pending == null) {
       return false;
     }
-    pendingAttachmentCount = pending.length + (failedCardCount > 0 ? 1 : 0);
+    pendingAttachmentCount = pending.length;
     if (notify) notifyListeners();
     return true;
   }
@@ -512,12 +498,6 @@ class TimelineViewModel extends ChangeNotifier {
     }
   }
 
-  void setSubmitting(bool value) {
-    if (isSubmitting == value) return;
-    isSubmitting = value;
-    notifyListeners();
-  }
-
   /// Refresh timeline and tags (e.g. after pull-to-refresh or scroll-to-top).
   Future<void> refresh() async {
     await load.execute();
@@ -526,7 +506,6 @@ class TimelineViewModel extends ChangeNotifier {
 
   void addCard(TimelineCardModel card) {
     cards = upsertTimelineCardById(cards, card);
-    isSubmitting = false;
     if (card.status == 'processing') {
       _startPollingIfNeeded();
     }

@@ -19,21 +19,43 @@ void main() {
   });
 
   group('AgentRunService', () {
-    test('tracks a coarse card generation run through task boundaries',
-        () async {
+    test('creates one visible Super Agent run per chat turn', () async {
+      final runId = await service.createForSuperAgentChatTurn(
+        userId: 'user-a',
+        sessionId: 'memex_agent_session',
+        turnId: 'turn-1',
+      );
+
+      expect(
+        runId,
+        AgentRunService.superAgentChatTurnRunId(
+          sessionId: 'memex_agent_session',
+          turnId: 'turn-1',
+        ),
+      );
+
+      final run = await _getRun(db, runId);
+      expect(run.id, 'super_agent_chat:memex_agent_session:turn-1');
+      expect(run.factId, run.id);
+      expect(run.state, 'queued');
+      expect(run.stage, 'Queued');
+      expect(run.message, 'Waiting for Super Agent to start.');
+    });
+
+    test('tracks a coarse Super Agent run through task boundaries', () async {
       await service.createForSubmittedInput(userId: 'user-a', factId: 'fact-1');
       await _insertTask(
         db,
-        id: 'analyze',
+        id: 'turn',
         runId: 'fact-1',
-        type: 'handle_analyze_assets',
+        type: 'super_agent_chat_turn_task',
         status: 'pending',
       );
       await _insertTask(
         db,
-        id: 'card',
+        id: 'comment',
         runId: 'fact-1',
-        type: 'card_agent_task',
+        type: 'comment_agent_task',
         status: 'pending',
       );
 
@@ -43,45 +65,45 @@ void main() {
       expect(run.stage, 'Queued');
       expect(run.remainingTasks, 2);
 
-      await _setTaskStatus(db, 'analyze', 'processing');
+      await _setTaskStatus(db, 'turn', 'processing');
       await service.markTaskStarted(
         runId: 'fact-1',
-        taskId: 'analyze',
-        taskType: 'handle_analyze_assets',
+        taskId: 'turn',
+        taskType: 'super_agent_chat_turn_task',
       );
       run = await _getRun(db, 'fact-1');
       expect(run.state, 'running');
-      expect(run.stage, 'Analyzing media');
-      expect(run.completedUnits, 10);
+      expect(run.stage, 'Running Super Agent');
+      expect(run.completedUnits, 20);
 
-      await _setTaskStatus(db, 'analyze', 'completed');
+      await _setTaskStatus(db, 'turn', 'completed');
       await service.markTaskCompleted(
         runId: 'fact-1',
-        taskId: 'analyze',
-        taskType: 'handle_analyze_assets',
+        taskId: 'turn',
+        taskType: 'super_agent_chat_turn_task',
       );
       run = await _getRun(db, 'fact-1');
       expect(run.state, 'queued');
       expect(run.stage, 'Queued');
-      expect(run.completedUnits, 25);
+      expect(run.completedUnits, 95);
       expect(run.remainingTasks, 1);
 
-      await _setTaskStatus(db, 'card', 'processing');
+      await _setTaskStatus(db, 'comment', 'processing');
       await service.markTaskStarted(
         runId: 'fact-1',
-        taskId: 'card',
-        taskType: 'card_agent_task',
+        taskId: 'comment',
+        taskType: 'comment_agent_task',
       );
       run = await _getRun(db, 'fact-1');
       expect(run.state, 'running');
-      expect(run.stage, 'Generating card');
-      expect(run.completedUnits, 30);
+      expect(run.stage, 'Preparing comment');
+      expect(run.completedUnits, 95);
 
-      await _setTaskStatus(db, 'card', 'completed');
+      await _setTaskStatus(db, 'comment', 'completed');
       await service.markTaskCompleted(
         runId: 'fact-1',
-        taskId: 'card',
-        taskType: 'card_agent_task',
+        taskId: 'comment',
+        taskType: 'comment_agent_task',
       );
       run = await _getRun(db, 'fact-1');
       expect(run.state, 'completed');
@@ -94,16 +116,16 @@ void main() {
       await service.createForSubmittedInput(userId: 'user-a', factId: 'fact-2');
       await _insertTask(
         db,
-        id: 'card',
+        id: 'turn',
         runId: 'fact-2',
-        type: 'card_agent_task',
+        type: 'super_agent_chat_turn_task',
         status: 'retrying',
       );
 
       await service.markTaskRetrying(
         runId: 'fact-2',
-        taskId: 'card',
-        taskType: 'card_agent_task',
+        taskId: 'turn',
+        taskType: 'super_agent_chat_turn_task',
         error: Exception('provider timeout'),
       );
 
@@ -120,16 +142,16 @@ void main() {
       await service.createForSubmittedInput(userId: 'user-a', factId: 'fact-3');
       await _insertTask(
         db,
-        id: 'card',
+        id: 'turn',
         runId: 'fact-3',
-        type: 'card_agent_task',
+        type: 'super_agent_chat_turn_task',
         status: 'failed',
       );
 
       await service.markTaskFailed(
         runId: 'fact-3',
-        taskId: 'card',
-        taskType: 'card_agent_task',
+        taskId: 'turn',
+        taskType: 'super_agent_chat_turn_task',
         error: StateError('bad provider config'),
       );
 
@@ -150,38 +172,38 @@ void main() {
         );
         await _insertTask(
           db,
-          id: 'old-card-failed',
+          id: 'old-turn-failed',
           runId: 'fact-retry',
-          type: 'card_agent_task',
+          type: 'super_agent_chat_turn_task',
           status: 'failed',
         );
         await service.markTaskFailed(
           runId: 'fact-retry',
-          taskId: 'old-card-failed',
-          taskType: 'card_agent_task',
+          taskId: 'old-turn-failed',
+          taskType: 'super_agent_chat_turn_task',
           error: StateError('old provider crash'),
         );
-        await _setTaskTerminalTimestamp(db, 'old-card-failed', 1);
+        await _setTaskTerminalTimestamp(db, 'old-turn-failed', 1);
 
         await _insertTask(
           db,
-          id: 'new-card-active',
+          id: 'new-turn-active',
           runId: 'fact-retry',
-          type: 'card_agent_task',
+          type: 'super_agent_chat_turn_task',
           status: 'processing',
         );
         await service.refreshRunFromTasks('fact-retry');
 
         var run = await _getRun(db, 'fact-retry');
         expect(run.state, 'running');
-        expect(run.stage, 'Generating card');
-        expect(run.currentTaskId, 'new-card-active');
+        expect(run.stage, 'Running Super Agent');
+        expect(run.currentTaskId, 'new-turn-active');
 
-        await _setTaskStatus(db, 'new-card-active', 'completed');
+        await _setTaskStatus(db, 'new-turn-active', 'completed');
         await service.markTaskCompleted(
           runId: 'fact-retry',
-          taskId: 'new-card-active',
-          taskType: 'card_agent_task',
+          taskId: 'new-turn-active',
+          taskType: 'super_agent_chat_turn_task',
         );
 
         run = await _getRun(db, 'fact-retry');
@@ -202,27 +224,27 @@ void main() {
         );
         await _insertTask(
           db,
-          id: 'old-completed-card',
+          id: 'old-completed-turn',
           runId: 'fact-latest-failed',
-          type: 'card_agent_task',
+          type: 'super_agent_chat_turn_task',
           status: 'completed',
         );
-        await _setTaskTerminalTimestamp(db, 'old-completed-card', 1);
+        await _setTaskTerminalTimestamp(db, 'old-completed-turn', 1);
         await _insertTask(
           db,
-          id: 'new-failed-card',
+          id: 'new-failed-turn',
           runId: 'fact-latest-failed',
-          type: 'card_agent_task',
+          type: 'super_agent_chat_turn_task',
           status: 'failed',
         );
-        await _setTaskTerminalTimestamp(db, 'new-failed-card', 2);
+        await _setTaskTerminalTimestamp(db, 'new-failed-turn', 2);
 
         await service.refreshRunFromTasks('fact-latest-failed');
 
         final run = await _getRun(db, 'fact-latest-failed');
         expect(run.state, 'failed');
         expect(run.stage, 'Needs attention');
-        expect(run.currentTaskId, 'new-failed-card');
+        expect(run.currentTaskId, 'new-failed-turn');
       },
     );
 
@@ -231,9 +253,9 @@ void main() {
       await service.createForSubmittedInput(userId: 'user-a', factId: 'fact-4');
       await _insertTask(
         db,
-        id: 'pkm',
+        id: 'turn',
         runId: 'fact-4',
-        type: 'pkm_agent_task',
+        type: 'super_agent_chat_turn_task',
         status: 'pending',
       );
 

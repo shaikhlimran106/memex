@@ -23,8 +23,6 @@ class AiServiceSetupViewModel extends ChangeNotifier {
             (({required locale}) =>
                 MemexCloudService.instance.getAppConfig(locale: locale));
 
-  static const String followTextSelectionValue = '__memex_follow_text_model__';
-
   final MemexRouter _router;
   final AppConfigFetcher _appConfigFetcher;
   bool _isDisposed = false;
@@ -38,7 +36,6 @@ class AiServiceSetupViewModel extends ChangeNotifier {
   bool isMemexConfigLoading = false;
   bool isRoleLoading = true;
   bool isUpdatingTextModel = false;
-  bool isUpdatingVisionModel = false;
   bool useLocalSpeechToText = true;
   List<LLMConfig> llmConfigs = const [];
   ModelRoleSelection? roleSelection;
@@ -51,17 +48,6 @@ class AiServiceSetupViewModel extends ChangeNotifier {
         llmConfigs,
         roleSelection?.textConfigKey,
       );
-
-  LLMConfig? get effectiveVisionConfig => ModelRoleConfigService.findConfig(
-        llmConfigs,
-        roleSelection?.effectiveVisionConfigKey(),
-      );
-
-  bool get shouldWarnVision {
-    final config = effectiveVisionConfig;
-    return config != null &&
-        !LLMConfig.isKnownMultimodal(config.type, config.modelId);
-  }
 
   bool get hasSelectableModels => llmConfigs.any((config) => config.isValid);
 
@@ -232,22 +218,6 @@ class AiServiceSetupViewModel extends ChangeNotifier {
     } finally {
       if (!_isDisposed) {
         isUpdatingTextModel = false;
-        _notify();
-      }
-    }
-  }
-
-  Future<void> setVisionModel(String? configKey) async {
-    if (isUpdatingVisionModel) return;
-    final nextKey = configKey == followTextSelectionValue ? null : configKey;
-    isUpdatingVisionModel = true;
-    _notify();
-    try {
-      await ModelRoleConfigService.setVisionModel(nextKey);
-      await loadModelRoles(showLoading: false);
-    } finally {
-      if (!_isDisposed) {
-        isUpdatingVisionModel = false;
         _notify();
       }
     }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/data/services/card_detail_notifier.dart';
 import 'package:memex/data/services/user_notification_service.dart';
@@ -68,6 +70,42 @@ void main() {
       expect(notifier.isForeground('test-fact-id'), isTrue);
       notifier.unregisterForeground('test-fact-id');
       expect(notifier.isForeground('test-fact-id'), isFalse);
+    });
+
+    test('task handlers are registered before LocalTaskExecutor starts', () {
+      final source =
+          File('lib/data/repositories/memex_router.dart').readAsStringSync();
+
+      final handlerRegistration = source.indexOf(
+        '_registerTaskHandlers(LocalTaskExecutor.instance);',
+      );
+      final executorStart = source.indexOf(
+        'await LocalTaskExecutor.instance.start(userId: userId);',
+      );
+
+      expect(handlerRegistration, isNonNegative);
+      expect(executorStart, isNonNegative);
+      expect(handlerRegistration, lessThan(executorStart));
+    });
+
+    test('sendMessage waits for router initialization before delegating', () {
+      final source =
+          File('lib/data/repositories/memex_router.dart').readAsStringSync();
+
+      final sendMessage = source.indexOf('Stream<ChatEvent> sendMessage(');
+      final ensureInitialized = source.indexOf(
+        'await _ensureInitialized();',
+        sendMessage,
+      );
+      final delegate = source.indexOf(
+        'yield* ChatService.instance.sendMessage(',
+        sendMessage,
+      );
+
+      expect(sendMessage, isNonNegative);
+      expect(ensureInitialized, isNonNegative);
+      expect(delegate, isNonNegative);
+      expect(ensureInitialized, lessThan(delegate));
     });
   });
 }

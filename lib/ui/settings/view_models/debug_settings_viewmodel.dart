@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:memex/data/repositories/memex_router.dart';
+import 'package:memex/data/services/sandbox_user_clone_service.dart';
 import 'package:memex/ui/settings/widgets/reprocess_cards_dialog.dart';
+import 'package:memex/utils/result.dart';
 import 'package:memex/utils/user_storage.dart';
 
 abstract interface class DebugSettingsDataController {
@@ -10,9 +14,18 @@ abstract interface class DebugSettingsDataController {
     String? bizId,
   });
 
+  Future<void> startSuperAgentReprocess({
+    required ReprocessCardsDebugOptions options,
+  });
+
   Future<void> clearData();
 
   Future<int> clearFailedAgentConversationContexts();
+
+  Future<SandboxUserCloneResult> cloneToTestUser({
+    required String targetUserId,
+    required bool overwriteTarget,
+  });
 
   Future<void> rebuildAllFtsIndexes();
 
@@ -39,11 +52,67 @@ class MemexRouterDebugSettingsDataController
   }
 
   @override
+  Future<void> startSuperAgentReprocess({
+    required ReprocessCardsDebugOptions options,
+  }) async {
+    String? sessionId;
+    final sessionsResult = await _router.fetchChatSessions(
+      agentName: 'memex_agent',
+      limit: 30,
+    );
+    sessionsResult.when(
+      onOk: (sessions) {
+        for (final session in sessions) {
+          if (session['scene'] == 'super_agent_home') {
+            sessionId = session['session_id']?.toString();
+            return;
+          }
+        }
+      },
+      onError: (_, __) {},
+    );
+
+    unawaited(
+      _router
+          .sendMessage(
+            options.toSuperAgentMessage(),
+            sessionId: sessionId,
+            agentName: 'memex_agent',
+            scene: 'super_agent_home',
+            sceneId: 'debug_reprocess',
+            refs: [
+              {
+                'type': 'debug_reprocess_cards',
+                'title': 'Debug reprocess cards',
+                'content': options.toReferenceContent(),
+              },
+            ],
+            runMode: 'auto',
+          )
+          .drain<void>()
+          .catchError((_) {}),
+    );
+
+    await Future<void>.delayed(Duration.zero);
+  }
+
+  @override
   Future<void> clearData() => _router.clearData();
 
   @override
   Future<int> clearFailedAgentConversationContexts() {
     return _router.clearFailedAgentConversationContexts();
+  }
+
+  @override
+  Future<SandboxUserCloneResult> cloneToTestUser({
+    required String targetUserId,
+    required bool overwriteTarget,
+  }) {
+    return SandboxUserCloneService.instance.cloneCurrentUserToLocalTestUser(
+      targetUserId: targetUserId,
+      overwriteTarget: overwriteTarget,
+    );
   }
 
   @override
@@ -98,16 +167,16 @@ class DebugSettingsViewModel extends ChangeNotifier {
 
   bool _isClearingData = false;
   bool _isClearingFailedAgentContexts = false;
+  bool _isCloningTestUser = false;
   bool _isReprocessingCards = false;
   bool _isReprocessingComments = false;
-  bool _isReprocessingKnowledgeBase = false;
   bool _isRebuildingSearchIndex = false;
 
   bool get isClearingData => _isClearingData;
   bool get isClearingFailedAgentContexts => _isClearingFailedAgentContexts;
+  bool get isCloningTestUser => _isCloningTestUser;
   bool get isReprocessingCards => _isReprocessingCards;
   bool get isReprocessingComments => _isReprocessingComments;
-  bool get isReprocessingKnowledgeBase => _isReprocessingKnowledgeBase;
   bool get isRebuildingSearchIndex => _isRebuildingSearchIndex;
 
   Future<void> clearToken() async {
@@ -123,8 +192,6 @@ class DebugSettingsViewModel extends ChangeNotifier {
       action: () async {
         await _ensureUser();
         await _dataController.clearData();
-        await UserStorage.saveCachedAgentData('pkm', null);
-        await UserStorage.saveCachedAgentData('card', null);
       },
     );
     return true;
@@ -139,6 +206,27 @@ class DebugSettingsViewModel extends ChangeNotifier {
     );
   }
 
+  Future<SandboxUserCloneResult?> cloneToTestUser({
+    required String targetUserId,
+    required bool overwriteTarget,
+  }) async {
+    if (_isCloningTestUser) return null;
+
+    return _runWithLoading(
+      setLoading: (value) => _isCloningTestUser = value,
+      action: () async {
+        await _ensureUser();
+        final result = await _dataController.cloneToTestUser(
+          targetUserId: targetUserId,
+          overwriteTarget: overwriteTarget,
+        );
+        await UserStorage.saveUser(result.targetUserId);
+        _dataController.resetForLogout();
+        return result;
+      },
+    );
+  }
+
   Future<bool> createReprocessCardsTask(
     ReprocessCardsDebugOptions options,
   ) async {
@@ -148,10 +236,8 @@ class DebugSettingsViewModel extends ChangeNotifier {
       setLoading: (value) => _isReprocessingCards = value,
       action: () async {
         await _ensureUser();
-        await _dataController.enqueueTask(
-          taskType: 'reprocess_cards_task',
-          payload: options.toTaskPayload(),
-          bizId: _createBizId('reprocess_cards'),
+        await _dataController.startSuperAgentReprocess(
+          options: options,
         );
       },
     );
@@ -171,25 +257,6 @@ class DebugSettingsViewModel extends ChangeNotifier {
           taskType: 'reprocess_comments_task',
           payload: options.toTaskPayload(),
           bizId: _createBizId('reprocess_comments'),
-        );
-      },
-    );
-    return true;
-  }
-
-  Future<bool> createReprocessKnowledgeBaseTask(
-    DebugDateRangeTaskOptions options,
-  ) async {
-    if (_isReprocessingKnowledgeBase) return false;
-
-    await _runWithLoading(
-      setLoading: (value) => _isReprocessingKnowledgeBase = value,
-      action: () async {
-        await _ensureUser();
-        await _dataController.enqueueTask(
-          taskType: 'reprocess_knowledge_base_task',
-          payload: options.toTaskPayload(),
-          bizId: _createBizId('reprocess_knowledge_base'),
         );
       },
     );

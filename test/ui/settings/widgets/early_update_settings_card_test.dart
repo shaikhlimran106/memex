@@ -227,14 +227,14 @@ class FakeWidgetUpdateService extends AppUpdateService {
     this.downloadedUpdateAvailable = false,
     this.activeDownload = false,
     this.activeProgress,
-  }) : cacheInfo = cacheInfo ?? AppUpdateCacheInfo.empty,
-       super(
-         environment: const AppUpdateEnvironment(
-           isAndroid: true,
-           isEarlyChannel: true,
-           flavorName: 'globalEarly',
-         ),
-       );
+  })  : cacheInfo = cacheInfo ?? AppUpdateCacheInfo.empty,
+        super(
+          environment: const AppUpdateEnvironment(
+            isAndroid: true,
+            isEarlyChannel: true,
+            flavorName: 'globalEarly',
+          ),
+        );
 
   final AppUpdateInfo? update;
   AppUpdateCacheInfo cacheInfo;

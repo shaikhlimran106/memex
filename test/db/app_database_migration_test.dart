@@ -43,7 +43,7 @@ void main() {
         await db.into(db.tasks).insert(
               TasksCompanion.insert(
                 id: 'linked-task',
-                type: 'card_agent_task',
+                type: 'super_agent_chat_turn_task',
                 payload: const Value('{}'),
                 runId: const Value('fact-new'),
                 status: 'pending',
@@ -103,7 +103,7 @@ INSERT INTO tasks (
   max_retries
 ) VALUES (
   'legacy-task',
-  'card_agent_task',
+  'super_agent_chat_turn_task',
   '{}',
   'pending',
   0,

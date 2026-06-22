@@ -13,7 +13,7 @@ import 'package:memex/utils/logger.dart';
 
 /// A full-featured skill-host agent that reuses the SuperAgent system prompt.
 /// Supports file-based skills (SKILL.md + RunJavaScript) and file operations.
-/// Does NOT include memory management or PKM overview tools.
+/// Does NOT include memory management tools.
 class MemexSkillHostAgent {
   static final Logger _logger = getLogger('MemexSkillHostAgent');
 

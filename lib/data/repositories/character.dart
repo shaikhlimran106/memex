@@ -203,7 +203,8 @@ Future<bool> deleteCharacterEndpoint(String characterId) async {
       throw ApiException('Character ID cannot be empty');
     }
 
-    final success = await _characterService.deleteCharacter(userId, characterId);
+    final success =
+        await _characterService.deleteCharacter(userId, characterId);
     if (!success) {
       throw ApiException('Character not found: $characterId');
     }
@@ -228,7 +229,8 @@ Future<bool> deleteCharacterEndpoint(String characterId) async {
 ///   ApiException: if character not found
 Future<bool> setCharacterEnabledEndpoint(
     String characterId, bool enabled) async {
-  _logger.info('setCharacterEnabled called: characterId=$characterId, enabled=$enabled');
+  _logger.info(
+      'setCharacterEnabled called: characterId=$characterId, enabled=$enabled');
 
   try {
     final userId = await UserStorage.getUserId();
@@ -252,4 +254,3 @@ Future<bool> setCharacterEnabledEndpoint(
     rethrow;
   }
 }
-

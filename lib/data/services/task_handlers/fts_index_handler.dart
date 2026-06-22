@@ -69,21 +69,14 @@ Future<void> _handleCardFts(SearchDao searchDao, String op, String documentKey,
     case 'insert':
     case 'update':
       if (doc == null) return;
-      final raw = doc['content'] as String? ?? '';
-      final analyses = doc['asset_analyses'];
-      final assetText =
-          analyses is List ? analyses.whereType<String>().join(' ') : '';
-      final ocrTexts = doc['asset_ocr'];
-      final ocrText =
-          ocrTexts is List ? ocrTexts.whereType<String>().join(' ') : '';
-      final combined =
-          [raw, assetText, ocrText].where((s) => s.isNotEmpty).join(' ');
+      // The card's `fact` field is the source text used for card search.
+      final content = doc['fact'] as String? ?? '';
       final insightMap = doc['insight'] as Map<String, dynamic>?;
       await searchDao.upsertCardFts(
         factId: documentKey,
         title: doc['title'] as String? ?? '',
         tags: (doc['tags'] as List?)?.whereType<String>().join(' ') ?? '',
-        content: combined,
+        content: content,
         insight: insightMap?['text'] as String? ?? '',
       );
       break;

@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/data/services/model_role_config_service.dart';
-import 'package:memex/domain/models/agent_definitions.dart';
 import 'package:memex/domain/models/llm_config.dart';
 import 'package:memex/ui/settings/view_models/ai_service_setup_viewmodel.dart';
 import 'package:memex/utils/user_storage.dart';
@@ -55,8 +54,8 @@ void main() {
     baseUrl: 'https://api.openai.com/v1',
   );
 
-  const visionConfig = LLMConfig(
-    key: 'vision-main',
+  const otherConfig = LLMConfig(
+    key: 'other-main',
     type: LLMConfig.typeChatCompletion,
     modelId: 'gpt-5.4',
     apiKey: 'sk-test',
@@ -64,9 +63,8 @@ void main() {
   );
 
   test('loadModelRoles hydrates role and speech settings', () async {
-    await UserStorage.saveLLMConfigs(const [textConfig, visionConfig]);
+    await UserStorage.saveLLMConfigs(const [textConfig, otherConfig]);
     await ModelRoleConfigService.setTextModel(textConfig.key);
-    await ModelRoleConfigService.setVisionModel(visionConfig.key);
     await UserStorage.setUseLocalSpeechToText(false);
 
     final viewModel = buildViewModel();
@@ -74,12 +72,10 @@ void main() {
 
     expect(viewModel.isRoleLoading, isFalse);
     expect(viewModel.llmConfigs.map((config) => config.key),
-        containsAll([textConfig.key, visionConfig.key]));
+        containsAll([textConfig.key, otherConfig.key]));
     expect(viewModel.roleSelection?.textConfigKey, textConfig.key);
-    expect(viewModel.roleSelection?.visionConfigKey, visionConfig.key);
     expect(viewModel.useLocalSpeechToText, isFalse);
     expect(viewModel.textConfig?.key, textConfig.key);
-    expect(viewModel.effectiveVisionConfig?.key, visionConfig.key);
     expect(viewModel.connectionMode, AiServiceConnectionMode.customProvider);
   });
 
@@ -102,7 +98,7 @@ void main() {
       AiServiceConnectionMode.memexOfficial,
     );
 
-    await UserStorage.saveLLMConfigs(const [textConfig, visionConfig]);
+    await UserStorage.saveLLMConfigs(const [textConfig, otherConfig]);
     await UserStorage.setDefaultLLMConfigKey(textConfig.key);
     final customViewModel = buildViewModel();
     await customViewModel.loadModelRoles();
@@ -191,8 +187,8 @@ void main() {
     expect(viewModel.isMemexConfigLoading, isFalse);
   });
 
-  test('model role updates persist and refresh ViewModel state', () async {
-    await UserStorage.saveLLMConfigs(const [textConfig, visionConfig]);
+  test('primary model updates persist and refresh ViewModel state', () async {
+    await UserStorage.saveLLMConfigs(const [textConfig, otherConfig]);
 
     final viewModel = buildViewModel();
     await viewModel.loadModelRoles();
@@ -200,22 +196,6 @@ void main() {
     await viewModel.setTextModel(' ${textConfig.key} ');
     expect(await UserStorage.getDefaultLLMConfigKey(), textConfig.key);
     expect(viewModel.roleSelection?.textConfigKey, textConfig.key);
-
-    await viewModel.setVisionModel(' ${visionConfig.key} ');
-    var mediaAgentConfig = await UserStorage.getAgentConfig(
-      AgentDefinitions.analyzeAssets,
-    );
-    expect(mediaAgentConfig.llmConfigKey, visionConfig.key);
-    expect(viewModel.roleSelection?.visionConfigKey, visionConfig.key);
-
-    await viewModel.setVisionModel(
-      AiServiceSetupViewModel.followTextSelectionValue,
-    );
-    mediaAgentConfig = await UserStorage.getAgentConfig(
-      AgentDefinitions.analyzeAssets,
-    );
-    expect(mediaAgentConfig.llmConfigKey, isNull);
-    expect(viewModel.roleSelection?.visionConfigKey, isNull);
   });
 }
 

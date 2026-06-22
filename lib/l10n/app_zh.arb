@@ -1,23 +1,14 @@
 {
   "@@locale": "zh",
   "timesLabel": "次数",
-  "recordSubmittedAiProcessing": "记录已提交，AI 正在处理中...",
   "@modelSetAsDefault": {
     "placeholders": {
       "modelId": {}
     }
   },
   "modelSetAsDefault": "已将 {modelId} 设为默认模型",
-  "@loadModelListFailed": {
-    "placeholders": {
-      "error": {}
-    }
-  },
-  "loadModelListFailed": "加载模型列表失败: \n{error}",
   "retry": "重试",
-  "noModelsFound": "没有找到可用的模型",
   "unknownModel": "未知模型",
-  "openAiModelConfig": "OpenAI 模型配置",
   "notSet": "未设置",
   "confirmClear": "确认清除",
   "confirmClearTokenMessage": "清除当前用户？需要重新输入用户ID。",
@@ -30,7 +21,6 @@
     }
   },
   "clearTokenFailed": "清除用户失败: {error}",
-  "reprocessKnowledgeBase": "重新处理知识库",
   "selectDateRangeOptional": "选择日期范围（可选）：",
   "startDate": "开始日期",
   "endDate": "结束日期",
@@ -39,7 +29,6 @@
   "leaveEmptyForAll": "留空表示处理所有",
   "startProcessing": "开始处理",
   "userIdNotFound": "未找到用户ID",
-  "reprocessTaskCreated": "重新处理任务已创建，正在后台处理中",
   "@createTaskFailed": {
     "placeholders": {
       "error": {}
@@ -47,12 +36,14 @@
   },
   "createTaskFailed": "创建任务失败: {error}",
   "reprocessCards": "重新处理卡片",
-  "reprocessCardsTaskCreated": "重新处理卡片任务已创建，正在后台处理中",
-  "reprocessCardsDownstreamMode": "下游重跑",
-  "reprocessCardsCardOnly": "只重新生成卡片",
-  "reprocessCardsCardOnlyDesc": "默认选项。只重建 card YAML/template，不触发下游 agent。",
-  "reprocessCardsRerunDownstream": "同时重跑下游 agent",
-  "reprocessCardsRerunDownstreamDesc": "每张卡片成功后重放 post-card routing，由路由按需触发日程聚合。",
+  "reprocessCardsTaskCreated": "已交给 Super Agent 重新处理",
+  "reprocessCardsDownstreamMode": "处理范围",
+  "reprocessCardsCardOnly": "只处理卡片",
+  "reprocessCardsCardOnlyDesc": "让 Super Agent 检查并重新生成选中的时间线卡片。",
+  "reprocessCardsRerunDownstream": "卡片和相关后续",
+  "reprocessCardsRerunDownstreamDesc": "让 Super Agent 在需要时一并考虑 PKM、日程和洞察更新。",
+  "reanalyzeMediaAssets": "重新读取媒体附件",
+  "reanalyzeMediaAssetsDesc": "重新生成卡片时，让 Super Agent 在需要时再次查看附件内容。",
   "regenerateComments": "重新生成评论",
   "regenerateCommentsTaskCreated": "重新生成评论任务已创建，正在后台处理中",
   "rebuildSearchIndex": "重建搜索索引",
@@ -60,13 +51,23 @@
   "rebuildSearchIndexFailed": "搜索索引重建失败",
   "clearData": "清除数据",
   "confirmClearDataMessage": "确定要清除数据吗？\n",
-  "confirmClearDataKeepFactsMessage": "将仅保留 Facts 目录（原始记录），删除工作区内其他所有目录（Cards、Discoveries、KnowledgeInsights、PKM、_System 等）。\n\n此操作不可恢复！",
+  "confirmClearDataDeletesWorkspaceMessage": "当前用户的本地工作区数据都会被删除，包括卡片、媒体、知识文件、洞察、记忆、聊天历史和系统状态。\n\n此操作不可恢复！",
   "clearFailedAgentContexts": "清除失败的对话上下文",
   "confirmClearFailedAgentContextsMessage": "清除 Insight 和 Schedule Agent 已保存的对话上下文？这适用于切换模型后，旧的 agent 消息与新模型 API 不兼容的情况。Facts、卡片、知识库、记忆和模型配置不会被删除。",
   "failedAgentContextsCleared": "已清除 {count} 个已保存的对话上下文",
   "@failedAgentContextsCleared": { "placeholders": { "count": {} } },
   "clearFailedAgentContextsFailed": "清除对话上下文失败: {error}",
   "@clearFailedAgentContextsFailed": { "placeholders": { "error": {} } },
+  "cloneToTestUser": "克隆为测试用户",
+  "confirmCloneToTestUserMessage": "将当前工作区复制到一个新的本地测试用户并切换过去。不会复制 Agent 运行态，当前用户数据不会被修改。",
+  "testUserIdLabel": "测试用户名",
+  "testUserIdHelper": "只能使用英文、数字、中划线或下划线。",
+  "testUserIdInvalid": "只能使用英文、数字、中划线或下划线。",
+  "overwriteExistingTestUser": "覆盖同名测试用户",
+  "testUserCloneSuccess": "已切换到测试用户 {userId}",
+  "@testUserCloneSuccess": { "placeholders": { "userId": {} } },
+  "testUserCloneFailed": "克隆测试用户失败: {error}",
+  "@testUserCloneFailed": { "placeholders": { "error": {} } },
   "dataClearedSuccess": "数据清除成功",
   "@clearDataFailed": {
     "placeholders": {
@@ -77,10 +78,7 @@
   "personalCenter": "个人中心",
   "viewLogs": "查看日志",
   "systemAuthorization": "系统授权",
-  "modelAuthorization": "模型授权",
-  "pkmKnowledgeBase": "PKM知识库",
   "aiCharacterConfig": "AI 角色配置",
-  "appLockConfig": "应用锁配置",
   "modelConfig": "模型配置",
   "agentConfig": "Agent配置",
   "experimentalLab": "实验室",
@@ -96,6 +94,7 @@
   "all": "全部",
   "schedule": "日程",
   "statistics": "统计",
+  "appLockConfig": "应用锁配置",
   "activityStats": "活动统计",
   "activityStatsSummary": "这段时间你记录了 {inputs} 次，生成了 {cards} 张卡片，完成了 {todos} 个待办。",
   "@activityStatsSummary": {
@@ -184,13 +183,10 @@
   },
   "saveUserInfoFailed": "保存用户信息失败: {error}",
   "totalEstimatedCost": "总预估费用",
-  "detailSubtitle": "详情",
   "close": "关闭",
-  "noFragments": "暂无碎片",
   "totalTokenConsumption": "总 Token 消耗",
   "dataLoadFailedRetry": "数据加载失败，请稍后重试",
   "timelineLoadFailedRetry": "时间轴加载失败，请稍后重试",
-  "aggregatedLoadFailedRetry": "加载聚合数据失败，请稍后重试",
   "newPerspective": "新的视角",
   "startPoint": "起点",
   "endPoint": "终点",
@@ -202,7 +198,6 @@
     }
   },
   "referenceWithTitle": "引用: {title}",
-  "discoveredTodoActions": "发现的待办动作",
   "actionCenterTitle": "待处理事项",
   "noPendingActions": "目前没有待处理的动作",
   "clarificationNeeded": "Memex 想确认一下",
@@ -220,28 +215,11 @@
   "clarificationNotSure": "不知道/不方便说",
   "yes": "是",
   "no": "否",
-  "askSomethingHint": "问点什么...",
-  "aiAssistant": "AI助手",
   "footprintMap": "足迹地图",
   "waypointPlaces": "途径地点",
   "unknownPlace": "未知地点",
-  "loadFailedRetry": "加载失败, 请重试",
-  "noRecordsInPeriod": "该周期内无记录",
   "releaseToSend": "松开 发送",
   "selectFromAlbum": "从相册选择",
-  "takePhoto": "拍照",
-  "enterContentOrMediaHint": "请输入内容、选择图片或录制音频",
-  "@inputDraftLabel": {
-    "placeholders": {
-      "count": {
-        "type": "num"
-      }
-    }
-  },
-  "inputDraftLabel": "草稿 · {count} 字",
-  "discardDraftTitle": "丢弃这份草稿？",
-  "discardDraftMessage": "草稿内容会被清空。",
-  "discardDraftTooltip": "丢弃草稿",
   "clipboardPreviewTitle": "新剪贴板",
   "clipboardPreviewImageTitle": "剪贴板图片",
   "clipboardPreviewImageDescription": "可添加到输入框",
@@ -257,9 +235,9 @@
   },
   "recordingWithDuration": "录音中: {duration}",
   "playing": "播放中...",
-  "recordedAudio": "已录制音频",
-  "recordLabel": "记录",
-  "smartSuggesting": "智能建议中...",
+  "sendLabel": "发送",
+  "attachedImagesMessage": "发送了 {count} 张图片",
+  "@attachedImagesMessage": { "placeholders": { "count": {} } },
   "noTaskData": "暂无任务数据",
   "@createdAtDate": {
     "placeholders": {
@@ -285,11 +263,6 @@
     }
   },
   "retryCount": "重试: {count}",
-  "aiMaterialProcessFailed": "AI 素材处理失败",
-  "aiMaterialProcessDone": "AI 素材处理完成",
-  "aiOrganizingMaterial": "AI 正在整理素材",
-  "taskCompletedAddedToTimeline": "任务已圆满完成，卡片已加入 Timeline",
-  "processErrorRetryLater": "处理过程中发生了一些错误，请稍后重试",
   "loadDetailFailedRetry": "加载详情失败，请稍后重试",
   "loadFailed": "加载失败",
   "reload": "重新加载",
@@ -327,10 +300,7 @@
   "trendChart": "趋势图",
   "comparisonChart": "对比图",
   "todayTimeFlow": "今日时间流",
-  "insightAssistant": "洞察助手",
-  "insightInputHint": "关于知识洞察，你想了解什么...",
   "aiInputHint": "无论是回忆还是当下，我都准备好了...",
-  "noContentInPeriod": "该时间段无内容",
   "nothingHere": "还没有任何内容",
   "nothingHereHint": "点击下方按钮创建你的第一张卡片",
   "agentProcessing": "AI 处理中...",
@@ -411,29 +381,8 @@
   "sectionNewInsights": "发现新洞察",
   "sectionUpdatedInsights": "更新现有洞察",
   "unnamedInsight": "未命名洞察",
-  "@loadDirectoryFailed": {
-    "placeholders": {
-      "error": {}
-    }
-  },
-  "loadDirectoryFailed": "加载目录失败: {error}",
-  "@readFileFailed": {
-    "placeholders": {
-      "error": {}
-    }
-  },
-  "readFileFailed": "读取文件失败: {error}",
-  "backToParent": "返回上级",
-  "directoryEmpty": "目录为空",
   "copiedToClipboard": "已复制到剪贴板",
   "copy": "复制",
-  "binaryFile": "二进制文件",
-  "@fileSizeLabel": {
-    "placeholders": {
-      "size": {}
-    }
-  },
-  "fileSizeLabel": "文件大小: {size}",
   "selectedLocation": "已选位置",
   "confirmLocationName": "确认位置名称",
   "confirmLocationNameHint": "你可以修改位置名称（经纬度保持不变）",
@@ -447,18 +396,14 @@
   },
   "currentCoordinates": "当前坐标: {lat}, {lng}",
   "confirmLocation": "确认位置",
-  "userCreatedSuccess": "用户创建成功！",
   "welcomeToMemex": "欢迎来到 Memex",
   "createUserIdToStart": "请创建一个你的专属昵称",
   "userIdLabel": "你的名字 / 昵称",
   "userIdHint": "请输入你的名字",
   "pleaseEnterUserId": "名字不能为空哦",
-  "userIdMinLength": "名字太短啦，至少需要1个字符",
   "userIdMaxLength": "名字太长啦，不能超过50个字符",
-  "userIdFormat": "名字格式有误",
   "startUsing": "下一步",
   "userIdTip": "开启你的专属记忆。",
-  "openAiAuthInfo": "OpenAI 授权信息",
   "setupModelConfigTitle": "配置 AI 模型",
   "setupModelConfigSubtitle": "Memex 需要一个前沿 AI 模型来整理记录、分析图片并生成洞察。选择一种连接方式即可。",
   "setupModelConfigComplete": "配置完成，开启旅程",
@@ -475,18 +420,15 @@
   "aiSetupChooseConnectionTitle": "选择连接方式",
   "aiSetupChooseConnectionDescription": "先选择你希望 Memex 通过哪条路径访问 AI 模型。",
   "aiSetupOfficialRouteDescription": "登录 MemeX 后直接使用官方服务，不需要理解 provider、API Key 或单个 Agent 模型。",
-  "aiSetupCustomRouteDescription": "添加自己的服务商凭证，选择文本模型和视觉模型；需要时可进一步为单个 Agent 覆盖模型。",
+  "aiSetupCustomRouteDescription": "添加自己的服务商凭证，选择 Super Agent 使用的模型；需要时可进一步为单个 Agent 覆盖模型。",
   "aiSetupCustomPageTitle": "自定义 AI 服务",
-  "aiSetupCustomPageSubtitle": "先配置服务商和 API Key，再选择 Memex 用于文本和视觉的模型。",
+  "aiSetupCustomPageSubtitle": "先配置服务商和 API Key，再选择 Memex 使用的模型。",
   "aiSetupProviderCredentialsTitle": "服务商与 API Key",
   "aiSetupProviderCredentialsDescription": "添加或编辑 OpenAI、Anthropic、DeepSeek、Gemini、OpenRouter、Ollama 等兼容服务商。",
-  "modelRolesTitle": "选择模型用途",
-  "modelRolesDescription": "大多数用户只需要一个文本模型和一个支持视觉的模型。需要时仍可在下方为单个 Agent 高级覆盖。",
-  "textModelRoleTitle": "文本模型",
-  "textModelRoleDescription": "用于卡片、知识库、洞察、聊天、评论、日程和记忆总结。",
-  "visionModelRoleTitle": "视觉模型",
-  "visionModelRoleDescription": "用于图片/媒体分析；关闭本地语音识别时，也用于云端音频转写。",
-  "followTextModel": "跟随文本模型",
+  "modelRolesTitle": "选择主模型",
+  "modelRolesDescription": "Super Agent 使用同一个模型处理文本和图片输入。需要时仍可在下方为单个 Agent 高级覆盖。",
+  "textModelRoleTitle": "主模型",
+  "textModelRoleDescription": "供 Super Agent 处理文本、图片、卡片、知识库、洞察、聊天、评论、日程和记忆总结。",
   "modelConnectionsTitle": "模型服务商与 API Key",
   "modelConnectionsDescription": "可以连接 Memex 官方服务，也可以添加你自己的服务商凭证。",
   "relatedAiCapabilitiesTitle": "高级与相关能力",
@@ -501,33 +443,17 @@
   "openAdvancedAgentModelAssignments": "为单个 Agent 覆盖模型",
   "noConfiguredModelOptions": "请先添加模型服务商或 API Key，再选择模型用途。",
   "modelSlotUpdated": "模型用途已更新",
-  "visionModelNonMultimodalWarning": "当前模型未被识别为支持图片输入；除非服务商实际支持视觉，否则媒体分析可能失败。",
   "aiServiceMemexRouteTitle": "通过 Memex 连接",
-  "aiServiceTitle": "为真实生活打造的 AI 日记",
-  "aiServiceSubtitle": "将零散的笔记、照片和语音，自动转化为结构化的第二大脑。",
   "aiServiceLongDescription": "Memex 利用多 Agent 架构自动整理你的生活记录、知识笔记与社交关系，深度挖掘洞察，并提供具有持久记忆的 AI 陪伴。所有数据均以纯文本 Markdown 存储，赋予你绝对的数据自由与跨平台迁移能力。",
-  "aiServiceCustomModelTitle": "连接自有 AI 模型",
   "aiServiceCustomApiRouteTitle": "我有 API Key",
   "aiServiceCustomModelDescription": "已有 OpenAI、Anthropic、DeepSeek、Gemini 等服务的 API Key 时，优先选择这项。",
-  "aiServiceStepAccount": "一个账号管理额度、账单和使用记录。",
-  "aiServiceStepBalance": "按量消耗，余额不足时再充值；没有固定月费。",
-  "aiServiceStepEnable": "开启后，文字、照片和语音记录会自动进入 AI 整理队列。",
   "enableAiService": "使用 Memex 连接",
-  "aiServiceWaitingForPayment": "登录并选择额度后开启",
   "aiServiceReadyToast": "AI 整理已开启",
   "aiServiceSettingsDescription": "没有 API Key 时，可用 Memex 账号代理连接主流模型服务。",
   "advancedModelConfiguration": "配置 API Key",
   "skipForNow": "暂不配置，先逛逛",
-  "modelAuth": "模型授权",
   "clearAuth": "清除授权",
-  "openAiAuthCleared": "已清除 OpenAI 授权",
   "authorizing": "正在授权中...",
-  "@openAiAuthSuccess": {
-    "placeholders": {
-      "accountId": {}
-    }
-  },
-  "openAiAuthSuccess": "OpenAI 授权成功！AccountId: {accountId}",
   "@authFailed": {
     "placeholders": {
       "error": {}
@@ -535,7 +461,6 @@
   },
   "authFailed": "授权失败: {error}",
   "authorized": "已授权",
-  "viewAuthInfo": "查看授权信息",
   "config": "配置",
   "calendar": "日历",
   "reminders": "提醒事项",
@@ -565,20 +490,6 @@
   },
   "addedToSuccess": "已成功添加至{target}",
   "ignore": "忽略",
-  "appLockOn": "应用锁已开启",
-  "appLockOff": "应用锁已关闭",
-  "enableAppLockFirst": "请先启用应用锁",
-  "enterFourDigitPassword": "请输入4位数字密码",
-  "passwordSetAndLockOn": "密码已设置并开启应用锁",
-  "appLockSettings": "应用锁配置",
-  "enableAppLock": "启用应用锁",
-  "enableAppLockSubtitle": "启用后，启动应用需要验证密码",
-  "enableBiometrics": "启用生物识别",
-  "biometricsSubtitle": "解锁时可以使用面容ID或触控ID",
-  "changePassword": "修改密码",
-  "setFourDigitPassword": "设置4位密码",
-  "reenterPasswordToConfirm": "请再次输入密码以确认",
-  "passwordMismatch": "两次输入的密码不一致，请重新输入",
   "confirmDelete": "确认删除",
   "confirmDeleteSessionMessage": "确定要删除这个会话吗？此操作不可恢复。",
   "delete": "删除",
@@ -589,7 +500,6 @@
     }
   },
   "deleteFailed": "删除失败: {error}",
-  "continueChat": "继续对话...",
   "daysAgo": "{count}天前",
   "chatHistory": "会话历史",
   "enterFullScreenTooltip": "全屏查看",
@@ -654,7 +564,6 @@
     }
   },
   "deleteFailedShort": "删除失败: {error}",
-  "aboutThisInsightHint": "关于这个洞察，你想了解什么...",
   "knowledgeInsight": "知识洞察",
   "completeSort": "完成排序",
   "noKnowledgeInsight": "暂无知识洞察",
@@ -665,7 +574,6 @@
   },
   "insightProcessingBacklogMessage": "还有 {count} 个后台任务正在处理。",
   "insightUnavailableMessage": "这个洞察仍在生成中，或已被更新。请刷新洞察后稍后再试。",
-  "scheduleAggregation": "日程聚合",
   "noScheduleAggregation": "暂无日程聚合",
   "scheduleAggregationEmptyHint": "点击更新，从真实时间卡片里整理日程和待办。",
   "scheduleAggregationLoadFailed": "加载日程数据失败",
@@ -678,7 +586,6 @@
   "scheduleWeekOverview": "本周概览",
   "scheduleImportant": "重要",
   "scheduleBriefingTitle": "日程简报",
-  "scheduleBriefingNeedsUpdate": "待更新",
   "scheduleBriefingOpen": "查看",
   "scheduleBriefingNoData": "暂无日程简报",
   "@scheduleBriefingUpdated": {
@@ -693,16 +600,24 @@
     }
   },
   "scheduleBriefingDoneCount": "完成 {count}",
-  "@scheduleBriefingConflictCount": {
-    "placeholders": {
-      "count": {}
-    }
-  },
-  "scheduleBriefingConflictCount": "冲突 {count}",
   "updating": "更新中...",
   "update": "更新",
   "enabled": "已启用",
   "disabled": "已禁用",
+  "appLockOn": "应用锁已开启",
+  "appLockOff": "应用锁已关闭",
+  "enableAppLockFirst": "请先启用应用锁",
+  "enterFourDigitPassword": "请输入4位数字密码",
+  "passwordSetAndLockOn": "密码已设置并开启应用锁",
+  "appLockSettings": "应用锁配置",
+  "enableAppLock": "启用应用锁",
+  "enableAppLockSubtitle": "启用后，启动应用需要验证密码",
+  "enableBiometrics": "启用生物识别",
+  "biometricsSubtitle": "解锁时可以使用面容ID或触控ID",
+  "changePassword": "修改密码",
+  "setFourDigitPassword": "设置4位密码",
+  "reenterPasswordToConfirm": "请再次输入密码以确认",
+  "passwordMismatch": "两次输入的密码不一致，请重新输入",
   "@confirmDeleteCharacter": {
     "placeholders": {
       "name": {}
@@ -719,8 +634,6 @@
     }
   },
   "loadCharacterFailed": "加载角色失败: {error}",
-  "characterDesignerHint": "描述你想要创建或更新的角色...",
-  "characterDesigner": "角色设计师",
   "noTags": "无标签",
   "createSuccess": "创建成功",
   "updateSuccess": "更新成功",
@@ -741,11 +654,6 @@
   "characterPersonaLabel": "角色完整设定",
   "characterPersonaHint": "包含角色人设、风格指南、示例对话、知识过滤器等所有信息。\n可以使用 ## 标题 来分段组织内容。",
   "pleaseEnterCharacterPersona": "请输入角色完整设定",
-  "systemFeaturesAndExtensions": "系统功能与扩展",
-  "shareExtensionTitle": "分享扩展 (Share Extension)",
-  "shareExtensionSubtitle": "允许通过系统分享菜单将内容分享至应用",
-  "screenTimeTitle": "屏幕使用时间 (Screen Time API)",
-  "screenTimeSubtitle": "授权访问应用使用时长与注意力数据",
   "@permissionRequestError": {
     "placeholders": {
       "error": {}
@@ -757,8 +665,6 @@
   "getting": "获取中...",
   "unauthorized": "未授权",
   "authorizedGoToSettings": "已授权，如需修改请前往系统设置",
-  "goToSettingsShort": "前往设置",
-  "basicPermissions": "基础权限",
   "location": "定位",
   "locationPermissionReason": "用于记录足迹和地理位置相关功能",
   "photos": "相册",
@@ -774,15 +680,9 @@
   "notification": "通知",
   "notificationPermissionReason": "用于发送日程提醒等重要通知",
   "loadDetailFailedRetryShort": "加载详情失败，请稍后重试",
-  "llmCallStats": "LLM 调用统计",
-  "noLlmCallRecords": "暂无 LLM 调用记录",
   "total": "总计",
-  "callCount": "调用次数",
   "estimatedCost": "预估费用",
   "byAgent": "按 Agent 统计",
-  "cardGenerationAgent": "卡片生成 Agent",
-  "knowledgeOrgAgent": "知识库整理 Agent",
-  "commentGenerationAgent": "评论生成 Agent",
   "timeUpdated": "时间已更新",
   "@updateFailed": {
     "placeholders": {
@@ -792,8 +692,6 @@
   "updateFailed": "更新失败: {error}",
   "locationUpdated": "地点已更新",
   "confirmDeleteCardMessage": "确定要删除这张卡片吗？此操作不可恢复。",
-  "profileAgent": "用户画像 Agent",
-  "assetAnalysis": "媒资分析",
   "cardDetailNotFound": "未找到卡片详情",
   "saySomething": "说点什么...",
   "relatedMemories": "相关回忆",
@@ -803,14 +701,8 @@
   "replySent": "回复已发送",
   "insightTemplateGalleryTitle": "洞察卡片模板展示",
   "timelineTemplateGalleryTitle": "Timeline 卡片模板展示",
-  "categoryGeneral": "通用 (General)",
   "categoryTextual": "文字 (Textual)",
-  "k411": "## 什么是心流？\n\n心流（Flow）是由心理学家米哈里·契克森米哈提出的一种心理状态。当你完全沉浸在一项具有挑战性但可完成的任务中，时间感消失，注意力高度集中，这就是心流。\n\n> 人在做感兴趣的事情时，常常浑然忘我。\n\n研究发现，心流状态下的人往往生产力最高，幸福感也最强。",
   "timelineFilterAll": "全部",
-  "timelineDays": "日",
-  "timelineWeeks": "周",
-  "timelineMonths": "月",
-  "timelineYears": "年",
   "insights": "洞察",
   "memoryTitle": "记忆",
   "longTermProfile": "长期记忆",
@@ -868,7 +760,6 @@
   "confirmDeleteConfigMessage": "确定要删除「{key}」吗？",
   "defaultLabel": "默认",
   "setAsDefault": "设为默认",
-  "missingApiKey": "缺少 API Key",
   "invalidJsonInExtraField": "扩展字段 JSON 格式无效",
   "keyAlreadyExists": "该 Key 已存在",
   "resetConfigurationTitle": "重置配置",
@@ -879,13 +770,9 @@
   "duplicateConfiguration": "复制配置",
   "duplicate": "复制",
   "keyIdLabel": "配置 ID",
-  "keyIdHelper": "用于区分多个模型配置，普通用户无需修改",
+  "keyIdHelper": "给这套配置起个名字，例如 deepseek 或 work-gpt。",
   "required": "必填",
   "clientLabel": "模型服务商",
-  "geminiClient": "Gemini",
-  "chatCompletionClient": "OpenAI (ChatCompletion)",
-  "responsesClient": "OpenAI (Responses)",
-  "bedrockClient": "Bedrock",
   "providerGroupOpenAi": "OpenAI",
   "providerGroupAnthropic": "Anthropic",
   "providerGroupGoogle": "Google",
@@ -909,15 +796,11 @@
   "providerMemex": "Memex 代理服务",
   "memexSignIn": "登录",
   "memexCreateAccount": "注册",
-  "memexSignInToMemex": "登录 Memex AI",
-  "memexCreateMemexAccount": "注册 Memex AI 账号",
   "memexUsername": "用户名",
   "memexPassword": "密码",
   "memexCreateAccountLink": "注册账号",
   "memexSignInLink": "已有账号，去登录",
   "memexTopUp": "充值后即可使用 Memex AI",
-  "memexApplyCredentials": "应用凭证",
-  "memexCredentialsApplied": "凭证已应用",
   "memexTopUpSuccess": "充值成功！",
   "memexFillAllFields": "请填写所有字段",
   "memexUsernameTooShort": "用户名至少 6 个字符",
@@ -971,44 +854,12 @@
   "discardButton": "放弃",
   "chooseLanguage": "选择语言",
   "chooseAvatar": "选择头像",
-  "coachMarkConfigureModel": "先配置 AI 模型，解锁全部功能 🔑",
   "configureNow": "立即配置",
   "modelNotConfiguredBanner": "AI 模型尚未配置，请先设置以解锁全部功能。",
   "modelNotConfiguredSubmitHint": "请先配置 AI 模型再发布内容",
   "processingStatus": "处理中",
   "failedStatus": "处理失败",
-  "viewDetails": "查看详情",
   "failureReason": "失败原因",
-  "cardGenerationFailedTitle": "卡片生成失败",
-  "cardGenerationFailedDescription": "原始记录已保存，可以重新生成卡片，不会重复创建记录。",
-  "regenerateCard": "重新生成卡片",
-  "cardRegenerationStarted": "已开始重新生成卡片",
-  "cardRegenerationFailed": "未能开始重新生成卡片",
-  "cardRegeneratingTitle": "正在重新生成卡片",
-  "cardRegeneratingDescription": "Memex 正在根据已保存的原始记录重建这张卡片。",
-  "failedCardsRetryTitle": "{count} 张卡片生成失败",
-  "@failedCardsRetryTitle": {
-    "placeholders": {
-      "count": {
-        "type": "num"
-      }
-    }
-  },
-  "failedCardsRetryDescription": "原始记录都已保存。可以从已保存的记录重新生成这些卡片。",
-  "retryAllFailedCards": "全部重试",
-  "failedCardsRetryStarted": "已开始重新生成 {count} 张失败卡片",
-  "@failedCardsRetryStarted": {
-    "placeholders": {
-      "count": {}
-    }
-  },
-  "failedCardsRetryPartial": "已开始 {retried} 个重试，{failed} 张卡片需要处理。",
-  "@failedCardsRetryPartial": {
-    "placeholders": {
-      "retried": {},
-      "failed": {}
-    }
-  },
   "unknownError": "发生未知错误",
   "enableFitness": "开启健身权限",
   "fitnessBannerMessage": "允许访问健身数据以记录你的健康和运动信息。",
@@ -1143,7 +994,6 @@
   "backupLegacyFormat": "旧版备份（无 manifest）",
   "restoreInProgress": "正在恢复备份...",
   "dataStorage": "数据存储",
-  "dataStorageDescription": "选择 Memex 存储数据的位置。自定义文件夹或 iCloud 可在卸载重装后保留数据。",
   "dataStorageDescriptionAndroid": "选择自定义文件夹存放工作区数据，卸载重装后仍可保留。",
   "dataStorageDescriptionIOS": "开启 iCloud 可在设备间同步工作区，并在卸载重装后保留数据。",
   "storageLocationApp": "应用存储",
@@ -1152,15 +1002,11 @@
   "storageLocationCustomDesc": "将数据存储在你选择的文件夹中，卸载重装后若该文件夹仍在则可保留数据。",
   "storageLocationICloud": "存储到 iCloud",
   "storageLocationICloudDesc": "在 Apple 设备间同步工作区，卸载重装后数据可保留。",
-  "chooseFolder": "选择文件夹",
   "storageLocationCurrent": "当前：{location}",
-  "icloudNotAvailable": "iCloud 不可用",
   "icloudRequiresCapability": "请先登录 iCloud 账号并开启 iCloud Drive 同步功能。",
   "loadingFromICloud": "正在从 iCloud 恢复数据…",
   "switchingToICloud": "正在切换到 iCloud 存储…",
   "switchingStorage": "正在切换存储…",
-  "customPathInvalid": "所选文件夹无法访问，已改用应用存储。",
-  "storagePermissionRequired": "使用自定义文件夹需要存储权限，请允许访问。",
   "customFolderAccessDenied": "无法读写该文件夹，请授予存储权限或选择其他位置。",
   "configured": "已配置",
   "apiKeyNotSet": "API Key 未设置 — 点击配置",
@@ -1173,12 +1019,10 @@
     }
   },
   "sourceTraceWithCount": "追溯（{count}）",
-
   "deleteAccount": "删除账户",
   "deleteAccountDesc": "永久删除所有本地数据并重置应用。",
   "deleteAccountConfirmTitle": "确认删除账户？",
   "deleteAccountConfirmMessage": "此操作将永久删除您的所有数据，包括时间线卡片、知识库、录音和设置。此操作不可撤销。",
-  "deleteAccountSuccess": "所有数据已删除。",
   "deleteAccountTypeName": "输入 \"{name}\" 以确认",
   "@deleteAccountTypeName": {
     "placeholders": {
@@ -1186,7 +1030,6 @@
     }
   },
   "deleteAccountTypeHint": "输入用户名以确认",
-
   "llmConsentTitle": "数据共享同意",
   "llmConsentMessage": "为了启用 AI 功能，Memex 需要将您的数据发送至 {provider} 进行处理，包括：\n\n• 您输入的文字（笔记、语音转录）\n• 照片元数据和提取的文字（OCR）\n• 健康与健身摘要\n• 时间线卡片内容\n\n数据将直接从您的设备发送至 {provider}，Memex 不会通过任何其他服务器存储或中转您的数据。\n\n请查阅 {provider} 的隐私政策了解其数据处理方式。\n\n您是否同意将数据发送至 {provider} 进行 AI 处理？",
   "@llmConsentMessage": {
@@ -1234,17 +1077,14 @@
   "eventSerializer": "事件序列化器",
   "eventSerializerDefault": "默认（XML）",
   "enabledLabel": "启用",
-
   "skillsManagement": "Skills 管理",
   "skillsManagementEmpty": "暂无 Skill",
   "downloadSkill": "下载 Skill",
-  "downloadSkillHint": "输入 Skill zip 文件 URL",
   "downloading": "下载中...",
   "downloadSuccess": "Skill 下载成功",
   "downloadFailed": "下载失败：{error}",
   "deleteConfirm": "确认删除",
   "deleteConfirmMessage": "确定要删除「{name}」吗？",
-  "emptyDirectory": "空目录",
   "invalidUrl": "请输入有效的 URL",
   "urlHint": "https://example.com/skill.zip",
   "newFolder": "新建文件夹",
@@ -1264,14 +1104,6 @@
       },
   "privacyPolicy": "隐私政策",
   "privacyPolicyDesc": "了解 Memex 如何处理您的数据",
-  "dataShareBanner": "启用 AI 功能后，您的数据将发送至配置的服务商进行处理。点击了解详情。",
-  "llmConsentDataShareNote": "数据共享提示：您的数据将发送至 {provider} 进行 AI 处理。",
-  "@llmConsentDataShareNote": {
-    "placeholders": {
-      "provider": {}
-    }
-  },
-
   "llmAuthError": "API 认证失败，请在设置中检查 LLM 配置。",
   "llmBadRequestError": "请求被 LLM 服务商拒绝，当前模型可能不支持该输入格式。",
   "llmRateLimitError": "API 调用频率超限，请稍后再试。",
@@ -1288,7 +1120,6 @@
   "speechModelGithub": "🌐 GitHub（海外线路）",
   "speechModelDownloading": "正在下载模型...",
   "speechModelConnecting": "连接中...",
-  "speechModelDownloadFailed": "下载失败: {error}",
   "deleteSpeechModel": "删除语音识别模型",
   "confirmDeleteSpeechModelMessage": "确定要删除已下载的本地语音识别模型文件吗？下次使用本地语音转文字时会重新下载。",
   "speechModelDeletedSuccess": "语音识别模型文件已删除",
@@ -1296,7 +1127,6 @@
   "speechModelDeleteFailed": "删除语音识别模型文件失败: {error}",
   "@speechModelDeleteFailed": { "placeholders": { "error": {} } },
   "speechTranscribing": "正在识别...",
-  "speechTranscriptionTitle": "语音识别结果",
   "speechNoResult": "未识别到语音内容",
   "useLocalSpeechToTextTitle": "使用本地语音转文字",
   "useLocalSpeechToTextDesc": "开启时，会先在设备上把音频转成文字再发送，这适合不支持音频输入的模型。关闭后，会直接把原始音频发送给模型处理。",
@@ -1313,26 +1143,16 @@
   "demoGetStarted": "开始使用",
   "demoSkip": "跳过",
   "demoPrefillText": "你好 Memex！这是我的第一条记录 🎉",
-
   "visionBadge": "视觉",
   "notMultimodalHint": "Memex依赖模型多模态能力用于媒体分析，如果您的记录内容包含图片，请确保您配置的模型支持图片输入。",
   "defaultModelPrefix": "默认使用",
   "recommendedBadge": "推荐",
-  "reanalyzeMediaAssets": "重新分析图片/音频",
-  "reanalyzeMediaAssetsDesc": "会先刷新 Facts/assets 下的媒体分析，再重新生成卡片。",
-
-  "readOnlyMode": "对话",
   "readOnlyBadge": "对话",
-
-  "chatModeLabel": "智能体",
-
   "switchCompanion": "切换角色",
   "personaChatInputHint": "输入消息...",
-  "personaChatEmptyHint": "发出第一条消息，让这段陪伴开始",
   "today": "今天",
   "tomorrow": "明天",
   "yesterday": "昨天",
-
   "showInsightTextTitle": "显示 Memex 洞察评论",
   "showInsightTextDesc": "是否在卡片详情的评论区显示 Memex 洞察评论。",
   "enableCharacterCommentTitle": "角色自动评论",
@@ -1347,12 +1167,10 @@
       }
     }
   },
-
   "cdnSignalsComments": "收到新回复",
   "cdnSignalsInsight": "生成了新洞察",
   "cdnSignalsBoth": "有新回复和洞察",
   "untitledCard": "未命名卡片",
-
   "locationContextTitle": "位置上下文",
   "locationContextDescription": "为 Agent 对话提供当前城市与街区上下文",
   "locationContextAttachTitle": "为对话附加当前位置",
@@ -1378,7 +1196,6 @@
   },
   "oneHour": "1 小时",
   "testCurrentLocation": "测试当前位置",
-  "locationUnavailable": "位置不可用",
   "locationTestFailed": "失败：{error}",
   "@locationTestFailed": {
     "placeholders": {
@@ -1430,10 +1247,8 @@
       }
     }
   },
-
   "settingsSearchPlaceholder": "搜索设置项...",
   "settingsSearchEmpty": "未找到匹配的设置项",
-
   "importCharacterCard": "导入角色卡",
   "firstMessageLabel": "首条消息",
   "firstMessageHint": "角色首次对话时发送的问候语（可选）",
@@ -1577,13 +1392,6 @@
   "dismissTypeSystemAction": "日程提醒",
   "dismissTypeClarification": "澄清确认",
   "dismissTypeCardUpdate": "卡片更新",
-  "dismissAllConfirm": "确定清除全部通知？",
-  "dismissTypeConfirm": "确定清除所有{type}通知？",
-  "@dismissTypeConfirm": {
-    "placeholders": {
-      "type": {}
-    }
-  },
   "dismissedCount": "已清除 {count} 条",
   "@dismissedCount": {
     "placeholders": {

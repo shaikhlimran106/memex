@@ -47,8 +47,8 @@ class ClipboardPreviewService {
 
   static const _channel = MethodChannel('com.memexlab.memex/clipboard_preview');
   static const _maxPreviewCharacters = 240;
-  static const _maxHandledHashes = 80;
-  static const _handledHashesKeyPrefix = 'clipboard_preview_handled_hashes_';
+  static const _lastHandledTokenKeyPrefix =
+      'clipboard_preview_last_handled_token_';
   static const _platformReadTimeout = Duration(milliseconds: 700);
 
   @visibleForTesting
@@ -62,28 +62,52 @@ class ClipboardPreviewService {
     String? currentText,
   }) async {
     try {
+      _logger.info('Checking clipboard preview candidate');
       final summary = await _readClipboardSummary();
-      if (summary == null) return null;
+      if (summary == null) {
+        _logger.info('Clipboard preview skipped: no readable summary');
+        return null;
+      }
+      _logger.info('Clipboard summary: ${_describeSummary(summary)}');
 
       if (summary.type == ClipboardPreviewCandidateType.text) {
         final text = summary.text?.trim();
-        if (text == null || text.isEmpty) return null;
+        if (text == null || text.isEmpty) {
+          _logger.info('Clipboard preview skipped: empty summary text');
+          return null;
+        }
 
         final existingText = currentText?.trim();
         if (existingText != null &&
             existingText.isNotEmpty &&
             (existingText == text || existingText.contains(text))) {
+          _logger.info(
+            'Clipboard preview skipped: text already in current input, '
+            'len=${text.runes.length}, preview=${_logPreview(text)}',
+          );
           await markTextHandled(text);
           return null;
         }
       }
 
       final candidate = await _buildCandidate(summary);
-      if (candidate == null) return null;
+      if (candidate == null) {
+        _logger
+            .info('Clipboard preview skipped: candidate build returned null');
+        return null;
+      }
 
-      final handledHashes = await _loadHandledHashes();
-      if (handledHashes.contains(candidate.hash)) return null;
+      final lastHandledToken = await _loadLastHandledToken();
+      if (lastHandledToken == candidate.hash) {
+        _logger.info(
+          'Clipboard preview skipped: matches last handled token '
+          'type=${candidate.type.name}, hash=${_shortHash(candidate.hash)}',
+        );
+        return null;
+      }
 
+      _logger.info(
+          'Clipboard preview candidate ready: ${_describeCandidate(candidate)}');
       return candidate;
     } catch (e, st) {
       _logger.warning('Failed to inspect clipboard: $e', e, st);
@@ -158,35 +182,58 @@ class ClipboardPreviewService {
   }
 
   Future<_ClipboardSummary?> _readClipboardSummary() async {
-    final platformSummary = await _readPlatformClipboardSummary();
-    if (platformSummary != null) return platformSummary;
+    final platformRead = await _readPlatformClipboardSummary();
+    if (platformRead.summary != null) return platformRead.summary;
+    if (!platformRead.allowFlutterTextFallback) {
+      _logger.info(
+        'Clipboard preview skipped: native summary unavailable and Flutter '
+        'text fallback disabled',
+      );
+      return null;
+    }
 
+    _logger
+        .info('Native clipboard summary empty; trying Flutter text fallback');
     final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
     final text = clipboardData?.text?.trim();
-    if (text == null || text.isEmpty) return null;
+    if (text == null || text.isEmpty) {
+      _logger.info('Flutter text fallback empty');
+      return null;
+    }
+    _logger.info(
+      'Flutter text fallback read: len=${text.runes.length}, '
+      'preview=${_logPreview(text)}',
+    );
     return _summaryFromPlainText(text);
   }
 
-  Future<_ClipboardSummary?> _readPlatformClipboardSummary() async {
+  Future<_PlatformClipboardRead> _readPlatformClipboardSummary() async {
     try {
       final raw = await _channel
           .invokeMapMethod<String, Object?>('getClipboardSummary')
           .timeout(_platformReadTimeout);
-      if (raw == null) return null;
-      return _ClipboardSummary.fromMap(raw);
+      if (raw == null) {
+        _logger.info('Native clipboard summary returned null');
+        return const _PlatformClipboardRead(allowFlutterTextFallback: false);
+      }
+      _logger.info('Native clipboard summary raw: ${_describeRawSummary(raw)}');
+      return _PlatformClipboardRead(summary: _ClipboardSummary.fromMap(raw));
     } on MissingPluginException {
-      return null;
+      _logger
+          .info('Clipboard platform channel missing; using Flutter fallback');
+      return const _PlatformClipboardRead(allowFlutterTextFallback: true);
     } on TimeoutException catch (e, st) {
       _logger.warning('Clipboard platform summary timed out: $e', e, st);
-      return null;
+      return const _PlatformClipboardRead(allowFlutterTextFallback: false);
     } catch (e, st) {
       _logger.warning('Clipboard platform summary failed: $e', e, st);
-      return null;
+      return const _PlatformClipboardRead(allowFlutterTextFallback: false);
     }
   }
 
   _ClipboardSummary _summaryFromPlainText(String text) {
     if (_isImageDataUri(text)) {
+      _logger.info('Plain text summary interpreted as image data URI');
       return _ClipboardSummary(
         type: ClipboardPreviewCandidateType.image,
         dataUri: text,
@@ -196,6 +243,9 @@ class ClipboardPreviewService {
     }
 
     if (_looksLikeImageFileUri(text)) {
+      _logger.info(
+        'Plain text summary interpreted as image file URI: ${_logPreview(text)}',
+      );
       return _ClipboardSummary(
         type: ClipboardPreviewCandidateType.image,
         imageUri: text,
@@ -205,6 +255,10 @@ class ClipboardPreviewService {
       );
     }
 
+    _logger.info(
+      'Plain text summary interpreted as text: len=${text.runes.length}, '
+      'preview=${_logPreview(text)}',
+    );
     return _ClipboardSummary(
       type: ClipboardPreviewCandidateType.text,
       text: text,
@@ -232,9 +286,9 @@ class ClipboardPreviewService {
     );
   }
 
-  Future<List<String>> _loadHandledHashes() async {
+  Future<String?> _loadLastHandledToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getStringList(await _handledHashesKey()) ?? const [];
+    return prefs.getString(await _lastHandledTokenKey());
   }
 
   Future<void> _markHashHandled(String hash) async {
@@ -242,22 +296,15 @@ class ClipboardPreviewService {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final key = await _handledHashesKey();
-      final hashes = prefs.getStringList(key) ?? <String>[];
-      hashes.remove(hash);
-      hashes.insert(0, hash);
-      if (hashes.length > _maxHandledHashes) {
-        hashes.removeRange(_maxHandledHashes, hashes.length);
-      }
-      await prefs.setStringList(key, hashes);
+      await prefs.setString(await _lastHandledTokenKey(), hash);
     } catch (e, st) {
       _logger.warning('Failed to mark clipboard as handled: $e', e, st);
     }
   }
 
-  Future<String> _handledHashesKey() async {
+  Future<String> _lastHandledTokenKey() async {
     final userId = await UserStorage.getUserId();
-    return '$_handledHashesKeyPrefix${userId ?? 'anonymous'}';
+    return '$_lastHandledTokenKeyPrefix${userId ?? 'anonymous'}';
   }
 
   Future<String> _hashText(String text) {
@@ -285,6 +332,51 @@ class ClipboardPreviewService {
     if (uri.scheme == 'file') return uri.toFilePath();
     return null;
   }
+
+  String _describeRawSummary(Map<String, Object?> raw) {
+    final type = raw['type'];
+    final text = raw['text'] as String?;
+    return 'type=$type, textLen=${text?.runes.length ?? 0}, '
+        'preview=${_logPreview(text)}, uri=${_logPreview(raw['uri'] as String?)}, '
+        'localPath=${_logPreview(raw['localPath'] as String?)}, '
+        'dataUri=${raw['dataUri'] == null ? '<none>' : '<present>'}, '
+        'mimeType=${raw['mimeType']}, fileName=${raw['fileName']}, '
+        'sourceId=${_logPreview(raw['sourceId'] as String?)}';
+  }
+
+  String _describeSummary(_ClipboardSummary summary) {
+    return 'type=${summary.type.name}, '
+        'textLen=${summary.text?.runes.length ?? 0}, '
+        'preview=${_logPreview(summary.text)}, '
+        'imageUri=${_logPreview(summary.imageUri)}, '
+        'localPath=${_logPreview(summary.localPath)}, '
+        'dataUri=${summary.dataUri == null ? '<none>' : '<present>'}, '
+        'mimeType=${summary.mimeType}, fileName=${summary.fileName}, '
+        'sourceId=${_logPreview(summary.sourceId)}';
+  }
+
+  String _describeCandidate(ClipboardPreviewCandidate candidate) {
+    return 'type=${candidate.type.name}, hash=${_shortHash(candidate.hash)}, '
+        'textLen=${candidate.text?.runes.length ?? 0}, '
+        'preview=${_logPreview(candidate.text)}, '
+        'imageUri=${_logPreview(candidate.imageUri)}, '
+        'localPath=${_logPreview(candidate.localPath)}, '
+        'dataUri=${candidate.dataUri == null ? '<none>' : '<present>'}, '
+        'mimeType=${candidate.mimeType}, fileName=${candidate.fileName}';
+  }
+
+  String _shortHash(String hash) {
+    return hash.length <= 10 ? hash : hash.substring(0, 10);
+  }
+
+  String _logPreview(String? value) {
+    if (value == null || value.isEmpty) return '<none>';
+    final normalized = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (normalized.isEmpty) return '<blank>';
+    return normalized.length <= 96
+        ? normalized
+        : '${normalized.substring(0, 96)}...';
+  }
 }
 
 Future<R> _runInBackground<M, R>(
@@ -295,6 +387,16 @@ Future<R> _runInBackground<M, R>(
     return Future.value(callback(message));
   }
   return compute(callback, message);
+}
+
+class _PlatformClipboardRead {
+  const _PlatformClipboardRead({
+    this.summary,
+    this.allowFlutterTextFallback = false,
+  });
+
+  final _ClipboardSummary? summary;
+  final bool allowFlutterTextFallback;
 }
 
 class _ClipboardSummary {
@@ -373,6 +475,7 @@ Map<String, Object?>? _buildCandidateData(Map<String, Object?> input) {
 
   final text = (input['text'] as String?)?.trim();
   if (text == null || text.isEmpty) return null;
+  if (_looksLikeBinaryClipboardText(text)) return null;
   final maxPreviewCharacters = input['maxPreviewCharacters'] as int? ?? 240;
   return {
     'type': 'text',
@@ -386,6 +489,34 @@ Map<String, Object?>? _buildCandidateData(Map<String, Object?> input) {
     'fileName': null,
     'characterCount': text.runes.length,
   };
+}
+
+bool _looksLikeBinaryClipboardText(String text) {
+  if (text.contains('\u0000')) return true;
+  if (text.startsWith('\u0089PNG') || text.contains('PNG\r\n\u001A\n')) {
+    return true;
+  }
+  if (text.contains('JFIF\u0000') || text.contains('Exif\u0000')) {
+    return true;
+  }
+
+  var controlCount = 0;
+  var replacementCount = 0;
+  var total = 0;
+
+  for (final rune in text.runes) {
+    total += 1;
+    final isAllowedWhitespace = rune == 0x09 || rune == 0x0A || rune == 0x0D;
+    final isControl = !isAllowedWhitespace &&
+        ((rune >= 0x00 && rune <= 0x1F) || (rune >= 0x7F && rune <= 0x9F));
+    if (isControl) controlCount += 1;
+    if (rune == 0xFFFD) replacementCount += 1;
+  }
+
+  if (total == 0) return false;
+  if (controlCount >= 3 || controlCount / total > 0.02) return true;
+  if (replacementCount >= 8 || replacementCount / total > 0.08) return true;
+  return false;
 }
 
 String _hashTextSync(String text) {

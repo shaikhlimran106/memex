@@ -238,8 +238,8 @@ class GlobalEventBus {
         priority: subscription.priority,
         maxRetries: subscription.maxRetries,
         // Use a shared bizId for all tasks spawned by the same event.
-        // Downstream handlers (e.g. card_agent / pkm_agent) read upstream task
-        // results by bizId, so bizId must be stable across subscriptions.
+        // Handlers that coordinate event-scoped work can use it as a stable
+        // correlation id across subscriptions.
         bizId: 'event:${event.type}:${event.eventId}',
         dependencies: dependencies.isEmpty ? null : dependencies,
       );

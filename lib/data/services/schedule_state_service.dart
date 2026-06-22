@@ -1,5 +1,6 @@
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/system_action_service.dart';
+import 'package:memex/data/services/timeline_card_event_publisher.dart';
 import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/domain/models/schedule_state.dart';
 import 'package:memex/utils/logger.dart';
@@ -625,35 +626,47 @@ class ScheduleStateService {
     required bool completed,
     SchedulePendingItem? restoredItem,
   }) async {
-    await FileSystemService.instance.updateCardFile(userId, cardId, (card) {
-      final taskIndex = card.uiConfigs.indexWhere(
-        (config) => config.templateId == 'task',
-      );
-      if (taskIndex < 0) return card;
-      final config = card.uiConfigs[taskIndex];
-      final data = Map<String, dynamic>.from(config.data);
-      data['is_completed'] = completed;
-      final rawSubtasks = data['subtasks'];
-      if (rawSubtasks is List) {
-        final restoredSubtasks = {
-          for (final subtask in restoredItem?.subtasks ?? const [])
-            _normalizeTitle(subtask.title): subtask.completed,
-        };
-        data['subtasks'] = rawSubtasks.whereType<Map>().map((subtask) {
-          final normalized = _normalizeTitle(
-            subtask['title']?.toString() ?? '',
-          );
-          return {
-            ...Map<String, dynamic>.from(subtask),
-            'completed':
-                completed ? true : (restoredSubtasks[normalized] ?? false),
+    final updatedCard = await FileSystemService.instance.updateCardFile(
+      userId,
+      cardId,
+      (card) {
+        final taskIndex = card.uiConfigs.indexWhere(
+          (config) => config.templateId == 'task',
+        );
+        if (taskIndex < 0) return card;
+        final config = card.uiConfigs[taskIndex];
+        final data = Map<String, dynamic>.from(config.data);
+        data['is_completed'] = completed;
+        final rawSubtasks = data['subtasks'];
+        if (rawSubtasks is List) {
+          final restoredSubtasks = {
+            for (final subtask in restoredItem?.subtasks ?? const [])
+              _normalizeTitle(subtask.title): subtask.completed,
           };
-        }).toList();
-      }
-      final configs = card.uiConfigs.toList();
-      configs[taskIndex] = UiConfig(templateId: config.templateId, data: data);
-      return card.copyWith(uiConfigs: configs);
-    });
+          data['subtasks'] = rawSubtasks.whereType<Map>().map((subtask) {
+            final normalized = _normalizeTitle(
+              subtask['title']?.toString() ?? '',
+            );
+            return {
+              ...Map<String, dynamic>.from(subtask),
+              'completed':
+                  completed ? true : (restoredSubtasks[normalized] ?? false),
+            };
+          }).toList();
+        }
+        final configs = card.uiConfigs.toList();
+        configs[taskIndex] =
+            UiConfig(templateId: config.templateId, data: data);
+        return card.copyWith(uiConfigs: configs);
+      },
+    );
+    if (updatedCard != null) {
+      await emitTimelineCardUpdated(
+        userId: userId,
+        cardId: cardId,
+        cardData: updatedCard,
+      );
+    }
   }
 }
 

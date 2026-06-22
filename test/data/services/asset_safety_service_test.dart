@@ -2,19 +2,14 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dart_agent_core/dart_agent_core.dart';
-import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:memex/data/repositories/submit_input.dart';
 import 'package:memex/data/services/asset_safety_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/local_asset_server.dart';
 import 'package:memex/data/services/media_service.dart';
 import 'package:memex/data/services/photo_suggestion_service.dart';
 import 'package:memex/data/services/speech_transcription_service.dart';
-import 'package:memex/data/services/task_handlers/analyze_assets_handler.dart';
 import 'package:memex/data/services/task_handlers/custom_agent_task_handler.dart';
-import 'package:memex/db/app_database.dart';
-import 'package:memex/utils/user_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -185,8 +180,6 @@ void main() {
         userId: 'asset-user',
         sourcePath: source.path,
         assetType: 'img',
-        index: 1,
-        factId: '2026/06/02.md#ts_1',
       );
 
       expect(filename, contains('1000x13000'));
@@ -195,48 +188,6 @@ void main() {
       );
       expect(await copied.exists(), isTrue);
       expect(await copied.readAsBytes(), await source.readAsBytes());
-    },
-  );
-
-  test(
-    'audio asset analysis writes skip file and preserves original asset',
-    () async {
-      await FileSystemService.init(tempDir.path);
-      final source = File('${tempDir.path}/source_audio.m4a');
-      await source.create();
-      await _resizeFile(source, 21 * 1024 * 1024);
-
-      final (filename, relativePath) =
-          await FileSystemService.instance.saveAssetFromFile(
-        userId: 'audio-analysis-user',
-        sourcePath: source.path,
-        assetType: 'audio',
-        index: 1,
-        factId: '2026/06/02.md#ts_1',
-        extraInfo: '301',
-      );
-
-      final copied = File(
-        FileSystemService.instance.toAbsolutePath(relativePath),
-      );
-      expect(await copied.exists(), isTrue);
-      expect(await copied.length(), await source.length());
-
-      final results = await analyzeAssetsForFact(
-        userId: 'audio-analysis-user',
-        factId: '2026/06/02.md#ts_1',
-        assetPaths: [relativePath],
-      );
-
-      expect(results, hasLength(1));
-      expect(results.single.analysis, contains('Automatic analysis skipped'));
-      expect(results.single.analysis, contains('audio duration 301s'));
-      expect(await copied.exists(), isTrue);
-      expect(
-        await File('${copied.path}.analysis.txt').readAsString(),
-        contains('original file was preserved'),
-      );
-      expect(filename, contains('_301.'));
     },
   );
 
@@ -257,98 +208,6 @@ void main() {
       imported.absolutePath,
     );
   });
-
-  test(
-    'unsafe asset analysis writes skip file without requiring llm config',
-    () async {
-      await FileSystemService.init(tempDir.path);
-      final source = File('${tempDir.path}/source_long.png');
-      await source.writeAsBytes(_pngHeader(width: 1000, height: 13000));
-
-      final (filename, relativePath) =
-          await FileSystemService.instance.saveAssetFromFile(
-        userId: 'analysis-user',
-        sourcePath: source.path,
-        assetType: 'img',
-        index: 1,
-        factId: '2026/06/02.md#ts_1',
-      );
-
-      final results = await analyzeAssetsForFact(
-        userId: 'analysis-user',
-        factId: '2026/06/02.md#ts_1',
-        assetPaths: [relativePath],
-      );
-
-      expect(results, hasLength(1));
-      expect(results.single.analysis, contains('Automatic analysis skipped'));
-      expect(results.single.analysis, contains('original file was preserved'));
-
-      final assetsPath = FileSystemService.instance.getAssetsPath(
-        'analysis-user',
-      );
-      final analysisFile = File('$assetsPath/$filename.analysis.txt');
-      expect(await analysisFile.exists(), isTrue);
-      expect(await analysisFile.readAsString(), contains('long edge'));
-    },
-  );
-
-  test(
-    'submitInput preserves unsafe image and downstream analysis skips it',
-    () async {
-      SharedPreferences.setMockInitialValues({
-        'user_id': 'submit-user',
-        'language': 'en',
-      });
-      await UserStorage.initL10n();
-      final db = AppDatabase.forTesting(NativeDatabase.memory());
-      AppDatabase.setTestInstance(db);
-      addTearDown(db.close);
-
-      await FileSystemService.init(tempDir.path);
-      final source = File('${tempDir.path}/shared_long.png');
-      source.writeAsBytesSync(_pngHeader(width: 1000, height: 13000));
-
-      final submitted = await submitInput('submit-user', [
-        {'type': 'text', 'text': 'I want to save this long screenshot.'},
-        {
-          'type': 'image_url',
-          'image_url': {'filePath': source.path},
-        },
-      ]);
-      final factId = submitted['fact_id'] as String;
-
-      final factFile = File(
-        FileSystemService.instance.getDailyFactPath(
-          'submit-user',
-          DateTime.now(),
-        ),
-      );
-      final factContent = await factFile.readAsString();
-      final match = RegExp(
-        r'!\[image\]\(fs://([^)]+)\)',
-      ).firstMatch(factContent);
-      expect(match, isNotNull);
-
-      final filename = match!.group(1)!;
-      final assetPath =
-          '${FileSystemService.instance.getAssetsPath('submit-user')}/$filename';
-      expect(await File(assetPath).exists(), isTrue);
-
-      final results = await analyzeAssetsForFact(
-        userId: 'submit-user',
-        factId: factId,
-        assetPaths: [FileSystemService.instance.toRelativePath(assetPath)],
-      );
-
-      expect(results, hasLength(1));
-      expect(results.single.analysis, contains('Automatic analysis skipped'));
-      expect(
-        await File('$assetPath.analysis.txt').readAsString(),
-        contains('original file was preserved'),
-      );
-    },
-  );
 
   test('custom agent skips unsafe inline audio parts', () async {
     await FileSystemService.init(tempDir.path);

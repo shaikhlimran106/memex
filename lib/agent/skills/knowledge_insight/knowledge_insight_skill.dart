@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:memex/agent/prompts.dart';
+import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
 import 'package:memex/agent/skills/knowledge_insight/native_widgets.dart';
 
 import 'package:memex/data/services/file_system_service.dart';
@@ -15,9 +16,10 @@ class KnowledgeInsightSkill extends Skill {
       : super(
           name: "update_knowledge_insight",
           description:
-              "Analyzes user knowledge and generates visual insights cards. (Only activate when need to update knowledge insight card data)",
-          systemPrompt:
-              Prompts.knowledgeInsightAgentKnowledgeInsightSkillPrompt(
+              "Creates, updates, or removes Knowledge Insight cards: the chart-style visualizations (trends, breakdowns, recaps, comparisons) that surface patterns across many of the user's records, each rendered from a template and backed by the facts it draws on. "
+              "Use when the user wants a cross-record insight, chart, recap, or trend, or when an existing insight card needs revising or deleting. "
+              "Not for single-record timeline cards: use manage_timeline_card for those.",
+          systemPrompt: Prompts.knowledgeInsightSkillPrompt(
             UserStorage.l10n.knowledgeInsightLanguageInstruction,
           ),
           tools: [
@@ -132,6 +134,12 @@ Tool buildDeleteKnowledgeInsightCardTool() {
       final fileSystem = FileSystemService.instance;
       final userId = AgentCallToolContext.current!.state.metadata['userId'];
 
+      final denied = await gateMutatingToolCall(
+        toolName: 'delete_knowledge_insight_card',
+        summary: cardId,
+      );
+      if (denied != null) return denied;
+
       try {
         final success =
             await fileSystem.deleteKnowledgeInsightCard(userId, cardId);
@@ -169,6 +177,12 @@ Tool buildDeleteKnowledgeInsightTagsTool() {
       final fileSystem = FileSystemService.instance;
       final userId = AgentCallToolContext.current!.state.metadata['userId'];
 
+      final denied = await gateMutatingToolCall(
+        toolName: 'delete_knowledge_insight_tags',
+        summary: tags.map((tag) => tag.toString()).join(', '),
+      );
+      if (denied != null) return denied;
+
       try {
         final tagList = tags.cast<String>();
         await fileSystem.deleteInsightTags(userId, tagList);
@@ -190,6 +204,12 @@ Tool buildSaveKnowledgeInsightCardsTool() {
       final logger = getLogger('KnowledgeInsightSkill');
       final fileSystem = FileSystemService.instance;
       final userId = AgentCallToolContext.current!.state.metadata['userId'];
+
+      final denied = await gateMutatingToolCall(
+        toolName: 'save_knowledge_insight_cards',
+        summary: '${cards.length} insight card(s)',
+      );
+      if (denied != null) return denied;
 
       // Convert dicts to ChartData objects
       final chartObjects = cards.map((c) {
@@ -500,8 +520,8 @@ Tool buildGetUserActivityStatsTool() {
       final safeDays = (days ?? 7).clamp(1, 90).toInt();
 
       try {
-        final snapshot = await UserStatsService(fileSystemService: fileSystem)
-            .fetchSnapshot(
+        final snapshot =
+            await UserStatsService(fileSystemService: fileSystem).fetchSnapshot(
           userId: userId,
           range: UserStatsDateRange.lastDays(safeDays),
         );

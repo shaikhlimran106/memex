@@ -275,9 +275,8 @@ class _MagazineNarrativeTabState extends State<MagazineNarrativeTab> {
 
   Widget _buildAgentReminderRow(ScheduleViewQuoteBlock block) {
     final isHighPriority = block.priority == 'high';
-    final accentColor = isHighPriority
-        ? const Color(0xFFD97706)
-        : const Color(0xFF64748B);
+    final accentColor =
+        isHighPriority ? const Color(0xFFD97706) : const Color(0xFF64748B);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -333,9 +332,8 @@ class _MagazineNarrativeTabState extends State<MagazineNarrativeTab> {
   }) {
     final isTask = _isTaskItem(item);
     final itemKey = _itemKey(item);
-    final subtasks = isTask
-        ? _resolveSubtasks(item)
-        : const <ScheduleSubtask>[];
+    final subtasks =
+        isTask ? _resolveSubtasks(item) : const <ScheduleSubtask>[];
     final status = _resolveStatus(item, subtasks);
     final isCompleted = status == ScheduleItemStatus.completed;
 
@@ -355,19 +353,18 @@ class _MagazineNarrativeTabState extends State<MagazineNarrativeTab> {
                     color: isCompleted
                         ? const Color(0xFF99A1AF)
                         : item.priority == 3
-                        ? const Color(0xFFF43F5E)
-                        : const Color(0xFF5B6CFF),
+                            ? const Color(0xFFF43F5E)
+                            : const Color(0xFF5B6CFF),
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white, width: 2),
                     boxShadow: [
                       BoxShadow(
-                        color:
-                            (isCompleted
-                                    ? const Color(0xFF99A1AF)
-                                    : item.priority == 3
+                        color: (isCompleted
+                                ? const Color(0xFF99A1AF)
+                                : item.priority == 3
                                     ? const Color(0xFFF43F5E)
                                     : const Color(0xFF5B6CFF))
-                                .withValues(alpha: 0.3),
+                            .withValues(alpha: 0.3),
                         blurRadius: 6,
                       ),
                     ],
@@ -537,24 +534,23 @@ class _MagazineNarrativeTabState extends State<MagazineNarrativeTab> {
           shape: BoxShape.circle,
           color: isCompleted ? const Color(0xFF5B6CFF) : Colors.transparent,
           border: Border.all(
-            color: isCompleted
-                ? const Color(0xFF5B6CFF)
-                : const Color(0xFFCBD5E1),
+            color:
+                isCompleted ? const Color(0xFF5B6CFF) : const Color(0xFFCBD5E1),
             width: 2,
           ),
         ),
         child: isCompleted
             ? const Icon(Icons.check, size: 13, color: Colors.white)
             : isInProgress
-            ? Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF5B6CFF),
-                  shape: BoxShape.circle,
-                ),
-              )
-            : null,
+                ? Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF5B6CFF),
+                      shape: BoxShape.circle,
+                    ),
+                  )
+                : null,
       ),
     );
   }
@@ -776,7 +772,8 @@ class _MagazineNarrativeTabState extends State<MagazineNarrativeTab> {
       'completed' || 'done' => ScheduleItemStatus.completed,
       'in_progress' ||
       'inprogress' ||
-      'active' => ScheduleItemStatus.inProgress,
+      'active' =>
+        ScheduleItemStatus.inProgress,
       'overdue' => ScheduleItemStatus.overdue,
       _ => ScheduleItemStatus.pending,
     };

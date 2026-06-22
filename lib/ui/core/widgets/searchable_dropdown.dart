@@ -179,15 +179,21 @@ class SearchableDropdownState extends State<SearchableDropdown> {
     if (_overlayEntry != null) {
       // Already showing — dismiss
       _dismissDropdown();
-      _focusNode.unfocus();
+      FocusManager.instance.primaryFocus?.unfocus();
       return;
     }
+
     // Show list without keyboard
     _dropdownMode = true;
     _showAll = true;
     _filtered = widget.options;
-    _focusNode.unfocus(); // ensure keyboard is hidden
-    _showOverlay();
+    // Clear focus from any active field on the page, not only this dropdown.
+    // Otherwise the iOS keyboard can keep covering the dropdown list.
+    FocusManager.instance.primaryFocus?.unfocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_dropdownMode || _overlayEntry != null) return;
+      _showOverlay();
+    });
   }
 
   /// Allow parent to update the text programmatically.

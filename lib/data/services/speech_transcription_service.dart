@@ -173,7 +173,7 @@ class SpeechTranscriptionService {
     required String mimeType,
   }) async {
     final resources = await UserStorage.getAgentLLMResources(
-      AgentDefinitions.analyzeAssets,
+      AgentDefinitions.chatAgent,
       defaultClientKey: LLMConfig.defaultClientKey,
     );
 

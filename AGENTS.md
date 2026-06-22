@@ -149,7 +149,7 @@ All agents are built on `dart_agent_core`'s `StatefulAgent`. When creating or mo
 - **LLM resources**: obtain via `UserStorage.getAgentLLMResources(agentId)` — handles per-agent model config resolution and client instantiation.
 - **File access**: each agent declares its own `FilePermissionManager` with explicit `PermissionRule`s (read/write/none per directory). Build file tools via `FileToolFactory`. Never give an agent broader access than it needs.
 - **Skills**: built-in Dart skills in `agent/skills/` (e.g. `PkmSkill`, `TimelineCardSkill`, `KnowledgeInsightSkill`). Passed as `skills:` parameter to `StatefulAgent`.
-- **Prompts**: co-locate with the agent/skill/tool that uses them. Large prompts go in a dedicated `prompts.dart` as constants or builder methods (e.g. `agent/pkm_agent/prompts.dart`). Short prompts can be inline string variables in the code file. Shared prompts go in `agent/prompts.dart`.
+- **Prompts**: co-locate with the agent/skill/tool that uses them. Large prompts go in a dedicated `prompts.dart` as constants or builder methods (e.g. `agent/super_agent/prompts.dart`). Short prompts can be inline string variables in the code file. Shared prompts go in `agent/prompts.dart`.
 
 ## Localization
 

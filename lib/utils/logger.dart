@@ -28,4 +28,3 @@ Future<void> setupLogger() async {
 Logger getLogger(String name) {
   return Logger(name);
 }
-

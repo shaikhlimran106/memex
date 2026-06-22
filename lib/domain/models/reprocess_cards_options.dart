@@ -1,25 +1,24 @@
-enum ReprocessCardsDownstreamMode {
-  cardOnly('card_only'),
-  postCardRouter('post_card_router');
+enum ReprocessCardsScope {
+  cardsOnly('cards_only'),
+  cardsAndRelatedFollowUps('cards_and_related_follow_ups');
 
-  const ReprocessCardsDownstreamMode(this.payloadValue);
+  const ReprocessCardsScope(this.payloadValue);
 
   final String payloadValue;
 
-  bool get rerunDownstream => this == postCardRouter;
+  bool get includeRelatedFollowUps => this == cardsAndRelatedFollowUps;
 
-  static ReprocessCardsDownstreamMode fromPayload(Object? value) {
+  static ReprocessCardsScope fromPayload(Object? value) {
     final normalized = value?.toString().trim();
-    if (normalized == postCardRouter.payloadValue ||
-        normalized == 'rerun_downstream') {
-      return postCardRouter;
+    if (normalized == cardsAndRelatedFollowUps.payloadValue) {
+      return cardsAndRelatedFollowUps;
     }
-    return cardOnly;
+    return cardsOnly;
   }
 }
 
 class ReprocessCardsPayloadKeys {
   const ReprocessCardsPayloadKeys._();
 
-  static const downstreamMode = 'downstream_mode';
+  static const scope = 'scope';
 }

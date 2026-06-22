@@ -83,10 +83,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
       transitionDuration: const Duration(milliseconds: 500),
       pageBuilder: (context, animation, secondaryAnimation) {
         return AgentChatDialog(
-          agentName: widget.agentName,
-          title: widget.title ?? UserStorage.l10n.aiAssistant,
           initialSessionId: sessionId,
-          inputHint: UserStorage.l10n.continueChat,
         );
       },
     ).then((_) {

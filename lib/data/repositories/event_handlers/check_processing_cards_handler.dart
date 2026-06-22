@@ -52,18 +52,16 @@ Future<void> handleCheckProcessingCards(
             final renderResult = await renderCard(
               userId: userId,
               cardData: cardData,
+              factContent: cardData.fact,
             );
 
             final tags = List<String>.from(cardData.tags);
             final timestamp = cardData.timestamp;
             final title = cardData.title;
 
-            // Extract factContent, assets and rawText
-            final factInfo = await fileSystemService.extractFactContentFromFile(
-                userId, cardId);
-            final factContent = factInfo?.content;
+            // Extract assets and rawText from the card's own fields
             final assetsAndText =
-                await extractAssetsAndRawText(userId, factContent);
+                await extractAssetsAndRawText(userId, cardData);
             final assets = (assetsAndText['assets'] as List<AssetData>)
                 .map((a) => a.toJson())
                 .toList();

@@ -429,8 +429,7 @@ UserStatsSnapshot _singleInputSnapshot() {
   final range = UserStatsDateRange.lastDays(7, now: today);
   final daily = List.generate(range.dayCount, (index) {
     final date = range.start.add(Duration(days: index));
-    final isToday =
-        date.year == today.year &&
+    final isToday = date.year == today.year &&
         date.month == today.month &&
         date.day == today.day;
     return UserStatsDailyPoint(

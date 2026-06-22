@@ -16,10 +16,10 @@ class AgentBackgroundCoordinator with WidgetsBindingObserver {
     AgentQueueDrainScheduler? scheduler,
     AgentRunService? runService,
     AppLifecycleState? initialLifecycleState,
-  }) : _platform = platform ?? MethodChannelAgentBackgroundPlatform(),
-       _scheduler = scheduler ?? WorkmanagerAgentQueueDrainScheduler(),
-       _runService = runService ?? AgentRunService.instance,
-       _initialLifecycleState = initialLifecycleState;
+  })  : _platform = platform ?? MethodChannelAgentBackgroundPlatform(),
+        _scheduler = scheduler ?? WorkmanagerAgentQueueDrainScheduler(),
+        _runService = runService ?? AgentRunService.instance,
+        _initialLifecycleState = initialLifecycleState;
 
   static AgentBackgroundCoordinator? _instance;
   static AgentBackgroundCoordinator get instance {
@@ -38,8 +38,8 @@ class AgentBackgroundCoordinator with WidgetsBindingObserver {
   StreamSubscription<String>? _actionSubscription;
   late final StreamController<void> _openActivityController =
       StreamController<void>.broadcast(
-        onListen: _flushPendingOpenActivityRequest,
-      );
+    onListen: _flushPendingOpenActivityRequest,
+  );
 
   TaskActivitySnapshot _taskSnapshot = const TaskActivitySnapshot.empty();
   AgentActivityMessageModel? _latestMessage;
@@ -63,8 +63,7 @@ class AgentBackgroundCoordinator with WidgetsBindingObserver {
   }) {
     if (_started || !_platform.isSupported) return;
     _started = true;
-    _lifecycleState =
-        _initialLifecycleState ??
+    _lifecycleState = _initialLifecycleState ??
         WidgetsBinding.instance.lifecycleState ??
         AppLifecycleState.resumed;
     WidgetsBinding.instance.addObserver(this);
@@ -76,8 +75,8 @@ class AgentBackgroundCoordinator with WidgetsBindingObserver {
       _handleActivityMessage,
     );
     _runSubscription = _runService.watchLatestVisibleRun().listen(
-      _handleRunSnapshot,
-    );
+          _handleRunSnapshot,
+        );
     _actionSubscription = _platform.actionStream.listen(_handleAction);
 
     unawaited(_consumeInitialAction());

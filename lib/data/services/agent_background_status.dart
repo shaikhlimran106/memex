@@ -56,8 +56,7 @@ class AgentBackgroundStatus {
 
     final fallbackStage = _stageForState(state, labels);
     final title = _titleForState(state, labels);
-    final stage =
-        _localizeKnownStatusText(
+    final stage = _localizeKnownStatusText(
           _firstNonBlank([latestMessage?.title, latestMessage?.agentName]),
           labels,
         ) ??
@@ -182,24 +181,24 @@ class AgentBackgroundStatus {
 
   @override
   int get hashCode => Object.hashAll([
-    state,
-    pending,
-    processing,
-    retrying,
-    title,
-    stage,
-    detail,
-    summary,
-    taskSummary,
-    statusText,
-    agentName,
-    scene,
-    sceneId,
-    progressCompleted,
-    progressTotal,
-    runId,
-    factId,
-  ]);
+        state,
+        pending,
+        processing,
+        retrying,
+        title,
+        stage,
+        detail,
+        summary,
+        taskSummary,
+        statusText,
+        agentName,
+        scene,
+        sceneId,
+        progressCompleted,
+        progressTotal,
+        runId,
+        factId,
+      ]);
 }
 
 class AgentBackgroundStatusLabels {
@@ -289,7 +288,7 @@ class AgentBackgroundStatusLabels {
   final String stagePreparingComment;
   final String stageRoutingFollowUps;
   final String Function(Object running, Object pending, Object retrying)
-  taskSummary;
+      taskSummary;
   final String Function(Object count) taskDetail;
   final String noTasks;
   final String starting;
@@ -316,7 +315,8 @@ AgentBackgroundStatus _fromRunSnapshot({
 }) {
   final state = switch (runSnapshot.state) {
     AgentRunState.queued ||
-    AgentRunState.running => AgentBackgroundRunState.active,
+    AgentRunState.running =>
+      AgentBackgroundRunState.active,
     AgentRunState.pausedBySystem => AgentBackgroundRunState.paused,
     AgentRunState.completed => AgentBackgroundRunState.completed,
     AgentRunState.failed => AgentBackgroundRunState.failed,
@@ -339,8 +339,7 @@ AgentBackgroundStatus _fromRunSnapshot({
   );
   final stage =
       _localizeKnownStatusText(runSnapshot.stage, labels) ?? runSnapshot.stage;
-  final detail =
-      _trimToSingleLine(
+  final detail = _trimToSingleLine(
         _localizeKnownStatusText(runSnapshot.message, labels) ??
             runSnapshot.message,
       ) ??
@@ -437,14 +436,12 @@ String _statusTextFor({
   required AgentBackgroundStatusLabels labels,
 }) {
   return switch (state) {
-    AgentBackgroundRunState.failed =>
-      remainingTasks > 0
-          ? labels.needsAttentionStatus(taskSummary)
-          : labels.stageNeedsAttention,
-    AgentBackgroundRunState.paused =>
-      remainingTasks > 0
-          ? labels.pausedStatus(taskSummary)
-          : labels.pausedDetail,
+    AgentBackgroundRunState.failed => remainingTasks > 0
+        ? labels.needsAttentionStatus(taskSummary)
+        : labels.stageNeedsAttention,
+    AgentBackgroundRunState.paused => remainingTasks > 0
+        ? labels.pausedStatus(taskSummary)
+        : labels.pausedDetail,
     AgentBackgroundRunState.active =>
       remainingTasks > 0 ? taskSummary : labels.stageProcessing,
     AgentBackgroundRunState.completed => labels.stageCompleted,
@@ -461,7 +458,8 @@ String _titleForState(
     AgentBackgroundRunState.paused => labels.pausedTitle,
     AgentBackgroundRunState.completed ||
     AgentBackgroundRunState.active ||
-    AgentBackgroundRunState.idle => labels.title,
+    AgentBackgroundRunState.idle =>
+      labels.title,
   };
 }
 
@@ -507,7 +505,8 @@ String? _localizeKnownStatusText(
       labels.pausedDetail,
     'Waiting for the next processing step.' ||
     'Waiting for background processing to start.' ||
-    'Waiting for the next background window.' => labels.queuedDetail,
+    'Waiting for the next background window.' =>
+      labels.queuedDetail,
     'The current step will retry automatically.' => labels.retryingDetail,
     'Reading attachments and local context.' => labels.analyzeMediaDetail,
     'Turning the record into a timeline card.' => labels.generatingCardDetail,

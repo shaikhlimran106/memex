@@ -22,7 +22,6 @@ import 'package:memex/ui/settings/widgets/personal_center_screen.dart';
 import 'package:memex/ui/insight/view_models/insight_viewmodel.dart';
 import 'package:memex/ui/insight/widgets/insight_screen.dart';
 import 'package:memex/ui/insight/widgets/insight_detail_page.dart';
-import 'package:memex/ui/chat/widgets/agent_chat_dialog.dart';
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/utils/permission_utils.dart';
@@ -64,24 +63,6 @@ class TimelineScreenState extends State<TimelineScreen> {
   int _currentPageIndex = 0;
   final ScrollController _tagScrollController = ScrollController();
 
-  /// Show loading indicator for submission (called from main screen).
-  void showLoading() {
-    if (!mounted) return;
-    widget.viewModel.setSubmitting(true);
-  }
-
-  /// Hide loading indicator (called from main screen).
-  void hideLoading() {
-    if (!mounted) return;
-    widget.viewModel.setSubmitting(false);
-  }
-
-  /// Add a new card to the top (called from main screen after submit).
-  void addCard(TimelineCardModel card) {
-    if (!mounted) return;
-    widget.viewModel.addCard(card);
-  }
-
   /// Scroll to top and refresh timeline (called from main screen).
   void scrollToTopAndRefresh() {
     if (_scrollController.hasClients) {
@@ -94,34 +75,6 @@ class TimelineScreenState extends State<TimelineScreen> {
     if (mounted) {
       widget.viewModel.refresh();
     }
-  }
-
-  void _showChatDialog(TimelineViewModel vm) {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: '',
-      barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 500),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        if (vm.viewMode == TimelineViewMode.insight) {
-          return AgentChatDialog(
-            agentName: 'knowledge_insight_agent',
-            title: UserStorage.l10n.insightAssistant,
-            inputHint: UserStorage.l10n.insightInputHint,
-            scene: 'insight_card_chat',
-            sceneId: 'general_insight_chat',
-            initialRefs: const [],
-          );
-        }
-        return AgentChatDialog(
-          agentName: 'memex_agent',
-          title: UserStorage.l10n.aiAssistant,
-          inputHint: UserStorage.l10n.aiInputHint,
-          scene: 'assistant_home',
-        );
-      },
-    );
   }
 
   @override
@@ -291,45 +244,6 @@ class TimelineScreenState extends State<TimelineScreen> {
     _scrollTagIntoView(index, widget.viewModel);
   }
 
-  /// Check if a card is a system_task created by a custom agent.
-  bool _isCustomAgentSystemTask(TimelineCardModel card) {
-    if (card.uiConfigs.isEmpty) return false;
-    final config = card.uiConfigs.first;
-    return config.templateId == 'system_task' &&
-        config.data['agentName'] != null &&
-        config.data['sessionId'] != null;
-  }
-
-  /// Check if a card is a clarification_ask card (global Ask).
-  bool _isClarificationAskCard(TimelineCardModel card) {
-    if (card.uiConfigs.isEmpty) return false;
-    return card.uiConfigs.first.templateId == 'clarification_ask';
-  }
-
-  /// Open AgentChatDialog for a custom agent system_task card.
-  void _openCustomAgentChat(TimelineCardModel card) {
-    final config = card.uiConfigs.first;
-    final agentName = config.data['agentName'] as String;
-    final sessionId = config.data['sessionId'] as String;
-
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: '',
-      barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 500),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return AgentChatDialog(
-          agentName: agentName,
-          title: agentName,
-          initialSessionId: sessionId,
-          inputHint: UserStorage.l10n.aiInputHint,
-          scene: 'custom_agent_$agentName',
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -356,28 +270,12 @@ class TimelineScreenState extends State<TimelineScreen> {
                       ),
                     ),
                   ),
-                  // 4 buttons: chat, notification, companion, user avatar
+                  // Header actions: notification, companion, user avatar
                   SizedBox(
                     height: 36,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Chat button
-                        GestureDetector(
-                          onTap: () => _showChatDialog(vm),
-                          child: SizedBox(
-                            width: 36,
-                            height: 36,
-                            child: Center(
-                              child: SvgPicture.asset(
-                                'assets/icons/chat_add.svg',
-                                width: 22,
-                                height: 20,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
                         // Notification button
                         if (AppDatabase.isInitialized)
                           Builder(
@@ -951,13 +849,6 @@ class TimelineScreenState extends State<TimelineScreen> {
             isDemoTarget: isDemoTarget,
             attachments: vm.attachments[card.id] ?? const [],
             onTap: () async {
-              // If this is a custom agent system_task card, open chat dialog.
-              if (_isCustomAgentSystemTask(card)) {
-                _openCustomAgentChat(card);
-                return;
-              }
-              // Clarification Ask cards are self-contained; no detail page.
-              if (_isClarificationAskCard(card)) return;
               if (_isScheduleBriefingCard(card)) {
                 _jumpToPage(2);
                 vm.setViewMode(TimelineViewMode.timeline);
@@ -1139,9 +1030,7 @@ class _TimelineEntryItemState extends State<TimelineEntryItem> {
     // System-generated cards (no user raw input) should not support long-press
     // toggle to classic mode — they have no rawText to fall back to.
     const systemOnlyTemplates = {
-      'clarification_ask',
       'schedule_briefing',
-      'system_task',
     };
     final isSystemCard = card.uiConfigs.isNotEmpty &&
         systemOnlyTemplates.contains(card.uiConfigs.first.templateId);

@@ -7,7 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('renders an empty slot before a user is available', (tester) async {
+  testWidgets('renders an empty slot before a user is available',
+      (tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       const MaterialApp(home: Center(child: PersonaAvatarButton())),

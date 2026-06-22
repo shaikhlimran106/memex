@@ -13,6 +13,7 @@ void main() {
           'fact_id': '2026/05/29.md#ts_1',
           'title': 'Title',
           'tags': ['tag'],
+          'fact': 'raw fact content',
           'comments': <dynamic>[],
         },
         after: {
@@ -22,15 +23,36 @@ void main() {
           'comments': [
             {'id': 'c1', 'content': 'new comment'},
           ],
-          'content': 'raw fact content',
-          'asset_analyses': <String>[],
-          'asset_ocr': <String>[],
+          'fact': 'raw fact content',
         },
       );
 
       expect(
         SearchService.instance.shouldEnqueueFtsIndexUpdateForTesting(record),
         isFalse,
+      );
+    });
+
+    test('enqueues card updates when fact changes', () {
+      final record = DataChangeRecord(
+        op: DataChangeOp.update,
+        ns: DataChangeNs.card,
+        documentKey: '2026/05/29.md#ts_1',
+        before: {
+          'title': 'Title',
+          'tags': ['tag'],
+          'fact': 'before fact',
+        },
+        after: {
+          'title': 'Title',
+          'tags': ['tag'],
+          'fact': 'after fact',
+        },
+      );
+
+      expect(
+        SearchService.instance.shouldEnqueueFtsIndexUpdateForTesting(record),
+        isTrue,
       );
     });
 

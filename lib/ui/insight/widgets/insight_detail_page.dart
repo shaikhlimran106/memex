@@ -7,6 +7,8 @@ import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/domain/models/insight_detail_model.dart';
 import 'package:memex/ui/core/cards/native_card_factory.dart';
 import 'package:memex/ui/core/cards/native_widget_factory.dart';
+import 'package:memex/ui/chat/widgets/open_super_agent_dialog.dart';
+import 'package:memex/ui/chat/widgets/reference_asset_formatter.dart';
 import 'package:memex/ui/timeline/widgets/timeline_card_detail_screen.dart';
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/ui/core/widgets/detail_page_layout.dart';
@@ -162,6 +164,75 @@ class _InsightDetailPageState extends State<InsightDetailPage> {
       shareWidget,
       detailContent: detailWidget,
     );
+  }
+
+  void _showChatDialog() {
+    if (_metadata == null || _insightDetail == null) return;
+
+    final metadata = _metadata!;
+
+    openSuperAgentDialog(
+      context,
+      sceneId: widget.id,
+      initialRefs: [
+        {
+          'title': metadata.title,
+          'content': _buildInsightReferenceContent(_insightDetail!),
+          'type': 'knowledge_insight_card',
+        }
+      ],
+    );
+  }
+
+  String _buildInsightReferenceContent(InsightDetailModel detail) {
+    final metadata = detail.insight;
+    final buffer = StringBuffer()
+      ..writeln('Reference Type: knowledge_insight_card')
+      ..writeln(
+          'Target Insight ID: ${metadata.id.isNotEmpty ? metadata.id : widget.id}')
+      ..writeln('Title: ${metadata.title}')
+      ..writeln('Insight Type: ${metadata.type}');
+
+    if (detail.content.isNotEmpty) {
+      buffer.writeln('Insight Content:\n${detail.content}');
+    }
+    if (detail.widgetTemplate != null) {
+      buffer.writeln('Widget Template ID: ${detail.widgetTemplate}');
+    }
+    if (detail.widgetData != null) {
+      buffer.writeln('Widget Data: ${detail.widgetData}');
+    }
+    if (detail.relatedCards.isNotEmpty) {
+      buffer.writeln('Related Timeline Cards:');
+      for (final card in detail.relatedCards) {
+        buffer.writeln(_buildRelatedCardReference(card));
+      }
+    }
+
+    return buffer.toString();
+  }
+
+  String _buildRelatedCardReference(RelatedCardModel card) {
+    final buffer = StringBuffer()
+      ..writeln('- Card ID: ${card.id}')
+      ..writeln('  Title: ${card.title ?? ''}');
+
+    if (card.rawText != null && card.rawText!.isNotEmpty) {
+      buffer.writeln('  Record Content: ${card.rawText}');
+    }
+    if (card.tags.isNotEmpty) {
+      buffer.writeln('  Tags: ${card.tags.join(', ')}');
+    }
+    if (card.assets != null && card.assets!.isNotEmpty) {
+      buffer.writeln('  Assets:');
+      for (final asset in card.assets!) {
+        buffer.writeln(
+          '    - ${asset.type}: ${formatAssetReferenceForAgent(asset)}',
+        );
+      }
+    }
+
+    return buffer.toString().trimRight();
   }
 
   /// Builds a long-form detail widget for the "detail style" share image.
@@ -340,6 +411,21 @@ class _InsightDetailPageState extends State<InsightDetailPage> {
             'assets/icons/btn_share.svg',
             width: 36,
             height: 36,
+          ),
+        ),
+        const SizedBox(width: 4),
+        GestureDetector(
+          onTap: _showChatDialog,
+          child: SizedBox(
+            width: 36,
+            height: 36,
+            child: Center(
+              child: SvgPicture.asset(
+                'assets/icons/chat_add.svg',
+                width: 22,
+                height: 20,
+              ),
+            ),
           ),
         ),
       ],

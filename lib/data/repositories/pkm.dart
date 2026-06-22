@@ -184,8 +184,7 @@ Future<Map<String, dynamic>> listPkmDirectory({String? path}) async {
             if (seenNames.contains(name)) continue;
 
             seenNames.add(name);
-            final isDirectory =
-                await FileSystemEntity.isDirectory(entity.path);
+            final isDirectory = await FileSystemEntity.isDirectory(entity.path);
             final item = <String, dynamic>{
               'name': name,
               'path': p.relative(entity.path, from: pkmRoot),
