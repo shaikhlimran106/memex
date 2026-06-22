@@ -658,6 +658,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiInputHint => '无论是回忆还是当下，我都准备好了...';
 
   @override
+  String get refreshSuperAgentStateTooltip => '清空 Memex Agent Context';
+
+  @override
+  String get refreshSuperAgentStateTitle => '清空 Memex Agent 历史 Context？';
+
+  @override
+  String get refreshSuperAgentStateMessage =>
+      '可见聊天历史会继续保留，但 Memex Agent 的历史运行 Context 会被清空，之后会从新的 Context 开始回复。持久化记忆、知识库文件、卡片等已保存数据不受影响。适用于 Memex Agent 持续运行异常等情况。确定继续？';
+
+  @override
+  String get refreshSuperAgentStateActiveRunMessage =>
+      '当前 Memex Agent 消息处理完后才能清空 Context。';
+
+  @override
+  String get refreshSuperAgentStateSuccess => 'Memex Agent Context 已清空';
+
+  @override
+  String refreshSuperAgentStateFailed(Object error) {
+    return '清空 Memex Agent Context 失败: $error';
+  }
+
+  @override
   String get nothingHere => '还没有任何内容';
 
   @override

@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:logging/logging.dart';
 
@@ -63,92 +61,5 @@ class LlmImageCodec {
       return true;
     }
     return false;
-  }
-
-  /// Sniffs the leading bytes of a base64 payload without decoding all of it.
-  static bool isLlmSafeBase64Image(String base64Data) {
-    if (base64Data.length < 16) return false;
-    try {
-      final prefixLength =
-          base64Data.length >= 32 ? 32 : (base64Data.length ~/ 4) * 4;
-      final head = base64Decode(base64Data.substring(0, prefixLength));
-      return isLlmSafeImageBytes(head);
-    } catch (_) {
-      return false;
-    }
-  }
-
-  static Future<Uint8List?> transcodeBytesForLlm(
-    Uint8List bytes, {
-    int targetSize = 2048,
-    int quality = 85,
-  }) async {
-    try {
-      return await FlutterImageCompress.compressWithList(
-        bytes,
-        minWidth: targetSize,
-        minHeight: targetSize,
-        quality: quality,
-        format: CompressFormat.jpeg,
-        autoCorrectionAngle: true,
-        keepExif: false,
-      );
-    } catch (e) {
-      _logger.warning('Failed to transcode image bytes for LLM', e);
-      return null;
-    }
-  }
-
-  /// Heals agent session history that contains images no longer acceptable
-  /// to the active provider — e.g. HEIC inlined before transcoding existed,
-  /// which is replayed every turn and makes OpenAI-compatible endpoints
-  /// (Kimi) fail the whole session with 400.
-  ///
-  /// Unsafe images are transcoded to JPEG in place; if transcoding fails they
-  /// degrade to a text placeholder so the session can continue. Returns the
-  /// number of replaced parts.
-  static Future<int> sanitizeHistoryImages(AgentState state) async {
-    var replaced = 0;
-    final messages = state.history.messages;
-    for (var i = 0; i < messages.length; i++) {
-      final message = messages[i];
-      if (message is! UserMessage) continue;
-      if (!message.contents.any(
-        (part) => part is ImagePart && !isLlmSafeBase64Image(part.base64Data),
-      )) {
-        continue;
-      }
-
-      final newContents = <UserContentPart>[];
-      for (final part in message.contents) {
-        if (part is! ImagePart || isLlmSafeBase64Image(part.base64Data)) {
-          newContents.add(part);
-          continue;
-        }
-        Uint8List? transcoded;
-        try {
-          transcoded =
-              await transcodeBytesForLlm(base64Decode(part.base64Data));
-        } catch (e) {
-          _logger.warning('Failed to decode history image for sanitize', e);
-        }
-        if (transcoded != null) {
-          newContents.add(ImagePart(base64Encode(transcoded), jpegMimeType));
-        } else {
-          newContents.add(TextPart(
-            '[image attachment removed: format not supported by the current '
-            'model provider]',
-          ));
-        }
-        replaced += 1;
-      }
-
-      messages[i] = UserMessage(
-        newContents,
-        timestamp: message.timestamp,
-        metadata: message.metadata,
-      );
-    }
-    return replaced;
   }
 }

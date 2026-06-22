@@ -669,6 +669,29 @@ class AppLocalizationsEn extends AppLocalizations {
       'Whether it\'s memories or the present, I\'m here...';
 
   @override
+  String get refreshSuperAgentStateTooltip => 'Clear Memex Agent context';
+
+  @override
+  String get refreshSuperAgentStateTitle =>
+      'Clear Memex Agent history context?';
+
+  @override
+  String get refreshSuperAgentStateMessage =>
+      'The visible chat history will stay, but Memex Agent\'s historical runtime context will be cleared and future replies will start from a fresh context. Persistent memory, knowledge base files, cards, and other saved data are not affected. Use this when Memex Agent keeps behaving abnormally. Continue?';
+
+  @override
+  String get refreshSuperAgentStateActiveRunMessage =>
+      'Wait until the current Memex Agent message finishes before clearing context.';
+
+  @override
+  String get refreshSuperAgentStateSuccess => 'Memex Agent context cleared';
+
+  @override
+  String refreshSuperAgentStateFailed(Object error) {
+    return 'Failed to clear Memex Agent context: $error';
+  }
+
+  @override
   String get nothingHere => 'Nothing here yet';
 
   @override

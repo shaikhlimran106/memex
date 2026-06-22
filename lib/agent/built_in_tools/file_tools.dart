@@ -137,7 +137,6 @@ class FileToolFactory {
       },
       executable: (String path) async {
         final imagePath = _resolveImagePath(path);
-        permissionManager.checkPermission(imagePath, FileAccessType.read);
 
         final extension = p.extension(imagePath).toLowerCase();
         if (!_viewImageExtensions.contains(extension)) {

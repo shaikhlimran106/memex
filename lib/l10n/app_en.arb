@@ -301,6 +301,17 @@
   "comparisonChart": "Comparison chart",
   "todayTimeFlow": "Today's time flow",
   "aiInputHint": "Whether it's memories or the present, I'm here...",
+  "refreshSuperAgentStateTooltip": "Clear Memex Agent context",
+  "refreshSuperAgentStateTitle": "Clear Memex Agent history context?",
+  "refreshSuperAgentStateMessage": "The visible chat history will stay, but Memex Agent's historical runtime context will be cleared and future replies will start from a fresh context. Persistent memory, knowledge base files, cards, and other saved data are not affected. Use this when Memex Agent keeps behaving abnormally. Continue?",
+  "refreshSuperAgentStateActiveRunMessage": "Wait until the current Memex Agent message finishes before clearing context.",
+  "refreshSuperAgentStateSuccess": "Memex Agent context cleared",
+  "@refreshSuperAgentStateFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "refreshSuperAgentStateFailed": "Failed to clear Memex Agent context: {error}",
   "nothingHere": "Nothing here yet",
   "nothingHereHint": "Tap the button below to create your first card",
   "agentProcessing": "AI is processing...",

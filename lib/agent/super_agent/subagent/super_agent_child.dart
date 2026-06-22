@@ -86,7 +86,7 @@ class SuperAgentChildConfig {
     this.toolProfile = ChildToolProfile.read,
     this.readRootPaths = const [],
     this.writeRootPaths = const [],
-    this.timeout = const Duration(minutes: 4),
+    this.timeout = const Duration(minutes: 20),
   });
 }
 

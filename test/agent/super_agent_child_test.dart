@@ -53,6 +53,10 @@ void main() {
           toolProfile: profile,
         );
 
+    test('default child timeout allows long specialist work', () {
+      expect(cfg(ChildToolProfile.read).timeout, const Duration(minutes: 20));
+    });
+
     test('profile none exposes no base tools', () {
       final agent = createSuperAgentChild(
         config: cfg(ChildToolProfile.none),

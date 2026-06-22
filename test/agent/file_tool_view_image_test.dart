@@ -91,6 +91,49 @@ void main() {
       expect(pending.single.image.mimeType, 'image/webp');
       expect(pending.single.image.base64Data, base64Encode(compressed));
     });
+
+    test('does not require file permission manager read access', () async {
+      final image = File('${tempDir.path}/Facts/assets/sample.png');
+      await image.create(recursive: true);
+      await image.writeAsBytes(_pngHeader(width: 64, height: 64));
+      final compressed = Uint8List.fromList([9, 8, 7, 6]);
+
+      final factory = FileToolFactory(
+        permissionManager: FilePermissionManager(
+          'test_user',
+          const [],
+          withDefaultRules: false,
+        ),
+        workingDirectory: tempDir.path,
+        viewImageCompressor: (
+          String filePath, {
+          int targetSize = 2048,
+          int quality = 85,
+        }) async {
+          expect(filePath, image.path);
+          return compressed;
+        },
+      );
+      final tool = factory.buildViewImageTool();
+      final state = AgentState(
+        sessionId: 'view_image_no_permission_test',
+        metadata: const {'userId': 'test_user'},
+      );
+
+      final result = await _runToolCall(
+        tool: tool,
+        arguments: {'path': 'fs://sample.png'},
+        state: state,
+      );
+
+      expect(result.isError, isFalse);
+      expect(
+          _text(result), contains('Image attached to the next model message'));
+
+      final pending = PendingToolImageBuffer.instance.drain(state.sessionId);
+      expect(pending, hasLength(1));
+      expect(pending.single.image.base64Data, base64Encode(compressed));
+    });
   });
 }
 
