@@ -5,10 +5,10 @@ import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/ui/timeline/widgets/timeline_card_detail_screen.dart';
 
 void main() {
-  testWidgets('prefers structured card content over raw fact text',
+  testWidgets('ignores structured card content and preserves raw fact text',
       (tester) async {
     final detail = _detail(
-      rawContent: '### 瑶瑶\n这段角色陪伴内容应该只出现在评论区。',
+      rawContent: '## 晚餐记录\n- 家常菜\n- 太顺杨梅',
       uiConfigs: const [
         UiConfig(
           templateId: 'article',
@@ -29,14 +29,17 @@ void main() {
       ),
     );
 
-    expect(find.text('端午的温馨家常晚餐和太顺杨梅'), findsOneWidget);
-    expect(find.text('一家人吃了家常晚餐，还尝到了太顺杨梅。'), findsOneWidget);
-    expect(find.text('#Visual'), findsOneWidget);
-    expect(find.textContaining('瑶瑶'), findsNothing);
-    expect(find.textContaining('角色陪伴内容'), findsNothing);
+    expect(
+      find.textContaining('## 晚餐记录', findRichText: true),
+      findsOneWidget,
+    );
+    expect(find.textContaining('- 家常菜', findRichText: true), findsOneWidget);
+    expect(find.textContaining('#Visual', findRichText: true), findsOneWidget);
+    expect(find.text('端午的温馨家常晚餐和太顺杨梅'), findsNothing);
+    expect(find.text('一家人吃了家常晚餐，还尝到了太顺杨梅。'), findsNothing);
   });
 
-  testWidgets('renders raw fact markdown only when no structured config exists',
+  testWidgets('preserves raw fact markdown markers as plain text',
       (tester) async {
     final detail = _detail(
       rawContent: '## 晚餐记录\n- 家常菜\n- 太顺杨梅',
@@ -51,13 +54,15 @@ void main() {
       ),
     );
 
-    expect(find.text('晚餐记录'), findsOneWidget);
-    expect(find.text('家常菜'), findsOneWidget);
-    expect(find.text('太顺杨梅'), findsOneWidget);
-    expect(find.textContaining('##'), findsNothing);
+    expect(
+      find.textContaining('## 晚餐记录', findRichText: true),
+      findsOneWidget,
+    );
+    expect(find.textContaining('- 家常菜', findRichText: true), findsOneWidget);
+    expect(find.text('晚餐记录'), findsNothing);
   });
 
-  testWidgets('falls back to raw fact when legacy html is empty',
+  testWidgets('ignores legacy html config and renders raw fact',
       (tester) async {
     final detail = _detail(
       rawContent: '普通正文',

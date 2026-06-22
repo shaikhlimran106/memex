@@ -8,6 +8,7 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:logging/logging.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
 import 'package:memex/agent/run_mode/agent_run_mode.dart';
@@ -25,26 +26,34 @@ import 'package:memex/utils/user_storage.dart';
 import 'package:memex/ui/core/widgets/agent_logo_loading.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
 import 'package:memex/utils/token_usage_utils.dart';
+import 'package:memex/utils/time_context.dart';
 
 // --- Display Models ---
 
-abstract class ChatDisplayItem {}
+abstract class ChatDisplayItem {
+  DateTime? get timestamp => null;
+}
 
 class UserMessageItem extends ChatDisplayItem {
   final String text;
   final List<Map<String, String>>? refs;
   final List<String> imagePaths;
+  @override
+  final DateTime? timestamp;
   UserMessageItem(
     this.text, {
     this.refs,
     this.imagePaths = const [],
+    this.timestamp,
   });
 }
 
 class AIMessageItem extends ChatDisplayItem {
   String text;
   bool isStreaming;
-  AIMessageItem(this.text, {this.isStreaming = false});
+  @override
+  DateTime? timestamp;
+  AIMessageItem(this.text, {this.isStreaming = false, this.timestamp});
 }
 
 class ThinkingItem extends ChatDisplayItem {
@@ -111,7 +120,10 @@ class ToolCallItem extends ChatDisplayItem {
 
 class ErrorItem extends ChatDisplayItem {
   final String error;
-  ErrorItem(this.error);
+  @override
+  final DateTime timestamp;
+  ErrorItem(this.error, {DateTime? timestamp})
+      : timestamp = timestamp ?? DateTime.now();
 }
 
 /// Inline preview of something the agent produced (record, card, document).
@@ -134,9 +146,15 @@ class ApprovalRequestItem extends ChatDisplayItem {
 
 class ProcessItem extends ChatDisplayItem {
   final List<ChatDisplayItem> children = [];
+  @override
+  final DateTime timestamp;
   bool isExpanded;
   bool isFinished;
-  ProcessItem({this.isExpanded = false, this.isFinished = false});
+  ProcessItem({
+    this.isExpanded = false,
+    this.isFinished = false,
+    DateTime? timestamp,
+  }) : timestamp = timestamp ?? DateTime.now();
 
   List<ToolCallItem> get toolCalls =>
       children.whereType<ToolCallItem>().toList();
@@ -153,6 +171,7 @@ class ProcessItem extends ChatDisplayItem {
 }
 
 const double _agentChatSheetHeightFactor = 0.75;
+const int _agentChatHistoryPageSize = 10;
 const Duration _agentChatKeyboardShowAnimationDuration =
     Duration(milliseconds: 220);
 const Duration _agentChatKeyboardHideAnimationDuration = Duration.zero;
@@ -196,6 +215,58 @@ bool shouldCreateAIMessageForResponseChunk({
   required bool isDone,
 }) {
   return !(isDone && text.isEmpty);
+}
+
+@visibleForTesting
+int superAgentItemIndexForReversedList({
+  required int listIndex,
+  required int itemCount,
+  required int extraItems,
+}) {
+  return itemCount - 1 - (listIndex - extraItems);
+}
+
+@visibleForTesting
+String formatSuperAgentTimeDivider(DateTime date) {
+  final now = DateTime.now();
+  final locale = UserStorage.l10n.localeName;
+  final time = DateFormat('HH:mm', locale).format(date);
+
+  if (_isSameDay(date, now)) {
+    return time;
+  }
+
+  if (_isSameDay(date, now.subtract(const Duration(days: 1)))) {
+    return '${UserStorage.l10n.yesterday} $time';
+  }
+
+  final daysAgo = DateTime(now.year, now.month, now.day)
+      .difference(DateTime(date.year, date.month, date.day))
+      .inDays;
+
+  if (daysAgo < 7) {
+    final weekday = DateFormat.E(locale).format(date);
+    return '$weekday $time';
+  }
+
+  if (date.year == now.year) {
+    return '${DateFormat.MMMd(locale).format(date)} $time';
+  }
+
+  return '${DateFormat.yMMMd(locale).format(date)} $time';
+}
+
+bool _isSameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
+@visibleForTesting
+String formatSuperAgentTokenUsage(ChatTokenUsageEvent item) {
+  final cacheRate = TokenUsageUtils.formatCacheRateFromAggregated(
+    effectivePromptTokens: item.effectivePromptTokens,
+    cachedTokens: item.cachedTokensForRate,
+  );
+  return 'Tokens: ${item.totalTokens} '
+      '(P:${item.promptTokens} C:${item.completionTokens} Cache:$cacheRate)';
 }
 
 @visibleForTesting
@@ -277,6 +348,9 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   List<ChatDisplayItem> _items = [];
   String? _currentSessionId;
   bool _isLoading = false;
+  bool _isLoadingMoreHistory = false;
+  bool _hasMoreHistory = false;
+  int _loadedHistoryMessageCount = 0;
   bool _isStreaming = false;
   bool _isLoadingAgent = false;
   bool _nextResponseStartsNewMessage = true;
@@ -317,6 +391,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       );
     }
     _messageController.addListener(_handleDraftTextChanged);
+    _scrollController.addListener(_handleHistoryScroll);
     _selectedImages.addAll(widget.initialImages);
     _originalFilenames.addAll(
       initialOriginalFilenamesForSelectedImages(
@@ -375,6 +450,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     }
     _flushDraftOnDispose();
     _messageController.removeListener(_handleDraftTextChanged);
+    _scrollController.removeListener(_handleHistoryScroll);
     _controller.dispose();
     _messageController.dispose();
     _scrollController.dispose();
@@ -390,6 +466,16 @@ class _AgentChatDialogState extends State<AgentChatDialog>
 
   // --- Logic ---
 
+  void _handleHistoryScroll() {
+    if (!_hasMoreHistory || _isLoadingMoreHistory || _isLoading) return;
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.maxScrollExtent <= 0) return;
+    if (position.pixels >= position.maxScrollExtent * 0.8) {
+      unawaited(_loadMoreSessionHistory());
+    }
+  }
+
   Future<void> _loadSessionHistory() async {
     if (_currentSessionId == null) return;
     setState(() => _isLoading = true);
@@ -399,86 +485,24 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       // Since ChatService doesn't expose fetchHistory yet, reusing existing endpoint logic is fine.
       final sessionData = await _router.fetchChatSessionDetail(
         _currentSessionId!,
+        messageLimit: _agentChatHistoryPageSize,
       );
       final messagesData = sessionData['messages'] as List<dynamic>? ?? [];
-
-      final historyItems = <ChatDisplayItem>[];
-      for (var msg in messagesData) {
-        final role = msg['role'] as String? ?? 'user';
-        final contentList = msg['content'] as List<dynamic>? ?? [];
-        final imagePaths = <String>[];
-        final textParts = contentList
-            .where((item) {
-              if (item is Map && item['type'] == 'image_url') {
-                final imageUrl = item['image_url'];
-                if (imageUrl is Map) {
-                  final filePath = imageUrl['filePath']?.toString();
-                  if (filePath != null && filePath.isNotEmpty) {
-                    imagePaths.add(_resolveDisplayImagePath(filePath));
-                  }
-                }
-              }
-              return item is Map && item['type'] == 'text';
-            })
-            .map((item) => item['text'] as String? ?? '')
-            .where((text) => text.isNotEmpty);
-        final text = textParts.join(' ');
-
-        if (text.isNotEmpty || imagePaths.isNotEmpty) {
-          if (role == 'user') {
-            List<Map<String, String>>? refs;
-            if (msg['refs'] != null) {
-              refs = (msg['refs'] as List)
-                  .map((e) => Map<String, String>.from(e as Map))
-                  .toList();
-            }
-            historyItems.add(
-              UserMessageItem(
-                text.isNotEmpty
-                    ? text
-                    : UserStorage.l10n.attachedImagesMessage(
-                        imagePaths.length,
-                      ),
-                refs: refs,
-                imagePaths: imagePaths,
-              ),
-            );
-          } else {
-            historyItems.add(AIMessageItem(text));
-          }
-        }
-      }
+      final historyItems = _chatItemsFromSessionMessages(messagesData);
 
       ChatTokenUsageEvent? restoredUsage;
       if (sessionData['total_usage'] != null) {
         final usage = sessionData['total_usage'] as Map<String, dynamic>;
         final prompt = usage['prompt_tokens'] as int? ?? 0;
         final cached = usage['cached_tokens'] as int? ?? 0;
-        // Recompute effectivePromptTokens from per-message usage.
-        int effPrompt = 0;
-        int cachedForRate = 0;
-        for (final msg in messagesData) {
-          final msgUsage = msg['usage'] as Map<String, dynamic>?;
-          if (msgUsage == null) continue;
-          final mp = msgUsage['prompt_tokens'] as int? ?? 0;
-          final mc = msgUsage['cached_tokens'] as int? ?? 0;
-          final sem = TokenUsageUtils.resolveFromUsageRecord(msgUsage);
-          final eff = TokenUsageUtils.effectivePromptTokensOrNull(
-            promptTokens: mp,
-            cachedTokens: mc,
-            cachedTokensIncludedInPrompt: sem,
-          );
-          if (eff != null) {
-            effPrompt += eff;
-            cachedForRate += mc;
-          }
-        }
         restoredUsage = ChatTokenUsageEvent(
           promptTokens: prompt,
           completionTokens: usage['completion_tokens'] as int? ?? 0,
           cachedTokens: cached,
-          effectivePromptTokens: effPrompt,
-          cachedTokensForRate: cachedForRate,
+          effectivePromptTokens:
+              usage['effective_prompt_tokens'] as int? ?? prompt,
+          cachedTokensForRate:
+              usage['cached_tokens_for_rate'] as int? ?? cached,
           totalTokens: usage['total_tokens'] as int? ?? 0,
           estimatedCost: usage['total_cost'] as double? ?? 0.0,
         );
@@ -487,6 +511,9 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       setState(() {
         _items = historyItems;
         _lastTokenUsage = restoredUsage;
+        _loadedHistoryMessageCount = messagesData.length;
+        _hasMoreHistory =
+            sessionData['has_more_messages'] == true && messagesData.isNotEmpty;
         _isLoading = false;
       });
       _scrollToBottom();
@@ -498,6 +525,91 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     // After history is on screen, resume following an in-flight run if the
     // dialog was closed mid-reply.
     unawaited(_maybeReattachToActiveRun());
+  }
+
+  Future<void> _loadMoreSessionHistory() async {
+    final sessionId = _currentSessionId;
+    if (sessionId == null ||
+        _isLoadingMoreHistory ||
+        _isLoading ||
+        !_hasMoreHistory) {
+      return;
+    }
+
+    setState(() => _isLoadingMoreHistory = true);
+    try {
+      final sessionData = await _router.fetchChatSessionDetail(
+        sessionId,
+        messageLimit: _agentChatHistoryPageSize,
+        messageOffset: _loadedHistoryMessageCount,
+      );
+      final messagesData = sessionData['messages'] as List<dynamic>? ?? [];
+      final olderItems = _chatItemsFromSessionMessages(messagesData);
+      if (!mounted || sessionId != _currentSessionId) return;
+
+      setState(() {
+        _items = [...olderItems, ..._items];
+        _loadedHistoryMessageCount += messagesData.length;
+        _hasMoreHistory =
+            sessionData['has_more_messages'] == true && messagesData.isNotEmpty;
+        _isLoadingMoreHistory = false;
+      });
+    } catch (e, st) {
+      _logger.warning('Failed to load older chat history: $e', e, st);
+      if (!mounted) return;
+      setState(() => _isLoadingMoreHistory = false);
+    }
+  }
+
+  List<ChatDisplayItem> _chatItemsFromSessionMessages(List<dynamic> messages) {
+    final historyItems = <ChatDisplayItem>[];
+    for (final msg in messages) {
+      if (msg is! Map) continue;
+      final message = Map<String, dynamic>.from(msg);
+      final role = message['role'] as String? ?? 'user';
+      final contentList = message['content'] as List<dynamic>? ?? [];
+      final imagePaths = <String>[];
+      final textParts = contentList
+          .where((item) {
+            if (item is Map && item['type'] == 'image_url') {
+              final imageUrl = item['image_url'];
+              if (imageUrl is Map) {
+                final filePath = imageUrl['filePath']?.toString();
+                if (filePath != null && filePath.isNotEmpty) {
+                  imagePaths.add(_resolveDisplayImagePath(filePath));
+                }
+              }
+            }
+            return item is Map && item['type'] == 'text';
+          })
+          .map((item) => item['text'] as String? ?? '')
+          .where((text) => text.isNotEmpty);
+      final text = textParts.join(' ');
+
+      if (text.isEmpty && imagePaths.isEmpty) continue;
+      final timestamp = tryParseDateTime(message['timestamp']);
+      if (role == 'user') {
+        List<Map<String, String>>? refs;
+        if (message['refs'] != null) {
+          refs = (message['refs'] as List)
+              .map((e) => Map<String, String>.from(e as Map))
+              .toList();
+        }
+        historyItems.add(
+          UserMessageItem(
+            text.isNotEmpty
+                ? text
+                : UserStorage.l10n.attachedImagesMessage(imagePaths.length),
+            refs: refs,
+            imagePaths: imagePaths,
+            timestamp: timestamp,
+          ),
+        );
+      } else {
+        historyItems.add(AIMessageItem(text, timestamp: timestamp));
+      }
+    }
+    return historyItems;
   }
 
   String _resolveDisplayImagePath(String filePath) {
@@ -666,6 +778,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     final displayText = finalMessage.isNotEmpty
         ? finalMessage
         : UserStorage.l10n.attachedImagesMessage(images.length);
+    final sentAt = DateTime.now();
     List<Map<String, String>>? refs;
     if (widget.initialRefs != null && !_contextSent) {
       refs = widget.initialRefs;
@@ -678,8 +791,10 @@ class _AgentChatDialogState extends State<AgentChatDialog>
           displayText,
           refs: refs,
           imagePaths: images.map((image) => image.path).toList(),
+          timestamp: sentAt,
         ),
       );
+      _loadedHistoryMessageCount += 1;
       _isStreaming = true;
       _messageController.clear();
       if (images.isNotEmpty) {
@@ -924,7 +1039,14 @@ class _AgentChatDialogState extends State<AgentChatDialog>
           text: event.text,
           isDone: event.isDone,
         )) {
-          _items.add(AIMessageItem(event.text, isStreaming: !event.isDone));
+          _items.add(
+            AIMessageItem(
+              event.text,
+              isStreaming: !event.isDone,
+              timestamp: DateTime.now(),
+            ),
+          );
+          _loadedHistoryMessageCount += 1;
         }
         if (event.isDone) {
           _nextResponseStartsNewMessage = true;
@@ -978,12 +1100,121 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+          _scrollController.position.minScrollExtent,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
       }
     });
+  }
+
+  int _agentChatListItemCount() {
+    return _items.length +
+        (_isLoadingAgent ? 1 : 0) +
+        ((_hasMoreHistory || _isLoadingMoreHistory) ? 1 : 0);
+  }
+
+  bool _shouldShowHistoryLoaderAt(int index) {
+    if (!_hasMoreHistory && !_isLoadingMoreHistory) return false;
+    return index == _agentChatListItemCount() - 1;
+  }
+
+  Widget _buildAgentThinkingItem() {
+    return const Padding(
+      padding: EdgeInsets.only(bottom: 24),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 12,
+            backgroundColor: AppColors.iconBgLight,
+            child: SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+          SizedBox(width: 8),
+          Text(
+            'Thinking...',
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.textTertiary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryLoadMoreIndicator() {
+    if (_isLoadingMoreHistory) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Center(
+          child: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 1.5,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+      );
+    }
+    return const SizedBox(height: 1);
+  }
+
+  Widget _buildItemWithTimeDivider(int itemIndex) {
+    final item = _items[itemIndex];
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_shouldShowTimeDivider(itemIndex)) _buildTimeDivider(item),
+        _buildItem(item),
+      ],
+    );
+  }
+
+  bool _shouldShowTimeDivider(int itemIndex) {
+    final timestamp = _items[itemIndex].timestamp;
+    if (timestamp == null) return false;
+
+    for (var i = itemIndex - 1; i >= 0; i--) {
+      final previous = _items[i].timestamp;
+      if (previous == null) continue;
+      return timestamp.difference(previous).inMinutes.abs() >= 10;
+    }
+    return true;
+  }
+
+  Widget _buildTimeDivider(ChatDisplayItem item) {
+    final timestamp = item.timestamp;
+    if (timestamp == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, bottom: 16),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F8FA),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFEFF2F6)),
+          ),
+          child: Text(
+            formatSuperAgentTimeDivider(timestamp),
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.textTertiary,
+              height: 1.2,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   // --- UI Building ---
@@ -1068,49 +1299,31 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                                       ? _buildEmptyState()
                                       : ListView.builder(
                                           controller: _scrollController,
+                                          reverse: true,
                                           keyboardDismissBehavior:
                                               ScrollViewKeyboardDismissBehavior
                                                   .onDrag,
                                           padding: const EdgeInsets.all(24),
-                                          itemCount: _items.length +
-                                              (_isLoadingAgent ? 1 : 0),
+                                          itemCount: _agentChatListItemCount(),
                                           itemBuilder: (context, index) {
-                                            if (index == _items.length) {
-                                              return const Padding(
-                                                padding: EdgeInsets.only(
-                                                  bottom: 24,
-                                                ),
-                                                child: Row(
-                                                  children: [
-                                                    CircleAvatar(
-                                                      radius: 12,
-                                                      backgroundColor:
-                                                          AppColors.iconBgLight,
-                                                      child: SizedBox(
-                                                        width: 12,
-                                                        height: 12,
-                                                        child:
-                                                            CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                          color:
-                                                              AppColors.primary,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    SizedBox(width: 8),
-                                                    Text(
-                                                      'Thinking...',
-                                                      style: TextStyle(
-                                                        fontSize: 13,
-                                                        color: AppColors
-                                                            .textTertiary,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
+                                            final extraItems =
+                                                _isLoadingAgent ? 1 : 0;
+                                            if (extraItems == 1 && index == 0) {
+                                              return _buildAgentThinkingItem();
                                             }
-                                            return _buildItem(_items[index]);
+                                            if (_shouldShowHistoryLoaderAt(
+                                                index)) {
+                                              return _buildHistoryLoadMoreIndicator();
+                                            }
+                                            final itemIndex =
+                                                superAgentItemIndexForReversedList(
+                                              listIndex: index,
+                                              itemCount: _items.length,
+                                              extraItems: extraItems,
+                                            );
+                                            return _buildItemWithTimeDivider(
+                                              itemIndex,
+                                            );
                                           },
                                         ),
                             ),
@@ -2586,11 +2799,6 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     if (_lastTokenUsage == null) return const SizedBox.shrink();
     final item = _lastTokenUsage!;
 
-    final cacheRate = TokenUsageUtils.formatCacheRateFromAggregated(
-      effectivePromptTokens: item.effectivePromptTokens,
-      cachedTokens: item.cachedTokensForRate,
-    );
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Center(
@@ -2601,7 +2809,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            'Tokens: ${item.totalTokens} (P:${item.promptTokens} C:${item.completionTokens} Cache:$cacheRate) • Est: \$${item.estimatedCost.toStringAsFixed(5)}',
+            formatSuperAgentTokenUsage(item),
             style: const TextStyle(
               fontSize: 10,
               color: AppColors.textSecondary,

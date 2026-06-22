@@ -1015,14 +1015,22 @@ class MemexRouter {
     });
   }
 
-  Future<Map<String, dynamic>> fetchChatSessionDetail(String sessionId) async {
+  Future<Map<String, dynamic>> fetchChatSessionDetail(
+    String sessionId, {
+    int? messageLimit,
+    int messageOffset = 0,
+  }) async {
     await _ensureInitialized();
     _logger.info(
       'LocalMode: fetchChatSessionDetail called: sessionId=$sessionId',
     );
 
     try {
-      return await chat_endpoint.fetchChatSessionDetailEndpoint(sessionId);
+      return await chat_endpoint.fetchChatSessionDetailEndpoint(
+        sessionId,
+        messageLimit: messageLimit,
+        messageOffset: messageOffset,
+      );
     } catch (e) {
       _logger.severe('Failed to fetch chat session detail: $e');
       rethrow;

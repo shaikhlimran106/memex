@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:memex/data/model/chat_events.dart';
 import 'package:memex/l10n/app_localizations.dart';
 import 'package:memex/ui/chat/widgets/agent_chat_dialog.dart';
 import 'package:memex/utils/user_storage.dart';
@@ -11,6 +13,7 @@ void main() {
 
   setUpAll(() async {
     SharedPreferences.setMockInitialValues({'language': 'en'});
+    await initializeDateFormatting('en');
     await UserStorage.initL10n();
   });
 
@@ -107,6 +110,65 @@ void main() {
         ),
         Duration.zero,
       );
+    });
+
+    test('maps reversed chat list indexes around live status rows', () {
+      expect(
+        superAgentItemIndexForReversedList(
+          listIndex: 0,
+          itemCount: 10,
+          extraItems: 0,
+        ),
+        9,
+      );
+      expect(
+        superAgentItemIndexForReversedList(
+          listIndex: 1,
+          itemCount: 10,
+          extraItems: 1,
+        ),
+        9,
+      );
+      expect(
+        superAgentItemIndexForReversedList(
+          listIndex: 10,
+          itemCount: 10,
+          extraItems: 1,
+        ),
+        0,
+      );
+    });
+
+    test('formats chat time dividers like persona chat', () {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day, 9, 8);
+
+      expect(formatSuperAgentTimeDivider(today), '09:08');
+      expect(
+        formatSuperAgentTimeDivider(
+          today.subtract(const Duration(days: 1)),
+        ),
+        contains(UserStorage.l10n.yesterday),
+      );
+    });
+
+    test('formats token usage without estimated cost', () {
+      final text = formatSuperAgentTokenUsage(
+        ChatTokenUsageEvent(
+          promptTokens: 100,
+          completionTokens: 25,
+          cachedTokens: 40,
+          totalTokens: 125,
+          estimatedCost: 0.12345,
+          effectivePromptTokens: 100,
+          cachedTokensForRate: 40,
+        ),
+      );
+
+      expect(text, 'Tokens: 125 (P:100 C:25 Cache:40.0%)');
+      expect(text, isNot(contains('Est')));
+      expect(text, isNot(contains(r'$')));
+      expect(text, isNot(contains('0.12345')));
     });
 
     test('hides photo suggestions while the super agent is sending', () {
