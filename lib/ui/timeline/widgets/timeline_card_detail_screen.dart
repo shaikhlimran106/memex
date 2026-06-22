@@ -21,6 +21,7 @@ import 'package:memex/ui/timeline/widgets/timeline/asset_header_gallery.dart';
 import 'package:memex/ui/core/widgets/local_image.dart';
 
 import 'package:memex/ui/chat/widgets/open_super_agent_dialog.dart';
+import 'package:memex/ui/chat/widgets/reference_asset_formatter.dart';
 import 'package:memex/data/services/event_bus_service.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
@@ -203,7 +204,9 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
     if (detail.assets.isNotEmpty) {
       buffer.writeln('Assets:');
       for (final asset in detail.assets) {
-        buffer.writeln('- ${asset.type}: ${asset.url}');
+        buffer.writeln(
+          '- ${asset.type}: ${formatAssetReferenceForAgent(asset)}',
+        );
       }
     }
     if (detail.insight.text.isNotEmpty) {

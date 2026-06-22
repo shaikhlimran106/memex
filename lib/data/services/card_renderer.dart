@@ -83,29 +83,10 @@ bool isNativeCard(String? templateId) {
   return _nativeCardTemplates.contains(templateId);
 }
 
-const String _internalFsPrefix = '/_Internal/fs/';
-
-String? _toFsUri(String value) {
-  if (value.startsWith('fs://')) {
-    return value;
-  }
-
-  if (value.startsWith(_internalFsPrefix)) {
-    final filename = value.substring(_internalFsPrefix.length);
-    if (filename.isEmpty) {
-      return null;
-    }
-    return 'fs://$filename';
-  }
-
-  return null;
-}
-
 Future<dynamic> _replaceFsValue(dynamic value, String userId) async {
   if (value is String) {
-    final fsUri = _toFsUri(value);
-    if (fsUri != null) {
-      return FileSystemService.convertFsToLocalHttp(fsUri, userId);
+    if (value.startsWith('fs://')) {
+      return FileSystemService.convertFsToLocalHttp(value, userId);
     }
     return value;
   }
@@ -125,11 +106,7 @@ Future<dynamic> _replaceFsValue(dynamic value, String userId) async {
   return value;
 }
 
-/// Replace local asset references in data recursively.
-///
-/// `fs://...` is the canonical persisted form. `/_Internal/fs/...` can appear
-/// in older or model-generated card data from WebView-oriented paths; normalize
-/// it here so existing native cards can still render their local assets.
+/// Replace canonical local asset references in data recursively.
 Future<Map<String, dynamic>> replaceFsInData(
     Map<String, dynamic> data, String userId) async {
   final result = <String, dynamic>{};

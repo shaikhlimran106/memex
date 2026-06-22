@@ -153,6 +153,9 @@ class ProcessItem extends ChatDisplayItem {
 }
 
 const double _agentChatSheetHeightFactor = 0.75;
+const Duration _agentChatKeyboardShowAnimationDuration =
+    Duration(milliseconds: 220);
+const Duration _agentChatKeyboardHideAnimationDuration = Duration.zero;
 const BorderRadius _agentChatSheetBorderRadius = BorderRadius.vertical(
   top: Radius.circular(32),
 );
@@ -184,7 +187,25 @@ double resolveSuperAgentInputBottomInset({
   required bool inputFocused,
   required bool isStreaming,
 }) {
-  return !isStreaming ? keyboardInset : 0;
+  return keyboardInset;
+}
+
+@visibleForTesting
+bool shouldCreateAIMessageForResponseChunk({
+  required String text,
+  required bool isDone,
+}) {
+  return !(isDone && text.isEmpty);
+}
+
+@visibleForTesting
+Duration resolveSuperAgentKeyboardInsetAnimationDuration({
+  required double previousInset,
+  required double nextInset,
+}) {
+  return nextInset < previousInset
+      ? _agentChatKeyboardHideAnimationDuration
+      : _agentChatKeyboardShowAnimationDuration;
 }
 
 @visibleForTesting
@@ -277,6 +298,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   bool _isApplyingDraft = false;
   bool _isLoadingPhotoSuggestions = false;
   List<List<EnhancedPhoto>> _photoSuggestionClusters = [];
+  double _lastKeyboardBottomOffset = 0;
 
   late AnimationController _controller;
   late Animation<Offset> _slideAnimation;
@@ -897,10 +919,18 @@ class _AgentChatDialogState extends State<AgentChatDialog>
 
         if (primary is AIMessageItem && !_nextResponseStartsNewMessage) {
           primary.text += event.text;
-        } else {
+          primary.isStreaming = !event.isDone;
+        } else if (shouldCreateAIMessageForResponseChunk(
+          text: event.text,
+          isDone: event.isDone,
+        )) {
           _items.add(AIMessageItem(event.text, isStreaming: !event.isDone));
         }
-        _nextResponseStartsNewMessage = false;
+        if (event.isDone) {
+          _nextResponseStartsNewMessage = true;
+        } else {
+          _nextResponseStartsNewMessage = false;
+        }
       } else if (event is ChatErrorEvent) {
         _items.add(ErrorItem(event.error));
       }
@@ -966,6 +996,12 @@ class _AgentChatDialogState extends State<AgentChatDialog>
       inputFocused: _messageFocusNode.hasFocus,
       isStreaming: _isStreaming,
     );
+    final keyboardInsetAnimationDuration =
+        resolveSuperAgentKeyboardInsetAnimationDuration(
+      previousInset: _lastKeyboardBottomOffset,
+      nextInset: keyboardBottomOffset,
+    );
+    _lastKeyboardBottomOffset = keyboardBottomOffset;
     final dialogHeight = resolveAgentChatDialogHeight(
       viewportSize,
       isFullScreen: _isFullScreen,
@@ -991,7 +1027,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
           SlideTransition(
             position: _slideAnimation,
             child: AnimatedPadding(
-              duration: const Duration(milliseconds: 220),
+              duration: keyboardInsetAnimationDuration,
               curve: Curves.easeOutCubic,
               padding: EdgeInsets.only(bottom: keyboardBottomOffset),
               child: Align(

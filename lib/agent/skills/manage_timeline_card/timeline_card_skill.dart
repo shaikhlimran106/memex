@@ -303,11 +303,15 @@ class TimelineCardSkill extends Skill {
                   throw ArgumentError(
                       "ui_configs[$i] must be an object (Map), got ${raw.runtimeType}.");
                 }
-                final config = _canonicalizeUiConfigAssetReferences(
-                    Map<String, dynamic>.from(raw));
+                final config = Map<String, dynamic>.from(raw);
                 validateUiConfig(
                   config,
                   customTemplateFields: customTemplateFields,
+                );
+                await _validateUiConfigMediaReferences(
+                  userId: userId,
+                  configIndex: i,
+                  config: config,
                 );
                 finalUiConfigs.add(config);
               }
@@ -423,35 +427,27 @@ class TimelineCardSkill extends Skill {
             }
 
             // Normalize asset references. Tool callers provide bare
-            // `fs://...` ids (view_image uses the same form); legacy markdown
-            // media refs are accepted for compatibility. Cards still store full
-            // markdown refs because the renderer uses the marker shape to
+            // `fs://...` ids (view_image uses the same form). Cards still store
+            // full markdown refs because the renderer uses the marker shape to
             // distinguish image vs audio.
             // Omitted (null) → keep the card's prior assets untouched. Provided
             // → replace with the validated set: each fs:// reference must
             // resolve to a real file under Facts/assets, so a fabricated /
-            // hallucinated reference never lands on the card (dropped with a
-            // warning).
+            // hallucinated reference never lands on the card.
             List<String>? assetsList;
             if (assets != null) {
               assetsList = <String>[];
-              final droppedAssets = <String>[];
-              for (final entry in _normalizeListArgument(assets, 'assets')) {
+              final assetEntries = _normalizeListArgument(assets, 'assets');
+              for (var i = 0; i < assetEntries.length; i++) {
+                final entry = assetEntries[i];
                 final ref = entry?.toString().trim() ?? '';
                 if (ref.isEmpty) continue;
-                final asset = await AssetReferenceService.resolveExisting(
+                final asset = await _resolveRequiredAssetReference(
                   userId: userId,
                   reference: ref,
+                  path: 'assets[$i]',
                 );
-                if (asset == null) {
-                  droppedAssets.add(ref);
-                  continue;
-                }
                 assetsList.add(asset.markdownRef);
-              }
-              if (droppedAssets.isNotEmpty) {
-                logger.warning(
-                    'save_timeline_card dropped asset refs with no backing file: ${droppedAssets.join(', ')}');
               }
             }
 
@@ -629,42 +625,123 @@ class TimelineCardSkill extends Skill {
         '$name must be an array or a JSON-encoded array string, got ${value.runtimeType}.');
   }
 
-  static Map<String, dynamic> _canonicalizeUiConfigAssetReferences(
-      Map<String, dynamic> config) {
-    final normalized = Map<String, dynamic>.from(config);
-    final data = normalized['data'];
-    if (data is Map) {
-      normalized['data'] =
-          _canonicalizeUiConfigValue(Map<String, dynamic>.from(data));
-    }
-    return normalized;
+  static Future<void> _validateUiConfigMediaReferences({
+    required String userId,
+    required int configIndex,
+    required Map<String, dynamic> config,
+  }) async {
+    final data = config['data'];
+    if (data is! Map) return;
+    await _validateMediaReferencesInValue(
+      userId: userId,
+      path: 'ui_configs[$configIndex].data',
+      value: Map<String, dynamic>.from(data),
+    );
   }
 
-  static dynamic _canonicalizeUiConfigValue(dynamic value) {
-    const internalFsPrefix = '/_Internal/fs/';
-
-    if (value is String) {
-      if (!value.startsWith(internalFsPrefix)) {
-        return value;
+  static Future<void> _validateMediaReferencesInValue({
+    required String userId,
+    required String path,
+    required dynamic value,
+    bool isUrlField = false,
+  }) async {
+    if (value is Map) {
+      for (final entry in value.entries) {
+        final key = entry.key.toString();
+        await _validateMediaReferencesInValue(
+          userId: userId,
+          path: '$path.$key',
+          value: entry.value,
+          isUrlField: isUrlField || _isUrlFieldName(key),
+        );
       }
-      final filename = value.substring(internalFsPrefix.length);
-      if (filename.isEmpty) {
-        return value;
-      }
-      return 'fs://$filename';
+      return;
     }
 
     if (value is List) {
-      return value.map(_canonicalizeUiConfigValue).toList();
+      for (var i = 0; i < value.length; i++) {
+        await _validateMediaReferencesInValue(
+          userId: userId,
+          path: '$path[$i]',
+          value: value[i],
+          isUrlField: isUrlField,
+        );
+      }
+      return;
     }
 
-    if (value is Map) {
-      return {
-        for (final entry in value.entries)
-          entry.key.toString(): _canonicalizeUiConfigValue(entry.value),
-      };
+    if (value is String) {
+      await _validateMediaReferenceString(
+        userId: userId,
+        path: path,
+        value: value,
+        isUrlField: isUrlField,
+      );
     }
-
-    return value;
   }
+
+  static Future<void> _validateMediaReferenceString({
+    required String userId,
+    required String path,
+    required String value,
+    required bool isUrlField,
+  }) async {
+    if (!isUrlField) return;
+
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return;
+    if (!trimmed.contains('fs://')) return;
+
+    if (trimmed.startsWith('fs://')) {
+      await _resolveRequiredAssetReference(
+        userId: userId,
+        reference: trimmed,
+        path: path,
+      );
+      return;
+    }
+
+    throw ArgumentError(
+      '$path must use a bare `fs://filename.ext` reference, not markdown or surrounding text: "$value".',
+    );
+  }
+
+  static Future<AssetReference> _resolveRequiredAssetReference({
+    required String userId,
+    required String reference,
+    required String path,
+  }) async {
+    if (!reference.startsWith('fs://')) {
+      throw ArgumentError(
+        '$path must be a bare `fs://filename.ext` reference to an existing image or audio file under Facts/assets; got "$reference".',
+      );
+    }
+
+    final fileName = AssetReferenceService.extractFileNameFromReference(
+      reference,
+    );
+    if (fileName == null) {
+      throw ArgumentError(
+        '$path has an invalid local media reference "$reference". Use a bare `fs://filename.ext` reference with a supported image or audio extension.',
+      );
+    }
+    if (reference != 'fs://$fileName') {
+      throw ArgumentError(
+        '$path must be exactly `fs://$fileName`; do not add markdown, query strings, paths, or surrounding text.',
+      );
+    }
+
+    final asset = await AssetReferenceService.resolveExistingFileName(
+      userId: userId,
+      fileName: fileName,
+    );
+    if (asset == null) {
+      throw ArgumentError(
+        '$path references "$reference", but no supported image or audio file with that name exists under Facts/assets.',
+      );
+    }
+    return asset;
+  }
+
+  static bool _isUrlFieldName(String key) => key.toLowerCase().contains('url');
 }

@@ -8,6 +8,7 @@ import 'package:memex/domain/models/insight_detail_model.dart';
 import 'package:memex/ui/core/cards/native_card_factory.dart';
 import 'package:memex/ui/core/cards/native_widget_factory.dart';
 import 'package:memex/ui/chat/widgets/open_super_agent_dialog.dart';
+import 'package:memex/ui/chat/widgets/reference_asset_formatter.dart';
 import 'package:memex/ui/timeline/widgets/timeline_card_detail_screen.dart';
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/ui/core/widgets/detail_page_layout.dart';
@@ -225,7 +226,9 @@ class _InsightDetailPageState extends State<InsightDetailPage> {
     if (card.assets != null && card.assets!.isNotEmpty) {
       buffer.writeln('  Assets:');
       for (final asset in card.assets!) {
-        buffer.writeln('    - ${asset.type}: ${asset.url}');
+        buffer.writeln(
+          '    - ${asset.type}: ${formatAssetReferenceForAgent(asset)}',
+        );
       }
     }
 

@@ -199,7 +199,7 @@ void main() {
           'fact_id': factId,
           'title': 'Dinner photo',
           'fact': 'Spicy peppers for dinner.',
-          'assets': ['![image](fs://photo.jpg)'],
+          'assets': ['fs://photo.jpg'],
           'ui_configs': [
             {
               'template_id': 'snapshot',

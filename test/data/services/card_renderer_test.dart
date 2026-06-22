@@ -66,17 +66,17 @@ void main() {
     );
   });
 
-  test('replaceFsInData normalizes internal fs proxy paths', () async {
+  test('replaceFsInData only converts canonical fs refs', () async {
     const userId = 'native_user';
 
     final processed = await replaceFsInData(
       {
         'image_urls': [
-          '/_Internal/fs/img_20260621_ts_0_no_1.HEIC',
+          'workspace/user/Facts/assets/img_20260621_ts_0_no_1.HEIC',
           'fs://img_20260621_ts_0_no_2.HEIC',
         ],
         'nested': {
-          'cover': '/_Internal/fs/img_20260621_ts_0_no_3.HEIC',
+          'cover': 'workspace/user/Facts/assets/img_20260621_ts_0_no_3.HEIC',
         },
         'title': 'Umbrella',
       },
@@ -86,12 +86,7 @@ void main() {
     final imageUrls = processed['image_urls'] as List<dynamic>;
     expect(
       imageUrls[0],
-      allOf(
-        isA<String>(),
-        contains('http://127.0.0.1:'),
-        contains('/assets/$userId/img_20260621_ts_0_no_1.HEIC'),
-        contains('token='),
-      ),
+      'workspace/user/Facts/assets/img_20260621_ts_0_no_1.HEIC',
     );
     expect(
       imageUrls[1],
@@ -106,10 +101,7 @@ void main() {
     final nested = processed['nested'] as Map<String, dynamic>;
     expect(
       nested['cover'],
-      allOf(
-        isA<String>(),
-        contains('/assets/$userId/img_20260621_ts_0_no_3.HEIC'),
-      ),
+      'workspace/user/Facts/assets/img_20260621_ts_0_no_3.HEIC',
     );
     expect(processed['title'], 'Umbrella');
   });

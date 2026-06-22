@@ -172,7 +172,7 @@ void main() {
       expect(card?.tags, ['Knowledge']);
     });
 
-    test('save_timeline_card canonicalizes internal fs proxy paths', () async {
+    test('save_timeline_card rejects non-canonical local media refs', () async {
       final tool = TimelineCardSkill(
         forceActivate: true,
         stopAfterSuccessSaveCard: true,
@@ -192,8 +192,7 @@ void main() {
               'data': {
                 'title': 'Bookstore umbrella',
                 'image_urls': [
-                  '/_Internal/fs/img_20260621_ts_0_no_1.HEIC',
-                  'fs://img_20260621_ts_0_no_2.HEIC',
+                  '![image](fs://img_20260621_ts_0_no_1.HEIC)',
                 ],
               },
             },
@@ -202,17 +201,162 @@ void main() {
         metadata: {'userId': userId},
       );
 
-      final card = await FileSystemService.instance.readCardFile(
-        userId,
-        factId,
+      expect(result.isError, isTrue);
+      expect(_text(result), contains('image_urls'));
+      expect(_text(result), contains('bare `fs://filename.ext`'));
+    });
+
+    test('save_timeline_card rejects missing local media refs', () async {
+      final tool = TimelineCardSkill(
+        forceActivate: true,
+        stopAfterSuccessSaveCard: true,
+      ).tools!.singleWhere((tool) => tool.name == 'save_timeline_card');
+      const factId = '2026/05/18.md#ts_8';
+      await _seedPlaceholderCard(userId, factId);
+
+      final result = await _runToolCall(
+        tool: tool,
+        arguments: {
+          'fact_id': factId,
+          'title': 'Missing photo',
+          'fact': 'Tried to save a missing photo.',
+          'ui_configs': [
+            {
+              'template_id': 'snapshot',
+              'data': {
+                'image_url': 'fs://missing_photo.jpg',
+              },
+            },
+          ],
+        },
+        metadata: {'userId': userId},
+      );
+
+      expect(result.isError, isTrue);
+      expect(_text(result), contains('missing_photo.jpg'));
+      expect(_text(result), contains('Facts/assets'));
+    });
+
+    test('save_timeline_card does not infer media type from url field names',
+        () async {
+      final tool = TimelineCardSkill(
+        forceActivate: true,
+        stopAfterSuccessSaveCard: true,
+      ).tools!.singleWhere((tool) => tool.name == 'save_timeline_card');
+      const factId = '2026/05/18.md#ts_9';
+      await _seedPlaceholderCard(userId, factId);
+      final assetsDir = Directory(
+        FileSystemService.instance.getAssetsPath(userId),
+      );
+      await assetsDir.create(recursive: true);
+      await File('${assetsDir.path}/voice.m4a').writeAsBytes(const [0, 1, 2]);
+
+      final result = await _runToolCall(
+        tool: tool,
+        arguments: {
+          'fact_id': factId,
+          'title': 'Audio reference',
+          'fact': 'Saved an audio reference in a URL field.',
+          'ui_configs': [
+            {
+              'template_id': 'snapshot',
+              'data': {
+                'image_url': 'fs://voice.m4a',
+              },
+            },
+          ],
+        },
+        metadata: {'userId': userId},
       );
 
       expect(result.isError, isFalse);
-      expect(card?.uiConfigs.single.templateId, 'gallery');
-      expect(card?.uiConfigs.single.data['image_urls'], [
-        'fs://img_20260621_ts_0_no_1.HEIC',
-        'fs://img_20260621_ts_0_no_2.HEIC',
-      ]);
+    });
+
+    test('save_timeline_card rejects non-bare asset refs', () async {
+      final tool = TimelineCardSkill(
+        forceActivate: true,
+        stopAfterSuccessSaveCard: true,
+      ).tools!.singleWhere((tool) => tool.name == 'save_timeline_card');
+      const factId = '2026/05/18.md#ts_10';
+      await _seedPlaceholderCard(userId, factId);
+
+      final result = await _runToolCall(
+        tool: tool,
+        arguments: {
+          'fact_id': factId,
+          'title': 'Markdown asset',
+          'fact': 'Tried to save a markdown asset reference.',
+          'assets': ['![image](fs://photo.jpg)'],
+          'ui_configs': [
+            {
+              'template_id': 'article',
+              'data': {'body': 'Tried to save a markdown asset reference.'},
+            },
+          ],
+        },
+        metadata: {'userId': userId},
+      );
+
+      expect(result.isError, isTrue);
+      expect(_text(result), contains('assets[0]'));
+      expect(_text(result), contains('bare `fs://filename.ext`'));
+    });
+
+    test('save_timeline_card validates custom template url fields', () async {
+      final tool = TimelineCardSkill(
+        forceActivate: true,
+        stopAfterSuccessSaveCard: true,
+      ).tools!.singleWhere((tool) => tool.name == 'save_timeline_card');
+      await _writeTemplateHtmlFixture(
+        userId: userId,
+        templateId: 'cover_note',
+        htmlContent: '<section><img src="{{cover_url}}">{{caption}}</section>',
+      );
+      await FileSystemService.instance.saveTimelineTemplateMeta(
+        userId: userId,
+        templateId: 'cover_note',
+        description: 'A note with a cover image.',
+        useCase: 'Notes with one cover image.',
+        fields: const [
+          TimelineTemplateFieldMeta(
+            name: 'cover_url',
+            type: 'String',
+            required: true,
+            description: 'Cover image URL.',
+          ),
+          TimelineTemplateFieldMeta(
+            name: 'caption',
+            type: 'String',
+            required: true,
+            description: 'Image caption.',
+          ),
+        ],
+      );
+      const factId = '2026/05/18.md#ts_11';
+      await _seedPlaceholderCard(userId, factId);
+
+      final result = await _runToolCall(
+        tool: tool,
+        arguments: {
+          'fact_id': factId,
+          'title': 'Cover note',
+          'fact': 'Tried to save a non-bare cover URL.',
+          'ui_configs': [
+            {
+              'template_id': 'cover_note',
+              'data': {
+                'cover_url': 'fs://cover.jpg?token=local',
+                'caption': 'Cover',
+              },
+            },
+          ],
+        },
+        metadata: {'userId': userId},
+      );
+
+      expect(result.isError, isTrue);
+      expect(_text(result), contains('cover_url'));
+      expect(_text(result), contains('exactly `fs://cover.jpg`'));
     });
 
     test('save_timeline_card accepts saved custom HTML templates', () async {

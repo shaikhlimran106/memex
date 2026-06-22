@@ -65,7 +65,7 @@ void main() {
           inputFocused: true,
           isStreaming: true,
         ),
-        0,
+        320,
       );
       expect(
         resolveSuperAgentInputBottomInset(
@@ -74,6 +74,38 @@ void main() {
           isStreaming: false,
         ),
         320,
+      );
+    });
+
+    test('does not create an empty assistant bubble for final done chunks', () {
+      expect(
+        shouldCreateAIMessageForResponseChunk(text: '', isDone: true),
+        isFalse,
+      );
+      expect(
+        shouldCreateAIMessageForResponseChunk(text: '', isDone: false),
+        isTrue,
+      );
+      expect(
+        shouldCreateAIMessageForResponseChunk(text: 'Done', isDone: true),
+        isTrue,
+      );
+    });
+
+    test('snaps down when the keyboard inset shrinks', () {
+      expect(
+        resolveSuperAgentKeyboardInsetAnimationDuration(
+          previousInset: 0,
+          nextInset: 320,
+        ),
+        const Duration(milliseconds: 220),
+      );
+      expect(
+        resolveSuperAgentKeyboardInsetAnimationDuration(
+          previousInset: 320,
+          nextInset: 0,
+        ),
+        Duration.zero,
       );
     });
 
