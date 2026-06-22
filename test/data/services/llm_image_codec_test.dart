@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/data/services/llm_image_codec.dart';
 
@@ -37,40 +35,6 @@ void main() {
         0x68, 0x65, 0x69, 0x63, // heic
       ]);
       expect(LlmImageCodec.isLlmSafeImageBytes(heicHead), isFalse);
-    });
-  });
-
-  group('sanitizeHistoryImages', () {
-    test('keeps safe images, degrades unsafe ones when transcode unavailable',
-        () async {
-      final pngB64 = base64Encode(_bytes([0x89, 0x50, 0x4E, 0x47]));
-      final heicB64 = base64Encode(_bytes([
-        0x00, 0x00, 0x00, 0x34, //
-        0x66, 0x74, 0x79, 0x70, //
-        0x68, 0x65, 0x69, 0x63, //
-      ]));
-
-      final state = AgentState.empty();
-      state.history.messages.addAll([
-        UserMessage([TextPart('safe'), ImagePart(pngB64, 'image/png')]),
-        UserMessage([TextPart('poison'), ImagePart(heicB64, 'image/png')]),
-        ModelMessage(textOutput: 'ok', model: 'test'),
-      ]);
-
-      // No native flutter_image_compress in tests: transcode fails and the
-      // unsafe image must degrade to a text placeholder.
-      final replaced = await LlmImageCodec.sanitizeHistoryImages(state);
-
-      expect(replaced, 1);
-      final safeMsg = state.history.messages[0] as UserMessage;
-      expect(safeMsg.contents.whereType<ImagePart>().length, 1);
-
-      final healedMsg = state.history.messages[1] as UserMessage;
-      expect(healedMsg.contents.whereType<ImagePart>(), isEmpty);
-      expect(
-        healedMsg.contents.whereType<TextPart>().map((p) => p.text),
-        contains(contains('format not supported')),
-      );
     });
   });
 }

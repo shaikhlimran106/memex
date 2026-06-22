@@ -1180,6 +1180,13 @@ class MemexRouter {
   Stream<ChatEvent> attachToChatRun(String sessionId) =>
       ChatService.instance.attachToActiveRun(sessionId);
 
+  Future<Result<String>> refreshSuperAgentChatState(String sessionId) {
+    return runResult(() async {
+      await _ensureInitialized();
+      return ChatService.instance.refreshAgentStateForSession(sessionId);
+    });
+  }
+
   Future<bool> reportDailyHealthSummary(
     Map<String, Map<String, dynamic>> dailySummary,
   ) async {

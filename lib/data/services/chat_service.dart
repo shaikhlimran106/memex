@@ -13,7 +13,6 @@ import 'package:memex/agent/super_agent/super_agent.dart';
 import 'package:memex/agent/super_agent/subagent/delegate_progress.dart';
 import 'package:memex/data/services/asset_safety_service.dart';
 import 'package:memex/data/services/agent_run_service.dart';
-import 'package:memex/data/services/chat_history_sanitizer.dart';
 import 'package:memex/data/services/chat_run_registry.dart';
 import 'package:memex/data/services/custom_agent_config_service.dart';
 import 'package:memex/data/services/llm_image_codec.dart';
@@ -227,6 +226,9 @@ class ChatService {
   final Uuid _uuid = const Uuid();
   static const String _superAgentChatTurnTaskType =
       'super_agent_chat_turn_task';
+  static const String _activeAgentStateSessionIdKey =
+      'active_agent_state_session_id';
+  static const String _runningChatTurnIdKey = 'running_chat_turn_id';
 
   /// In-flight runs keyed by session id. Runs are owned by the service so a
   /// closed chat dialog does not interrupt them; a reopened dialog can
@@ -278,6 +280,45 @@ class ChatService {
     }
   }
 
+  Future<String> refreshAgentStateForSession(String sessionId) async {
+    final userId = await UserStorage.getUserId();
+    if (userId == null) {
+      throw StateError('User not logged in');
+    }
+    if (sessionId.isEmpty) {
+      throw ArgumentError.value(sessionId, 'sessionId', 'must not be empty');
+    }
+    if (await hasActiveRun(sessionId)) {
+      throw StateError(
+          'Cannot refresh agent state while a chat turn is active');
+    }
+
+    final sessionData = await _loadSessionData(userId, sessionId);
+    final now = DateTime.now();
+    final newStateSessionId = '${sessionId}_state_${_uuid.v4()}';
+    final state = await loadOrCreateAgentState(newStateSessionId, {
+      'userId': userId,
+      'scene': sessionData['scene'],
+      'sceneId': sessionData['scene_id'],
+      'chat_session_id': sessionId,
+      'refreshed_from_chat_session': sessionId,
+      'refreshed_at': now.toIso8601String(),
+      'refreshed_at_local': formatLocalDateTimeWithZone(now),
+      'refreshed_at_unix_seconds': unixSecondsFromDateTime(now),
+    });
+    await saveAgentState(state);
+
+    sessionData[_activeAgentStateSessionIdKey] = newStateSessionId;
+    sessionData['agent_state_refreshed_at'] = now.toIso8601String();
+    sessionData['agent_state_refreshed_at_local'] =
+        formatLocalDateTimeWithZone(now);
+    sessionData['agent_state_refreshed_at_unix_seconds'] =
+        unixSecondsFromDateTime(now);
+    sessionData.remove('total_usage');
+    await _saveSessionData(userId, sessionId, sessionData);
+    return newStateSessionId;
+  }
+
   /// Send a message and get a stream of events.
   ///
   /// When [isQuickQuery] is true, the agent operates in read-only mode
@@ -309,6 +350,7 @@ class ChatService {
     final turnId = _uuid.v4();
     final trimmedMessage = message.trim();
     final preparedImages = <_PreparedChatImage>[];
+    String agentStateSessionId = '';
 
     try {
       for (final image in images) {
@@ -352,6 +394,8 @@ class ChatService {
 
       // Notify UI of the active session ID immediately
       yield ChatSessionCreatedEvent(finalSessionId);
+      agentStateSessionId =
+          await _resolveAgentStateSessionId(userId, finalSessionId);
 
       // Save User Message
       await _addMessageToSession(
@@ -421,6 +465,7 @@ class ChatService {
           'is_quick_query': isQuickQuery,
           'run_mode': runMode,
           'user_message_time': userMessageTime.toIso8601String(),
+          'agent_state_session_id': agentStateSessionId,
         },
         // A chat turn is user-visible and should start promptly, but keep it
         // below system maintenance work that may use higher explicit priority.
@@ -462,6 +507,11 @@ class ChatService {
     final runMode = payload['run_mode'] as String? ?? 'auto';
     final userMessageTime =
         tryParseDateTime(payload['user_message_time']) ?? DateTime.now();
+    final agentStateSessionId =
+        (payload['agent_state_session_id'] as String?)?.trim().isNotEmpty ==
+                true
+            ? (payload['agent_state_session_id'] as String).trim()
+            : await _resolveAgentStateSessionId(userId, sessionId);
 
     if (await _sessionHasAssistantForTurn(userId, sessionId, turnId)) {
       _logger.info(
@@ -489,6 +539,7 @@ class ChatService {
       isQuickQuery: isQuickQuery,
       runMode: runMode,
       userMessageTime: userMessageTime,
+      agentStateSessionId: agentStateSessionId,
       run: run,
     );
   }
@@ -507,6 +558,7 @@ class ChatService {
     required bool isQuickQuery,
     required String runMode,
     required DateTime userMessageTime,
+    required String agentStateSessionId,
     required ActiveChatRun run,
   }) async {
     // 2. Initialize Agent
@@ -539,50 +591,18 @@ class ChatService {
       final client = resources.client;
       final modelConfig = resources.modelConfig;
       // Load State
-      final state = await loadOrCreateAgentState(sessionId, {
+      final state = await loadOrCreateAgentState(agentStateSessionId, {
         'userId': userId,
         'scene': scene,
         'sceneId': sceneId,
+        'chat_session_id': sessionId,
       });
+      state.metadata['userId'] = userId;
+      state.metadata['scene'] = scene;
+      state.metadata['sceneId'] = sceneId;
+      state.metadata['chat_session_id'] = sessionId;
       // Refresh per-turn: the user can switch run modes between messages.
       state.metadata[AgentRunMode.metadataKey] = runMode;
-
-      // Heal sessions that inlined provider-unsafe images (e.g. HEIC before
-      // transcoding existed): they are replayed every turn and would fail
-      // OpenAI-compatible providers with 400 forever.
-      if (state.metadata['history_images_sanitized_v1'] != true) {
-        try {
-          final sanitized = await LlmImageCodec.sanitizeHistoryImages(state);
-          if (sanitized > 0) {
-            _logger.info(
-              'Sanitized $sanitized provider-unsafe history image(s) '
-              'in session $sessionId',
-            );
-          }
-          state.metadata['history_images_sanitized_v1'] = true;
-        } catch (e) {
-          _logger.warning('History image sanitize failed: $e');
-        }
-      }
-
-      // Heal sessions poisoned by the legacy reminder injection (a fake
-      // "Understood, I will keep this context in mind." assistant turn per
-      // message), which made the loop detector misfire. New turns use the
-      // transient systemReminders channel instead (see below).
-      if (state.metadata['history_reminder_migrated_v1'] != true) {
-        try {
-          final stripped = ChatHistorySanitizer.stripLegacyReminderTurns(state);
-          if (stripped > 0) {
-            _logger.info(
-              'Stripped $stripped legacy reminder turn message(s) '
-              'in session $sessionId',
-            );
-          }
-          state.metadata['history_reminder_migrated_v1'] = true;
-        } catch (e) {
-          _logger.warning('Legacy reminder strip failed: $e');
-        }
-      }
 
       controller = AgentController();
 
@@ -714,79 +734,116 @@ class ChatService {
           sceneContext.isEmpty ? modeContext : "$sceneContext\n\n$modeContext";
     }
 
-    List<LLMMessage> userMessages = [];
-    CurrentLocationContext? locationContext;
-    String? locationContextReminder;
-    try {
-      locationContext =
-          await LocationContextService.instance.getCurrentContext();
-      locationContextReminder = locationContext.toAgentSystemReminderContent();
-    } catch (e) {
-      _logger.warning('Failed to decorate chat with location context: $e');
-    }
-
-    // Per-turn context (message time, scene, location, refs) is
-    // folded into a SINGLE <system-reminder> block at the head of this turn's
-    // user message — rather than scattered across separate systemReminders
-    // entries (which the agent loop would each wrap in its own
-    // <system-reminder> tag).
-    final referencedContent = (refs != null && refs.isNotEmpty)
-        ? 'The user opened this chat from the following in-app reference. '
-            'Treat it as the current page context for understanding words like '
-            '"this", "this card", or "this insight", and use the target IDs if '
-            'the user asks to update or organize the referenced content:\n${refs.map(
-                  (r) =>
-                      'Title: ${r['title']}\nType: ${r['type'] ?? 'unknown'}\nContent: ${r['content']}',
-                ).join('\n\n')}'
-        : null;
-
-    final reminderSections = <String>[
-      // Two distinct facts: when the message was sent (stays fixed on
-      // reprocessing) vs the current processing moment (becomes "now" on
-      // reprocessing). They coincide for a live turn.
-      'User Message Time: ${formatLocalDateTimeWithZone(userMessageTime)}',
-      'Current Local Time: ${formatLocalDateTimeWithZone(DateTime.now())}',
-      if (locationContextReminder != null && locationContextReminder.isNotEmpty)
-        locationContextReminder.trim(),
-      if (sceneContext.isNotEmpty) sceneContext.trim(),
-      if (referencedContent != null) referencedContent,
-    ];
-    final combinedReminder =
-        '<system-reminder>\n${reminderSections.join('\n\n')}\n</system-reminder>';
-
-    final userContentParts = <UserContentPart>[
-      TextPart(combinedReminder),
-      TextPart(
-        message.isEmpty
-            ? 'User sent ${preparedImages.length} image attachment(s).'
-            : message,
-      ),
-    ];
-    final inlinedImageFileNames = <String>[];
-    for (var i = 0; i < preparedImages.length; i++) {
-      final image = preparedImages[i];
-      userContentParts.add(TextPart(_buildAttachmentReminder(i, image)));
-      final inline = await _inlinePreparedImage(image);
-      if (inline != null) {
-        userContentParts.add(ImagePart(inline.base64Data, inline.mimeType));
-        inlinedImageFileNames.add(image.fsFilename);
-      }
-    }
-
-    userMessages.add(UserMessage(
-      userContentParts,
-      metadata: {
-        // Lets the context compressor replace archived image bytes with
-        // fs:// filename placeholders (see SuperAgentContextCompressor).
-        if (inlinedImageFileNames.isNotEmpty)
-          'image_fs_paths': inlinedImageFileNames,
-      },
-    ));
-
     final activeAgent = agent;
+    final runningTurnId =
+        activeAgent.state.metadata[_runningChatTurnIdKey] as String?;
+    final resumeExistingRun =
+        activeAgent.state.isRunning && runningTurnId == turnId;
+    if (activeAgent.state.isRunning && !resumeExistingRun) {
+      _logger.warning(
+        'Ignoring stale SuperAgent running state, chatSessionId:$sessionId, '
+        'stateSessionId:${activeAgent.state.sessionId}, '
+        'stateTurnId:$runningTurnId, payloadTurnId:$turnId',
+      );
+      activeAgent.state.isRunning = false;
+      activeAgent.state.metadata.remove(_runningChatTurnIdKey);
+      await saveAgentState(activeAgent.state);
+    }
+    if (resumeExistingRun) {
+      _logger.info(
+        'SuperAgent resume, chatSessionId:$sessionId, '
+        'stateSessionId:${activeAgent.state.sessionId}, turnId:$turnId',
+      );
+    } else {
+      activeAgent.state.metadata[_runningChatTurnIdKey] = turnId;
+      await saveAgentState(activeAgent.state);
+    }
+
+    List<LLMMessage> userMessages = const [];
+    if (!resumeExistingRun) {
+      CurrentLocationContext? locationContext;
+      String? locationContextReminder;
+      try {
+        locationContext =
+            await LocationContextService.instance.getCurrentContext();
+        locationContextReminder =
+            locationContext.toAgentSystemReminderContent();
+      } catch (e) {
+        _logger.warning('Failed to decorate chat with location context: $e');
+      }
+
+      // Per-turn context (message time, scene, location, refs) is
+      // folded into a SINGLE <system-reminder> block at the head of this turn's
+      // user message — rather than scattered across separate systemReminders
+      // entries (which the agent loop would each wrap in its own
+      // <system-reminder> tag).
+      final referencedContent = (refs != null && refs.isNotEmpty)
+          ? 'The user opened this chat from the following in-app reference. '
+              'Treat it as the current page context for understanding words like '
+              '"this", "this card", or "this insight", and use the target IDs if '
+              'the user asks to update or organize the referenced content:\n${refs.map(
+                    (r) =>
+                        'Title: ${r['title']}\nType: ${r['type'] ?? 'unknown'}\nContent: ${r['content']}',
+                  ).join('\n\n')}'
+          : null;
+
+      final reminderSections = <String>[
+        // Two distinct facts: when the message was sent (stays fixed on
+        // reprocessing) vs the current processing moment (becomes "now" on
+        // reprocessing). They coincide for a live turn.
+        'User Message Time: ${formatLocalDateTimeWithZone(userMessageTime)}',
+        'Current Local Time: ${formatLocalDateTimeWithZone(DateTime.now())}',
+        if (locationContextReminder != null &&
+            locationContextReminder.isNotEmpty)
+          locationContextReminder.trim(),
+        if (sceneContext.isNotEmpty) sceneContext.trim(),
+        if (referencedContent != null) referencedContent,
+      ];
+      final combinedReminder =
+          '<system-reminder>\n${reminderSections.join('\n\n')}\n</system-reminder>';
+
+      final userContentParts = <UserContentPart>[
+        TextPart(combinedReminder),
+        TextPart(
+          message.isEmpty
+              ? 'User sent ${preparedImages.length} image attachment(s).'
+              : message,
+        ),
+      ];
+      final inlinedImageFileNames = <String>[];
+      for (var i = 0; i < preparedImages.length; i++) {
+        final image = preparedImages[i];
+        userContentParts.add(TextPart(_buildAttachmentReminder(i, image)));
+        final inline = await _inlinePreparedImage(image);
+        if (inline != null) {
+          userContentParts.add(ImagePart(inline.base64Data, inline.mimeType));
+          inlinedImageFileNames.add(image.fsFilename);
+        }
+      }
+
+      userMessages = [
+        UserMessage(
+          userContentParts,
+          metadata: {
+            // Lets the context compressor replace archived image bytes with
+            // fs:// filename placeholders (see SuperAgentContextCompressor).
+            if (inlinedImageFileNames.isNotEmpty)
+              'image_fs_paths': inlinedImageFileNames,
+          },
+        ),
+      ];
+    }
+
     await DelegateProgressContext.run(progressSink, () async {
       try {
-        await activeAgent.run(userMessages).whenComplete(() async {
+        final agentFuture = resumeExistingRun
+            ? activeAgent.resume()
+            : activeAgent.run(userMessages);
+        await agentFuture.whenComplete(() async {
+          if (activeAgent.state.metadata[_runningChatTurnIdKey] == turnId) {
+            activeAgent.state.metadata.remove(_runningChatTurnIdKey);
+            await saveAgentState(activeAgent.state);
+          }
           // Sync skill changes back to the original directory if we made a copy.
           if (skillSync != null) {
             try {
@@ -1251,14 +1308,54 @@ class ChatService {
 
   // --- Session Helpers (Recreated from chat.dart to be independent) ---
 
+  Future<String> _resolveAgentStateSessionId(
+    String userId,
+    String sessionId,
+  ) async {
+    try {
+      final sessionData = await _loadSessionData(userId, sessionId);
+      final activeStateId =
+          sessionData[_activeAgentStateSessionIdKey]?.toString().trim();
+      if (activeStateId != null && activeStateId.isNotEmpty) {
+        return activeStateId;
+      }
+    } catch (e, st) {
+      _logger.warning(
+        'Failed to resolve agent state session for chat session $sessionId',
+        e,
+        st,
+      );
+    }
+    return sessionId;
+  }
+
+  Future<Map<String, dynamic>> _loadSessionData(
+    String userId,
+    String sessionId,
+  ) async {
+    final sessionFile = _getSessionFilePath(userId, sessionId);
+    if (!await sessionFile.exists()) {
+      throw StateError('Session not found: $sessionId');
+    }
+
+    final fileContent = await sessionFile.readAsString();
+    final doc = loadYaml(fileContent);
+    return jsonDecode(jsonEncode(doc)) as Map<String, dynamic>;
+  }
+
+  Future<void> _saveSessionData(
+    String userId,
+    String sessionId,
+    Map<String, dynamic> sessionData,
+  ) async {
+    final sessionFile = _getSessionFilePath(userId, sessionId);
+    await _fileService.writeYamlFile(sessionFile.path, sessionData);
+  }
+
   /// Check whether a session file has `is_custom_agent: true`.
   Future<bool> _isCustomAgentSession(String userId, String sessionId) async {
     try {
-      final sessionFile = _getSessionFilePath(userId, sessionId);
-      if (!await sessionFile.exists()) return false;
-      final content = await sessionFile.readAsString();
-      final doc = loadYaml(content);
-      final data = jsonDecode(jsonEncode(doc)) as Map<String, dynamic>;
+      final data = await _loadSessionData(userId, sessionId);
       return data['is_custom_agent'] == true;
     } catch (e) {
       _logger.warning('Failed to read session metadata: $e');
@@ -1332,9 +1429,7 @@ class ChatService {
     final sessionFile = _getSessionFilePath(userId, sessionId);
     if (!await sessionFile.exists()) return null;
 
-    final fileContent = await sessionFile.readAsString();
-    final doc = loadYaml(fileContent);
-    final sessionData = jsonDecode(jsonEncode(doc)) as Map<String, dynamic>;
+    final sessionData = await _loadSessionData(userId, sessionId);
     _backfillSessionTimeContext(sessionData);
 
     final messageTime = timestamp ?? DateTime.now();
@@ -1391,7 +1486,7 @@ class ChatService {
     sessionData['updated_at_local'] = formatLocalDateTimeWithZone(updatedAt);
     sessionData['updated_at_unix_seconds'] = unixSecondsFromDateTime(updatedAt);
 
-    await _fileService.writeYamlFile(sessionFile.path, sessionData);
+    await _saveSessionData(userId, sessionId, sessionData);
     return sessionData['total_usage'] as Map<String, dynamic>?;
   }
 
@@ -1403,9 +1498,7 @@ class ChatService {
     final sessionFile = _getSessionFilePath(userId, sessionId);
     if (!await sessionFile.exists()) return false;
 
-    final fileContent = await sessionFile.readAsString();
-    final doc = loadYaml(fileContent);
-    final sessionData = jsonDecode(jsonEncode(doc)) as Map<String, dynamic>;
+    final sessionData = await _loadSessionData(userId, sessionId);
     final messages = sessionData['messages'] as List<dynamic>? ?? const [];
     return messages.any((message) {
       return message is Map &&

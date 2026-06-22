@@ -1292,6 +1292,42 @@ abstract class AppLocalizations {
   /// **'Whether it\'s memories or the present, I\'m here...'**
   String get aiInputHint;
 
+  /// No description provided for @refreshSuperAgentStateTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Memex Agent context'**
+  String get refreshSuperAgentStateTooltip;
+
+  /// No description provided for @refreshSuperAgentStateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Memex Agent history context?'**
+  String get refreshSuperAgentStateTitle;
+
+  /// No description provided for @refreshSuperAgentStateMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The visible chat history will stay, but Memex Agent\'s historical runtime context will be cleared and future replies will start from a fresh context. Persistent memory, knowledge base files, cards, and other saved data are not affected. Use this when Memex Agent keeps behaving abnormally. Continue?'**
+  String get refreshSuperAgentStateMessage;
+
+  /// No description provided for @refreshSuperAgentStateActiveRunMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait until the current Memex Agent message finishes before clearing context.'**
+  String get refreshSuperAgentStateActiveRunMessage;
+
+  /// No description provided for @refreshSuperAgentStateSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex Agent context cleared'**
+  String get refreshSuperAgentStateSuccess;
+
+  /// No description provided for @refreshSuperAgentStateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to clear Memex Agent context: {error}'**
+  String refreshSuperAgentStateFailed(Object error);
+
   /// No description provided for @nothingHere.
   ///
   /// In en, this message translates to:

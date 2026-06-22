@@ -22,6 +22,7 @@ import 'package:memex/ui/timeline/widgets/timeline_card_detail_screen.dart';
 import 'package:memex/data/services/photo_suggestion_service.dart';
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/utils/logger.dart';
+import 'package:memex/utils/result.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/ui/core/widgets/agent_logo_loading.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
@@ -53,7 +54,11 @@ class AIMessageItem extends ChatDisplayItem {
   bool isStreaming;
   @override
   DateTime? timestamp;
-  AIMessageItem(this.text, {this.isStreaming = false, this.timestamp});
+  AIMessageItem(
+    this.text, {
+    this.isStreaming = false,
+    this.timestamp,
+  });
 }
 
 class ThinkingItem extends ChatDisplayItem {
@@ -281,11 +286,10 @@ Duration resolveSuperAgentKeyboardInsetAnimationDuration({
 
 @visibleForTesting
 bool shouldShowSuperAgentPhotoSuggestions({
-  required bool isStreaming,
   required bool isLoading,
   required bool hasSuggestions,
 }) {
-  return !isStreaming && (isLoading || hasSuggestions);
+  return isLoading || hasSuggestions;
 }
 
 @visibleForTesting
@@ -353,6 +357,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   int _loadedHistoryMessageCount = 0;
   bool _isStreaming = false;
   bool _isLoadingAgent = false;
+  bool _isRefreshingAgentState = false;
   bool _nextResponseStartsNewMessage = true;
   ChatTokenUsageEvent? _lastTokenUsage;
   bool _isFullScreen = false;
@@ -829,34 +834,25 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   /// send or a re-attached in-flight run.
   void _listenToChatStream(Stream<ChatEvent> stream) {
     _chatSubscription?.cancel();
-    _chatSubscription = stream.listen(
+    late final StreamSubscription<ChatEvent> subscription;
+    subscription = stream.listen(
       (event) {
         _handleChatEvent(event);
       },
       onError: (e) {
-        setState(() {
-          _items.add(ErrorItem(e.toString()));
-          _isStreaming = false;
-          _isLoadingAgent = false;
-        });
-        _scrollToBottom();
+        if (_chatSubscription == subscription) {
+          _chatSubscription = null;
+        }
+        _handleChatStreamError(e);
       },
       onDone: () {
-        setState(() {
-          _isStreaming = false;
-          _isLoadingAgent = false;
-          // Ensure the last AI message is marked as done
-          if (_items.isNotEmpty && _items.last is AIMessageItem) {
-            (_items.last as AIMessageItem).isStreaming = false;
-          }
-          final primary = _lastPrimaryItem();
-          if (primary is ProcessItem) {
-            primary.isFinished = true;
-            primary.isExpanded = false;
-          }
-        });
+        if (_chatSubscription == subscription) {
+          _chatSubscription = null;
+        }
+        _handleChatStreamDone();
       },
     );
+    _chatSubscription = subscription;
   }
 
   /// Consumes the enqueue/session events from a send made while this dialog is
@@ -864,23 +860,85 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   /// responsible for agent progress and responses.
   void _listenToQueuedSend(Stream<ChatEvent> stream) {
     late final StreamSubscription<ChatEvent> subscription;
+    var promotedToChatStream = false;
+
+    void promoteToChatStream(ChatEvent firstEvent) {
+      promotedToChatStream = true;
+      _queuedSendSubscriptions.remove(subscription);
+      final previousSubscription = _chatSubscription;
+      if (previousSubscription != null &&
+          previousSubscription != subscription) {
+        unawaited(previousSubscription.cancel());
+      }
+      _chatSubscription = subscription;
+      _handleChatEvent(firstEvent);
+    }
+
     subscription = stream.listen(
       (event) {
         if (!mounted) return;
-        if (event is ChatSessionCreatedEvent || event is ChatErrorEvent) {
+        if (!promotedToChatStream &&
+            (event is ChatSessionCreatedEvent || event is ChatErrorEvent)) {
           _handleChatEvent(event);
+          return;
         }
+        if (!promotedToChatStream) {
+          promoteToChatStream(event);
+          return;
+        }
+        _handleChatEvent(event);
       },
       onError: (e) {
         if (!mounted) return;
-        setState(() => _items.add(ErrorItem(e.toString())));
-        _scrollToBottom();
+        if (promotedToChatStream) {
+          if (_chatSubscription == subscription) {
+            _chatSubscription = null;
+          }
+          _handleChatStreamError(e);
+        } else {
+          setState(() => _items.add(ErrorItem(e.toString())));
+          _scrollToBottom();
+        }
       },
       onDone: () {
-        _queuedSendSubscriptions.remove(subscription);
+        if (promotedToChatStream) {
+          if (_chatSubscription == subscription) {
+            _chatSubscription = null;
+          }
+          _handleChatStreamDone();
+        } else {
+          _queuedSendSubscriptions.remove(subscription);
+        }
       },
     );
     _queuedSendSubscriptions.add(subscription);
+  }
+
+  void _handleChatStreamError(Object error) {
+    if (!mounted) return;
+    setState(() {
+      _items.add(ErrorItem(error.toString()));
+      _isStreaming = false;
+      _isLoadingAgent = false;
+    });
+    _scrollToBottom();
+  }
+
+  void _handleChatStreamDone() {
+    if (!mounted) return;
+    setState(() {
+      _isStreaming = false;
+      _isLoadingAgent = false;
+      // Ensure the last AI message is marked as done
+      if (_items.isNotEmpty && _items.last is AIMessageItem) {
+        (_items.last as AIMessageItem).isStreaming = false;
+      }
+      final primary = _lastPrimaryItem();
+      if (primary is ProcessItem) {
+        primary.isFinished = true;
+        primary.isExpanded = false;
+      }
+    });
   }
 
   /// If this session has a run still executing (the dialog was closed while
@@ -900,6 +958,78 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     });
     _listenToChatStream(_router.attachToChatRun(sessionId));
     _scrollToBottom();
+  }
+
+  Future<void> _handleRefreshAgentState() async {
+    final sessionId = _currentSessionId;
+    if (sessionId == null || sessionId.isEmpty || _isRefreshingAgentState) {
+      return;
+    }
+
+    if (await _router.hasActiveChatRun(sessionId)) {
+      if (!mounted || sessionId != _currentSessionId) return;
+      await _showRefreshAgentStateDialog(
+        message: UserStorage.l10n.refreshSuperAgentStateActiveRunMessage,
+        canRefresh: false,
+      );
+      return;
+    }
+    if (!mounted || sessionId != _currentSessionId) return;
+
+    final confirmed = await _showRefreshAgentStateDialog(
+      message: UserStorage.l10n.refreshSuperAgentStateMessage,
+      canRefresh: true,
+    );
+    if (confirmed != true) return;
+    if (!mounted || sessionId != _currentSessionId) return;
+
+    setState(() => _isRefreshingAgentState = true);
+    final result = await _router.refreshSuperAgentChatState(sessionId);
+    if (!mounted || sessionId != _currentSessionId) return;
+    setState(() => _isRefreshingAgentState = false);
+
+    result.when(
+      onOk: (_) {
+        setState(() => _lastTokenUsage = null);
+        ToastHelper.showSuccess(
+          context,
+          UserStorage.l10n.refreshSuperAgentStateSuccess,
+        );
+      },
+      onError: (error, _) {
+        ToastHelper.showError(
+          context,
+          UserStorage.l10n.refreshSuperAgentStateFailed(error),
+        );
+      },
+    );
+  }
+
+  Future<bool?> _showRefreshAgentStateDialog({
+    required String message,
+    required bool canRefresh,
+  }) {
+    final dismissLabel =
+        canRefresh ? UserStorage.l10n.cancel : UserStorage.l10n.close;
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        title: Text(UserStorage.l10n.refreshSuperAgentStateTitle),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(dismissLabel),
+          ),
+          if (canRefresh)
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(UserStorage.l10n.refresh),
+            ),
+        ],
+      ),
+    );
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -972,6 +1102,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     setState(() {
       if (event is ChatAgentStartedEvent) {
         _messageFocusNode.unfocus();
+        _isStreaming = true;
         _isLoadingAgent = true;
         _nextResponseStartsNewMessage = true;
         return;
@@ -1108,9 +1239,13 @@ class _AgentChatDialogState extends State<AgentChatDialog>
     });
   }
 
+  bool get _showAgentThinkingRow {
+    return _isLoadingAgent;
+  }
+
   int _agentChatListItemCount() {
     return _items.length +
-        (_isLoadingAgent ? 1 : 0) +
+        (_showAgentThinkingRow ? 1 : 0) +
         ((_hasMoreHistory || _isLoadingMoreHistory) ? 1 : 0);
   }
 
@@ -1307,7 +1442,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                                           itemCount: _agentChatListItemCount(),
                                           itemBuilder: (context, index) {
                                             final extraItems =
-                                                _isLoadingAgent ? 1 : 0;
+                                                _showAgentThinkingRow ? 1 : 0;
                                             if (extraItems == 1 && index == 0) {
                                               return _buildAgentThinkingItem();
                                             }
@@ -1402,6 +1537,13 @@ class _AgentChatDialogState extends State<AgentChatDialog>
 
   Widget _buildHeader() {
     final actions = <Widget>[
+      if (_currentSessionId != null)
+        _buildHeaderIconButton(
+          key: const ValueKey('agent_chat_refresh_state_button'),
+          tooltip: UserStorage.l10n.refreshSuperAgentStateTooltip,
+          icon: Icons.refresh_rounded,
+          onPressed: _handleRefreshAgentState,
+        ),
       _buildHeaderIconButton(
         key: const ValueKey('agent_chat_fullscreen_toggle'),
         tooltip: _isFullScreen
@@ -1619,9 +1761,7 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   }
 
   Widget _buildSuperAgentInput() {
-    final isBusy = _isStreaming;
     final showPhotoSuggestions = shouldShowSuperAgentPhotoSuggestions(
-      isStreaming: isBusy,
       isLoading: _isLoadingPhotoSuggestions,
       hasSuggestions: _photoSuggestionClusters.isNotEmpty,
     );
@@ -1694,15 +1834,13 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                     _buildInputIconButton(
                       key: const ValueKey('super_agent_camera_button'),
                       icon: Icons.camera_alt,
-                      onTap:
-                          isBusy ? null : () => _pickImage(ImageSource.camera),
+                      onTap: () => _pickImage(ImageSource.camera),
                     ),
                     const SizedBox(width: 12),
                     _buildInputIconButton(
                       key: const ValueKey('super_agent_gallery_button'),
                       icon: Icons.photo_library,
-                      onTap:
-                          isBusy ? null : () => _pickImage(ImageSource.gallery),
+                      onTap: () => _pickImage(ImageSource.gallery),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
