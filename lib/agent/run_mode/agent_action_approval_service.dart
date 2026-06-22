@@ -133,9 +133,11 @@ Future<AgentToolResult?> gateMutatingToolCall({
     context?.state.metadata[AgentRunMode.metadataKey] as String?,
   );
   if (context == null || mode != AgentRunMode.confirm) return null;
+  final sessionId = context.state.metadata['chat_session_id'] as String? ??
+      context.state.sessionId;
 
   final approved = await AgentActionApprovalService.instance.requestApproval(
-    sessionId: context.state.sessionId,
+    sessionId: sessionId,
     toolName: toolName,
     summary: summary,
     details: details,

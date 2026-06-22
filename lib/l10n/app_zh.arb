@@ -301,6 +301,17 @@
   "comparisonChart": "对比图",
   "todayTimeFlow": "今日时间流",
   "aiInputHint": "无论是回忆还是当下，我都准备好了...",
+  "refreshSuperAgentStateTooltip": "清空 Memex Agent Context",
+  "refreshSuperAgentStateTitle": "清空 Memex Agent 历史 Context？",
+  "refreshSuperAgentStateMessage": "可见聊天历史会继续保留，但 Memex Agent 的历史运行 Context 会被清空，之后会从新的 Context 开始回复。持久化记忆、知识库文件、卡片等已保存数据不受影响。适用于 Memex Agent 持续运行异常等情况。确定继续？",
+  "refreshSuperAgentStateActiveRunMessage": "当前 Memex Agent 消息处理完后才能清空 Context。",
+  "refreshSuperAgentStateSuccess": "Memex Agent Context 已清空",
+  "@refreshSuperAgentStateFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "refreshSuperAgentStateFailed": "清空 Memex Agent Context 失败: {error}",
   "nothingHere": "还没有任何内容",
   "nothingHereHint": "点击下方按钮创建你的第一张卡片",
   "agentProcessing": "AI 处理中...",

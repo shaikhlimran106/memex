@@ -171,10 +171,10 @@ void main() {
       expect(text, isNot(contains('0.12345')));
     });
 
-    test('hides photo suggestions while the super agent is sending', () {
+    test('keeps photo suggestions available while the super agent is sending',
+        () {
       expect(
         shouldShowSuperAgentPhotoSuggestions(
-          isStreaming: false,
           isLoading: true,
           hasSuggestions: false,
         ),
@@ -182,7 +182,6 @@ void main() {
       );
       expect(
         shouldShowSuperAgentPhotoSuggestions(
-          isStreaming: false,
           isLoading: false,
           hasSuggestions: true,
         ),
@@ -190,11 +189,10 @@ void main() {
       );
       expect(
         shouldShowSuperAgentPhotoSuggestions(
-          isStreaming: true,
           isLoading: true,
           hasSuggestions: true,
         ),
-        isFalse,
+        isTrue,
       );
     });
 
