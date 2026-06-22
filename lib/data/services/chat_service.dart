@@ -193,6 +193,30 @@ String _preview(String text, int maxChars) {
   return '${text.substring(0, maxChars)}...';
 }
 
+bool isActiveChatTurnTaskForSession({
+  required String sessionId,
+  required String taskType,
+  required String expectedTaskType,
+  required String status,
+  required String? payloadJson,
+}) {
+  if (sessionId.isEmpty) return false;
+  if (taskType != expectedTaskType) return false;
+  if (!const {'pending', 'processing', 'retrying'}.contains(status)) {
+    return false;
+  }
+
+  try {
+    final payload = payloadJson == null || payloadJson.isEmpty
+        ? null
+        : jsonDecode(payloadJson);
+    if (payload is! Map) return false;
+    return payload['session_id'] == sessionId;
+  } catch (_) {
+    return false;
+  }
+}
+
 class ChatService {
   static final ChatService _instance = ChatService._internal();
   static ChatService get instance => _instance;
@@ -236,9 +260,13 @@ class ChatService {
     try {
       final tasks = await LocalTaskExecutor.instance.getTasks(limit: 200);
       return tasks.any(
-        (task) =>
-            task.type == _superAgentChatTurnTaskType &&
-            const {'pending', 'processing', 'retrying'}.contains(task.status),
+        (task) => isActiveChatTurnTaskForSession(
+          sessionId: sessionId,
+          taskType: task.type,
+          expectedTaskType: _superAgentChatTurnTaskType,
+          status: task.status,
+          payloadJson: task.payload,
+        ),
       );
     } catch (e, stackTrace) {
       _logger.warning(
