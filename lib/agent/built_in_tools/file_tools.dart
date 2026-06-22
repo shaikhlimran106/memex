@@ -14,6 +14,7 @@ import 'package:memex/data/services/asset_safety_service.dart';
 import 'package:memex/data/services/api_exception.dart';
 import 'package:memex/data/services/file_operation_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/data/services/image_exif_context.dart';
 import 'package:path/path.dart' as p;
 
 // Helper to access services
@@ -26,17 +27,26 @@ typedef ViewImageCompressor = Future<Uint8List?> Function(
   int quality,
 });
 
+typedef ViewImageExifInfoBuilder = Future<String?> Function(
+  String userId,
+  String imagePath,
+);
+
 class FileToolFactory {
   final FilePermissionManager permissionManager;
   final String workingDirectory;
   final ViewImageCompressor _viewImageCompressor;
+  final ViewImageExifInfoBuilder _viewImageExifInfoBuilder;
 
   FileToolFactory({
     required this.permissionManager,
     required this.workingDirectory,
     ViewImageCompressor? viewImageCompressor,
-  }) : _viewImageCompressor =
-            viewImageCompressor ?? _defaultViewImageCompressor;
+    ViewImageExifInfoBuilder? viewImageExifInfoBuilder,
+  })  : _viewImageCompressor =
+            viewImageCompressor ?? _defaultViewImageCompressor,
+        _viewImageExifInfoBuilder =
+            viewImageExifInfoBuilder ?? buildImageExifInfo;
 
   static Future<Uint8List?> _defaultViewImageCompressor(
     String filePath, {
@@ -154,14 +164,30 @@ class FileToolFactory {
         }
 
         final sessionId = AgentCallToolContext.current?.state.sessionId ?? '';
+        final userId =
+            AgentCallToolContext.current?.state.metadata['userId'] as String?;
+        String? exifInfo;
+        if (userId != null && userId.isNotEmpty) {
+          exifInfo = await _viewImageExifInfoBuilder(userId, imagePath);
+        }
+
+        final message = StringBuffer()
+          ..writeln(
+            'Image loaded from `${_displayPath(imagePath)}`. Inspect it now.',
+          );
+        if (exifInfo != null && exifInfo.isNotEmpty) {
+          message.writeln();
+          message.write(exifInfo);
+        }
+
         PendingToolImageBuffer.instance.add(
           sessionId,
           ImagePart(await compute(base64Encode, compressedBytes), 'image/webp'),
-          message:
-              'Image loaded from `${_displayPath(imagePath)}`. Inspect it now.',
+          message: message.toString(),
         );
 
-        return 'Image attached to the next model message (${_formatBytes(originalSize)}).';
+        return 'Image attached to the next model message (${_formatBytes(originalSize)}).'
+            '${exifInfo == null || exifInfo.isEmpty ? '' : ' EXIF metadata is included.'}';
       },
     );
   }

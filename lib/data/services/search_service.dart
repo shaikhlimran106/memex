@@ -426,6 +426,7 @@ class SearchService {
     Map<String, dynamic> after,
   ) {
     return _stringValue(before['title']) != _stringValue(after['title']) ||
+        _stringValue(before['fact']) != _stringValue(after['fact']) ||
         _stringListValue(before['tags']) != _stringListValue(after['tags']) ||
         _insightText(before['insight']) != _insightText(after['insight']);
   }

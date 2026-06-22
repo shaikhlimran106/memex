@@ -55,6 +55,9 @@ void main() {
           qualitySeen = quality;
           return compressed;
         },
+        viewImageExifInfoBuilder: (userId, imagePath) async =>
+            'Image Metadata:\nCapture Time: 2026:06:22 15:30:00\n'
+            'GPS Coordinates: 31.230416, 121.473701',
       );
       final tool = factory.buildViewImageTool();
       final properties = tool.parameters['properties'] as Map;
@@ -74,6 +77,7 @@ void main() {
       expect(result.isError, isFalse);
       expect(
           _text(result), contains('Image attached to the next model message'));
+      expect(_text(result), contains('EXIF metadata is included'));
       expect(compressedPath, image.path);
       expect(targetSizeSeen, 2048);
       expect(qualitySeen, 85);
@@ -81,6 +85,9 @@ void main() {
       final pending = PendingToolImageBuffer.instance.drain(state.sessionId);
       expect(pending, hasLength(1));
       expect(pending.single.message, contains('Inspect it now'));
+      expect(pending.single.message, contains('Image Metadata:'));
+      expect(pending.single.message, contains('Capture Time:'));
+      expect(pending.single.message, contains('GPS Coordinates:'));
       expect(pending.single.image.mimeType, 'image/webp');
       expect(pending.single.image.base64Data, base64Encode(compressed));
     });

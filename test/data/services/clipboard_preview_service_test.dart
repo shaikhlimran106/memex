@@ -159,16 +159,19 @@ void main() {
       expect(await service.fetchUnhandledText(), isNull);
     });
 
-    test('uses plain text fallback when native clipboard summary is empty',
-        () async {
+    test('skips fallback when native clipboard summary is empty', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
         const MethodChannel('com.memexlab.memex/clipboard_preview'),
         (_) async => null,
       );
 
-      final candidate = await service.fetchUnhandledText();
+      expect(await service.fetchUnhandledText(), isNull);
+    });
 
+    test('uses plain text fallback only when native channel is missing',
+        () async {
+      final candidate = await service.fetchUnhandledText();
       expect(candidate, isNotNull);
       expect(candidate!.isText, isTrue);
       expect(candidate.text, clipboardText);

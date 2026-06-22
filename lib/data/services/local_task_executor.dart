@@ -175,6 +175,7 @@ class LocalTaskExecutor {
   static const Duration _pollInterval = Duration(seconds: 1);
   static const String _queueLeaseBucket = 'agent_queue_lease';
   static const String _queueLeaseKeyPrefix = 'agent_queue_lease:';
+  static const String _foregroundQueueLeasePattern = '%:foreground';
   static const Duration _queueLeaseTtl = Duration(seconds: 45);
   static const Duration _queueLeaseHeartbeatInterval = Duration(seconds: 10);
   static const Duration _queueOwnershipRetryDelay = Duration(seconds: 30);
@@ -462,6 +463,10 @@ class LocalTaskExecutor {
     final staleBefore = now - _queueLeaseTtl.inSeconds;
     final leaseKey = _queueLeaseKey(userId);
     final leaseValue = _queueLeaseValue;
+    // A killed foreground process can leave a fresh lease behind. A new
+    // foreground owner may take it over; background workers still must not.
+    final canTakeOverForegroundLease =
+        _queueOwnerKind == TaskQueueOwnerKind.foreground;
 
     final updated = await SqliteBusyRetry.run<int>(
       operation: 'acquire agent queue ownership',
@@ -477,7 +482,8 @@ class LocalTaskExecutor {
           'WHERE kv_store.value = ? '
           'OR kv_store.value IS NULL '
           'OR kv_store.updated_at IS NULL '
-          'OR kv_store.updated_at <= ?',
+          'OR kv_store.updated_at <= ? '
+          'OR (? = 1 AND kv_store.value LIKE ?)',
           variables: [
             Variable<String>(leaseKey),
             Variable<String>(leaseValue),
@@ -485,6 +491,8 @@ class LocalTaskExecutor {
             Variable<int>(now),
             Variable<String>(leaseValue),
             Variable<int>(staleBefore),
+            Variable<int>(canTakeOverForegroundLease ? 1 : 0),
+            const Variable<String>(_foregroundQueueLeasePattern),
           ],
           updates: {_db.kvStore},
         );

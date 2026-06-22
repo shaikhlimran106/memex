@@ -184,6 +184,13 @@ class ClipboardPreviewService {
   Future<_ClipboardSummary?> _readClipboardSummary() async {
     final platformRead = await _readPlatformClipboardSummary();
     if (platformRead.summary != null) return platformRead.summary;
+    if (!platformRead.allowFlutterTextFallback) {
+      _logger.info(
+        'Clipboard preview skipped: native summary unavailable and Flutter '
+        'text fallback disabled',
+      );
+      return null;
+    }
 
     _logger
         .info('Native clipboard summary empty; trying Flutter text fallback');
@@ -207,20 +214,20 @@ class ClipboardPreviewService {
           .timeout(_platformReadTimeout);
       if (raw == null) {
         _logger.info('Native clipboard summary returned null');
-        return const _PlatformClipboardRead();
+        return const _PlatformClipboardRead(allowFlutterTextFallback: false);
       }
       _logger.info('Native clipboard summary raw: ${_describeRawSummary(raw)}');
       return _PlatformClipboardRead(summary: _ClipboardSummary.fromMap(raw));
     } on MissingPluginException {
       _logger
           .info('Clipboard platform channel missing; using Flutter fallback');
-      return const _PlatformClipboardRead();
+      return const _PlatformClipboardRead(allowFlutterTextFallback: true);
     } on TimeoutException catch (e, st) {
       _logger.warning('Clipboard platform summary timed out: $e', e, st);
-      return const _PlatformClipboardRead();
+      return const _PlatformClipboardRead(allowFlutterTextFallback: false);
     } catch (e, st) {
       _logger.warning('Clipboard platform summary failed: $e', e, st);
-      return const _PlatformClipboardRead();
+      return const _PlatformClipboardRead(allowFlutterTextFallback: false);
     }
   }
 
@@ -383,9 +390,13 @@ Future<R> _runInBackground<M, R>(
 }
 
 class _PlatformClipboardRead {
-  const _PlatformClipboardRead({this.summary});
+  const _PlatformClipboardRead({
+    this.summary,
+    this.allowFlutterTextFallback = false,
+  });
 
   final _ClipboardSummary? summary;
+  final bool allowFlutterTextFallback;
 }
 
 class _ClipboardSummary {

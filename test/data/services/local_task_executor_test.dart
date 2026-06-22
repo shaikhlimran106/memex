@@ -18,7 +18,7 @@ void main() {
   });
 
   tearDown(() async {
-    executor.stop();
+    await executor.stop();
     await db.close();
   });
 
@@ -421,6 +421,65 @@ void main() {
       expect(task.status, 'processing');
     });
 
+    test('foreground start takes over an abandoned foreground lease', () async {
+      await _insertQueueLease(
+        db,
+        userId: 'user-a',
+        value: 'old-process:foreground',
+      );
+
+      await executor.start(userId: 'user-a');
+
+      final lease = await executor.getQueueLeaseForTesting('user-a');
+      expect(executor.ownsQueueForTesting, isTrue);
+      expect(lease?.value, executor.queueOwnerValueForTesting);
+    });
+
+    test('background drain does not take over a fresh foreground lease',
+        () async {
+      await _insertQueueLease(
+        db,
+        userId: 'user-a',
+        value: 'foreground-process:foreground',
+      );
+      await _insertTask(
+        db,
+        id: 'pending-task',
+        type: 'lease_task',
+        status: 'pending',
+        payload: {'value': 1},
+      );
+      executor.registerHandler('lease_task', (_, __, ___) async {});
+
+      final result = await executor.drainAvailableTasks(
+        userId: 'user-a',
+        maxDuration: const Duration(milliseconds: 100),
+        pollInterval: const Duration(milliseconds: 20),
+      );
+
+      final lease = await executor.getQueueLeaseForTesting('user-a');
+      final task = await _getTask(db, 'pending-task');
+      expect(result.deferredToAnotherOwner, isTrue);
+      expect(executor.ownsQueueForTesting, isFalse);
+      expect(lease?.value, 'foreground-process:foreground');
+      expect(task.status, 'pending');
+    });
+
+    test('foreground start does not take over a fresh background lease',
+        () async {
+      await _insertQueueLease(
+        db,
+        userId: 'user-a',
+        value: 'background-process:background',
+      );
+
+      await executor.start(userId: 'user-a');
+
+      final lease = await executor.getQueueLeaseForTesting('user-a');
+      expect(executor.ownsQueueForTesting, isFalse);
+      expect(lease?.value, 'background-process:background');
+    });
+
     test('background drain requeues orphan processing tasks', () async {
       final completedTaskIds = <String>[];
       executor.registerHandler('orphan_task', (_, __, context) async {
@@ -594,12 +653,13 @@ void main() {
         pollInterval: const Duration(milliseconds: 20),
       );
 
-      foregroundExecutor.stop();
+      await foregroundExecutor.stop();
       releaseForeground.complete();
       await _waitForTaskStatus(db, 'serial-cross-1', 'completed');
-      backgroundExecutor.stop();
+      await backgroundExecutor.stop();
 
-      expect(result.timedOut, isTrue);
+      expect(result.timedOut, isFalse);
+      expect(result.deferredToAnotherOwner, isTrue);
       expect((await _getTask(db, 'serial-cross-2')).status, 'pending');
       expect(backgroundStarted.isCompleted, isFalse);
     });
@@ -867,6 +927,22 @@ Future<Task> _insertTask(
 
 Future<Task> _getTask(AppDatabase db, String id) {
   return (db.select(db.tasks)..where((t) => t.id.equals(id))).getSingle();
+}
+
+Future<void> _insertQueueLease(
+  AppDatabase db, {
+  required String userId,
+  required String value,
+}) async {
+  final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+  await db.into(db.kvStore).insert(
+        KvStoreCompanion.insert(
+          key: 'agent_queue_lease:$userId',
+          value: Value(value),
+          bucket: const Value('agent_queue_lease'),
+          updatedAt: Value(now),
+        ),
+      );
 }
 
 Future<Task> _waitForTaskStatus(

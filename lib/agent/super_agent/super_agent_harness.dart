@@ -30,9 +30,11 @@ class SuperAgentHarness {
   /// the turn-completion hook.
   static final Map<String, _CaptureTurnState> _captureState = {};
 
-  /// Per-session, cross-turn idle counters: optional-skill name -> number of
-  /// consecutive user turns in which none of that skill's tools were used.
-  /// Survives across turns within a session (unlike [_captureState]).
+  /// AgentState.metadata key for cross-turn idle counters:
+  /// optional-skill name -> number of consecutive user turns in which none of
+  /// that skill's tools were used. Unlike [_captureState], this belongs to the
+  /// persisted agent session so close/reopen and app restart preserve the
+  /// reminder timing.
   ///
   /// Now that capture fans out to child workers, the SuperAgent itself only
   /// activates a skill for conversational / repair work — typically one skill,
@@ -40,7 +42,7 @@ class SuperAgentHarness {
   /// the user has moved on, and a gentle deactivate reminder keeps context
   /// focused. (The earlier multi-skill capture flow made this noisy; that flow
   /// is gone.)
-  static final Map<String, Map<String, int>> _skillIdleTurns = {};
+  static const _idleSkillTurnsMetadataKey = 'super_agent_idle_skill_turns_v1';
 
   /// Consecutive idle user turns before reminding to deactivate a skill.
   static const _skillIdleReminderThreshold = 3;
@@ -137,13 +139,12 @@ class SuperAgentHarness {
     AgentState state,
     Set<String> usedSkills,
   ) {
-    final sessionId = state.sessionId;
     final optionalActive = (state.activeSkills ?? const <String>[]).where((n) {
       final skill = agent.skills?.where((s) => s.name == n).firstOrNull;
       return skill != null && !skill.forceActivate;
     }).toSet();
 
-    final counters = _skillIdleTurns.putIfAbsent(sessionId, () => {});
+    final counters = _idleTurnsFromMetadata(state);
     counters.removeWhere((name, _) => !optionalActive.contains(name));
     for (final name in optionalActive) {
       counters[name] =
@@ -155,8 +156,7 @@ class SuperAgentHarness {
         .map((e) => e.key)
         .toList();
 
-    // Bound memory: with no active optional skills there's nothing to track.
-    if (counters.isEmpty) _skillIdleTurns.remove(sessionId);
+    _writeIdleTurnsToMetadata(state, counters);
 
     const reminderKey = 'idle_skills';
     if (idle.isEmpty) {
@@ -169,6 +169,49 @@ class SuperAgentHarness {
           "deactivate_skills(['${idle.join("', '")}']) to keep your context "
           'focused. If you still need them, ignore this.';
     }
+  }
+
+  static Map<String, int> _idleTurnsFromMetadata(AgentState state) {
+    final raw = state.metadata[_idleSkillTurnsMetadataKey];
+    if (raw is! Map) return <String, int>{};
+
+    final counters = <String, int>{};
+    for (final entry in raw.entries) {
+      final key = entry.key?.toString();
+      if (key == null || key.isEmpty) continue;
+
+      final value = entry.value;
+      int? count;
+      if (value is int) {
+        count = value;
+      } else if (value is num) {
+        count = value.toInt();
+      } else if (value is String) {
+        count = int.tryParse(value);
+      }
+
+      if (count != null && count > 0) {
+        counters[key] = count;
+      }
+    }
+    return counters;
+  }
+
+  static void _writeIdleTurnsToMetadata(
+    AgentState state,
+    Map<String, int> counters,
+  ) {
+    final positiveCounters = {
+      for (final entry in counters.entries)
+        if (entry.value > 0) entry.key: entry.value,
+    };
+
+    if (positiveCounters.isEmpty) {
+      state.metadata.remove(_idleSkillTurnsMetadataKey);
+      return;
+    }
+
+    state.metadata[_idleSkillTurnsMetadataKey] = positiveCounters;
   }
 
   static bool _isUnderPkm(String path) {

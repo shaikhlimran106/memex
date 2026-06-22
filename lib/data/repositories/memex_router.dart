@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:memex/data/repositories/get_schedule_briefing_timeline_card.dart'
     as schedule_briefing_endpoint;
+import 'package:memex/data/repositories/migrate_cards_fact_assets.dart';
 import 'package:memex/data/repositories/update_card_ui_config.dart'
     as update_config_endpoint;
 import 'package:memex/data/services/search_service.dart';
@@ -103,6 +104,8 @@ class MemexRouter {
       // Use userId to init DB (drift_flutter handles path isolation via name)
       _logger.info('Initializing Local DB for user: $userId');
       await AppDatabase.init(userId);
+
+      _registerTaskHandlers(LocalTaskExecutor.instance);
       await LocalTaskExecutor.instance.start(userId: userId);
 
       // Start table change notifier (binlog-style listener for Drift tables)
@@ -113,8 +116,6 @@ class MemexRouter {
       UserNotificationService.instance.init();
       // Register card-detail change notifier (subscribes to GlobalEventBus)
       CardDetailNotifier.instance.init();
-
-      _registerTaskHandlers(LocalTaskExecutor.instance);
 
       // Register event subscriptions after task handlers are ready.
       _registerEventSubscriptions();
@@ -133,6 +134,12 @@ class MemexRouter {
       // Also triggers a one-time full rebuild when FTS tables were just created
       // via migration (existing users upgrading to schema v10).
       SearchService.instance.init(userId);
+
+      // One-time migration: backfill legacy cards' fact/assets/created_at
+      // fields from their Facts files. Runs after SearchService subscribes so
+      // migrated card facts are incrementally reflected in FTS.
+      await migrateCardsToFactAssets(userId);
+
       await ScheduleStateService.instance.ensureInitialized(userId);
 
       scheduleAutoBackupCheck(trigger: 'app_start');
@@ -1147,8 +1154,9 @@ class MemexRouter {
     Map<String, String>? imageOriginalFilenames,
     bool isQuickQuery = false,
     String runMode = 'auto',
-  }) {
-    return ChatService.instance.sendMessage(
+  }) async* {
+    await _ensureInitialized();
+    yield* ChatService.instance.sendMessage(
       message,
       sessionId: sessionId,
       agentName: agentName,
