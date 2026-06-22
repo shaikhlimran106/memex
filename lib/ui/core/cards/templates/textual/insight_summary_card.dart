@@ -27,10 +27,12 @@ class InsightSummaryCard extends StatelessWidget {
 
     String content = data['content'] ?? '';
     final List<String> parts = [];
-    if (added.isNotEmpty)
+    if (added.isNotEmpty) {
       parts.add(l10n.discoveredNewInsightsCount(added.length));
-    if (updated.isNotEmpty)
+    }
+    if (updated.isNotEmpty) {
       parts.add(l10n.updatedExistingInsightsCount(updated.length));
+    }
     if (parts.isNotEmpty) {
       content = parts.join('，');
     }

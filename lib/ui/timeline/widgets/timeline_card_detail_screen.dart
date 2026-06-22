@@ -327,6 +327,7 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
       // Server expects unix timestamp in seconds
       final timestamp = newDateTime.millisecondsSinceEpoch ~/ 1000;
       await _memexRouter.updateCardTime(widget.cardId, timestamp);
+      if (!mounted) return;
       ToastHelper.showSuccess(context, UserStorage.l10n.timeUpdated);
     } catch (e) {
       if (!mounted) return;
@@ -374,6 +375,7 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
           result.point.longitude,
           result.name ?? result.address ?? '',
         );
+        if (!mounted) return;
         ToastHelper.showSuccess(context, UserStorage.l10n.locationUpdated);
       } catch (e) {
         if (!mounted) return;

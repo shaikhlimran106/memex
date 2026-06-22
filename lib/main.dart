@@ -1376,14 +1376,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       if (mounted) setState(() => _isQuickCalibrating = true);
 
       await _stopRecording(cancel: false);
+      if (!mounted) return;
 
       // Now dismiss and submit
-      if (mounted) {
-        setState(() {
-          _isRadialMenuOpen = false;
-          _isQuickCalibrating = false;
-        });
-      }
+      setState(() {
+        _isRadialMenuOpen = false;
+        _isQuickCalibrating = false;
+      });
       if (_quickTranscribedText.isNotEmpty) {
         _openSuperAgentDialog(initialDraftText: _quickTranscribedText);
       } else if (_quickAudioPath != null) {
@@ -1688,7 +1687,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             // Floating bottom bar overlay
             _buildBottomBar(),
 
-            Positioned(
+            const Positioned(
               bottom: 164,
               left: 0,
               right: 0,
