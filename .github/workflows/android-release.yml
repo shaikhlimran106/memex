@@ -1,0 +1,56 @@
+name: Android Release Build
+
+on:
+  workflow_dispatch:          # 手动触发
+    inputs:
+      flavor:
+        description: 'Build flavor (global or cn)'
+        required: true
+        default: 'global'
+        type: choice
+        options:
+          - global
+          - cn
+
+jobs:
+  build:
+    name: Build Release APK (arm64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Build arm64 APK
+        run: |
+          flutter build apk --release \
+            --flavor ${{ github.event.inputs.flavor }} \
+            --target-platform android-arm64
+
+      - name: Collect APK
+        run: |
+          mkdir -p artifacts
+          cp build/app/outputs/flutter-apk/*.apk artifacts/
+          ls -lah artifacts/
+
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: memex-${{ github.event.inputs.flavor }}-arm64
+          path: artifacts/*.apk
