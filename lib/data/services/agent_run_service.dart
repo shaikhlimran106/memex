@@ -132,15 +132,58 @@ class AgentRunService {
     required String userId,
     required String factId,
   }) async {
+    await _createRun(
+      id: factId,
+      userId: userId,
+      factId: factId,
+      message: 'Waiting for background processing to start.',
+    );
+    _logger.info('Created agent run for $factId');
+  }
+
+  Future<String> createForSuperAgentChatTurn({
+    required String userId,
+    required String sessionId,
+    required String turnId,
+  }) async {
+    final runId = superAgentChatTurnRunId(
+      sessionId: sessionId,
+      turnId: turnId,
+    );
+    await _createRun(
+      id: runId,
+      userId: userId,
+      // This column predates generic runs. For chat turns, keep it equal to the
+      // run id rather than pretending there is a source fact/card.
+      factId: runId,
+      message: 'Waiting for Super Agent to start.',
+    );
+    _logger.info('Created Super Agent chat run $runId');
+    return runId;
+  }
+
+  static String superAgentChatTurnRunId({
+    required String sessionId,
+    required String turnId,
+  }) {
+    return 'super_agent_chat:$sessionId:$turnId';
+  }
+
+  Future<void> _createRun({
+    required String id,
+    required String userId,
+    required String factId,
+    required String message,
+  }) async {
     final now = _nowSeconds();
     await _db.into(_db.agentRuns).insertOnConflictUpdate(
           AgentRunsCompanion.insert(
-            id: factId,
+            id: id,
             userId: userId,
             factId: factId,
             state: _dbState(AgentRunState.queued),
             stage: 'Queued',
-            message: const Value('Waiting for background processing to start.'),
+            message: Value(message),
             completedUnits: const Value(0),
             totalUnits: const Value(defaultTotalUnits),
             remainingTasks: const Value(0),
@@ -148,7 +191,6 @@ class AgentRunService {
             updatedAt: now,
           ),
         );
-    _logger.info('Created agent run for $factId');
   }
 
   Future<void> refreshRunFromTasks(String runId) async {

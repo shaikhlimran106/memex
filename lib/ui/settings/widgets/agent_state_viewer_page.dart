@@ -1,64 +1,49 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/data/services/agent_state_debug_service.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
 import 'package:memex/ui/core/widgets/agent_logo_loading.dart';
 import 'package:memex/utils/user_storage.dart';
-import 'package:path/path.dart' as p;
 
-typedef AgentRunTraceContentReader = Future<String> Function();
+typedef AgentStateViewerEntry = AgentStateDebugEntry;
 
-class AgentRunTraceViewerEntry {
-  const AgentRunTraceViewerEntry({
-    required this.path,
-    required this.title,
-    required this.subtitle,
-    required this.modified,
-    required this.readContent,
-  });
-
-  final String path;
-  final String title;
-  final String subtitle;
-  final DateTime modified;
-  final AgentRunTraceContentReader readContent;
-}
-
-class AgentRunTraceViewerPage extends StatefulWidget {
-  const AgentRunTraceViewerPage({
+class AgentStateViewerPage extends StatefulWidget {
+  const AgentStateViewerPage({
     super.key,
     this.enableTextSelection = true,
-    this.traceEntriesForTesting,
-    this.traceRootPathForTesting,
+    this.stateEntriesForTesting,
+    this.stateRootPathForTesting,
     this.userIdForTesting,
+    this.debugService,
   });
 
   final bool enableTextSelection;
-  final List<AgentRunTraceViewerEntry>? traceEntriesForTesting;
-  final String? traceRootPathForTesting;
+  final List<AgentStateViewerEntry>? stateEntriesForTesting;
+  final String? stateRootPathForTesting;
   final String? userIdForTesting;
+  final AgentStateDebugService? debugService;
 
   @override
-  State<AgentRunTraceViewerPage> createState() =>
-      _AgentRunTraceViewerPageState();
+  State<AgentStateViewerPage> createState() => _AgentStateViewerPageState();
 }
 
-class _AgentRunTraceViewerPageState extends State<AgentRunTraceViewerPage> {
+class _AgentStateViewerPageState extends State<AgentStateViewerPage> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  List<AgentRunTraceViewerEntry> _traces = const [];
-  AgentRunTraceViewerEntry? _selectedTrace;
+  List<AgentStateViewerEntry> _states = const [];
+  AgentStateViewerEntry? _selectedState;
   String _content = '';
   String _query = '';
   bool _isLoading = true;
   bool _isReading = false;
   String? _error;
 
+  AgentStateDebugService get _debugService =>
+      widget.debugService ?? AgentStateDebugService.instance;
+
   @override
   void initState() {
     super.initState();
-    _loadTraces();
+    _loadStates();
     _searchController.addListener(() {
       setState(() => _query = _searchController.text);
     });
@@ -71,62 +56,29 @@ class _AgentRunTraceViewerPageState extends State<AgentRunTraceViewerPage> {
     super.dispose();
   }
 
-  Future<void> _loadTraces() async {
+  Future<void> _loadStates() async {
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
-      final traceEntriesForTesting = widget.traceEntriesForTesting;
-      if (traceEntriesForTesting != null) {
-        final traces = [...traceEntriesForTesting]
-          ..sort((a, b) => b.modified.compareTo(a.modified));
-        setState(() {
-          _traces = traces;
-          _selectedTrace = traces.isEmpty ? null : traces.first;
-          _isLoading = false;
-        });
-
-        if (traces.isNotEmpty) {
-          await _selectTrace(traces.first);
-        }
-        return;
-      }
-
-      final userId = widget.userIdForTesting ?? await UserStorage.getUserId();
-      if (userId == null || userId.isEmpty) {
-        setState(() {
-          _traces = const [];
-          _selectedTrace = null;
-          _content = '';
-          _error = 'No active user.';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      final root = Directory(
-        widget.traceRootPathForTesting ??
-            p.join(
-              FileSystemService.instance.getSystemPath(userId),
-              'AgentRuns',
-            ),
-      );
-      final traces = <AgentRunTraceViewerEntry>[];
-      if (await root.exists()) {
-        traces.addAll(await _listTraceFiles(root));
-      }
-      traces.sort((a, b) => b.modified.compareTo(a.modified));
+      final testEntries = widget.stateEntriesForTesting;
+      final states = testEntries == null
+          ? await _loadStateEntriesFromDisk()
+          : ([...testEntries]
+            ..sort((a, b) => b.modified.compareTo(a.modified)));
 
       setState(() {
-        _traces = traces;
-        _selectedTrace = traces.isEmpty ? null : traces.first;
+        _states = states;
+        _selectedState = states.isEmpty ? null : states.first;
         _isLoading = false;
       });
 
-      if (traces.isNotEmpty) {
-        await _selectTrace(traces.first);
+      if (states.isNotEmpty) {
+        await _selectState(states.first);
+      } else {
+        _content = '';
       }
     } catch (e) {
       setState(() {
@@ -136,30 +88,27 @@ class _AgentRunTraceViewerPageState extends State<AgentRunTraceViewerPage> {
     }
   }
 
-  Future<List<AgentRunTraceViewerEntry>> _listTraceFiles(Directory root) async {
-    final traces = <AgentRunTraceViewerEntry>[];
-    await for (final dateEntity in root.list()) {
-      if (dateEntity is! Directory) continue;
-      await for (final runEntity in dateEntity.list()) {
-        if (runEntity is! Directory) continue;
-        final traceFile = File(p.join(runEntity.path, 'trace.md'));
-        if (await traceFile.exists()) {
-          traces.add(await _entryFromFile(root.path, traceFile));
-        }
-      }
+  Future<List<AgentStateViewerEntry>> _loadStateEntriesFromDisk() async {
+    final userId = widget.userIdForTesting ?? await UserStorage.getUserId();
+    if (userId == null || userId.isEmpty) {
+      throw StateError('No active user.');
     }
-    return traces;
+    return _debugService.listStates(
+      userId: userId,
+      rootPath: widget.stateRootPathForTesting,
+    );
   }
 
-  Future<void> _selectTrace(AgentRunTraceViewerEntry trace) async {
+  Future<void> _selectState(AgentStateViewerEntry state) async {
     setState(() {
-      _selectedTrace = trace;
+      _selectedState = state;
       _isReading = true;
       _error = null;
     });
 
     try {
-      final content = await trace.readContent();
+      final raw = await state.readContent();
+      final content = _debugService.renderStateContent(raw, state, _states);
       if (!mounted) return;
       setState(() {
         _content = content;
@@ -180,6 +129,24 @@ class _AgentRunTraceViewerPageState extends State<AgentRunTraceViewerPage> {
     }
   }
 
+  void _scrollContentToTop() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _scrollContentToBottom() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
+  }
+
   String get _visibleContent {
     final query = _query.trim().toLowerCase();
     if (query.isEmpty) return _content;
@@ -192,14 +159,14 @@ class _AgentRunTraceViewerPageState extends State<AgentRunTraceViewerPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: AppBar(
-        title: const Text('Agent Run Traces'),
+        title: const Text('Agent States'),
         backgroundColor: AppColors.background,
         surfaceTintColor: AppColors.background,
         foregroundColor: Colors.black,
         actions: [
           IconButton(
             tooltip: 'Refresh',
-            onPressed: _loadTraces,
+            onPressed: _loadStates,
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -211,15 +178,15 @@ class _AgentRunTraceViewerPageState extends State<AgentRunTraceViewerPage> {
   }
 
   Widget _buildBody(BuildContext context) {
-    if (_error != null && _traces.isEmpty) {
+    if (_error != null && _states.isEmpty) {
       return Center(child: Text(_error!));
     }
-    if (_traces.isEmpty) {
+    if (_states.isEmpty) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(24),
           child: Text(
-            'No Agent Run traces yet. Run Super Agent once, then refresh.',
+            'No agent state files yet. Run an agent once, then refresh.',
             textAlign: TextAlign.center,
           ),
         ),
@@ -230,58 +197,68 @@ class _AgentRunTraceViewerPageState extends State<AgentRunTraceViewerPage> {
     if (wide) {
       return Row(
         children: [
-          SizedBox(width: 320, child: _buildTraceList()),
+          SizedBox(width: 340, child: _buildStateList()),
           const VerticalDivider(width: 1),
-          Expanded(child: _buildTraceContent()),
+          Expanded(child: _buildStateContent()),
         ],
       );
     }
     return Column(
       children: [
-        SizedBox(height: 180, child: _buildTraceList()),
+        SizedBox(height: 190, child: _buildStateList()),
         const Divider(height: 1),
-        Expanded(child: _buildTraceContent()),
+        Expanded(child: _buildStateContent()),
       ],
     );
   }
 
-  Widget _buildTraceList() {
+  Widget _buildStateList() {
     return Material(
       color: Colors.white,
       child: ListView.separated(
-        itemCount: _traces.length,
+        itemCount: _states.length,
         separatorBuilder: (_, __) => const Divider(height: 1),
         itemBuilder: (context, index) {
-          final trace = _traces[index];
-          final selected = trace.path == _selectedTrace?.path;
+          final state = _states[index];
+          final selected = state.sessionId == _selectedState?.sessionId;
+          final childCount = state.isChild
+              ? 0
+              : _states
+                  .where((entry) => entry.parentSessionId == state.sessionId)
+                  .length;
+          final subtitle = childCount == 0
+              ? state.subtitle
+              : '${state.subtitle} | children: $childCount';
           return ListTile(
             selected: selected,
             selectedTileColor: AppColors.primary.withValues(alpha: 0.08),
             leading: Icon(
-              Icons.psychology_alt_outlined,
+              state.isChild
+                  ? Icons.account_tree_outlined
+                  : Icons.psychology_alt_outlined,
               color: selected ? AppColors.primary : AppColors.textSecondary,
             ),
             title: Text(
-              trace.title,
+              state.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
             subtitle: Text(
-              trace.subtitle,
+              subtitle,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12),
             ),
-            onTap: () => _selectTrace(trace),
+            onTap: () => _selectState(state),
           );
         },
       ),
     );
   }
 
-  Widget _buildTraceContent() {
-    final selected = _selectedTrace;
+  Widget _buildStateContent() {
+    final selected = _selectedState;
     return Column(
       children: [
         Container(
@@ -305,16 +282,13 @@ class _AgentRunTraceViewerPageState extends State<AgentRunTraceViewerPage> {
                   ),
                   IconButton(
                     tooltip: 'Top',
-                    onPressed: () {
-                      if (_scrollController.hasClients) {
-                        _scrollController.animateTo(
-                          0,
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeOut,
-                        );
-                      }
-                    },
+                    onPressed: _scrollContentToTop,
                     icon: const Icon(Icons.vertical_align_top, size: 20),
+                  ),
+                  IconButton(
+                    tooltip: 'Bottom',
+                    onPressed: _scrollContentToBottom,
+                    icon: const Icon(Icons.vertical_align_bottom, size: 20),
                   ),
                 ],
               ),
@@ -323,7 +297,7 @@ class _AgentRunTraceViewerPageState extends State<AgentRunTraceViewerPage> {
                 decoration: const InputDecoration(
                   isDense: true,
                   prefixIcon: Icon(Icons.search, size: 18),
-                  hintText: 'Filter inside this trace...',
+                  hintText: 'Filter inside this state...',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -333,17 +307,18 @@ class _AgentRunTraceViewerPageState extends State<AgentRunTraceViewerPage> {
         Expanded(
           child: _isReading
               ? const Center(child: AgentLogoLoading())
-              : _buildReadableTraceContent(),
+              : _buildReadableStateContent(),
         ),
       ],
     );
   }
 
-  Widget _buildReadableTraceContent() {
+  Widget _buildReadableStateContent() {
     final content = Scrollbar(
       controller: _scrollController,
       thumbVisibility: true,
       child: SingleChildScrollView(
+        key: const ValueKey('agent_state_content_scroll'),
         controller: _scrollController,
         padding: const EdgeInsets.all(16),
         child: Text(
@@ -362,24 +337,5 @@ class _AgentRunTraceViewerPageState extends State<AgentRunTraceViewerPage> {
       return content;
     }
     return SelectionArea(child: content);
-  }
-
-  static Future<AgentRunTraceViewerEntry> _entryFromFile(
-    String rootPath,
-    File file,
-  ) async {
-    final stat = await file.stat();
-    final relative = p.relative(file.path, from: rootPath);
-    final parts = p.split(relative);
-    final date = parts.isNotEmpty ? parts.first : 'unknown date';
-    final runId = parts.length >= 2 ? parts[1] : p.basename(file.parent.path);
-
-    return AgentRunTraceViewerEntry(
-      path: file.path,
-      title: date,
-      subtitle: runId,
-      modified: stat.modified,
-      readContent: file.readAsString,
-    );
   }
 }

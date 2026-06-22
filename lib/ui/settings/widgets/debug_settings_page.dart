@@ -6,7 +6,7 @@ import 'package:memex/ui/settings/widgets/model_stats_page.dart';
 import 'package:memex/ui/insight/widgets/insight_template_gallery_page.dart';
 import 'package:memex/ui/timeline/widgets/timeline_template_gallery_page.dart';
 import 'package:memex/ui/settings/widgets/log_viewer_page.dart';
-import 'package:memex/ui/settings/widgets/agent_run_trace_viewer_page.dart';
+import 'package:memex/ui/settings/widgets/agent_state_viewer_page.dart';
 import 'package:memex/ui/settings/widgets/async_task_list_page.dart';
 import 'package:memex/ui/settings/widgets/agent_config_list_page.dart';
 import 'package:memex/ui/settings/widgets/custom_agent_config_page.dart';
@@ -274,12 +274,12 @@ class DebugSettingsPage extends StatelessWidget {
           _buildFunctionTab(
             context: context,
             icon: Icons.psychology_alt_outlined,
-            title: 'Agent Run Traces',
+            title: 'Agent States',
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const AgentRunTraceViewerPage(),
+                  builder: (context) => const AgentStateViewerPage(),
                 ),
               );
             },

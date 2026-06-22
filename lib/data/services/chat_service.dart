@@ -12,7 +12,7 @@ import 'package:memex/agent/state_util.dart';
 import 'package:memex/agent/super_agent/super_agent.dart';
 import 'package:memex/agent/super_agent/subagent/delegate_progress.dart';
 import 'package:memex/data/services/asset_safety_service.dart';
-import 'package:memex/data/services/agent_run_trace_service.dart';
+import 'package:memex/data/services/agent_run_service.dart';
 import 'package:memex/data/services/chat_history_sanitizer.dart';
 import 'package:memex/data/services/chat_run_registry.dart';
 import 'package:memex/data/services/custom_agent_config_service.dart';
@@ -40,10 +40,9 @@ export 'package:memex/data/model/chat_events.dart';
 // --- Chat Service ---
 
 class _ChatDelegateProgressSink implements DelegateProgressSink {
-  _ChatDelegateProgressSink(this._run, this._trace);
+  _ChatDelegateProgressSink(this._run);
 
   final ActiveChatRun _run;
-  final AgentRunTrace _trace;
   final Map<String, List<String>> _pendingDelegateCallIdsByBrief = {};
   final Map<String, String> _delegateParentIds = {};
   final Map<String, int> _childTraceCounters = {};
@@ -90,14 +89,6 @@ class _ChatDelegateProgressSink implements DelegateProgressSink {
       args: arguments,
       label: progress.childName,
     );
-    unawaited(_trace.recordTraceStarted(
-      id: event.id,
-      parentId: event.parentId,
-      kind: event.kind.name,
-      name: event.name,
-      args: event.args,
-      label: event.label,
-    ));
     _run.add(event);
   }
 
@@ -113,11 +104,6 @@ class _ChatDelegateProgressSink implements DelegateProgressSink {
     _run.add(ChatTraceCompletedEvent(
       id: childTraceId,
       result: _preview(resultText, 300),
-      isError: result.isError,
-    ));
-    unawaited(_trace.recordTraceCompleted(
-      id: childTraceId,
-      result: resultText,
       isError: result.isError,
     ));
   }
@@ -139,12 +125,6 @@ class _ChatDelegateProgressSink implements DelegateProgressSink {
       result: summary,
       isError: status == 'failed',
     );
-    unawaited(_trace.recordTraceCompleted(
-      id: event.id,
-      result: event.result,
-      isError: event.isError,
-      status: event.status,
-    ));
     _run.add(event);
   }
 
@@ -393,6 +373,11 @@ class ChatService {
       final previousTaskId = await LocalTaskExecutor.instance.getLastTaskByType(
         _superAgentChatTurnTaskType,
       );
+      final runId = await AgentRunService.instance.createForSuperAgentChatTurn(
+        userId: userId,
+        sessionId: finalSessionId,
+        turnId: turnId,
+      );
       await LocalTaskExecutor.instance.enqueueTask(
         userId: userId,
         taskType: _superAgentChatTurnTaskType,
@@ -414,6 +399,7 @@ class ChatService {
         priority: 10,
         bizId: 'chat_turn:$finalSessionId:$turnId',
         dependencies: previousTaskId == null ? null : [previousTaskId],
+        runId: runId,
       );
     } catch (e, st) {
       _logger.severe('Failed to enqueue chat turn', e, st);
@@ -495,23 +481,6 @@ class ChatService {
     required DateTime userMessageTime,
     required ActiveChatRun run,
   }) async {
-    final trace = await AgentRunTraceService.instance.startChatTurn(
-      userId: userId,
-      runId: taskId,
-      sessionId: sessionId,
-      turnId: turnId,
-      taskId: taskId,
-      agentName: agentName,
-      scene: scene,
-      sceneId: sceneId,
-      message: message,
-      imageCount: preparedImages.length,
-      refs: refs,
-      isQuickQuery: isQuickQuery,
-      runMode: runMode,
-      userMessageTime: userMessageTime,
-    );
-
     // 2. Initialize Agent
     StatefulAgent? agent;
     AgentController? controller;
@@ -541,11 +510,6 @@ class ChatService {
       );
       final client = resources.client;
       final modelConfig = resources.modelConfig;
-      await trace.recordModel(
-        model: modelConfig.model,
-        clientType: client.runtimeType.toString(),
-      );
-
       // Load State
       final state = await loadOrCreateAgentState(sessionId, {
         'userId': userId,
@@ -670,10 +634,6 @@ class ChatService {
       }
     } catch (e) {
       _logger.severe('Failed to initialize agent', e);
-      await trace.recordError(
-        'Failed to initialize agent',
-        details: e.toString(),
-      );
       run.add(ChatErrorEvent('Failed to initialize agent: $e'));
       if (await _shouldCloseRunAfterTask(taskId)) {
         run.close();
@@ -682,7 +642,7 @@ class ChatService {
     }
 
     // 3. Setup Listeners & Run
-    final progressSink = _ChatDelegateProgressSink(run, trace);
+    final progressSink = _ChatDelegateProgressSink(run);
 
     // Forward events from agent controller to the run channel
     _setupControllerListeners(
@@ -693,7 +653,6 @@ class ChatService {
       turnId,
       taskId,
       progressSink,
-      trace,
     );
 
     // Build scene context reminder
@@ -811,7 +770,6 @@ class ChatService {
         });
       } catch (e) {
         _logger.severe('Agent run failed', e);
-        await trace.recordError('Agent run failed', details: e.toString());
         if (!run.isClosed) {
           run.add(ChatErrorEvent(e.toString()));
           if (await _shouldCloseRunAfterTask(taskId)) {
@@ -1020,15 +978,10 @@ class ChatService {
     String turnId,
     String taskId,
     _ChatDelegateProgressSink progressSink,
-    AgentRunTrace trace,
   ) {
     // 1. Lifecycle Events
     controller.on((AgentStartedEvent event) {
       _logger.info('Agent started');
-      unawaited(trace.recordAgentStarted(
-        agentName: event.agent.name,
-        agentId: event.agent.id,
-      ));
       stream.add(ChatAgentStartedEvent());
     });
 
@@ -1088,11 +1041,6 @@ class ChatService {
       }
 
       if (event.error != null) {
-        await trace.recordError(
-          'Agent stopped with error',
-          details: event.error.toString(),
-        );
-        await trace.recordAgentStopped(error: event.error.toString());
         if (!stream.isClosed) {
           stream.add(ChatAgentStoppedEvent());
           stream.add(ChatErrorEvent(event.error.toString()));
@@ -1138,9 +1086,6 @@ class ChatService {
                   timestamp: responseTime,
                   turnId: turnId,
                 );
-
-      await trace.recordFinalResponse(response, usage: usage);
-      await trace.recordAgentStopped();
 
       // Emit Token Usage (Cumulative if available, else current turn)
       if (sessionTotalUsage != null) {
@@ -1206,7 +1151,6 @@ class ChatService {
         final emoji = getStatusEmoji(t.status.name);
         return '$emoji ${t.description}';
       }).join('\n\n');
-      unawaited(trace.recordPlan(planText));
       stream.add(ChatThoughtChunkEvent("Plan Updated:\n$planText"));
     });
 
@@ -1214,7 +1158,6 @@ class ChatService {
     controller.on((LLMChunkEvent event) {
       if (event.response.thought != null &&
           event.response.thought!.isNotEmpty) {
-        unawaited(trace.recordThoughtChunk(event.response.thought!));
         stream.add(ChatThoughtChunkEvent(event.response.thought!));
       }
 
@@ -1240,14 +1183,6 @@ class ChatService {
         name: event.functionCall.name,
         args: event.functionCall.arguments.toString(),
       );
-      unawaited(
-        trace.recordTraceStarted(
-          id: traceEvent.id,
-          kind: traceEvent.kind.name,
-          name: traceEvent.name,
-          args: traceEvent.args,
-        ),
-      );
       stream.add(traceEvent);
     });
 
@@ -1268,14 +1203,6 @@ class ChatService {
       }
 
       final resultPreview = _preview(resultText, 300);
-      unawaited(
-        trace.recordTraceCompleted(
-          id: event.result.id,
-          result: resultText,
-          isError: event.result.isError,
-          metadata: event.result.metadata,
-        ),
-      );
       stream.add(
         ChatTraceCompletedEvent(
           id: event.result.id,

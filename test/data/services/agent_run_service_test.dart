@@ -19,6 +19,29 @@ void main() {
   });
 
   group('AgentRunService', () {
+    test('creates one visible Super Agent run per chat turn', () async {
+      final runId = await service.createForSuperAgentChatTurn(
+        userId: 'user-a',
+        sessionId: 'memex_agent_session',
+        turnId: 'turn-1',
+      );
+
+      expect(
+        runId,
+        AgentRunService.superAgentChatTurnRunId(
+          sessionId: 'memex_agent_session',
+          turnId: 'turn-1',
+        ),
+      );
+
+      final run = await _getRun(db, runId);
+      expect(run.id, 'super_agent_chat:memex_agent_session:turn-1');
+      expect(run.factId, run.id);
+      expect(run.state, 'queued');
+      expect(run.stage, 'Queued');
+      expect(run.message, 'Waiting for Super Agent to start.');
+    });
+
     test('tracks a coarse Super Agent run through task boundaries', () async {
       await service.createForSubmittedInput(userId: 'user-a', factId: 'fact-1');
       await _insertTask(

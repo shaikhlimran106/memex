@@ -116,6 +116,11 @@ class SuperAgentChildResult {
   /// The child's final natural-language text (its self-report).
   final String summary;
 
+  /// State file session id for this child run. Parent state stores this in the
+  /// delegate tool result metadata so debugging can jump from a parent tool call
+  /// to the separate child state file.
+  final String? childSessionId;
+
   /// Best-effort structured payload parsed from the child's final message
   /// (the child is asked to end with a JSON object). Empty when the child
   /// returned plain prose or nothing parseable.
@@ -128,15 +133,21 @@ class SuperAgentChildResult {
     required this.childName,
     required this.status,
     required this.summary,
+    this.childSessionId,
     this.structured = const {},
     this.error,
   });
 
-  factory SuperAgentChildResult.failed(String childName, String error) =>
+  factory SuperAgentChildResult.failed(
+    String childName,
+    String error, {
+    String? childSessionId,
+  }) =>
       SuperAgentChildResult(
         childName: childName,
         status: SuperAgentChildStatus.failed,
         summary: error,
+        childSessionId: childSessionId,
         error: error,
       );
 
@@ -144,6 +155,7 @@ class SuperAgentChildResult {
         'child': childName,
         'status': status.name,
         'summary': summary,
+        if (childSessionId != null) 'child_session_id': childSessionId,
         if (structured.isNotEmpty) 'structured': structured,
         if (error != null) 'error': error,
       };
@@ -357,6 +369,7 @@ StatefulAgent createSuperAgentChild({
       'child_created_at': DateTime.now().toIso8601String(),
       if (config.contextPacket['parent_session_id'] is String)
         'parent_session_id': config.contextPacket['parent_session_id'],
+      if (progress != null) 'delegate_run_id': progress.delegateRunId,
     },
   );
 
@@ -453,6 +466,7 @@ Future<SuperAgentChildResult> runSuperAgentChild({
       childName: config.childName,
       status: status,
       summary: (structured['summary'] as String?) ?? finalText,
+      childSessionId: agent.state.sessionId,
       structured: structured,
     );
   } on TimeoutException {
@@ -462,10 +476,18 @@ Future<SuperAgentChildResult> runSuperAgentChild({
     }
     await _markChildCancelled(agent, message);
     _logger.warning('Child ${config.childName} timed out');
-    return SuperAgentChildResult.failed(config.childName, message);
+    return SuperAgentChildResult.failed(
+      config.childName,
+      message,
+      childSessionId: agent?.state.sessionId,
+    );
   } catch (e, st) {
     _logger.severe('Child ${config.childName} errored', e, st);
-    return SuperAgentChildResult.failed(config.childName, e.toString());
+    return SuperAgentChildResult.failed(
+      config.childName,
+      e.toString(),
+      childSessionId: agent?.state.sessionId,
+    );
   }
 }
 

@@ -268,6 +268,8 @@ void main() {
       );
 
       expect(result.status, SuperAgentChildStatus.completed);
+      expect(result.childSessionId, startsWith('read_child_'));
+      expect(result.toJson()['child_session_id'], result.childSessionId);
       expect(sink.events, contains('start:delegate_1:LS'));
       expect(sink.events, contains('finish:delegate_1:LS:false'));
     });
@@ -319,6 +321,7 @@ void main() {
 
       expect(result.status, SuperAgentChildStatus.failed);
       expect(result.error, 'child timed out after 20ms');
+      expect(result.childSessionId, startsWith('slow_child_'));
       await client.cancelObserved.future
           .timeout(const Duration(milliseconds: 200));
       expect(client.cancelToken?.isCancelled, isTrue);
