@@ -115,6 +115,62 @@ void main() {
       expect(message['unix_seconds'], 333);
     });
 
+    test('paginates session detail messages from newest backwards', () async {
+      await _writeSession(
+        userId: userId,
+        sessionId: 'paged-session',
+        data: {
+          'session_id': 'paged-session',
+          'agent_name': 'memex_agent',
+          'title': 'Paged Session',
+          'created_at': '2026-04-28T20:00:46.000',
+          'updated_at': '2026-04-28T20:05:00.000',
+          'messages': [
+            for (var i = 1; i <= 5; i++)
+              {
+                'role': i.isOdd ? 'user' : 'ai',
+                'content': [
+                  {'type': 'text', 'text': 'message $i'},
+                ],
+                'timestamp': '2026-04-28T20:0$i:00.000',
+              },
+          ],
+        },
+      );
+
+      final latest = await fetchChatSessionDetailEndpoint(
+        'paged-session',
+        messageLimit: 2,
+      );
+      final latestMessages = latest['messages'] as List<dynamic>;
+
+      expect(latest['message_count'], 5);
+      expect(latest['has_more_messages'], isTrue);
+      expect(_messageText(latestMessages[0]), 'message 4');
+      expect(_messageText(latestMessages[1]), 'message 5');
+
+      final older = await fetchChatSessionDetailEndpoint(
+        'paged-session',
+        messageLimit: 2,
+        messageOffset: 2,
+      );
+      final olderMessages = older['messages'] as List<dynamic>;
+
+      expect(older['has_more_messages'], isTrue);
+      expect(_messageText(olderMessages[0]), 'message 2');
+      expect(_messageText(olderMessages[1]), 'message 3');
+
+      final oldest = await fetchChatSessionDetailEndpoint(
+        'paged-session',
+        messageLimit: 2,
+        messageOffset: 4,
+      );
+      final oldestMessages = oldest['messages'] as List<dynamic>;
+
+      expect(oldest['has_more_messages'], isFalse);
+      expect(_messageText(oldestMessages.single), 'message 1');
+    });
+
     test('adds local time fallback to chat session list rows', () async {
       await _writeSession(
         userId: userId,
@@ -148,6 +204,13 @@ void main() {
       expect(sessions.single['last_message_preview'], 'preview text');
     });
   });
+}
+
+String _messageText(dynamic message) {
+  final map = message as Map<String, dynamic>;
+  final content = map['content'] as List<dynamic>;
+  final textPart = content.single as Map<String, dynamic>;
+  return textPart['text'] as String;
 }
 
 Future<void> _writeSession({

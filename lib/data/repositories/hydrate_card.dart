@@ -22,17 +22,15 @@ Future<TimelineCardModel?> hydrateCard(String userId, String factId) async {
 
   if (cardData.deleted == true) return null;
 
-  final factInfo = await fs.extractFactContentFromFile(userId, factId);
-  final factContent = factInfo?.content;
-  final timestamp = factInfo?.timestamp ?? cardData.timestamp;
+  final timestamp = cardData.timestamp;
 
   final renderResult = await renderCard(
     userId: userId,
     cardData: cardData,
-    factContent: factContent,
+    factContent: cardData.fact,
   );
 
-  final assetsAndText = await extractAssetsAndRawText(userId, factContent);
+  final assetsAndText = await extractAssetsAndRawText(userId, cardData);
   final assets = assetsAndText['assets'] as List<AssetData>;
   final rawText = assetsAndText['rawText'] as String?;
 

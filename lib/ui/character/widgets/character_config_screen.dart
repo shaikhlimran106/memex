@@ -15,7 +15,6 @@ import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/ui/core/widgets/agent_logo_loading.dart';
-import 'package:memex/ui/main_screen/widgets/chat_input_bar.dart';
 import 'package:memex/ui/core/widgets/back_button.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
 import 'package:memex/ui/core/widgets/local_image.dart';
@@ -158,62 +157,45 @@ class _CharacterConfigScreenState extends State<CharacterConfigScreen> {
               const SizedBox(width: 8),
             ],
           ),
-          body: Stack(
+          body: Column(
             children: [
-              Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                    child: Text(
-                      UserStorage.l10n.addCharacterSubtitle,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textSecondary,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: vm.isLoading
-                        ? const Center(child: AgentLogoLoading())
-                        : vm.characters.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.person_off_outlined,
-                                        size: 48, color: Colors.grey[300]),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      UserStorage.l10n.noCharacters,
-                                      style: TextStyle(color: Colors.grey[400]),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : ListView.builder(
-                                padding:
-                                    const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                                itemCount: vm.characters.length,
-                                itemBuilder: (context, index) {
-                                  final character = vm.characters[index];
-                                  return _buildCharacterItem(vm, character);
-                                },
-                              ),
-                  ),
-                ],
-              ),
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: SafeArea(
-                  child: ChatInputBar(
-                    hintText: UserStorage.l10n.characterDesignerHint,
-                    agentName: 'persona_agent',
-                    dialogTitle: UserStorage.l10n.characterDesigner,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                child: Text(
+                  UserStorage.l10n.addCharacterSubtitle,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                    height: 1.5,
                   ),
                 ),
+              ),
+              Expanded(
+                child: vm.isLoading
+                    ? const Center(child: AgentLogoLoading())
+                    : vm.characters.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.person_off_outlined,
+                                    size: 48, color: Colors.grey[300]),
+                                const SizedBox(height: 16),
+                                Text(
+                                  UserStorage.l10n.noCharacters,
+                                  style: TextStyle(color: Colors.grey[400]),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                            itemCount: vm.characters.length,
+                            itemBuilder: (context, index) {
+                              final character = vm.characters[index];
+                              return _buildCharacterItem(vm, character);
+                            },
+                          ),
               ),
             ],
           ),

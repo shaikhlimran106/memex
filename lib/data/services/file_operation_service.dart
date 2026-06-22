@@ -209,6 +209,39 @@ class FileOperationService {
     return numberedContent;
   }
 
+  /// Validate a readable file with the same path and workspace checks as Read.
+  Future<int> validateReadableFile({
+    required String filePath,
+    String? workingDirectory,
+  }) async {
+    filePath = _resolvePath(filePath, workingDirectory);
+
+    if (!path.isAbsolute(filePath)) {
+      throw ApiException('file_path must be an absolute path');
+    }
+
+    if (workingDirectory != null &&
+        !isUnderDirectory(filePath, workingDirectory)) {
+      throw ApiException(
+        _maskResult(
+            'file_path $filePath is outside of the working directory $workingDirectory',
+            workingDirectory),
+      );
+    }
+
+    if (!await _baseService.exists(filePath)) {
+      throw ApiException(
+          _maskResult('File $filePath does not exist', workingDirectory));
+    }
+
+    if (await _baseService.isDirectory(filePath)) {
+      throw ApiException(_maskResult(
+          '$filePath is a directory, not a file', workingDirectory));
+    }
+
+    return _baseService.getFileSize(filePath);
+  }
+
   // ==================== Write ====================
 
   /// Write file (maps to server Write). [filePath] must be absolute. Returns result message.
@@ -622,6 +655,7 @@ ${addLineNumbers(snippet, startLine: startLine)}''';
     List<String>? ignore,
     int? depth,
     bool Function(String path)? filter,
+    bool Function(String path)? traversalFilter,
   }) async {
     // Resolve path first
     dirPath = _resolvePath(dirPath, workingDirectory);
@@ -653,8 +687,10 @@ ${addLineNumbers(snippet, startLine: startLine)}''';
           _maskResult('$dirPath is not a directory', workingDirectory));
     }
 
-    // Check filter on root
-    if (filter != null && !filter(dirPath)) {
+    // Check traversal filter on root. This can be broader than [filter] so a
+    // restricted agent can list a parent directory while only seeing readable
+    // descendants.
+    if (traversalFilter != null && !traversalFilter(dirPath)) {
       // Root is filtered out
       return _maskResult('', workingDirectory);
     }
@@ -667,6 +703,7 @@ ${addLineNumbers(snippet, startLine: startLine)}''';
       ignore ?? [],
       depth: depth,
       filter: filter,
+      traversalFilter: traversalFilter,
     );
     resultList.sort();
 
@@ -698,6 +735,7 @@ ${addLineNumbers(snippet, startLine: startLine)}''';
     List<String> ignore, {
     int? depth,
     bool Function(String path)? filter,
+    bool Function(String path)? traversalFilter,
   }) async {
     final results = <String>[];
     // Queue stores pairs of (path, current_depth)
@@ -720,11 +758,14 @@ ${addLineNumbers(snippet, startLine: startLine)}''';
 
       // Check custom filter
       if (filter != null && !filter(currentPath)) {
-        continue;
+        if (traversalFilter == null || !traversalFilter(currentPath)) {
+          continue;
+        }
       }
 
       // Add to result (except initial path itself)
-      if (currentPath != initialPath) {
+      if (currentPath != initialPath &&
+          (filter == null || filter(currentPath))) {
         final relPath = path.relative(currentPath, from: cwd);
         if (await _baseService.isDirectory(currentPath)) {
           results.add('$relPath${path.separator}');
@@ -752,6 +793,9 @@ ${addLineNumbers(snippet, startLine: startLine)}''';
                 path.isAbsolute(child) ? child : path.join(currentPath, child);
             // Add children with depth + 1
             if (await _baseService.isDirectory(childPath)) {
+              if (traversalFilter != null && !traversalFilter(childPath)) {
+                continue;
+              }
               queue.add(MapEntry(childPath, currentDepth + 1));
             } else {
               // Files are also at depth + 1 relative to current directory
@@ -845,6 +889,7 @@ ${addLineNumbers(snippet, startLine: startLine)}''';
     String? searchPath,
     String? workingDirectory,
     bool Function(String path)? filter,
+    bool Function(String path)? traversalFilter,
   }) async {
     // Resolve search path
     if (searchPath != null) {
@@ -907,6 +952,7 @@ ${addLineNumbers(snippet, startLine: startLine)}''';
       matchingFiles,
       basenameRegex: basenameRegex,
       filter: filter,
+      traversalFilter: traversalFilter,
     );
 
     // Sort by modification time (newest first)
@@ -952,6 +998,7 @@ ${addLineNumbers(snippet, startLine: startLine)}''';
     List<String> results, {
     RegExp? basenameRegex,
     bool Function(String path)? filter,
+    bool Function(String path)? traversalFilter,
   }) async {
     try {
       final dir = Directory(currentPath);
@@ -959,8 +1006,8 @@ ${addLineNumbers(snippet, startLine: startLine)}''';
         final stat = await entity.stat();
 
         if (stat.type == FileSystemEntityType.directory) {
-          // Check custom filter for directory
-          if (filter != null && !filter(entity.path)) {
+          // Check traversal filter for directory.
+          if (traversalFilter != null && !traversalFilter(entity.path)) {
             continue;
           }
           // Skip hidden directories
@@ -968,7 +1015,9 @@ ${addLineNumbers(snippet, startLine: startLine)}''';
           if (!name.startsWith('.')) {
             await _globSearchRecursive(
                 rootPath, entity.path, patternRegex, results,
-                basenameRegex: basenameRegex, filter: filter);
+                basenameRegex: basenameRegex,
+                filter: filter,
+                traversalFilter: traversalFilter);
           }
         } else if (stat.type == FileSystemEntityType.file) {
           // Check custom filter for file
@@ -1255,6 +1304,7 @@ ${addLineNumbers(snippet, startLine: startLine)}''';
       typeExtensions,
       r: r,
       filter: filter,
+      traversalFilter: accessScope?.allowsTraversal,
     );
     if (files.isEmpty) {
       return outputMode == 'files_with_matches'
@@ -1390,6 +1440,7 @@ ${addLineNumbers(snippet, startLine: startLine)}''';
     Set<String>? typeExtensions, {
     required bool r,
     required bool Function(String path)? filter,
+    bool Function(String path)? traversalFilter,
   }) async {
     final files = <String>[];
 
@@ -1429,7 +1480,7 @@ ${addLineNumbers(snippet, startLine: startLine)}''';
           try {
             final stat = await entity.stat();
             if (stat.type == FileSystemEntityType.directory) {
-              if (filter != null && !filter(entity.path)) {
+              if (traversalFilter != null && !traversalFilter(entity.path)) {
                 continue;
               }
               final dirName = path.basename(entity.path);

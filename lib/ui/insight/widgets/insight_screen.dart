@@ -5,7 +5,6 @@ import 'package:memex/ui/insight/view_models/insight_viewmodel.dart';
 import 'insight_detail_page.dart';
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/ui/core/cards/native_widget_factory.dart';
-import 'package:memex/ui/chat/widgets/agent_chat_dialog.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/data/services/demo_service.dart';
 import 'package:memex/ui/insight/widgets/insight_preview_data.dart';
@@ -85,26 +84,6 @@ class _InsightScreenState extends State<InsightScreen> {
     return vm.loadData();
   }
 
-  void _onChatWithAssistant() {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: '',
-      barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 500),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return AgentChatDialog(
-          agentName: 'knowledge_insight_agent',
-          title: UserStorage.l10n.insightAssistant,
-          inputHint: UserStorage.l10n.insightInputHint,
-          scene: 'insight_card_chat',
-          sceneId: 'general_insight_chat', // Use a generic ID
-          initialRefs: const [], // No specific card context
-        );
-      },
-    );
-  }
-
   Future<void> _saveSortOrder(InsightViewModel vm) async {
     try {
       await vm.saveSortOrder();
@@ -129,42 +108,6 @@ class _InsightScreenState extends State<InsightScreen> {
         ToastHelper.showError(
             context, UserStorage.l10n.deleteFailedShort(e.toString()));
     }
-  }
-
-  void _showChatDialog(InsightViewModel vm, KnowledgeInsightCard item) {
-    vm.setActiveCardId(null);
-
-    final mergedData = item.mergedWidgetData;
-    final title = mergedData['title'] as String? ?? 'Insight Card';
-    final contextString = StringBuffer();
-    contextString.writeln('Widget Template ID: ${item.widgetTemplate}');
-    contextString.writeln('Insight ID: ${item.id}');
-    contextString.writeln('Title: $title');
-    contextString.writeln('Widget Data: $mergedData');
-
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: '',
-      barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 500),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return AgentChatDialog(
-          agentName: 'knowledge_insight_agent', // Use insight agent
-          title: UserStorage.l10n.insightAssistant,
-          inputHint: UserStorage.l10n.aboutThisInsightHint,
-          scene: 'insight_card_chat',
-          sceneId: item.id,
-          initialRefs: [
-            {
-              'title': title,
-              'content': contextString.toString(),
-              'type': 'knowledge_insight_card',
-            }
-          ],
-        );
-      },
-    );
   }
 
   Widget _buildPinButton(InsightViewModel vm, KnowledgeInsightCard item) {
@@ -217,29 +160,6 @@ class _InsightScreenState extends State<InsightScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    GestureDetector(
-                      onTap: () => _showChatDialog(vm, item),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF5B6CFF),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF5B6CFF).withOpacity(0.3),
-                              blurRadius: 12,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.chat_bubble_outline,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 32), // Spacing between buttons
                     // Sort Button
                     GestureDetector(
                       onTap: () {
@@ -544,171 +464,148 @@ class _InsightScreenState extends State<InsightScreen> {
                               header: _buildSectionSwitcher(vm),
                             )
                           : ListView(
-                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 160),
+                              padding:
+                                  const EdgeInsets.fromLTRB(20, 0, 20, 160),
                               children: [
-                            // Header
-                            // Add some top padding if embedded since we removed SafeArea/Scaffold top padding
-                            // Actually ListView padding controls it.
-                            // If embedded, we might want less padding if parent has it.
-                            // But let's keep consistency for now.
-                            if (widget.isEmbedded) const SizedBox(height: 16),
+                                // Header
+                                // Add some top padding if embedded since we removed SafeArea/Scaffold top padding
+                                // Actually ListView padding controls it.
+                                // If embedded, we might want less padding if parent has it.
+                                // But let's keep consistency for now.
+                                if (widget.isEmbedded)
+                                  const SizedBox(height: 16),
 
-                            // Header
-                            // Only show header if NOT embedded OR reordering
-                            if (!widget.isEmbedded || vm.isReordering)
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  if (!widget.isEmbedded)
-                                    Text(
-                                      UserStorage.l10n.knowledgeInsight,
-                                      style: const TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF0A0A0A),
-                                      ),
-                                    )
-                                  else if (vm.isReordering)
-                                    const Spacer(),
-                                  if (vm.isReordering)
-                                    TextButton.icon(
-                                      onPressed: () => _saveSortOrder(vm),
-                                      icon: const Icon(Icons.check),
-                                      label:
-                                          Text(UserStorage.l10n.completeSort),
-                                    )
-                                  else
-                                    Row(
-                                      children: [
-                                        if (!widget.isEmbedded) ...[
-                                          InkWell(
-                                            onTap: _onChatWithAssistant,
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                            child: Container(
-                                              padding: const EdgeInsets.all(8),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                    color: const Color(
-                                                        0xFFE2E8F0)),
-                                              ),
-                                              child: const Icon(
-                                                Icons.chat_bubble_outline,
-                                                size: 20,
-                                                color: Color(0xFF5B6CFF),
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                        ],
-                                        // Update Button (Only in Header if NOT embedded)
-                                      ],
-                                    ),
-                                ],
-                              ),
-
-                            if (!widget.isEmbedded || vm.isReordering)
-                              const SizedBox(height: 16),
-
-                            const SizedBox(height: 16),
-
-                            _buildSectionSwitcher(vm),
-
-                            const SizedBox(height: 16),
-
-                            if (vm.hasActiveTaskBacklog)
-                              _buildBacklogBanner(vm),
-
-                            if (vm.isLoading)
-                              const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(32.0),
-                                  child: CircularProgressIndicator(),
-                                ),
-                              )
-                            else if (vm.errorMessage != null)
-                              Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(32.0),
-                                  child: Column(
+                                // Header
+                                // Only show header if NOT embedded OR reordering
+                                if (!widget.isEmbedded || vm.isReordering)
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(
-                                        vm.errorMessage!,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          color: Color(0xFF99A1AF),
+                                      if (!widget.isEmbedded)
+                                        Text(
+                                          UserStorage.l10n.knowledgeInsight,
+                                          style: const TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF0A0A0A),
+                                          ),
+                                        )
+                                      else if (vm.isReordering)
+                                        const Spacer(),
+                                      if (vm.isReordering)
+                                        TextButton.icon(
+                                          onPressed: () => _saveSortOrder(vm),
+                                          icon: const Icon(Icons.check),
+                                          label: Text(
+                                              UserStorage.l10n.completeSort),
                                         ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      ElevatedButton(
-                                        onPressed: () => vm.loadData(),
-                                        child: Text(UserStorage.l10n.reload),
-                                      ),
                                     ],
                                   ),
-                                ),
-                              )
-                            else ...[
-                              UserStatsOverviewCard(
-                                snapshot: vm.statsSnapshot,
-                                isLoading: vm.isStatsLoading,
-                                onTap: () =>
-                                    vm.setSection(InsightSection.stats),
-                              ),
-                              const SizedBox(height: 16),
-                              if (vm.insights != null &&
-                                  vm.insights!.isNotEmpty)
-                                ...(vm.insights!.map((item) => Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 16),
-                                      child: GestureDetector(
-                                        onLongPress: () =>
-                                            vm.setActiveCardId(item.id),
-                                        child: Stack(
-                                          children: [
-                                            _buildItemCard(vm, item, onTap: () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      InsightDetailPage.insight(
-                                                    insightId: item.id,
-                                                  ),
-                                                ),
-                                              );
-                                            }),
-                                            Positioned(
-                                              top: 8,
-                                              right: 8,
-                                              child: _buildPinButton(vm, item),
+
+                                if (!widget.isEmbedded || vm.isReordering)
+                                  const SizedBox(height: 16),
+
+                                const SizedBox(height: 16),
+
+                                _buildSectionSwitcher(vm),
+
+                                const SizedBox(height: 16),
+
+                                if (vm.hasActiveTaskBacklog)
+                                  _buildBacklogBanner(vm),
+
+                                if (vm.isLoading)
+                                  const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(32.0),
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  )
+                                else if (vm.errorMessage != null)
+                                  Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(32.0),
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            vm.errorMessage!,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              color: Color(0xFF99A1AF),
                                             ),
-                                            if (vm.activeCardId == item.id)
-                                              _buildActionOverlay(vm, item),
-                                          ],
-                                        ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          ElevatedButton(
+                                            onPressed: () => vm.loadData(),
+                                            child:
+                                                Text(UserStorage.l10n.reload),
+                                          ),
+                                        ],
                                       ),
-                                    )))
-                              else
-                              // During demo: hide preview until user taps the update button.
-                              // After demo (or on subsequent launches): always show preview.
-                              if (!DemoService.instance.isActive ||
-                                  DemoService.instance.currentStep!.index >
-                                      DemoStep.tapInsightUpdate.index)
-                                _buildPreviewCards()
-                              else
-                                Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(32.0),
-                                    child: Text(
-                                        UserStorage.l10n.noKnowledgeInsight),
+                                    ),
+                                  )
+                                else ...[
+                                  UserStatsOverviewCard(
+                                    snapshot: vm.statsSnapshot,
+                                    isLoading: vm.isStatsLoading,
+                                    onTap: () =>
+                                        vm.setSection(InsightSection.stats),
                                   ),
-                                ),
-                            ],
-                          ],
-                        ),
+                                  const SizedBox(height: 16),
+                                  if (vm.insights != null &&
+                                      vm.insights!.isNotEmpty)
+                                    ...(vm.insights!.map((item) => Padding(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 16),
+                                          child: GestureDetector(
+                                            onLongPress: () =>
+                                                vm.setActiveCardId(item.id),
+                                            child: Stack(
+                                              children: [
+                                                _buildItemCard(vm, item,
+                                                    onTap: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) =>
+                                                          InsightDetailPage
+                                                              .insight(
+                                                        insightId: item.id,
+                                                      ),
+                                                    ),
+                                                  );
+                                                }),
+                                                Positioned(
+                                                  top: 8,
+                                                  right: 8,
+                                                  child:
+                                                      _buildPinButton(vm, item),
+                                                ),
+                                                if (vm.activeCardId == item.id)
+                                                  _buildActionOverlay(vm, item),
+                                              ],
+                                            ),
+                                          ),
+                                        )))
+                                  else
+                                  // During demo: hide preview until user taps the update button.
+                                  // After demo (or on subsequent launches): always show preview.
+                                  if (!DemoService.instance.isActive ||
+                                      DemoService.instance.currentStep!.index >
+                                          DemoStep.tapInsightUpdate.index)
+                                    _buildPreviewCards()
+                                  else
+                                    Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(32.0),
+                                        child: Text(UserStorage
+                                            .l10n.noKnowledgeInsight),
+                                      ),
+                                    ),
+                                ],
+                              ],
+                            ),
                 ),
                 if (!vm.isReordering &&
                     vm.selectedSection == InsightSection.insights)

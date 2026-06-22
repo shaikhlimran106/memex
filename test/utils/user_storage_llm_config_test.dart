@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:memex/domain/models/agent_config.dart';
@@ -97,79 +95,7 @@ void main() {
 
         final selection = await ModelRoleConfigService.loadSelection();
         expect(selection.textConfigKey, textConfig.key);
-        expect(selection.visionConfigKey, isNull);
-        expect(selection.effectiveVisionConfigKey(), textConfig.key);
         expect(await UserStorage.getDefaultLLMConfigKey(), textConfig.key);
-      },
-    );
-
-    test(
-      'model role service maps vision role to media analysis agent',
-      () async {
-        final defaultConfig = LLMConfig.createDefaultClientConfig();
-        final visionConfig = defaultConfig.copyWith(
-          key: 'vision-main',
-          modelId: 'gpt-5.4',
-        );
-        await UserStorage.saveLLMConfigs([defaultConfig, visionConfig]);
-
-        await ModelRoleConfigService.setVisionModel(visionConfig.key);
-
-        final selection = await ModelRoleConfigService.loadSelection();
-        final mediaConfig = await UserStorage.getAgentConfig(
-          AgentDefinitions.analyzeAssets,
-        );
-        expect(selection.visionConfigKey, visionConfig.key);
-        expect(selection.effectiveVisionConfigKey(), visionConfig.key);
-        expect(mediaConfig.llmConfigKey, visionConfig.key);
-
-        await ModelRoleConfigService.setVisionModel(null);
-        final resetSelection = await ModelRoleConfigService.loadSelection();
-        final resetMediaConfig = await UserStorage.getAgentConfig(
-          AgentDefinitions.analyzeAssets,
-        );
-        expect(resetSelection.visionConfigKey, isNull);
-        expect(resetMediaConfig.llmConfigKey, isNull);
-      },
-    );
-
-    test(
-      'model role service normalizes blank vision model keys',
-      () async {
-        final defaultConfig = LLMConfig.createDefaultClientConfig();
-        await UserStorage.saveLLMConfigs([defaultConfig]);
-        final prefs = await SharedPreferences.getInstance();
-        const agentConfigKey =
-            'agent_configs_${AgentDefinitions.analyzeAssets}';
-
-        await prefs.setString(
-          agentConfigKey,
-          jsonEncode(const AgentConfig(llmConfigKey: '').toJson()),
-        );
-        final emptySelection = await ModelRoleConfigService.loadSelection();
-        expect(emptySelection.visionConfigKey, isNull);
-        expect(
-          emptySelection.effectiveVisionConfigKey(),
-          emptySelection.textConfigKey,
-        );
-
-        await prefs.setString(
-          agentConfigKey,
-          jsonEncode(const AgentConfig(llmConfigKey: '   ').toJson()),
-        );
-        final whitespaceSelection =
-            await ModelRoleConfigService.loadSelection();
-        expect(whitespaceSelection.visionConfigKey, isNull);
-        expect(
-          whitespaceSelection.effectiveVisionConfigKey(),
-          whitespaceSelection.textConfigKey,
-        );
-
-        await ModelRoleConfigService.setVisionModel('   ');
-        final resetMediaConfig = await UserStorage.getAgentConfig(
-          AgentDefinitions.analyzeAssets,
-        );
-        expect(resetMediaConfig.llmConfigKey, isNull);
       },
     );
   });

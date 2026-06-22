@@ -269,9 +269,7 @@ enum CharacterMemoryEventType {
 | `lib/data/services/character_service.dart` | 角色 CRUD、默认角色种子 |
 | `lib/agent/context/character_context_assembler.dart` | 统一上下文组装 |
 | `lib/agent/memory/character_memory_service.dart` | 统一记忆存储（timeline/memory/world/checkpoints） |
-| `lib/agent/memory/character_memory_updater.dart` | 压缩时从原始事件提取稳定记忆 |
 | `lib/agent/memory/character_context_compressor.dart` | Timeline 压缩（基于真实 promptTokens 触发） |
-| `lib/agent/context/compaction_summary_node.dart` | 构造压缩摘要注入节点 |
 | `lib/agent/context/user_knowledge_context_service.dart` | 用户知识库检索 |
 | `lib/agent/companion_agent/companion_agent.dart` | 聊天场景 agent |
 | `lib/agent/comment_agent/comment_agent.dart` | 评论场景 agent |

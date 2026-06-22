@@ -21,31 +21,6 @@ import 'package:memex/llm_client/codex_responses_client.dart';
 import 'package:memex/llm_client/gemini_oauth_client.dart';
 import 'package:memex/data/services/avatar_media_service.dart';
 
-/// Agent cache data structure
-class AgentCacheData {
-  final String responseId;
-  final int systemPromptHash;
-  final int toolsHash;
-
-  AgentCacheData({
-    required this.responseId,
-    required this.systemPromptHash,
-    required this.toolsHash,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'responseId': responseId,
-        'systemPromptHash': systemPromptHash,
-        'toolsHash': toolsHash,
-      };
-
-  factory AgentCacheData.fromJson(Map<String, dynamic> json) => AgentCacheData(
-        responseId: json['responseId'] as String,
-        systemPromptHash: json['systemPromptHash'] as int,
-        toolsHash: json['toolsHash'] as int,
-      );
-}
-
 /// Storage location for a user's workspace.
 /// Like Obsidian: app storage (default), custom device folder, or iCloud (iOS).
 /// Only affects this user's workspace; logs and DB stay in app storage.
@@ -319,48 +294,29 @@ class UserStorage {
     }
   }
 
-  /// Get cached agent data (responseId, hashCode).
-  /// [agentType] e.g. 'pkm' or 'card'. Returns null if not found.
-  static Future<AgentCacheData?> getCachedAgentData(String agentType) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final key = '${agentType}_cached_agent_data';
-      final jsonString = prefs.getString(key);
-
-      if (jsonString == null) {
-        return null;
-      }
-
-      final json = jsonDecode(jsonString) as Map<String, dynamic>;
-      return AgentCacheData.fromJson(json);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  /// Save cached agent data. Pass null to delete.
-  /// [agentType] e.g. 'pkm' or 'card'
-  static Future<void> saveCachedAgentData(
-    String agentType,
-    AgentCacheData? cacheData,
-  ) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final key = '${agentType}_cached_agent_data';
-
-      if (cacheData != null) {
-        final jsonString = jsonEncode(cacheData.toJson());
-        await prefs.setString(key, jsonString);
-      } else {
-        await prefs.remove(key);
-      }
-    } catch (e) {
-      // Ignore errors
-    }
-  }
-
   static const String _keyAgentConfigs = 'agent_configs';
   static const String _keyUseLocalSpeechToText = 'use_local_speech_to_text';
+  static const String _keySuperAgentRunMode = 'super_agent_run_mode';
+
+  /// Persisted run mode for the SuperAgent home entry ('auto' | 'confirm' |
+  /// 'read_only'). Defaults to 'auto'.
+  static Future<String> getSuperAgentRunMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_keySuperAgentRunMode) ?? 'auto';
+    } catch (e) {
+      return 'auto';
+    }
+  }
+
+  static Future<void> setSuperAgentRunMode(String value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keySuperAgentRunMode, value);
+    } catch (e) {
+      // Non-fatal: mode falls back to in-memory state for this session.
+    }
+  }
 
   /// Get specified agent config
   static Future<AgentConfig> getAgentConfig(String agentId) async {

@@ -75,6 +75,23 @@ void main() {
       expect(merged.first.timestamp, DateTime(2026, 5, 16, 13));
     });
 
+    test('preserves existing card order when inserting briefing', () {
+      final merged = mergeScheduleBriefingInTimelineOrder(
+        cards: [
+          _card('recorded-later', DateTime(2026, 6, 18, 16, 30)),
+          _card('intro', DateTime(2026, 6, 18, 20, 52)),
+        ],
+        briefing: _briefing(DateTime(2026, 6, 18, 20, 55)),
+        hasMore: false,
+      );
+
+      expect(merged.map((card) => card.id), [
+        scheduleBriefingCardId,
+        'recorded-later',
+        'intro',
+      ]);
+    });
+
     test('removes existing briefing when no briefing should be shown', () {
       final merged = mergeScheduleBriefingInTimelineOrder(
         cards: [

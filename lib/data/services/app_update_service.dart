@@ -36,11 +36,12 @@ class AppUpdateSettings {
   }
 
   Map<String, dynamic> toJson() => {
-    'auto_check_enabled': autoCheckEnabled,
-    'wifi_only_downloads': wifiOnlyDownloads,
-    'auto_download_and_install': autoDownloadAndInstall,
-    if (lastCheckAt != null) 'last_check_at': lastCheckAt!.toIso8601String(),
-  };
+        'auto_check_enabled': autoCheckEnabled,
+        'wifi_only_downloads': wifiOnlyDownloads,
+        'auto_download_and_install': autoDownloadAndInstall,
+        if (lastCheckAt != null)
+          'last_check_at': lastCheckAt!.toIso8601String(),
+      };
 
   AppUpdateSettings copyWith({
     bool? autoCheckEnabled,
@@ -119,15 +120,15 @@ class AppUpdateCheckResult {
   const AppUpdateCheckResult._(this.status, [this.update]);
 
   const AppUpdateCheckResult.unsupported()
-    : this._(AppUpdateCheckStatus.unsupported);
+      : this._(AppUpdateCheckStatus.unsupported);
 
   const AppUpdateCheckResult.skippedNotWifi()
-    : this._(AppUpdateCheckStatus.skippedNotWifi);
+      : this._(AppUpdateCheckStatus.skippedNotWifi);
 
   const AppUpdateCheckResult.noUpdate() : this._(AppUpdateCheckStatus.noUpdate);
 
   const AppUpdateCheckResult.updateAvailable(AppUpdateInfo update)
-    : this._(AppUpdateCheckStatus.updateAvailable, update);
+      : this._(AppUpdateCheckStatus.updateAvailable, update);
 }
 
 class AppUpdateDownloadResult {
@@ -302,14 +303,14 @@ class AppUpdateService {
     PackageVersionLoader? packageVersionLoader,
     UpdateDirectoryProvider? updateDirectoryProvider,
     Clock? clock,
-  }) : _httpClient = httpClient ?? http.Client(),
-       _platform = platform ?? const MethodChannelAppUpdatePlatform(),
-       _settingsStore = settingsStore ?? AppUpdateSettingsStore(),
-       _environment = environment ?? AppUpdateEnvironment.current(),
-       _packageVersionLoader = packageVersionLoader ?? _loadPackageVersion,
-       _updateDirectoryProvider =
-           updateDirectoryProvider ?? _defaultUpdateDirectory,
-       _clock = clock ?? DateTime.now;
+  })  : _httpClient = httpClient ?? http.Client(),
+        _platform = platform ?? const MethodChannelAppUpdatePlatform(),
+        _settingsStore = settingsStore ?? AppUpdateSettingsStore(),
+        _environment = environment ?? AppUpdateEnvironment.current(),
+        _packageVersionLoader = packageVersionLoader ?? _loadPackageVersion,
+        _updateDirectoryProvider =
+            updateDirectoryProvider ?? _defaultUpdateDirectory,
+        _clock = clock ?? DateTime.now;
 
   static final AppUpdateService instance = AppUpdateService();
   static const String releasesUrl =
@@ -392,15 +393,14 @@ class AppUpdateService {
       ),
     );
     _activeDownloads[downloadKey] = session;
-    session.future =
-        _downloadUpdateToFile(
-          update,
-          onProgress: session.reportProgress,
-        ).whenComplete(() {
-          if (identical(_activeDownloads[downloadKey], session)) {
-            _activeDownloads.remove(downloadKey);
-          }
-        });
+    session.future = _downloadUpdateToFile(
+      update,
+      onProgress: session.reportProgress,
+    ).whenComplete(() {
+      if (identical(_activeDownloads[downloadKey], session)) {
+        _activeDownloads.remove(downloadKey);
+      }
+    });
 
     return session.join(onProgress);
   }
@@ -624,8 +624,7 @@ class AppUpdateService {
         if (downloadUrl.isEmpty) continue;
 
         final releaseNotes = release['body'] as String? ?? '';
-        final buildNumber =
-            _parseBuildNumber(name) ??
+        final buildNumber = _parseBuildNumber(name) ??
             _parseBuildNumber(releaseNotes) ??
             _parseBuildNumber(tagName);
         if (buildNumber == null || buildNumber <= currentBuildNumber) {
@@ -636,8 +635,7 @@ class AppUpdateService {
           AppUpdateInfo(
             releaseName: release['name'] as String? ?? name,
             tagName: tagName,
-            versionName:
-                _parseVersionName(name) ??
+            versionName: _parseVersionName(name) ??
                 _parseVersionName(releaseNotes) ??
                 _parseVersionName(tagName) ??
                 (tagName.isEmpty ? null : tagName) ??
@@ -757,9 +755,9 @@ class AppUpdateService {
   }
 
   static Map<String, String> get _githubHeaders => const {
-    'Accept': 'application/vnd.github+json',
-    'User-Agent': 'Memex-Early-Updater',
-  };
+        'Accept': 'application/vnd.github+json',
+        'User-Agent': 'Memex-Early-Updater',
+      };
 
   static String _normalize(String value) {
     return value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
@@ -840,7 +838,7 @@ class AppUpdateService {
 
 class _ActiveAppUpdateDownload {
   _ActiveAppUpdateDownload({required AppUpdateDownloadProgress initialProgress})
-    : _progress = initialProgress;
+      : _progress = initialProgress;
 
   final Set<void Function(int receivedBytes, int totalBytes)> _listeners = {};
   late final Future<AppUpdateDownloadResult> future;

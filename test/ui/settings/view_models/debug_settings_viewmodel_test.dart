@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:memex/data/services/sandbox_user_clone_service.dart';
 import 'package:memex/domain/models/reprocess_cards_options.dart';
 import 'package:memex/ui/settings/view_models/debug_settings_viewmodel.dart';
 import 'package:memex/ui/settings/widgets/reprocess_cards_dialog.dart';
@@ -13,7 +14,7 @@ void main() {
     await UserStorage.initL10n();
   });
 
-  test('createReprocessCardsTask enqueues reprocess cards task', () async {
+  test('createReprocessCardsTask starts Super Agent reprocess', () async {
     await UserStorage.saveUser('debug-viewmodel-user');
     final dataController = _RecordingDebugSettingsDataController();
     final viewModel = DebugSettingsViewModel(dataController: dataController);
@@ -24,17 +25,13 @@ void main() {
 
     expect(created, isTrue);
     expect(viewModel.isReprocessingCards, isFalse);
-    expect(dataController.enqueuedTasks, hasLength(1));
+    expect(dataController.superAgentReprocesses, hasLength(1));
+    expect(dataController.enqueuedTasks, isEmpty);
 
-    final task = dataController.enqueuedTasks.single;
-    expect(task.taskType, 'reprocess_cards_task');
-    expect(task.bizId, startsWith('reprocess_cards_'));
-    expect(task.payload['limit'], 5);
-    expect(task.payload['reanalyze_assets'], isTrue);
-    expect(
-      task.payload[ReprocessCardsPayloadKeys.downstreamMode],
-      ReprocessCardsDownstreamMode.cardOnly.payloadValue,
-    );
+    final options = dataController.superAgentReprocesses.single;
+    expect(options.limit, 5);
+    expect(options.reanalyzeAssets, isTrue);
+    expect(options.scope, ReprocessCardsScope.cardsOnly);
   });
 
   test('createReprocessCardsTask requires a user and resets loading', () async {
@@ -48,6 +45,7 @@ void main() {
 
     expect(viewModel.isReprocessingCards, isFalse);
     expect(dataController.enqueuedTasks, isEmpty);
+    expect(dataController.superAgentReprocesses, isEmpty);
   });
 
   test('date range task options format payload consistently', () {
@@ -77,15 +75,8 @@ void main() {
     expect(dataController.resetForLogoutCount, 1);
   });
 
-  test('clearData requires user and clears cached agent data', () async {
+  test('clearData requires user and clears local data', () async {
     await UserStorage.saveUser('debug-viewmodel-user');
-    final staleCache = AgentCacheData(
-      responseId: 'stale',
-      systemPromptHash: 1,
-      toolsHash: 2,
-    );
-    await UserStorage.saveCachedAgentData('pkm', staleCache);
-    await UserStorage.saveCachedAgentData('card', staleCache);
     final dataController = _RecordingDebugSettingsDataController();
     final viewModel = DebugSettingsViewModel(dataController: dataController);
 
@@ -94,8 +85,36 @@ void main() {
     expect(cleared, isTrue);
     expect(viewModel.isClearingData, isFalse);
     expect(dataController.clearDataCount, 1);
-    expect(await UserStorage.getCachedAgentData('pkm'), isNull);
-    expect(await UserStorage.getCachedAgentData('card'), isNull);
+  });
+
+  test('cloneToTestUser clones, switches user, and resets router state',
+      () async {
+    await UserStorage.saveUser('debug-viewmodel-user');
+    final dataController = _RecordingDebugSettingsDataController(
+      cloneResult: const SandboxUserCloneResult(
+        sourceUserId: 'debug-viewmodel-user',
+        targetUserId: 'test_clone',
+        sourceWorkspacePath: '/source',
+        targetWorkspacePath: '/target',
+        copiedFiles: 2,
+        copiedDirectories: 1,
+        skippedPaths: [],
+      ),
+    );
+    final viewModel = DebugSettingsViewModel(dataController: dataController);
+
+    final result = await viewModel.cloneToTestUser(
+      targetUserId: 'test_clone',
+      overwriteTarget: true,
+    );
+
+    expect(result?.targetUserId, 'test_clone');
+    expect(await UserStorage.getUserId(), 'test_clone');
+    expect(viewModel.isCloningTestUser, isFalse);
+    expect(dataController.cloneRequests, hasLength(1));
+    expect(dataController.cloneRequests.single.targetUserId, 'test_clone');
+    expect(dataController.cloneRequests.single.overwriteTarget, isTrue);
+    expect(dataController.resetForLogoutCount, 1);
   });
 
   test('clearFailedAgentContexts returns cleared count', () async {
@@ -111,7 +130,7 @@ void main() {
     expect(dataController.clearFailedAgentContextsCount, 1);
   });
 
-  test('creates comments and knowledge base reprocess tasks', () async {
+  test('creates comments reprocess task', () async {
     await UserStorage.saveUser('debug-viewmodel-user');
     final dataController = _RecordingDebugSettingsDataController();
     final viewModel = DebugSettingsViewModel(dataController: dataController);
@@ -121,26 +140,20 @@ void main() {
     );
 
     expect(await viewModel.createReprocessCommentsTask(options), isTrue);
-    expect(await viewModel.createReprocessKnowledgeBaseTask(options), isTrue);
 
-    expect(dataController.enqueuedTasks, hasLength(2));
+    expect(dataController.enqueuedTasks, hasLength(1));
     expect(
-      dataController.enqueuedTasks[0].taskType,
+      dataController.enqueuedTasks.single.taskType,
       'reprocess_comments_task',
     );
     expect(
-      dataController.enqueuedTasks[0].bizId,
+      dataController.enqueuedTasks.single.bizId,
       startsWith('reprocess_comments_'),
     );
     expect(
-      dataController.enqueuedTasks[1].taskType,
-      'reprocess_knowledge_base_task',
+      dataController.enqueuedTasks.single.payload['date_to'],
+      '2026-06-16',
     );
-    expect(
-      dataController.enqueuedTasks[1].bizId,
-      startsWith('reprocess_knowledge_base_'),
-    );
-    expect(dataController.enqueuedTasks[1].payload['date_to'], '2026-06-16');
   });
 
   test('rebuildSearchIndex delegates to data controller', () async {
@@ -167,14 +180,36 @@ class _QueuedDebugTask {
   final String? bizId;
 }
 
+class _CloneRequest {
+  const _CloneRequest({
+    required this.targetUserId,
+    required this.overwriteTarget,
+  });
+
+  final String targetUserId;
+  final bool overwriteTarget;
+}
+
 class _RecordingDebugSettingsDataController
     implements DebugSettingsDataController {
   _RecordingDebugSettingsDataController({
     this.clearedFailedAgentContexts = 0,
+    this.cloneResult = const SandboxUserCloneResult(
+      sourceUserId: 'debug-viewmodel-user',
+      targetUserId: 'test',
+      sourceWorkspacePath: '/source',
+      targetWorkspacePath: '/target',
+      copiedFiles: 0,
+      copiedDirectories: 0,
+      skippedPaths: [],
+    ),
   });
 
   final enqueuedTasks = <_QueuedDebugTask>[];
+  final superAgentReprocesses = <ReprocessCardsDebugOptions>[];
+  final cloneRequests = <_CloneRequest>[];
   final int clearedFailedAgentContexts;
+  final SandboxUserCloneResult cloneResult;
   int clearDataCount = 0;
   int clearFailedAgentContextsCount = 0;
   int rebuildAllFtsIndexesCount = 0;
@@ -196,6 +231,13 @@ class _RecordingDebugSettingsDataController
   }
 
   @override
+  Future<void> startSuperAgentReprocess({
+    required ReprocessCardsDebugOptions options,
+  }) async {
+    superAgentReprocesses.add(options);
+  }
+
+  @override
   Future<void> clearData() async {
     clearDataCount++;
   }
@@ -204,6 +246,20 @@ class _RecordingDebugSettingsDataController
   Future<int> clearFailedAgentConversationContexts() async {
     clearFailedAgentContextsCount++;
     return clearedFailedAgentContexts;
+  }
+
+  @override
+  Future<SandboxUserCloneResult> cloneToTestUser({
+    required String targetUserId,
+    required bool overwriteTarget,
+  }) async {
+    cloneRequests.add(
+      _CloneRequest(
+        targetUserId: targetUserId,
+        overwriteTarget: overwriteTarget,
+      ),
+    );
+    return cloneResult;
   }
 
   @override

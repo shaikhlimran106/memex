@@ -31,24 +31,9 @@ void main() {
   });
 
   test(
-    'aggregates user-facing stats from facts, cards, and event logs',
+    'aggregates user-facing stats from cards and event logs',
     () async {
       final fs = FileSystemService.instance;
-
-      await _writeFactFile(
-        fs,
-        userId,
-        DateTime(2026, 5, 18),
-        '## <id:ts_0> 08:00:00 "{}"\n\nWelcome seed card\n'
-        '## <id:ts_1> 09:00:00 "{}"\n\nHello world 中文\n'
-        '## <id:ts_2> 10:00:00 "{}"\n\nBuy milk\n',
-      );
-      await _writeFactFile(
-        fs,
-        userId,
-        DateTime(2026, 5, 19),
-        '## <id:ts_1> 09:00:00 "{}"\n\nAnother note\n',
-      );
 
       await fs.safeWriteCardFile(
         userId,
@@ -58,6 +43,7 @@ void main() {
           timestamp: DateTime(2026, 5, 18, 8).millisecondsSinceEpoch ~/ 1000,
           status: 'completed',
           tags: const ['seed'],
+          fact: 'Welcome seed card',
           uiConfigs: const [
             UiConfig(
               templateId: 'classic_card',
@@ -74,6 +60,7 @@ void main() {
           timestamp: DateTime(2026, 5, 18, 9).millisecondsSinceEpoch ~/ 1000,
           status: 'completed',
           tags: const ['work'],
+          fact: 'Hello world 中文',
           uiConfigs: const [
             UiConfig(
               templateId: 'classic_card',
@@ -90,6 +77,7 @@ void main() {
           timestamp: DateTime(2026, 5, 18, 10).millisecondsSinceEpoch ~/ 1000,
           status: 'processing',
           tags: const [],
+          fact: 'Buy milk',
           uiConfigs: const [
             UiConfig(templateId: 'classic_card', data: {'title': 'Pending'}),
           ],
@@ -103,6 +91,7 @@ void main() {
           timestamp: DateTime(2026, 5, 19, 9).millisecondsSinceEpoch ~/ 1000,
           status: 'completed',
           tags: const ['home'],
+          fact: 'Another note',
           uiConfigs: const [
             UiConfig(
               templateId: 'task',
@@ -301,18 +290,4 @@ Future<void> _writeEvents(
       mode: FileMode.append,
     );
   }
-}
-
-Future<void> _writeFactFile(
-  FileSystemService fs,
-  String userId,
-  DateTime date,
-  String content,
-) async {
-  final year = date.year.toString().padLeft(4, '0');
-  final month = date.month.toString().padLeft(2, '0');
-  final day = date.day.toString().padLeft(2, '0');
-  final file = File(p.join(fs.getFactsPath(userId), year, month, '$day.md'));
-  await file.parent.create(recursive: true);
-  await file.writeAsString(content);
 }

@@ -1224,6 +1224,7 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage>
         }
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         appBar: AppBar(
           backgroundColor: AppColors.background,
           surfaceTintColor: AppColors.background,
@@ -1263,6 +1264,7 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage>
         body: Form(
           key: _formKey,
           child: ListView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.all(16),
             children: [
               // Provider
@@ -1736,6 +1738,57 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage>
                 ),
               ],
             ],
+          ),
+        ),
+        bottomNavigationBar: AnimatedPadding(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: _buildBottomSaveBar(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomSaveBar() {
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: const Border(top: BorderSide(color: Color(0xFFE5E7EB))),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: FilledButton.icon(
+            key: const ValueKey('model_config_bottom_save_button'),
+            onPressed: _save,
+            icon: const Icon(Icons.save_rounded, size: 18),
+            label: Text(
+              UserStorage.l10n.save,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
           ),
         ),
       ),

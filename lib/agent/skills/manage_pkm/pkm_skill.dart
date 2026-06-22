@@ -1,5 +1,6 @@
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:memex/agent/prompts.dart';
+import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
 import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/event_bus_service.dart';
@@ -34,13 +35,13 @@ class PkmSkill extends Skill {
         );
 
   static List<Tool> _buildTools(List<bool>? stopAfterUpdateCardInsightRef) {
-    final logger = getLogger('PkmAgent');
+    final logger = getLogger('PkmSkill');
 
     return [
       Tool(
         name: 'update_timeline_card_insight',
-        description: Prompts.pkmAgentUpdateCardInsightToolDescription,
-        parameters: Prompts.pkmAgentUpdateCardInsightToolParameters,
+        description: Prompts.pkmSkillUpdateCardInsightToolDescription,
+        parameters: Prompts.pkmSkillUpdateCardInsightToolParameters,
         executable: (
           String fact_id,
           String insight_text,
@@ -54,21 +55,61 @@ class PkmSkill extends Skill {
           final userId = context.state.metadata['userId'] as String;
           final fileService = FileSystemService.instance;
 
-          final factInfo =
-              await fileService.extractFactContentFromFile(userId, fact_id);
-          if (factInfo == null) {
+          final denied = await gateMutatingToolCall(
+            toolName: 'update_timeline_card_insight',
+            summary: fact_id,
+            details: {
+              'insight': insight_text.length > 120
+                  ? '${insight_text.substring(0, 120)}…'
+                  : insight_text,
+            },
+          );
+          if (denied != null) return denied;
+
+          // Validate the target card exists. fact_id identity now lives on the
+          // card itself (Cards/*.yaml), not in a Facts file — so check the card,
+          // and never create a phantom card from a wrong/hallucinated id.
+          CardData? existingCard;
+          try {
+            existingCard = await fileService.readCardFile(userId, fact_id);
+          } catch (e) {
             throw ArgumentError(
-                "fact id: $fact_id not exist, please check the fact id is correct, or create/edit fact file first, the format of fact_id is 2026/01/20.md#ts_5");
+                "Invalid fact_id '$fact_id'. Expected format 2026/01/20.md#ts_5, referencing an existing card.");
+          }
+          if (existingCard == null) {
+            throw ArgumentError(
+                "Card $fact_id does not exist. update_timeline_card_insight only updates an existing card's insight; create the card with save_timeline_card first.");
           }
 
-          final relatedCount = related_fact_ids?.length ?? 0;
+          // Validate related_fact_ids: drop self-references and any id that does
+          // not resolve to a real card (the model must not guess fact_ids).
+          final droppedRelated = <String>[];
+          final validRelated = <String>[];
+          for (final rid in (related_fact_ids ?? const [])) {
+            final id = rid?.toString().trim() ?? '';
+            if (id.isEmpty || id == fact_id) continue;
+            CardData? relatedCard;
+            try {
+              relatedCard = await fileService.readCardFile(userId, id);
+            } catch (_) {
+              relatedCard = null;
+            }
+            if (relatedCard != null) {
+              validRelated.add(id);
+            } else {
+              droppedRelated.add(id);
+            }
+          }
+          if (droppedRelated.isNotEmpty) {
+            logger.warning(
+                'update_timeline_card_insight dropped non-existent related_fact_ids: ${droppedRelated.join(', ')}');
+          }
+
+          final relatedCount = validRelated.length;
           final cardPath = fileService.getCardPath(userId, fact_id);
 
-          final relatedFacts = (related_fact_ids != null
-                  ? related_fact_ids.where((id) => id != fact_id).toList()
-                  : <String>[])
-              .map((id) => RelatedFact(id: id))
-              .toList();
+          final relatedFacts =
+              validRelated.map((id) => RelatedFact(id: id)).toList();
           final insightData = CardInsight(
             characterId: '0',
             text: insight_text,
@@ -78,7 +119,6 @@ class PkmSkill extends Skill {
           final updatedCardData = await fileService.updateCardFile(
             userId,
             fact_id,
-            createIfNotExists: true,
             (card) => card.copyWith(insight: insightData),
           );
 
@@ -90,7 +130,7 @@ class PkmSkill extends Skill {
             logger.warning(
                 "Card file not found for fact_id: $fact_id, maybe it has been deleted");
             throw StateError(
-                Prompts.pkmAgentUpdateCardInsightErrorCardNotFound(fact_id));
+                Prompts.pkmSkillUpdateCardInsightErrorCardNotFound(fact_id));
           }
 
           // Notify detail page to refresh after insight update
@@ -99,7 +139,7 @@ class PkmSkill extends Skill {
           ));
 
           return AgentToolResult(
-            content: TextPart(Prompts.pkmAgentUpdateCardInsightSuccess(
+            content: TextPart(Prompts.pkmSkillUpdateCardInsightSuccess(
                 cardPath, fact_id, relatedCount)),
             stopFlag: stopFlag,
           );
@@ -107,8 +147,8 @@ class PkmSkill extends Skill {
       ),
       Tool(
         name: 'skip_pkm_organization',
-        description: Prompts.pkmAgentSkipOrganizationToolDescription,
-        parameters: Prompts.pkmAgentSkipOrganizationToolParameters,
+        description: Prompts.pkmSkillSkipOrganizationToolDescription,
+        parameters: Prompts.pkmSkillSkipOrganizationToolParameters,
         executable: (String evidence) async {
           final context = AgentCallToolContext.current;
           final factId = context?.state.metadata['factId'];

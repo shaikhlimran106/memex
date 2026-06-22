@@ -303,7 +303,7 @@ class PhotoSuggestionService {
       }
     }
 
-    // 2. Batch check backend processed status
+    // 2. Filter out photos the user has already submitted.
     List<String> unprocessedHashes = [];
     try {
       final allHashes = photoInfoList.map((pi) => pi.md5Hash).toList();

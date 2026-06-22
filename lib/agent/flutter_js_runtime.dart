@@ -102,8 +102,7 @@ class FlutterJavaScriptRuntime implements JavaScriptRuntime {
 
     return JavaScriptExecutionResult(
       success: false,
-      error:
-          'JavaScript execution completed but no result was captured '
+      error: 'JavaScript execution completed but no result was captured '
           '(timeout: ${timeoutDuration.inMilliseconds}ms)',
       stderr: stderrBuffer.toString(),
     );

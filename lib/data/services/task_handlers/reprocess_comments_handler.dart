@@ -85,10 +85,14 @@ Future<void> handleReprocessCommentsImpl(
         }
       }
 
-      // List all facts.
-      _logger.info('Listing all facts...');
-      final allFactIds = await fileSystem.listAllFacts(userId);
-      _logger.info('Found ${allFactIds.length} facts');
+      // List all cards.
+      _logger.info('Listing all cards...');
+      final cardPaths = await fileSystem.listAllCardFiles(userId);
+      final allFactIds = cardPaths
+          .map(fileSystem.factIdFromCardPath)
+          .whereType<String>()
+          .toList();
+      _logger.info('Found ${allFactIds.length} cards');
 
       // filter facts
       factIds = <String>[];
@@ -219,13 +223,19 @@ Future<bool> _processOneCardComment(
   List<CharacterModel> enabledCharacters,
 ) async {
   try {
-    // 1. Extract raw content from file
+    // 1. Read card source content.
     final fileSystem = FileSystemService.instance;
-    final factInfo =
-        await fileSystem.extractFactContentFromFile(userId, factId);
+    final card = await fileSystem.readCardFile(userId, factId);
 
-    if (factInfo == null) {
-      _logger.warning('Failed to extract fact content for: $factId');
+    if (card == null || card.deleted == true) {
+      _logger.warning('Card not found for comment reprocess: $factId');
+      return false;
+    }
+
+    final rawInputContent = card.fact?.trim();
+    if (rawInputContent == null || rawInputContent.isEmpty) {
+      _logger
+          .warning('Card has no fact content for comment reprocess: $factId');
       return false;
     }
 
@@ -243,9 +253,11 @@ Future<bool> _processOneCardComment(
       userId: userId,
       userContent: userContent,
       characterId: selectedCharId,
-      rawInputContent: factInfo.content,
+      rawInputContent: rawInputContent,
       sendEventBus: false,
-      inputDateTime: factInfo.datetime,
+      inputDateTime: DateTime.fromMillisecondsSinceEpoch(
+        (card.createdAt ?? card.timestamp) * 1000,
+      ),
     );
 
     return true;

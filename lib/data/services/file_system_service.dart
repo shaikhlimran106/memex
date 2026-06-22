@@ -38,6 +38,102 @@ class SkillSyncResult {
   });
 }
 
+class TimelineTemplateFieldMeta {
+  final String name;
+  final String type;
+  final bool required;
+  final String description;
+
+  const TimelineTemplateFieldMeta({
+    required this.name,
+    required this.type,
+    required this.required,
+    required this.description,
+  });
+
+  factory TimelineTemplateFieldMeta.fromJson(Map<String, dynamic> json) {
+    return TimelineTemplateFieldMeta(
+      name: json['name']?.toString() ?? '',
+      type: json['type']?.toString() ?? '',
+      required: json['required'] == true,
+      description: json['description']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'type': type,
+      'required': required,
+      'description': description,
+    };
+  }
+}
+
+class TimelineTemplateMeta {
+  final String templateId;
+  final String description;
+  final String useCase;
+  final List<TimelineTemplateFieldMeta> fields;
+
+  const TimelineTemplateMeta({
+    required this.templateId,
+    required this.description,
+    required this.useCase,
+    required this.fields,
+  });
+
+  factory TimelineTemplateMeta.fromJson(
+    String templateId,
+    Map<String, dynamic> json,
+  ) {
+    final rawFields = json['fields'];
+    return TimelineTemplateMeta(
+      templateId: templateId,
+      description: json['description']?.toString() ?? '',
+      useCase: json['use_case']?.toString() ?? '',
+      fields: rawFields is List
+          ? rawFields
+              .whereType<Map>()
+              .map((field) => TimelineTemplateFieldMeta.fromJson(
+                    Map<String, dynamic>.from(field),
+                  ))
+              .toList()
+          : const [],
+    );
+  }
+
+  List<String> get fieldNames => fields.map((field) => field.name).toList();
+
+  String get dataStructure {
+    return fields
+        .map(
+          (field) =>
+              '- `${field.name}` (${field.type}, ${field.required ? "required" : "optional"}): ${field.description}',
+        )
+        .join('\n');
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'description': description,
+      'use_case': useCase,
+      'data_structure': dataStructure,
+      'fields': fields.map((field) => field.toJson()).toList(),
+    };
+  }
+}
+
+class TimelineTemplateCardUsage {
+  final String cardId;
+  final Map<String, dynamic> data;
+
+  const TimelineTemplateCardUsage({
+    required this.cardId,
+    required this.data,
+  });
+}
+
 /// File system manager. Maps to backend FileSystemManager; manages user workspace dirs and file ops.
 class FileSystemService {
   final BaseFileService _baseService = BaseFileService();
@@ -54,6 +150,17 @@ class FileSystemService {
 
   /// Lock protecting _cardLocks map access
   final Lock _cardLocksMapLock = Lock();
+
+  /// Serializes filename allocation + copy for daily captured assets so two
+  /// concurrent saves on the same day can't pick the same `no_` index.
+  final Lock _dailyAssetLock = Lock();
+
+  /// Serializes card fact_id allocation so two concurrent saves on the same
+  /// day can't pick the same `ts_N` slot.
+  final Lock _cardFactIdLock = Lock();
+
+  /// Serializes updates to the user's reusable location marks file.
+  final Lock _userLocationsLock = Lock();
 
   /// Flag to indicate if a rebuild is in progress to prevent recursion
   bool _isRebuilding = false;
@@ -139,38 +246,6 @@ class FileSystemService {
     return path.join(dataRoot, 'workspace', workspaceName);
   }
 
-  /// List all user IDs
-  Future<List<String>> listAllUsers() async {
-    final workspaceRoot = path.join(dataRoot, 'workspace');
-
-    if (!await _baseService.exists(workspaceRoot)) {
-      return [];
-    }
-
-    if (!await _baseService.isDirectory(workspaceRoot)) {
-      return [];
-    }
-
-    final users = <String>[];
-    try {
-      final items = await _baseService.listDirectory(workspaceRoot);
-      for (final item in items) {
-        final itemPath = path.join(workspaceRoot, item);
-        if (await _baseService.isDirectory(itemPath)) {
-          final name = path.basename(item);
-          if (name.startsWith('_')) {
-            // _user_id -> user_id
-            users.add(name.substring(1));
-          }
-        }
-      }
-    } catch (e) {
-      _logger.warning('Failed to list users: $e');
-    }
-
-    return users;
-  }
-
   /// GetFactsdirectory path
   ///
   /// Args:
@@ -205,7 +280,8 @@ class FileSystemService {
     return path.join(getWorkspacePath(userId), 'Cards');
   }
 
-  /// Path for storing user processed hashes
+  /// Path for storing hashes of user-submitted media/text used by lightweight
+  /// local duplicate filters such as photo suggestions.
   String getProcessedHashesPath(String userId) {
     return path.join(getSystemPath(userId), 'processed_hashes.txt');
   }
@@ -320,6 +396,7 @@ class FileSystemService {
           // No prior file and caller wants creation → insert.
           currentData = CardData(
             factId: cardId,
+            createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
             timestamp: DateTime.now().millisecondsSinceEpoch ~/ 1000,
             status: 'processing',
             tags: const [],
@@ -401,8 +478,8 @@ class FileSystemService {
 
   /// Internal write (no lock; caller must hold lock).
   ///
-  /// On success, builds the enriched `afterMap` for the change event, updates
-  /// the card cache, and publishes via [_publishCardChange].
+  /// On success, updates the card cache and publishes the raw card snapshot via
+  /// [_publishCardChange].
   Future<bool> _safeWriteCardFileInternal(
       String userId, String cardId, CardData data,
       {Map<String, dynamic>? beforeSnapshot, required DataChangeOp op}) async {
@@ -422,25 +499,7 @@ class FileSystemService {
       await tempFile.writeAsString(yamlContent, encoding: utf8);
       await tempFile.rename(cardPath);
 
-      // Build enriched afterMap for the change event (same shape as the
-      // legacy publish that used to live inside updateCardCache).
-      final factInfo = await extractFactContentFromFile(userId, cardId);
-      final rawContent = factInfo?.content ?? '';
-      final assetAnalysisTexts = (factInfo?.assetAnalyses ?? [])
-          .map((a) => a['analysis'] as String? ?? '')
-          .where((s) => s.isNotEmpty)
-          .toList();
-      final assetOcrTexts = (factInfo?.assetOcrTexts ?? [])
-          .map((a) => a['ocr_text'] as String? ?? '')
-          .where((s) => s.isNotEmpty)
-          .toList();
-      final afterMap = <String, dynamic>{
-        ...data.toJson(),
-        // FTS-specific enrichment fields that don't exist in the raw card YAML.
-        'content': rawContent,
-        'asset_analyses': assetAnalysisTexts,
-        'asset_ocr': assetOcrTexts,
-      };
+      final afterMap = data.toJson();
 
       // Update the Drift cache row.
       await updateCardCache(userId, cardId, data);
@@ -477,13 +536,7 @@ class FileSystemService {
         await rebuildCardCache(userId);
       }
 
-      int timestamp;
-      final factInfo = await extractFactContentFromFile(userId, factId);
-      if (factInfo != null) {
-        timestamp = factInfo.timestamp;
-      } else {
-        timestamp = cardData.timestamp;
-      }
+      final timestamp = cardData.createdAt ?? cardData.timestamp;
 
       final tagsJson = jsonEncode(cardData.tags);
 
@@ -809,6 +862,29 @@ class FileSystemService {
     return result.endsWith('\n') ? result : '$result\n';
   }
 
+  /// List to YAML string (manual impl, aligned with [_mapToYamlString]).
+  String _listToYamlString(List<dynamic> list, {int indent = 0}) {
+    final buffer = StringBuffer();
+    final indentStr = '  ' * indent;
+
+    for (final item in list) {
+      if (item is Map) {
+        if (item.isEmpty) {
+          buffer.writeln('$indentStr- {}');
+        } else {
+          buffer.writeln('$indentStr-');
+          buffer.write(_mapToYamlString(Map<String, dynamic>.from(item),
+              indent: indent + 1));
+        }
+      } else {
+        buffer.writeln('$indentStr- ${_valueToString(item)}');
+      }
+    }
+
+    final result = buffer.toString();
+    return result.endsWith('\n') ? result : '$result\n';
+  }
+
   String _valueToString(dynamic value) {
     if (value == null) {
       return 'null';
@@ -1086,66 +1162,72 @@ class FileSystemService {
     return path.join(getUserSettingsPath(userId), 'comment_settings.yaml');
   }
 
-  /// Add user custom location (lat, lng, name).
+  /// Add or update a user reusable location mark.
   Future<bool> addUserLocation(
       String userId, double lat, double lng, String name) async {
-    try {
-      final settingsPath = getUserSettingsPath(userId);
-      await ensureDirectory(settingsPath);
-
-      final locationsFile = path.join(settingsPath, 'user_locations.yaml');
-      var locations = <Map<String, dynamic>>[];
-
-      if (await _baseService.exists(locationsFile)) {
-        try {
-          final content = await _baseService.readFile(locationsFile);
-          final yamlDoc = loadYaml(content);
-          if (yamlDoc is YamlList) {
-            locations = yamlDoc
-                .map((e) => _yamlToMap(e))
-                .toList()
-                .cast<Map<String, dynamic>>();
-          } else if (yamlDoc is List) {
-            // Handle case where loadYaml returns a standard List (rare but possible with some parsers/inputs)
-            locations = (yamlDoc)
-                .map((e) => _yamlToMap(e))
-                .toList()
-                .cast<Map<String, dynamic>>();
-          }
-        } catch (e) {
-          _logger.warning('Failed to read existing place: $e');
-        }
-      }
-
-      final newLocation = {
-        'lat': lat,
-        'lng': lng,
-        'name': name,
-        'timestamp': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      };
-
-      // Simple de-duplication/update by name
-      var updated = false;
-      for (var i = 0; i < locations.length; i++) {
-        if (locations[i]['name'] == name) {
-          locations[i] = newLocation;
-          updated = true;
-          break;
-        }
-      }
-
-      if (!updated) {
-        locations.add(newLocation);
-      }
-
-      final yamlContent = _listToYamlString(locations);
-      await _baseService.writeFile(locationsFile, yamlContent);
-
-      return true;
-    } catch (e) {
-      _logger.severe('Failed to add user place: $e');
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
       return false;
     }
+
+    return _userLocationsLock.synchronized(() async {
+      try {
+        final settingsPath = getUserSettingsPath(userId);
+        await ensureDirectory(settingsPath);
+
+        final locationsFile = path.join(settingsPath, 'user_locations.yaml');
+        var locations = <Map<String, dynamic>>[];
+
+        if (await _baseService.exists(locationsFile)) {
+          try {
+            final content = await _baseService.readFile(locationsFile);
+            final yamlDoc = loadYaml(content);
+            if (yamlDoc is YamlList) {
+              locations = yamlDoc
+                  .map((e) => _yamlToMap(e))
+                  .toList()
+                  .cast<Map<String, dynamic>>();
+            } else if (yamlDoc is List) {
+              locations = yamlDoc
+                  .map((e) => _yamlToMap(e))
+                  .toList()
+                  .cast<Map<String, dynamic>>();
+            }
+          } catch (e) {
+            _logger.warning('Failed to read existing user locations: $e');
+          }
+        }
+
+        final newLocation = {
+          'lat': lat,
+          'lng': lng,
+          'name': trimmedName,
+          'timestamp': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        };
+
+        var updated = false;
+        for (var i = 0; i < locations.length; i++) {
+          if (locations[i]['name'] == trimmedName) {
+            locations[i] = newLocation;
+            updated = true;
+            break;
+          }
+        }
+
+        if (!updated) {
+          locations.add(newLocation);
+        }
+
+        await _baseService.writeFile(
+          locationsFile,
+          _listToYamlString(locations),
+        );
+        return true;
+      } catch (e) {
+        _logger.severe('Failed to add user location: $e');
+        return false;
+      }
+    });
   }
 
   /// Get nearest user custom location (threshold in meters, default 50). Returns place name or null.
@@ -1274,25 +1356,6 @@ class FileSystemService {
     return degree * math.pi / 180;
   }
 
-  /// Convert list to YAML string
-  String _listToYamlString(List<dynamic> list, {int indent = 0}) {
-    final buffer = StringBuffer();
-    final indentStr = ' ' * indent;
-
-    for (final item in list) {
-      if (item is Map) {
-        buffer.writeln('$indentStr-');
-        buffer.write(_mapToYamlString(Map<String, dynamic>.from(item),
-            indent: indent + 2));
-      } else {
-        buffer.writeln('$indentStr- ${_valueToString(item)}');
-      }
-    }
-
-    final result = buffer.toString();
-    return result.endsWith('\n') ? result : '$result\n';
-  }
-
   /// Get_Systemdirectory path
   String getSystemPath(String userId) {
     return path.join(getWorkspacePath(userId), '_System');
@@ -1316,17 +1379,12 @@ class FileSystemService {
 
   /// Templates directory path (card templates)
   String getTemplatesPath(String userId) {
-    return path.join(getSystemPath(userId), 'Templates');
+    return path.join(getUserSettingsPath(userId), 'Templates');
   }
 
   /// Knowledge insights card templates directory path
   String getKnowledgeInsightsCardTemplatesPath(String userId) {
     return path.join(getSystemPath(userId), 'KnowledgeInsightsCardTemplates');
-  }
-
-  /// Chart templates path (legacy name, points to new path)
-  String getChartTemplatesPath(String userId) {
-    return getKnowledgeInsightsCardTemplatesPath(userId);
   }
 
   /// Template directory path
@@ -1348,48 +1406,25 @@ class FileSystemService {
     }
   }
 
-  /// Generate asset filename
-  String generateAssetFilename(
-    String userId,
+  /// Generate a filename for a captured asset.
+  String _generateAssetFilename(
     String assetType,
     int index,
     String extension, {
-    String? factId,
     String? extraInfo,
+    DateTime? date,
   }) {
-    String dateStr;
-    String mStr;
-
-    if (factId != null) {
-      if (factId.startsWith('batch_')) {
-        // Allow temporary batch identifiers during auto-input clustering.
-        // We'll rename them post-clustering.
-        final batchId = factId.substring(6); // remove 'batch_'
-        dateStr = 'batch';
-        mStr = batchId;
-      } else {
-        try {
-          final match = RegExp(r'(\d{4})/(\d{2})/(\d{2})\.md#ts_(\d+)')
-              .firstMatch(factId);
-          if (match != null) {
-            final year = match.group(1)!;
-            final month = match.group(2)!;
-            final day = match.group(3)!;
-            mStr = match.group(4)!;
-            dateStr = '$year$month$day';
-          } else {
-            throw ApiException('Invalid factId format: $factId');
-          }
-        } catch (e) {
-          throw ApiException('Invalid factId format: $factId');
-        }
-      }
-    } else {
-      throw ApiException('factId cannot be empty');
-    }
+    // Records are now captured through Super Agent chat before a card fact_id
+    // exists. Store assets under a stable daily `ts_0` namespace; cards later
+    // reference these files by `fs://` id.
+    final now = date ?? DateTime.now();
+    final year = now.year.toString().padLeft(4, '0');
+    final month = now.month.toString().padLeft(2, '0');
+    final day = now.day.toString().padLeft(2, '0');
+    final dateStr = '$year$month$day';
 
     final extraPart = extraInfo != null ? '_$extraInfo' : '';
-    return '${assetType}_${dateStr}_ts_${mStr}_no_$index$extraPart.$extension';
+    return '${assetType}_${dateStr}_ts_0_no_$index$extraPart.$extension';
   }
 
   /// Save asset from file (direct copy, no Base64). Returns (filename, relativePath) under dataRoot.
@@ -1397,9 +1432,7 @@ class FileSystemService {
     required String userId,
     required String sourcePath,
     required String assetType,
-    required int index,
     String? format,
-    String? factId,
     String? extraInfo,
   }) async {
     final assetsPath = getAssetsPath(userId);
@@ -1447,81 +1480,67 @@ class FileSystemService {
       }
     }
 
-    final filename = generateAssetFilename(
-      userId,
-      assetType,
-      index,
-      extension,
-      factId: factId,
-      extraInfo: extraInfo,
-    );
-    final absolutePath = path.join(assetsPath, filename);
+    Future<(String, String)> doSave(int resolvedIndex, DateTime? date) async {
+      final filename = _generateAssetFilename(
+        assetType,
+        resolvedIndex,
+        extension,
+        extraInfo: extraInfo,
+        date: date,
+      );
+      final absolutePath = path.join(assetsPath, filename);
 
-    try {
       final sourceFile = File(sourcePath);
       if (!await sourceFile.exists()) {
         throw ApiException('Source file not found: $sourcePath');
       }
-
       await sourceFile.copy(absolutePath);
 
       // Convert to relative path to avoid iOS Application ID change issue
       final relativePath = toRelativePath(absolutePath);
       _logger.info('Copied asset from $sourcePath to $absolutePath');
       return (filename, relativePath);
+    }
+
+    try {
+      // Captured assets are named by today's date + ts_0; their `no_` index is
+      // the running count of files for the day. Allocate the index and copy
+      // under a lock so concurrent saves can't collide on the same name.
+      return await _dailyAssetLock.synchronized(() async {
+        final now = DateTime.now();
+        final nextIndex = await _nextDailyAssetIndex(assetsPath, now);
+        return doSave(nextIndex, now);
+      });
     } catch (e) {
       _logger.severe('Failed to save asset file: $e');
       rethrow;
     }
   }
 
-  /// Daily fact file path
-  String getDailyFactPath(String userId, DateTime date) {
-    final factsPath = getFactsPath(userId);
-    final year = date.year.toString();
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
+  /// Next running `no_` index for daily captured assets on [date].
+  ///
+  /// Scans [assetsPath] for files named `*_<YYYYMMDD>_ts_0_no_<N>*` (both
+  /// image and audio share one daily counter, so the index reflects "the Nth
+  /// file captured today") and returns the highest N seen plus one, starting
+  /// at 1. Must be called while holding [_dailyAssetLock].
+  Future<int> _nextDailyAssetIndex(String assetsPath, DateTime date) async {
+    final dateStr = '${date.year.toString().padLeft(4, '0')}'
+        '${date.month.toString().padLeft(2, '0')}'
+        '${date.day.toString().padLeft(2, '0')}';
+    final pattern = RegExp('_${dateStr}_ts_0_no_(\\d+)');
 
-    return path.join(factsPath, year, month, '$day.md');
-  }
+    final dir = Directory(assetsPath);
+    if (!await dir.exists()) return 1;
 
-  /// Read daily fact file and parse YAML frontmatter. Returns (yamlData, bodyContent); (null, raw) if no frontmatter.
-  Future<({Map<String, dynamic>? yamlData, String bodyContent})>
-      readDailyFactFile(String userId, DateTime date) async {
-    final filePath = getDailyFactPath(userId, date);
-
-    if (!await _baseService.exists(filePath)) {
-      return (yamlData: null, bodyContent: '');
+    var maxIndex = 0;
+    await for (final entity in dir.list(followLinks: false)) {
+      if (entity is! File) continue;
+      final match = pattern.firstMatch(path.basename(entity.path));
+      if (match == null) continue;
+      final n = int.tryParse(match.group(1)!) ?? 0;
+      if (n > maxIndex) maxIndex = n;
     }
-
-    try {
-      final content = await _baseService.readFile(filePath);
-
-      final yamlPattern =
-          RegExp(r'^---\s*\n(.*?)\n---\s*\n(.*)$', dotAll: true);
-      final match = yamlPattern.firstMatch(content);
-
-      if (match != null) {
-        final yamlStr = match.group(1)!;
-        final bodyContent = match.group(2)!;
-
-        try {
-          final yamlData = _parseYaml(yamlStr);
-          return (
-            yamlData: yamlData.isEmpty ? null : yamlData,
-            bodyContent: bodyContent
-          );
-        } catch (e) {
-          _logger.warning('Failed to parse yaml frontmatter: $e');
-          return (yamlData: null, bodyContent: content);
-        }
-      } else {
-        return (yamlData: null, bodyContent: content);
-      }
-    } catch (e) {
-      _logger.severe('Failed to read fact file: $e');
-      return (yamlData: null, bodyContent: '');
-    }
+    return maxIndex + 1;
   }
 
   /// parseYAMLstringasMap
@@ -1566,44 +1585,59 @@ class FileSystemService {
     }
   }
 
-  /// Generate unique fact ID for the day
-  Future<String> generateFactId(String userId, DateTime date) async {
-    final result = await readDailyFactFile(userId, date);
-    final bodyContent = result.bodyContent;
+  /// Allocate a fresh fact_id for a brand-new card on the current local day.
+  ///
+  /// Cards are created directly through SuperAgent, so the id space is driven
+  /// by the Cards directory: this scans existing cards for the day
+  /// (`Cards/YYYY/MM/DD_ts_N.yaml`), takes the max `ts_N` + 1, and immediately
+  /// reserves the slot by writing a `processing` placeholder card so two
+  /// concurrent saves on the same day can't pick the same id. The caller
+  /// overwrites the placeholder with the real card via [updateCardFile].
+  Future<String> allocateCardFactId(String userId) async {
+    return _cardFactIdLock.synchronized(() async {
+      final now = DateTime.now().toLocal();
+      final year = now.year.toString();
+      final month = now.month.toString().padLeft(2, '0');
+      final day = now.day.toString().padLeft(2, '0');
 
-    final pattern = RegExp(r'## <id:ts_(\d+)>');
-    final matches = pattern.allMatches(bodyContent);
-    final existingIds = matches.map((m) => int.parse(m.group(1)!)).toList();
+      var maxTs = 0;
 
-    final newId = existingIds.isEmpty
-        ? 1
-        : (existingIds.reduce((a, b) => a > b ? a : b) + 1);
+      // Existing cards: Cards/YYYY/MM/DD_ts_N.yaml
+      final monthDir = path.join(getCardsPath(userId), year, month);
+      if (await _baseService.exists(monthDir) &&
+          await _baseService.isDirectory(monthDir)) {
+        try {
+          final pattern = RegExp('^${day}_ts_(\\d+)\\.yaml\$');
+          for (final item in await _baseService.listDirectory(monthDir)) {
+            final m = pattern.firstMatch(path.basename(item));
+            if (m != null) {
+              final n = int.tryParse(m.group(1)!) ?? 0;
+              if (n > maxTs) maxTs = n;
+            }
+          }
+        } catch (e) {
+          _logger.warning('Failed to scan cards for fact_id allocation: $e');
+        }
+      }
 
-    // If newId is 1, it means this is the first input of the day (for this specific day).
-    // This is a good time to rebuild the card cache to ensure consistency.
-    if (newId == 1) {
-      // Don't await this, let it run in background
-      rebuildCardCache(userId);
-    }
+      final factId = '$year/$month/$day.md#ts_${maxTs + 1}';
 
-    final year = date.year;
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-    return '$year/$month/$day.md#ts_$newId';
-  }
+      // Reserve the slot so a concurrent allocation advances past it.
+      await safeWriteCardFile(
+        userId,
+        factId,
+        CardData(
+          factId: factId,
+          createdAt: now.millisecondsSinceEpoch ~/ 1000,
+          timestamp: now.millisecondsSinceEpoch ~/ 1000,
+          status: 'processing',
+          tags: const [],
+          uiConfigs: const [],
+        ),
+      );
 
-  /// Extract simple format (ts_N) from full fact_id
-  String extractSimpleFactId(String factId) {
-    final match = RegExp(r'ts_(\d+)$').firstMatch(factId);
-    if (match == null) {
-      throw ArgumentError('Invalid fact_id format: $factId');
-    }
-    return 'ts_${match.group(1)!}';
-  }
-
-  /// Format time as HH:MM:SS
-  String formatTime(DateTime dt) {
-    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')}';
+      return factId;
+    });
   }
 
   /// Parse date from fact_id
@@ -1700,75 +1734,6 @@ class FileSystemService {
     return path.join(getKnowledgeInsightsCardsPath(userId), filename);
   }
 
-  Future<void> updateDailyFactYamlData(
-      String userId, DateTime date, Map<String, dynamic> data) async {
-    final filePath = getDailyFactPath(userId, date);
-    final parentDir = path.dirname(filePath);
-
-    // ensuredirectoryexists
-    await ensureDirectory(parentDir);
-
-    // Read existing content and parse yaml
-    final result = await readDailyFactFile(userId, date);
-    var yamlData = result.yamlData ?? <String, dynamic>{};
-
-    // mergedata（newdataoverwriteolddata）
-    yamlData.addAll(data);
-
-    // Build new yaml frontmatter
-    final yamlStr = _mapToYaml(yamlData);
-    // Ensure yaml string ends with newline
-    final yamlContent = yamlStr.endsWith('\n') ? yamlStr : '$yamlStr\n';
-
-    // Combine new content
-    final bodyContent = result.bodyContent;
-    final newContent = bodyContent.isNotEmpty
-        ? '---\n$yamlContent---\n$bodyContent'
-        : '---\n$yamlContent---\n';
-
-    // Write back to file
-    await _baseService.writeFile(filePath, newContent);
-    _logger.info('Updated yaml frontmatter in fact file: $filePath');
-  }
-
-  Future<void> appendToDailyFactFile(
-      String userId, DateTime date, String content) async {
-    final filePath = getDailyFactPath(userId, date);
-    final parentDir = path.dirname(filePath);
-
-    // ensuredirectoryexists
-    await ensureDirectory(parentDir);
-
-    // Read existing content and parse yaml
-    final result = await readDailyFactFile(userId, date);
-    final yamlData = result.yamlData;
-    var bodyContent = result.bodyContent;
-
-    if (bodyContent.isNotEmpty) {
-      // appendcontenttobodypartial
-      final trimmed = bodyContent.trim();
-      final separator = trimmed.isNotEmpty && !trimmed.endsWith('\n')
-          ? (trimmed.contains('\n\n') ? '\n' : '\n\n')
-          : '\n';
-      bodyContent = '$trimmed$separator$content';
-
-      // If yaml data present, recombine; else use new content
-      if (yamlData != null) {
-        final yamlStr = _mapToYaml(yamlData);
-        final yamlContent = yamlStr.endsWith('\n') ? yamlStr : '$yamlStr\n';
-        final newContent = '---\n$yamlContent---\n$bodyContent';
-        await _baseService.writeFile(filePath, newContent);
-      } else {
-        await _baseService.writeFile(filePath, bodyContent);
-      }
-    } else {
-      // Create new file (no yaml frontmatter)
-      await _baseService.writeFile(filePath, content);
-    }
-
-    _logger.info('Appended to fact file: $filePath');
-  }
-
   /// Read card YAML file and return typed [CardData], or null if missing/invalid.
   Future<CardData?> readCardFile(String userId, String factId) async {
     final cardPath = getCardPath(userId, factId);
@@ -1805,11 +1770,132 @@ class FileSystemService {
     }
   }
 
-  /// Read chart template HTML file
-  Future<String?> readChartTemplateHtml(
+  Future<TimelineTemplateMeta?> readTimelineTemplateMeta(
+    String userId,
+    String templateId,
+  ) async {
+    final metaPath =
+        path.join(getTemplatePath(userId, templateId), 'meta.json');
+    if (!await _baseService.exists(metaPath)) {
+      return null;
+    }
+
+    try {
+      final content = await _baseService.readFile(metaPath);
+      final decoded = jsonDecode(content);
+      if (decoded is! Map) return null;
+      return TimelineTemplateMeta.fromJson(
+        templateId,
+        Map<String, dynamic>.from(decoded),
+      );
+    } catch (e) {
+      _logger.severe('Failed to read timeline template meta $metaPath: $e');
+      return null;
+    }
+  }
+
+  Future<void> saveTimelineTemplateMeta({
+    required String userId,
+    required String templateId,
+    required String description,
+    required String useCase,
+    required List<TimelineTemplateFieldMeta> fields,
+  }) async {
+    final templatePath = getTemplatePath(userId, templateId);
+    await ensureDirectory(templatePath);
+
+    final metaPath = path.join(templatePath, 'meta.json');
+    const encoder = JsonEncoder.withIndent('  ');
+    await _baseService.writeFile(
+      metaPath,
+      '${encoder.convert(TimelineTemplateMeta(
+        templateId: templateId,
+        description: description,
+        useCase: useCase,
+        fields: fields,
+      ).toJson())}\n',
+    );
+  }
+
+  Future<List<TimelineTemplateMeta>> listTimelineTemplateMetas(
+      String userId) async {
+    final templatesPath = getTemplatesPath(userId);
+    if (!await _baseService.exists(templatesPath)) {
+      return const [];
+    }
+
+    final metas = <TimelineTemplateMeta>[];
+    try {
+      final items = await _baseService.listDirectory(templatesPath);
+      for (final item in items) {
+        final templatePath = path.join(templatesPath, item);
+        if (!await _baseService.isDirectory(templatePath)) continue;
+        final templateId = path.basename(item);
+        final meta = await readTimelineTemplateMeta(userId, templateId);
+        if (meta != null) {
+          metas.add(meta);
+        }
+      }
+    } catch (e) {
+      _logger.warning('Failed to list timeline template metas: $e');
+    }
+    metas.sort((a, b) => a.templateId.compareTo(b.templateId));
+    return metas;
+  }
+
+  Future<List<TimelineTemplateCardUsage>> findCardTemplateUsages(
+    String userId,
+    String templateId,
+  ) async {
+    final cardPaths = await listAllCardFiles(userId);
+    final cardsPath = getCardsPath(userId);
+    final result = <TimelineTemplateCardUsage>[];
+
+    for (final cardPath in cardPaths) {
+      try {
+        final content = await _baseService.readFile(cardPath);
+        final raw = _parseYaml(content);
+        if (raw.isEmpty) continue;
+        final card = CardData.fromJson(Map<String, dynamic>.from(raw));
+        final matchingConfigs = card.uiConfigs
+            .where((config) => config.templateId == templateId)
+            .toList();
+        if (matchingConfigs.isEmpty) {
+          continue;
+        }
+        final relative = path.relative(cardPath, from: cardsPath);
+        final parts = path.split(relative);
+        var cardId = card.factId;
+        if (parts.length != 3) {
+          cardId = card.factId;
+        } else {
+          final year = parts[0];
+          final month = parts[1];
+          final filename = path.basenameWithoutExtension(parts[2]);
+          final match = RegExp(r'^(\d{2})_(ts_\d+)$').firstMatch(filename);
+          if (match != null) {
+            cardId = '$year/$month/${match.group(1)}.md#${match.group(2)}';
+          }
+        }
+
+        for (final config in matchingConfigs) {
+          result.add(TimelineTemplateCardUsage(
+            cardId: cardId,
+            data: config.data,
+          ));
+        }
+      } catch (e) {
+        _logger.warning('Failed to inspect card template usage $cardPath: $e');
+      }
+    }
+
+    return result;
+  }
+
+  Future<String?> readKnowledgeInsightCardTemplateHtml(
       String userId, String templateId) async {
-    final chartTemplatesPath = getChartTemplatesPath(userId);
-    final templatePath = path.join(chartTemplatesPath, templateId);
+    final templatesPath = getKnowledgeInsightsCardTemplatesPath(userId);
+    final templatePath = path.join(templatesPath, templateId);
     final viewPath = path.join(templatePath, 'view.html');
 
     if (!await _baseService.exists(viewPath)) {
@@ -1819,14 +1905,10 @@ class FileSystemService {
     try {
       return await _baseService.readFile(viewPath);
     } catch (e) {
-      _logger.severe('Failed to read chart template HTML $viewPath: $e');
+      _logger.severe(
+          'Failed to read knowledge insight card template HTML $viewPath: $e');
       return null;
     }
-  }
-
-  Future<String?> readKnowledgeInsightCardTemplateHtml(
-      String userId, String templateId) async {
-    return readChartTemplateHtml(userId, templateId);
   }
 
   /// Read tags file, return list of tags (name, icon, icon_type)
@@ -2109,112 +2191,6 @@ class FileSystemService {
     }
   }
 
-  /// List all fact IDs, sorted by date and ts (earliest first). Format: YYYY/MM/DD.md#ts_X
-  Future<List<String>> listAllFacts(String userId) async {
-    final factsPath = getFactsPath(userId);
-
-    if (!await _baseService.exists(factsPath)) {
-      return [];
-    }
-
-    final factIds = <String>[];
-
-    // Iterate year directories
-    try {
-      final yearItems = await _baseService.listDirectory(factsPath);
-      for (final yearItem in yearItems) {
-        final yearPath = path.join(factsPath, yearItem);
-        if (!await _baseService.isDirectory(yearPath)) {
-          continue;
-        }
-
-        final yearStr = path.basename(yearItem);
-        if (!RegExp(r'^\d+$').hasMatch(yearStr)) {
-          continue;
-        }
-        final year = int.parse(yearStr);
-
-        // Iterate month directories
-        final monthItems = await _baseService.listDirectory(yearPath);
-        for (final monthItem in monthItems) {
-          final monthPath = path.join(yearPath, monthItem);
-          if (!await _baseService.isDirectory(monthPath)) {
-            continue;
-          }
-
-          final monthStr = path.basename(monthItem);
-          if (!RegExp(r'^\d+$').hasMatch(monthStr)) {
-            continue;
-          }
-          final month = int.parse(monthStr);
-
-          final dayItems = await _baseService.listDirectory(monthPath);
-          for (final dayItem in dayItems) {
-            final dayPath = path.join(monthPath, dayItem);
-            if (!await _baseService.isFile(dayPath) ||
-                !dayPath.endsWith('.md')) {
-              continue;
-            }
-
-            // Extract date from filename
-            final filename = path.basenameWithoutExtension(dayItem);
-            if (!RegExp(r'^\d+$').hasMatch(filename)) {
-              continue;
-            }
-            final day = int.parse(filename);
-
-            // Read file, extract fact IDs
-            try {
-              final result = await readDailyFactFile(
-                userId,
-                DateTime(year, month, day),
-              );
-              final bodyContent = result.bodyContent;
-
-              // Match fact IDs: ## <id:ts_X> or ## <id:YYYY/MM/DD.md#ts_X>
-              final pattern = RegExp(r'##\s*<id:(ts_\d+)>');
-              final matches = pattern.allMatches(bodyContent);
-
-              for (final match in matches) {
-                final tsPart = match.group(1)!; // ts_X
-                final factId =
-                    '$year/${month.toString().padLeft(2, '0')}/${day.toString().padLeft(2, '0')}.md#$tsPart';
-                factIds.add(factId);
-              }
-            } catch (e) {
-              _logger.warning('Failed to read fact file $dayPath: $e');
-              continue;
-            }
-          }
-        }
-      }
-    } catch (e) {
-      _logger.warning('Failed to list fact files: $e');
-      return [];
-    }
-
-    // Sort by timestamp (earliest first)
-    final factsWithTimestamp = <({String factId, int timestamp})>[];
-    for (final factId in factIds) {
-      try {
-        final factInfo = await extractFactContentFromFile(userId, factId);
-        if (factInfo != null) {
-          factsWithTimestamp.add((
-            factId: factId,
-            timestamp: factInfo.timestamp,
-          ));
-        }
-      } catch (e) {
-        _logger.warning('Failed to extract fact timestamp $factId: $e');
-        continue;
-      }
-    }
-
-    factsWithTimestamp.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-
-    return factsWithTimestamp.map((item) => item.factId).toList();
-  }
-
   /// List all card file paths, newest first (by date and ts)
   Future<List<String>> listAllCardFiles(String userId) async {
     final cardsPath = getCardsPath(userId);
@@ -2311,138 +2287,6 @@ class FileSystemService {
 
     // Return sorted file path list
     return cardFilesWithSortKey.map((item) => item.path).toList();
-  }
-
-  /// Extract raw content for the given fact_id from facts file. Returns FactContentResult or null if not found.
-  Future<FactContentResult?> extractFactContentFromFile(
-      String userId, String factId) async {
-    // Parse date from fact_id
-    final factDate = parseFactIdDate(factId);
-    final simpleFactId = extractSimpleFactId(factId);
-
-    // Read day's fact file and parse yaml
-    try {
-      final result = await readDailyFactFile(userId, factDate);
-      final bodyContent = result.bodyContent;
-      if (bodyContent.isEmpty) {
-        return null;
-      }
-
-      // Find matching entry in body_content (format: ## <id:ts_3> HH:MM:SS). Pattern: ## <id:ts_3> or ## <id:2025/11/26.md#ts_3>
-      final escapedFactId = RegExp.escape(simpleFactId);
-      final pattern =
-          RegExp('##\\s*<id:$escapedFactId>\\s*(\\d{2}:\\d{2}:\\d{2})');
-
-      final match = pattern.firstMatch(bodyContent);
-      if (match == null) {
-        return null;
-      }
-
-      // Extract time string (HH:MM:SS)
-      final timeStr = match.group(1)!;
-
-      // Entry start position
-      final startPos = match.start;
-
-      // End of title line (after first newline)
-      final titleEndPos = bodyContent.indexOf('\n', startPos);
-      if (titleEndPos == -1) {
-        return null;
-      }
-
-      // Skip title line and possible blank line to find actual content start
-      var contentStartPos = titleEndPos + 1;
-      // If next line is blank, skip it too
-      if (contentStartPos < bodyContent.length &&
-          bodyContent[contentStartPos] == '\n') {
-        contentStartPos += 1;
-      }
-
-      // Find next entry start position (or end of file)
-      final remainingContent = bodyContent.substring(contentStartPos);
-      final nextMatch =
-          RegExp(r'##\s*<id:ts_\d+>').firstMatch(remainingContent);
-      final entryContent = nextMatch != null
-          ? remainingContent.substring(0, nextMatch.start).trim()
-          : remainingContent.trim();
-
-      // Extract analysis result from media asset analysis files (image/audio markdown links)
-      final assetAnalyses = <Map<String, dynamic>>[];
-      final assetOcrTexts = <Map<String, dynamic>>[];
-      final assetPattern =
-          RegExp(r'(?:!\[(?:图片|image)\]|\[(?:音频|audio)\])\(fs://([^)]+)\)');
-      final assetMatches = assetPattern.allMatches(entryContent);
-
-      if (assetMatches.isNotEmpty) {
-        // Getassetsdirectory path
-        final assetsPath = getAssetsPath(userId);
-
-        var idx = 1;
-        for (final match in assetMatches) {
-          final assetFile = match.group(1)!;
-          try {
-            // Read corresponding analysis file: {filename}.analysis.txt
-            final analysisFilename = '$assetFile.analysis.txt';
-            final analysisFilePath = path.join(assetsPath, analysisFilename);
-
-            if (await _baseService.exists(analysisFilePath)) {
-              final analysisContent =
-                  (await _baseService.readFile(analysisFilePath)).trim();
-              if (analysisContent.isNotEmpty) {
-                assetAnalyses.add({
-                  'index': idx,
-                  'name': assetFile,
-                  'analysis': analysisContent,
-                });
-              }
-            }
-          } catch (e) {
-            _logger
-                .warning('Failed to read asset analysis file $assetFile: $e');
-          }
-
-          // Read OCR text if .ocr.txt file exists
-          try {
-            final ocrFilename = '$assetFile.ocr.txt';
-            final ocrFilePath = path.join(assetsPath, ocrFilename);
-
-            if (await _baseService.exists(ocrFilePath)) {
-              final ocrContent =
-                  (await _baseService.readFile(ocrFilePath)).trim();
-              if (ocrContent.isNotEmpty) {
-                assetOcrTexts.add({
-                  'index': idx,
-                  'name': assetFile,
-                  'ocr_text': ocrContent,
-                });
-              }
-            }
-          } catch (e) {
-            _logger.warning('Failed to read OCR file for $assetFile: $e');
-          }
-
-          idx++;
-        }
-      }
-
-      // Combine date and time into datetime
-      final dateStr =
-          '${factDate.year}-${factDate.month.toString().padLeft(2, '0')}-${factDate.day.toString().padLeft(2, '0')}';
-      final datetimeStr = '$dateStr $timeStr';
-      final entryDatetime = DateTime.parse(datetimeStr);
-      final timestamp = entryDatetime.millisecondsSinceEpoch ~/ 1000;
-
-      return FactContentResult(
-        timestamp: timestamp,
-        datetime: entryDatetime,
-        content: entryContent,
-        assetAnalyses: assetAnalyses,
-        assetOcrTexts: assetOcrTexts,
-      );
-    } catch (e) {
-      _logger.severe('Failed to extract fact content $factId: $e');
-      return null;
-    }
   }
 
   /// Get agent state directory path and ensure it exists (creates if not found).
@@ -2712,26 +2556,5 @@ class _CardFileSortKey {
     required this.date,
     required this.tsNumber,
     required this.path,
-  });
-}
-
-/// Factcontentextractresult
-class FactContentResult {
-  final int timestamp;
-  final DateTime datetime;
-  final String content;
-  final List<Map<String, dynamic>> assetAnalyses;
-
-  /// On-device OCR text extracted from image assets.
-  /// Each entry: {'index': int, 'name': String, 'ocr_text': String}.
-  /// Populated from persisted `.ocr.txt` files.
-  final List<Map<String, dynamic>> assetOcrTexts;
-
-  FactContentResult({
-    required this.timestamp,
-    required this.datetime,
-    required this.content,
-    required this.assetAnalyses,
-    this.assetOcrTexts = const [],
   });
 }

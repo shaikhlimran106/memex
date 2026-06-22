@@ -272,15 +272,15 @@ void main() {
       );
       await _insertTask(
         db,
-        id: 'card',
+        id: 'turn',
         status: 'processing',
         runId: 'fact-1',
-        type: 'card_agent_task',
+        type: 'super_agent_chat_turn_task',
       );
       await runService.markTaskStarted(
         runId: 'fact-1',
-        taskId: 'card',
-        taskType: 'card_agent_task',
+        taskId: 'turn',
+        taskType: 'super_agent_chat_turn_task',
       );
 
       coordinator.start(executor: executor, activityService: activityService);
@@ -288,8 +288,8 @@ void main() {
       await _waitUntil(() => platform.updates.isNotEmpty);
       expect(platform.updates.last.state, AgentBackgroundRunState.active);
       expect(platform.updates.last.runId, 'fact-1');
-      expect(platform.updates.last.stage, 'Generating card');
-      expect(platform.updates.last.progressCompleted, 30);
+      expect(platform.updates.last.stage, 'Running Super Agent');
+      expect(platform.updates.last.progressCompleted, 20);
       expect(platform.updateBackgroundFlags.last, isFalse);
       expect(scheduler.scheduleCount, 0);
     },
@@ -462,9 +462,7 @@ Future<void> _insertTask(
   String? runId,
 }) async {
   final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-  await db
-      .into(db.tasks)
-      .insert(
+  await db.into(db.tasks).insert(
         TasksCompanion.insert(
           id: id,
           type: type,

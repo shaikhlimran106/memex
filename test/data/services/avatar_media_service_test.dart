@@ -115,26 +115,26 @@ const _svgBody =
 void _mockPathProviderChannel(String rootPath) {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(
-        const MethodChannel('plugins.flutter.io/path_provider'),
-        (call) async {
-          switch (call.method) {
-            case 'getTemporaryDirectory':
-            case 'getApplicationDocumentsDirectory':
-            case 'getApplicationSupportDirectory':
-            case 'getExternalStorageDirectory':
-              return rootPath;
-            case 'getExternalStorageDirectories':
-              return <String>[rootPath];
-          }
-          return null;
-        },
-      );
+    const MethodChannel('plugins.flutter.io/path_provider'),
+    (call) async {
+      switch (call.method) {
+        case 'getTemporaryDirectory':
+        case 'getApplicationDocumentsDirectory':
+        case 'getApplicationSupportDirectory':
+        case 'getExternalStorageDirectory':
+          return rootPath;
+        case 'getExternalStorageDirectories':
+          return <String>[rootPath];
+      }
+      return null;
+    },
+  );
 }
 
 void _clearPathProviderChannelMock() {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(
-        const MethodChannel('plugins.flutter.io/path_provider'),
-        null,
-      );
+    const MethodChannel('plugins.flutter.io/path_provider'),
+    null,
+  );
 }

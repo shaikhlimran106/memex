@@ -7,12 +7,12 @@ import 'package:dio/dio.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/agent/built_in_tools/search_event_logs_tool.dart';
-import 'package:memex/agent/skills/ask_clarification/ask_clarification_skill.dart';
 import 'package:memex/agent/skills/comment_agent/tools/comment_tools.dart';
 import 'package:memex/agent/skills/comment_agent/tools/memory_tools.dart';
 import 'package:memex/agent/skills/manage_timeline_card/timeline_card_skill.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/db/app_database.dart';
+import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -44,21 +44,25 @@ void main() {
       await db.close();
     });
 
-    test('save_timeline_card missing fact is marked as a tool error', () async {
+    test('save_timeline_card with a non-existent fact_id is a tool error',
+        () async {
       final tool = TimelineCardSkill(
         forceActivate: true,
         stopAfterSuccessSaveCard: true,
       ).tools!.singleWhere((tool) => tool.name == 'save_timeline_card');
 
+      // No placeholder minted for ts_999 → the card does not exist, so saving
+      // against it must fail (the model must mint a fact_id first).
       final result = await _runToolCall(
         tool: tool,
         arguments: {
           'fact_id': '2026/05/18.md#ts_999',
-          'title': 'Missing source fact',
+          'title': 'No such card',
+          'fact': 'A card whose fact_id was never minted.',
           'ui_configs': [
             {
               'template_id': 'article',
-              'data': {'body': 'A card without a persisted source fact.'},
+              'data': {'body': 'A card whose fact_id was never minted.'},
             },
           ],
         },
@@ -67,7 +71,8 @@ void main() {
 
       expect(result.isError, isTrue);
       expect(_text(result), contains('Error executing save_timeline_card'));
-      expect(_text(result), contains('fact id: 2026/05/18.md#ts_999'));
+      expect(_text(result), contains('2026/05/18.md#ts_999'));
+      expect(_text(result), contains('does not exist'));
     });
 
     test('save_timeline_card address schema excludes future destinations', () {
@@ -78,11 +83,11 @@ void main() {
       final parameters = Map<String, dynamic>.from(tool.parameters as Map);
       final properties =
           Map<String, dynamic>.from(parameters['properties'] as Map);
-      final address =
-          Map<String, dynamic>.from(properties['address'] as Map);
+      final address = Map<String, dynamic>.from(properties['address'] as Map);
       final description = address['description'] as String;
 
-      expect(description, contains('where the recorded card actually happened'));
+      expect(
+          description, contains('where the recorded card actually happened'));
       expect(description, contains('tasks, todos, reminders, plans'));
       expect(description, contains('future destinations'));
       expect(description, contains('omit address'));
@@ -93,19 +98,15 @@ void main() {
         forceActivate: true,
         stopAfterSuccessSaveCard: true,
       ).tools!.singleWhere((tool) => tool.name == 'save_timeline_card');
-      final date = DateTime(2026, 5, 18);
       const factId = '2026/05/18.md#ts_3';
-      await FileSystemService.instance.appendToDailyFactFile(
-        userId,
-        date,
-        '## <id:ts_3> 11:35:17 "{}"\n\nMorning Memex project notes.',
-      );
+      await _seedPlaceholderCard(userId, factId);
 
       final result = await _runToolCall(
         tool: tool,
         arguments: {
           'fact_id': factId,
           'title': 'Memex project notes',
+          'fact': 'Morning Memex project notes.',
           'ui_configs': jsonEncode([
             {
               'template_id': 'article',
@@ -139,19 +140,15 @@ void main() {
         forceActivate: true,
         stopAfterSuccessSaveCard: true,
       ).tools!.singleWhere((tool) => tool.name == 'save_timeline_card');
-      final date = DateTime(2026, 5, 18);
       const factId = '2026/05/18.md#ts_4';
-      await FileSystemService.instance.appendToDailyFactFile(
-        userId,
-        date,
-        '## <id:ts_4> 11:42:00 "{}"\n\nNative list tool args.',
-      );
+      await _seedPlaceholderCard(userId, factId);
 
       final result = await _runToolCall(
         tool: tool,
         arguments: {
           'fact_id': factId,
           'title': 'Native list args',
+          'fact': 'Native list tool args.',
           'ui_configs': [
             {
               'template_id': 'article',
@@ -175,6 +172,296 @@ void main() {
       expect(card?.tags, ['Knowledge']);
     });
 
+    test('save_timeline_card rejects non-canonical local media refs', () async {
+      final tool = TimelineCardSkill(
+        forceActivate: true,
+        stopAfterSuccessSaveCard: true,
+      ).tools!.singleWhere((tool) => tool.name == 'save_timeline_card');
+      const factId = '2026/05/18.md#ts_7';
+      await _seedPlaceholderCard(userId, factId);
+
+      final result = await _runToolCall(
+        tool: tool,
+        arguments: {
+          'fact_id': factId,
+          'title': 'Bookstore umbrella',
+          'fact': 'Bought an umbrella at the bookstore.',
+          'ui_configs': [
+            {
+              'template_id': 'gallery',
+              'data': {
+                'title': 'Bookstore umbrella',
+                'image_urls': [
+                  '![image](fs://img_20260621_ts_0_no_1.HEIC)',
+                ],
+              },
+            },
+          ],
+        },
+        metadata: {'userId': userId},
+      );
+
+      expect(result.isError, isTrue);
+      expect(_text(result), contains('image_urls'));
+      expect(_text(result), contains('bare `fs://filename.ext`'));
+    });
+
+    test('save_timeline_card rejects missing local media refs', () async {
+      final tool = TimelineCardSkill(
+        forceActivate: true,
+        stopAfterSuccessSaveCard: true,
+      ).tools!.singleWhere((tool) => tool.name == 'save_timeline_card');
+      const factId = '2026/05/18.md#ts_8';
+      await _seedPlaceholderCard(userId, factId);
+
+      final result = await _runToolCall(
+        tool: tool,
+        arguments: {
+          'fact_id': factId,
+          'title': 'Missing photo',
+          'fact': 'Tried to save a missing photo.',
+          'ui_configs': [
+            {
+              'template_id': 'snapshot',
+              'data': {
+                'image_url': 'fs://missing_photo.jpg',
+              },
+            },
+          ],
+        },
+        metadata: {'userId': userId},
+      );
+
+      expect(result.isError, isTrue);
+      expect(_text(result), contains('missing_photo.jpg'));
+      expect(_text(result), contains('Facts/assets'));
+    });
+
+    test('save_timeline_card does not infer media type from url field names',
+        () async {
+      final tool = TimelineCardSkill(
+        forceActivate: true,
+        stopAfterSuccessSaveCard: true,
+      ).tools!.singleWhere((tool) => tool.name == 'save_timeline_card');
+      const factId = '2026/05/18.md#ts_9';
+      await _seedPlaceholderCard(userId, factId);
+      final assetsDir = Directory(
+        FileSystemService.instance.getAssetsPath(userId),
+      );
+      await assetsDir.create(recursive: true);
+      await File('${assetsDir.path}/voice.m4a').writeAsBytes(const [0, 1, 2]);
+
+      final result = await _runToolCall(
+        tool: tool,
+        arguments: {
+          'fact_id': factId,
+          'title': 'Audio reference',
+          'fact': 'Saved an audio reference in a URL field.',
+          'ui_configs': [
+            {
+              'template_id': 'snapshot',
+              'data': {
+                'image_url': 'fs://voice.m4a',
+              },
+            },
+          ],
+        },
+        metadata: {'userId': userId},
+      );
+
+      expect(result.isError, isFalse);
+    });
+
+    test('save_timeline_card rejects non-bare asset refs', () async {
+      final tool = TimelineCardSkill(
+        forceActivate: true,
+        stopAfterSuccessSaveCard: true,
+      ).tools!.singleWhere((tool) => tool.name == 'save_timeline_card');
+      const factId = '2026/05/18.md#ts_10';
+      await _seedPlaceholderCard(userId, factId);
+
+      final result = await _runToolCall(
+        tool: tool,
+        arguments: {
+          'fact_id': factId,
+          'title': 'Markdown asset',
+          'fact': 'Tried to save a markdown asset reference.',
+          'assets': ['![image](fs://photo.jpg)'],
+          'ui_configs': [
+            {
+              'template_id': 'article',
+              'data': {'body': 'Tried to save a markdown asset reference.'},
+            },
+          ],
+        },
+        metadata: {'userId': userId},
+      );
+
+      expect(result.isError, isTrue);
+      expect(_text(result), contains('assets[0]'));
+      expect(_text(result), contains('bare `fs://filename.ext`'));
+    });
+
+    test('save_timeline_card validates custom template url fields', () async {
+      final tool = TimelineCardSkill(
+        forceActivate: true,
+        stopAfterSuccessSaveCard: true,
+      ).tools!.singleWhere((tool) => tool.name == 'save_timeline_card');
+      await _writeTemplateHtmlFixture(
+        userId: userId,
+        templateId: 'cover_note',
+        htmlContent: '<section><img src="{{cover_url}}">{{caption}}</section>',
+      );
+      await FileSystemService.instance.saveTimelineTemplateMeta(
+        userId: userId,
+        templateId: 'cover_note',
+        description: 'A note with a cover image.',
+        useCase: 'Notes with one cover image.',
+        fields: const [
+          TimelineTemplateFieldMeta(
+            name: 'cover_url',
+            type: 'String',
+            required: true,
+            description: 'Cover image URL.',
+          ),
+          TimelineTemplateFieldMeta(
+            name: 'caption',
+            type: 'String',
+            required: true,
+            description: 'Image caption.',
+          ),
+        ],
+      );
+      const factId = '2026/05/18.md#ts_11';
+      await _seedPlaceholderCard(userId, factId);
+
+      final result = await _runToolCall(
+        tool: tool,
+        arguments: {
+          'fact_id': factId,
+          'title': 'Cover note',
+          'fact': 'Tried to save a non-bare cover URL.',
+          'ui_configs': [
+            {
+              'template_id': 'cover_note',
+              'data': {
+                'cover_url': 'fs://cover.jpg?token=local',
+                'caption': 'Cover',
+              },
+            },
+          ],
+        },
+        metadata: {'userId': userId},
+      );
+
+      expect(result.isError, isTrue);
+      expect(_text(result), contains('cover_url'));
+      expect(_text(result), contains('exactly `fs://cover.jpg`'));
+    });
+
+    test('save_timeline_card accepts saved custom HTML templates', () async {
+      final tool = TimelineCardSkill(
+        forceActivate: true,
+        stopAfterSuccessSaveCard: true,
+      ).tools!.singleWhere((tool) => tool.name == 'save_timeline_card');
+      await _writeTemplateHtmlFixture(
+        userId: userId,
+        templateId: 'focus_dashboard',
+        htmlContent: '<section>{{title}} {{summary}}</section>',
+      );
+      await FileSystemService.instance.saveTimelineTemplateMeta(
+        userId: userId,
+        templateId: 'focus_dashboard',
+        description: 'A compact dashboard for focus notes.',
+        useCase: 'Focus notes and compact progress summaries.',
+        fields: const [
+          TimelineTemplateFieldMeta(
+            name: 'title',
+            type: 'String',
+            required: true,
+            description: 'Main card title.',
+          ),
+          TimelineTemplateFieldMeta(
+            name: 'summary',
+            type: 'String',
+            required: true,
+            description: 'Short plain-text focus summary.',
+          ),
+        ],
+      );
+      const factId = '2026/05/18.md#ts_8';
+      await _seedPlaceholderCard(userId, factId);
+
+      final result = await _runToolCall(
+        tool: tool,
+        arguments: {
+          'fact_id': factId,
+          'title': 'Focus dashboard',
+          'fact': 'Custom template card.',
+          'ui_configs': [
+            {
+              'template_id': 'focus_dashboard',
+              'data': {
+                'title': 'Focus dashboard',
+                'summary': 'Deep work summary.',
+              },
+            },
+          ],
+        },
+        metadata: {'userId': userId},
+      );
+
+      final card = await FileSystemService.instance.readCardFile(
+        userId,
+        factId,
+      );
+
+      expect(result.isError, isFalse);
+      expect(card?.uiConfigs.single.templateId, 'focus_dashboard');
+      expect(card?.uiConfigs.single.data['summary'], 'Deep work summary.');
+    });
+
+    test('get_card_metadata lists native and custom templates together',
+        () async {
+      await _writeTemplateHtmlFixture(
+        userId: userId,
+        templateId: 'focus_dashboard',
+        htmlContent: '<section>{{title}} {{summary}}</section>',
+      );
+      await FileSystemService.instance.saveTimelineTemplateMeta(
+        userId: userId,
+        templateId: 'focus_dashboard',
+        description: 'A compact dashboard for focus notes.',
+        useCase: 'Focus notes and compact progress summaries.',
+        fields: const [
+          TimelineTemplateFieldMeta(
+            name: 'title',
+            type: 'String',
+            required: true,
+            description: 'Main card title.',
+          ),
+          TimelineTemplateFieldMeta(
+            name: 'summary',
+            type: 'String',
+            required: true,
+            description: 'Short plain-text focus summary.',
+          ),
+        ],
+      );
+
+      final metadata = await TimelineCardSkill.getTimelineCardMetadata(userId);
+
+      expect(metadata, contains('# Available Templates'));
+      expect(metadata, contains('## template_id: article'));
+      expect(metadata, contains('## template_id: focus_dashboard'));
+      expect(metadata, contains('Focus notes and compact progress summaries.'));
+      expect(metadata, isNot(contains('# Custom HTML Templates')));
+      expect(metadata.indexOf('## template_id: article'),
+          lessThan(metadata.indexOf('# Existing Tags')));
+      expect(metadata.indexOf('## template_id: focus_dashboard'),
+          lessThan(metadata.indexOf('# Existing Tags')));
+    });
+
     test('save_timeline_card rejects malformed JSON list strings', () async {
       final tool = TimelineCardSkill(
         forceActivate: true,
@@ -186,9 +473,11 @@ void main() {
         arguments: {
           'fact_id': '2026/05/18.md#ts_5',
           'title': 'Malformed list args',
+          'fact': 'Malformed list args.',
           'ui_configs': '[{"template_id":"article"',
         },
         metadata: {'userId': userId},
+        seedFactId: '2026/05/18.md#ts_5',
       );
 
       expect(result.isError, isTrue);
@@ -207,54 +496,18 @@ void main() {
         arguments: {
           'fact_id': '2026/05/18.md#ts_6',
           'title': 'Wrong list shape',
+          'fact': 'Wrong list shape.',
           'ui_configs': jsonEncode({
             'template_id': 'article',
             'data': {'body': 'This should have been wrapped in a list.'},
           }),
         },
         metadata: {'userId': userId},
+        seedFactId: '2026/05/18.md#ts_6',
       );
 
       expect(result.isError, isTrue);
       expect(_text(result), contains('ui_configs must be an array'));
-    });
-
-    test('create_clarification_request reports dedupe reuse status', () async {
-      final tool = AskClarificationSkill(forceActivate: true)
-          .tools!
-          .singleWhere((tool) => tool.name == 'create_clarification_request');
-      const dedupeKey = 'reminder:missing_time';
-      final arguments = {
-        'question': '需要提醒你的具体时间是什么？',
-        'response_type': 'short_text',
-        'evidence_fact_ids': ['2026/05/18.md#ts_1'],
-        'dedupe_key': dedupeKey,
-      };
-
-      final first = await _runToolCall(
-        tool: tool,
-        arguments: arguments,
-        metadata: {
-          'userId': userId,
-          'factId': '2026/05/18.md#ts_1',
-          'agentName': 'pkm_agent',
-        },
-      );
-      final second = await _runToolCall(
-        tool: tool,
-        arguments: arguments,
-        metadata: {
-          'userId': userId,
-          'factId': '2026/05/18.md#ts_1',
-          'agentName': 'pkm_agent',
-        },
-      );
-
-      expect(first.isError, isFalse);
-      expect(second.isError, isFalse);
-      expect(_text(first), contains('created=true'));
-      expect(_text(second), contains('created=false'));
-      expect(_text(second), contains('dedupe_key=$dedupeKey'));
     });
 
     test('SaveComment invalid input is marked as a tool error', () async {
@@ -311,11 +564,32 @@ void main() {
   });
 }
 
+Future<void> _seedPlaceholderCard(String userId, String factId) async {
+  // Equivalent to mint_record_fact_id: reserve the slot with a `processing`
+  // placeholder card so save_timeline_card (which now requires the card to
+  // already exist) treats this as a brand-new record.
+  await FileSystemService.instance.safeWriteCardFile(
+    userId,
+    factId,
+    CardData(
+      factId: factId,
+      timestamp: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      status: 'processing',
+      tags: const [],
+      uiConfigs: const [],
+    ),
+  );
+}
+
 Future<FunctionExecutionResult> _runToolCall({
   required Tool tool,
   required Map<String, dynamic> arguments,
   Map<String, dynamic> metadata = const {},
+  String? seedFactId,
 }) async {
+  if (seedFactId != null) {
+    await _seedPlaceholderCard(metadata['userId'] as String, seedFactId);
+  }
   final client = _SingleToolCallClient(
     toolName: tool.name,
     arguments: arguments,
@@ -346,6 +620,17 @@ String _text(FunctionExecutionResult result) {
       .whereType<TextPart>()
       .map((part) => part.text)
       .join('\n');
+}
+
+Future<void> _writeTemplateHtmlFixture({
+  required String userId,
+  required String templateId,
+  required String htmlContent,
+}) async {
+  final templatePath =
+      FileSystemService.instance.getTemplatePath(userId, templateId);
+  await Directory(templatePath).create(recursive: true);
+  await File('$templatePath/view.html').writeAsString(htmlContent);
 }
 
 class _SingleToolCallClient extends LLMClient {

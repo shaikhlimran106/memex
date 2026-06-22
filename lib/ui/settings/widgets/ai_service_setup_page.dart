@@ -522,18 +522,6 @@ class _CustomAiServiceSetupPageState extends State<CustomAiServiceSetupPage> {
     }
   }
 
-  Future<void> _updateVisionModel(String? configKey) async {
-    if (configKey == null || _viewModel.isUpdatingVisionModel) return;
-    try {
-      await _viewModel.setVisionModel(configKey);
-      if (mounted) {
-        ToastHelper.showSuccess(context, UserStorage.l10n.modelSlotUpdated);
-      }
-    } catch (e) {
-      if (mounted) ToastHelper.showError(context, e);
-    }
-  }
-
   Future<void> _updateUseLocalSpeechToText(bool value) async {
     try {
       await _viewModel.setUseLocalSpeechToText(value);
@@ -626,8 +614,6 @@ class _CustomAiServiceSetupPageState extends State<CustomAiServiceSetupPage> {
       );
     }
 
-    final selection = _viewModel.roleSelection!;
-
     return _AiServiceOptionCard(
       icon: Icons.tune_rounded,
       iconColor: AppColors.primary,
@@ -645,43 +631,6 @@ class _CustomAiServiceSetupPageState extends State<CustomAiServiceSetupPage> {
             isUpdating: _viewModel.isUpdatingTextModel,
             onChanged: _updateTextModel,
           ),
-          const SizedBox(height: 14),
-          _buildModelRolePicker(
-            key: const ValueKey('ai-model-vision-slot'),
-            dropdownKey: const ValueKey('ai-model-vision-slot-dropdown'),
-            icon: Icons.photo_library_outlined,
-            title: UserStorage.l10n.visionModelRoleTitle,
-            description: UserStorage.l10n.visionModelRoleDescription,
-            value: selection.visionConfigKey ??
-                AiServiceSetupViewModel.followTextSelectionValue,
-            includeFollowText: true,
-            isUpdating: _viewModel.isUpdatingVisionModel,
-            onChanged: _updateVisionModel,
-          ),
-          if (_viewModel.shouldWarnVision) ...[
-            const SizedBox(height: 10),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(
-                  Icons.info_outline_rounded,
-                  size: 16,
-                  color: AppColors.warning,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    UserStorage.l10n.visionModelNonMultimodalWarning,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      height: 1.35,
-                      color: AppColors.warning,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
           if (!_viewModel.hasConfiguredModelOptions) ...[
             const SizedBox(height: 10),
             Text(
@@ -707,9 +656,8 @@ class _CustomAiServiceSetupPageState extends State<CustomAiServiceSetupPage> {
     required String? value,
     required bool isUpdating,
     required ValueChanged<String?> onChanged,
-    bool includeFollowText = false,
   }) {
-    final dropdownValue = _dropdownValueFor(value, includeFollowText);
+    final dropdownValue = _dropdownValueFor(value);
 
     return Container(
       key: key,
@@ -781,7 +729,7 @@ class _CustomAiServiceSetupPageState extends State<CustomAiServiceSetupPage> {
                 vertical: 10,
               ),
             ),
-            items: _buildModelRoleDropdownItems(includeFollowText),
+            items: _buildModelRoleDropdownItems(),
             onChanged: _viewModel.hasSelectableModels && !isUpdating
                 ? onChanged
                 : null,
@@ -791,34 +739,17 @@ class _CustomAiServiceSetupPageState extends State<CustomAiServiceSetupPage> {
     );
   }
 
-  String? _dropdownValueFor(String? value, bool includeFollowText) {
-    if (includeFollowText &&
-        value == AiServiceSetupViewModel.followTextSelectionValue) {
-      return AiServiceSetupViewModel.followTextSelectionValue;
-    }
+  String? _dropdownValueFor(String? value) {
     if (value != null &&
         _viewModel.llmConfigs.any((config) => config.key == value)) {
       return value;
-    }
-    if (includeFollowText) {
-      return AiServiceSetupViewModel.followTextSelectionValue;
     }
     if (_viewModel.llmConfigs.isEmpty) return null;
     return _viewModel.llmConfigs.first.key;
   }
 
-  List<DropdownMenuItem<String>> _buildModelRoleDropdownItems(
-    bool includeFollowText,
-  ) {
+  List<DropdownMenuItem<String>> _buildModelRoleDropdownItems() {
     final items = <DropdownMenuItem<String>>[];
-    if (includeFollowText) {
-      items.add(
-        DropdownMenuItem<String>(
-          value: AiServiceSetupViewModel.followTextSelectionValue,
-          child: Text(UserStorage.l10n.followTextModel),
-        ),
-      );
-    }
 
     for (final config in _viewModel.llmConfigs) {
       items.add(

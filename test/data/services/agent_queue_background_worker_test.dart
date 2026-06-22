@@ -135,9 +135,7 @@ void main() {
 
     test('reschedules soon when another executor owns the queue', () async {
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      await db
-          .into(db.kvStore)
-          .insert(
+      await db.into(db.kvStore).insert(
             KvStoreCompanion.insert(
               key: 'agent_queue_lease:worker-user',
               value: const Value('foreground-owner:foreground'),
@@ -145,9 +143,7 @@ void main() {
               updatedAt: Value(now),
             ),
           );
-      await db
-          .into(db.tasks)
-          .insert(
+      await db.into(db.tasks).insert(
             TasksCompanion.insert(
               id: 'foreground-owned-task',
               type: 'owned_task',
@@ -171,7 +167,8 @@ void main() {
       expect(scheduler.expeditedValues.single, isFalse);
       final task = await (db.select(
         db.tasks,
-      )..where((row) => row.id.equals('foreground-owned-task'))).getSingle();
+      )..where((row) => row.id.equals('foreground-owned-task')))
+          .getSingle();
       expect(task.status, 'pending');
     });
 
@@ -194,9 +191,7 @@ void main() {
 
     test('reschedules when only future retrying tasks remain', () async {
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      await db
-          .into(db.tasks)
-          .insert(
+      await db.into(db.tasks).insert(
             TasksCompanion.insert(
               id: 'future-retry',
               type: 'unknown_task',
@@ -236,12 +231,10 @@ void main() {
           factId: 'fact-paused',
         );
         final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-        await db
-            .into(db.tasks)
-            .insert(
+        await db.into(db.tasks).insert(
               TasksCompanion.insert(
                 id: 'future-retry',
-                type: 'card_agent_task',
+                type: 'super_agent_chat_turn_task',
                 payload: const Value('{}'),
                 runId: const Value('fact-paused'),
                 status: 'retrying',
@@ -261,7 +254,8 @@ void main() {
 
         final run = await (db.select(
           db.agentRuns,
-        )..where((row) => row.id.equals('fact-paused'))).getSingle();
+        )..where((row) => row.id.equals('fact-paused')))
+            .getSingle();
 
         expect(completed, isTrue);
         expect(run.state, 'paused_by_system');
@@ -288,9 +282,7 @@ void main() {
         );
       });
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      await db
-          .into(db.tasks)
-          .insert(
+      await db.into(db.tasks).insert(
             TasksCompanion.insert(
               id: 'activity-task',
               type: 'activity_task',
@@ -313,7 +305,8 @@ void main() {
 
       final task = await (db.select(
         db.tasks,
-      )..where((t) => t.id.equals('activity-task'))).getSingle();
+      )..where((t) => t.id.equals('activity-task')))
+          .getSingle();
       final messages = await LocalAgentActivityService.instance.getHistory(
         limit: 1,
       );
@@ -345,9 +338,7 @@ void main() {
           await releaseHandler.future;
         });
         final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-        await db
-            .into(db.tasks)
-            .insert(
+        await db.into(db.tasks).insert(
               TasksCompanion.insert(
                 id: 'live-activity-task',
                 type: 'activity_task',
@@ -412,9 +403,7 @@ void main() {
           await releaseHandler.future;
         });
         final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-        await db
-            .into(db.tasks)
-            .insert(
+        await db.into(db.tasks).insert(
               TasksCompanion.insert(
                 id: 'multi-live-activity-task',
                 type: 'multi_activity_task',
@@ -475,9 +464,7 @@ void main() {
           );
         });
         final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-        await db
-            .into(db.tasks)
-            .insert(
+        await db.into(db.tasks).insert(
               TasksCompanion.insert(
                 id: 'activity-before-retry',
                 type: 'activity_task',
@@ -486,9 +473,7 @@ void main() {
                 createdAt: Value(now),
               ),
             );
-        await db
-            .into(db.tasks)
-            .insert(
+        await db.into(db.tasks).insert(
               TasksCompanion.insert(
                 id: 'future-retry-after-activity',
                 type: 'unknown_task',

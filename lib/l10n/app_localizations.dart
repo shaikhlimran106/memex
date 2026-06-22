@@ -104,23 +104,11 @@ abstract class AppLocalizations {
   /// **'Times'**
   String get timesLabel;
 
-  /// No description provided for @recordSubmittedAiProcessing.
-  ///
-  /// In en, this message translates to:
-  /// **'Record submitted, AI is processing...'**
-  String get recordSubmittedAiProcessing;
-
   /// No description provided for @modelSetAsDefault.
   ///
   /// In en, this message translates to:
   /// **'Set {modelId} as default model'**
   String modelSetAsDefault(Object modelId);
-
-  /// No description provided for @loadModelListFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to load model list: \n{error}'**
-  String loadModelListFailed(Object error);
 
   /// No description provided for @retry.
   ///
@@ -128,23 +116,11 @@ abstract class AppLocalizations {
   /// **'Retry'**
   String get retry;
 
-  /// No description provided for @noModelsFound.
-  ///
-  /// In en, this message translates to:
-  /// **'No models found'**
-  String get noModelsFound;
-
   /// No description provided for @unknownModel.
   ///
   /// In en, this message translates to:
   /// **'Unknown model'**
   String get unknownModel;
-
-  /// No description provided for @openAiModelConfig.
-  ///
-  /// In en, this message translates to:
-  /// **'OpenAI Model Config'**
-  String get openAiModelConfig;
 
   /// No description provided for @notSet.
   ///
@@ -187,12 +163,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to clear user: {error}'**
   String clearTokenFailed(Object error);
-
-  /// No description provided for @reprocessKnowledgeBase.
-  ///
-  /// In en, this message translates to:
-  /// **'Reprocess knowledge base'**
-  String get reprocessKnowledgeBase;
 
   /// No description provided for @selectDateRangeOptional.
   ///
@@ -242,12 +212,6 @@ abstract class AppLocalizations {
   /// **'User ID not found'**
   String get userIdNotFound;
 
-  /// No description provided for @reprocessTaskCreated.
-  ///
-  /// In en, this message translates to:
-  /// **'Reprocess task created, running in background'**
-  String get reprocessTaskCreated;
-
   /// No description provided for @createTaskFailed.
   ///
   /// In en, this message translates to:
@@ -263,38 +227,50 @@ abstract class AppLocalizations {
   /// No description provided for @reprocessCardsTaskCreated.
   ///
   /// In en, this message translates to:
-  /// **'Reprocess cards task created, running in background'**
+  /// **'Reprocess request queued in Super Agent'**
   String get reprocessCardsTaskCreated;
 
   /// No description provided for @reprocessCardsDownstreamMode.
   ///
   /// In en, this message translates to:
-  /// **'Downstream rerun'**
+  /// **'Scope'**
   String get reprocessCardsDownstreamMode;
 
   /// No description provided for @reprocessCardsCardOnly.
   ///
   /// In en, this message translates to:
-  /// **'Regenerate cards only'**
+  /// **'Cards only'**
   String get reprocessCardsCardOnly;
 
   /// No description provided for @reprocessCardsCardOnlyDesc.
   ///
   /// In en, this message translates to:
-  /// **'Default. Rebuild card YAML/templates without touching downstream agents.'**
+  /// **'Ask Super Agent to review and regenerate the selected timeline cards.'**
   String get reprocessCardsCardOnlyDesc;
 
   /// No description provided for @reprocessCardsRerunDownstream.
   ///
   /// In en, this message translates to:
-  /// **'Also rerun downstream agents'**
+  /// **'Cards and related follow-ups'**
   String get reprocessCardsRerunDownstream;
 
   /// No description provided for @reprocessCardsRerunDownstreamDesc.
   ///
   /// In en, this message translates to:
-  /// **'After each card succeeds, replay post-card routing so schedule aggregation can run when selected.'**
+  /// **'Ask Super Agent to also consider related PKM, schedule, and insight updates when needed.'**
   String get reprocessCardsRerunDownstreamDesc;
+
+  /// No description provided for @reanalyzeMediaAssets.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-read media attachments'**
+  String get reanalyzeMediaAssets;
+
+  /// No description provided for @reanalyzeMediaAssetsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask Super Agent to inspect attached media again when regenerating cards.'**
+  String get reanalyzeMediaAssetsDesc;
 
   /// No description provided for @regenerateComments.
   ///
@@ -338,11 +314,11 @@ abstract class AppLocalizations {
   /// **'Clear data?'**
   String get confirmClearDataMessage;
 
-  /// No description provided for @confirmClearDataKeepFactsMessage.
+  /// No description provided for @confirmClearDataDeletesWorkspaceMessage.
   ///
   /// In en, this message translates to:
-  /// **'Only the Facts directory (raw input) will be kept. All other workspace directories (Cards, Discoveries, KnowledgeInsights, PKM, _System, etc.) will be deleted.\n\nThis action cannot be undone!'**
-  String get confirmClearDataKeepFactsMessage;
+  /// **'All local workspace data for the current user will be deleted, including cards, media, knowledge files, insights, memory, chat history, and system state.\n\nThis action cannot be undone!'**
+  String get confirmClearDataDeletesWorkspaceMessage;
 
   /// No description provided for @clearFailedAgentContexts.
   ///
@@ -367,6 +343,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to clear conversation context: {error}'**
   String clearFailedAgentContextsFailed(Object error);
+
+  /// No description provided for @cloneToTestUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Clone to test user'**
+  String get cloneToTestUser;
+
+  /// No description provided for @confirmCloneToTestUserMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy the current workspace into a new local test user and switch to it. Agent runtime state is not copied. Your current user data will not be modified.'**
+  String get confirmCloneToTestUserMessage;
+
+  /// No description provided for @testUserIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Test user ID'**
+  String get testUserIdLabel;
+
+  /// No description provided for @testUserIdHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Use letters, numbers, hyphen, or underscore.'**
+  String get testUserIdHelper;
+
+  /// No description provided for @testUserIdInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Use only letters, numbers, hyphen, or underscore.'**
+  String get testUserIdInvalid;
+
+  /// No description provided for @overwriteExistingTestUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace existing test user with the same ID'**
+  String get overwriteExistingTestUser;
+
+  /// No description provided for @testUserCloneSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Switched to test user {userId}'**
+  String testUserCloneSuccess(Object userId);
+
+  /// No description provided for @testUserCloneFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to clone test user: {error}'**
+  String testUserCloneFailed(Object error);
 
   /// No description provided for @dataClearedSuccess.
   ///
@@ -398,29 +422,11 @@ abstract class AppLocalizations {
   /// **'System authorization'**
   String get systemAuthorization;
 
-  /// No description provided for @modelAuthorization.
-  ///
-  /// In en, this message translates to:
-  /// **'Model authorization'**
-  String get modelAuthorization;
-
-  /// No description provided for @pkmKnowledgeBase.
-  ///
-  /// In en, this message translates to:
-  /// **'PKM knowledge base'**
-  String get pkmKnowledgeBase;
-
   /// No description provided for @aiCharacterConfig.
   ///
   /// In en, this message translates to:
   /// **'AI character config'**
   String get aiCharacterConfig;
-
-  /// No description provided for @appLockConfig.
-  ///
-  /// In en, this message translates to:
-  /// **'App lock config'**
-  String get appLockConfig;
 
   /// No description provided for @modelConfig.
   ///
@@ -511,6 +517,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stats'**
   String get statistics;
+
+  /// No description provided for @appLockConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'App lock config'**
+  String get appLockConfig;
 
   /// No description provided for @activityStats.
   ///
@@ -848,23 +860,11 @@ abstract class AppLocalizations {
   /// **'Total estimated cost'**
   String get totalEstimatedCost;
 
-  /// No description provided for @detailSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Detail'**
-  String get detailSubtitle;
-
   /// No description provided for @close.
   ///
   /// In en, this message translates to:
   /// **'Close'**
   String get close;
-
-  /// No description provided for @noFragments.
-  ///
-  /// In en, this message translates to:
-  /// **'No fragments'**
-  String get noFragments;
 
   /// No description provided for @totalTokenConsumption.
   ///
@@ -883,12 +883,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Timeline load failed, please retry later.'**
   String get timelineLoadFailedRetry;
-
-  /// No description provided for @aggregatedLoadFailedRetry.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to load aggregated data, please retry later.'**
-  String get aggregatedLoadFailedRetry;
 
   /// No description provided for @newPerspective.
   ///
@@ -925,12 +919,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reference: {title}'**
   String referenceWithTitle(Object title);
-
-  /// No description provided for @discoveredTodoActions.
-  ///
-  /// In en, this message translates to:
-  /// **'Discovered todo actions'**
-  String get discoveredTodoActions;
 
   /// No description provided for @actionCenterTitle.
   ///
@@ -1004,18 +992,6 @@ abstract class AppLocalizations {
   /// **'No'**
   String get no;
 
-  /// No description provided for @askSomethingHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Ask something...'**
-  String get askSomethingHint;
-
-  /// No description provided for @aiAssistant.
-  ///
-  /// In en, this message translates to:
-  /// **'AI Assistant'**
-  String get aiAssistant;
-
   /// No description provided for @footprintMap.
   ///
   /// In en, this message translates to:
@@ -1034,18 +1010,6 @@ abstract class AppLocalizations {
   /// **'Unknown place'**
   String get unknownPlace;
 
-  /// No description provided for @loadFailedRetry.
-  ///
-  /// In en, this message translates to:
-  /// **'Load failed, please retry.'**
-  String get loadFailedRetry;
-
-  /// No description provided for @noRecordsInPeriod.
-  ///
-  /// In en, this message translates to:
-  /// **'No records in this period.'**
-  String get noRecordsInPeriod;
-
   /// No description provided for @releaseToSend.
   ///
   /// In en, this message translates to:
@@ -1057,42 +1021,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select from album'**
   String get selectFromAlbum;
-
-  /// No description provided for @takePhoto.
-  ///
-  /// In en, this message translates to:
-  /// **'Take photo'**
-  String get takePhoto;
-
-  /// No description provided for @enterContentOrMediaHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter content, select image or record audio.'**
-  String get enterContentOrMediaHint;
-
-  /// No description provided for @inputDraftLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{Draft · 1 char} other{Draft · {count} chars}}'**
-  String inputDraftLabel(num count);
-
-  /// No description provided for @discardDraftTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Discard this draft?'**
-  String get discardDraftTitle;
-
-  /// No description provided for @discardDraftMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'The draft content will be cleared.'**
-  String get discardDraftMessage;
-
-  /// No description provided for @discardDraftTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'Discard draft'**
-  String get discardDraftTooltip;
 
   /// No description provided for @clipboardPreviewTitle.
   ///
@@ -1154,23 +1082,17 @@ abstract class AppLocalizations {
   /// **'Playing...'**
   String get playing;
 
-  /// No description provided for @recordedAudio.
+  /// No description provided for @sendLabel.
   ///
   /// In en, this message translates to:
-  /// **'Recorded audio'**
-  String get recordedAudio;
+  /// **'Send'**
+  String get sendLabel;
 
-  /// No description provided for @recordLabel.
+  /// No description provided for @attachedImagesMessage.
   ///
   /// In en, this message translates to:
-  /// **'Record'**
-  String get recordLabel;
-
-  /// No description provided for @smartSuggesting.
-  ///
-  /// In en, this message translates to:
-  /// **'Smart suggesting...'**
-  String get smartSuggesting;
+  /// **'Sent {count} image(s)'**
+  String attachedImagesMessage(Object count);
 
   /// No description provided for @noTaskData.
   ///
@@ -1201,36 +1123,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry: {count}'**
   String retryCount(Object count);
-
-  /// No description provided for @aiMaterialProcessFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'AI material process failed'**
-  String get aiMaterialProcessFailed;
-
-  /// No description provided for @aiMaterialProcessDone.
-  ///
-  /// In en, this message translates to:
-  /// **'AI material process done'**
-  String get aiMaterialProcessDone;
-
-  /// No description provided for @aiOrganizingMaterial.
-  ///
-  /// In en, this message translates to:
-  /// **'AI is organizing material'**
-  String get aiOrganizingMaterial;
-
-  /// No description provided for @taskCompletedAddedToTimeline.
-  ///
-  /// In en, this message translates to:
-  /// **'Task completed, card added to Timeline'**
-  String get taskCompletedAddedToTimeline;
-
-  /// No description provided for @processErrorRetryLater.
-  ///
-  /// In en, this message translates to:
-  /// **'Some errors occurred, please retry later.'**
-  String get processErrorRetryLater;
 
   /// No description provided for @loadDetailFailedRetry.
   ///
@@ -1394,29 +1286,11 @@ abstract class AppLocalizations {
   /// **'Today\'s time flow'**
   String get todayTimeFlow;
 
-  /// No description provided for @insightAssistant.
-  ///
-  /// In en, this message translates to:
-  /// **'Insight assistant'**
-  String get insightAssistant;
-
-  /// No description provided for @insightInputHint.
-  ///
-  /// In en, this message translates to:
-  /// **'What would you like to know about your knowledge...'**
-  String get insightInputHint;
-
   /// No description provided for @aiInputHint.
   ///
   /// In en, this message translates to:
   /// **'Whether it\'s memories or the present, I\'m here...'**
   String get aiInputHint;
-
-  /// No description provided for @noContentInPeriod.
-  ///
-  /// In en, this message translates to:
-  /// **'No content in this period'**
-  String get noContentInPeriod;
 
   /// No description provided for @nothingHere.
   ///
@@ -1707,30 +1581,6 @@ abstract class AppLocalizations {
   /// **'Unnamed insight'**
   String get unnamedInsight;
 
-  /// No description provided for @loadDirectoryFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to load directory: {error}'**
-  String loadDirectoryFailed(Object error);
-
-  /// No description provided for @readFileFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to read file: {error}'**
-  String readFileFailed(Object error);
-
-  /// No description provided for @backToParent.
-  ///
-  /// In en, this message translates to:
-  /// **'Back'**
-  String get backToParent;
-
-  /// No description provided for @directoryEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'Directory is empty'**
-  String get directoryEmpty;
-
   /// No description provided for @copiedToClipboard.
   ///
   /// In en, this message translates to:
@@ -1742,18 +1592,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copy'**
   String get copy;
-
-  /// No description provided for @binaryFile.
-  ///
-  /// In en, this message translates to:
-  /// **'Binary file'**
-  String get binaryFile;
-
-  /// No description provided for @fileSizeLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'File size: {size}'**
-  String fileSizeLabel(Object size);
 
   /// No description provided for @selectedLocation.
   ///
@@ -1797,12 +1635,6 @@ abstract class AppLocalizations {
   /// **'Confirm location'**
   String get confirmLocation;
 
-  /// No description provided for @userCreatedSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'User created successfully!'**
-  String get userCreatedSuccess;
-
   /// No description provided for @welcomeToMemex.
   ///
   /// In en, this message translates to:
@@ -1833,23 +1665,11 @@ abstract class AppLocalizations {
   /// **'Please enter your name'**
   String get pleaseEnterUserId;
 
-  /// No description provided for @userIdMinLength.
-  ///
-  /// In en, this message translates to:
-  /// **'Name must be at least 1 character'**
-  String get userIdMinLength;
-
   /// No description provided for @userIdMaxLength.
   ///
   /// In en, this message translates to:
   /// **'Name must not exceed 50 characters'**
   String get userIdMaxLength;
-
-  /// No description provided for @userIdFormat.
-  ///
-  /// In en, this message translates to:
-  /// **'Name format is incorrect'**
-  String get userIdFormat;
 
   /// No description provided for @startUsing.
   ///
@@ -1862,12 +1682,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This will be used to personalize your experience.'**
   String get userIdTip;
-
-  /// No description provided for @openAiAuthInfo.
-  ///
-  /// In en, this message translates to:
-  /// **'OpenAI auth info'**
-  String get openAiAuthInfo;
 
   /// No description provided for @setupModelConfigTitle.
   ///
@@ -1968,7 +1782,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiSetupCustomRouteDescription.
   ///
   /// In en, this message translates to:
-  /// **'Add your own provider credentials, choose text and vision models, and optionally override models per agent.'**
+  /// **'Add your own provider credentials, choose the model Super Agent should use, and optionally override models per agent.'**
   String get aiSetupCustomRouteDescription;
 
   /// No description provided for @aiSetupCustomPageTitle.
@@ -1980,7 +1794,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiSetupCustomPageSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Configure provider credentials first, then choose the text and vision models Memex should use.'**
+  /// **'Configure provider credentials first, then choose the model Memex should use.'**
   String get aiSetupCustomPageSubtitle;
 
   /// No description provided for @aiSetupProviderCredentialsTitle.
@@ -1998,44 +1812,26 @@ abstract class AppLocalizations {
   /// No description provided for @modelRolesTitle.
   ///
   /// In en, this message translates to:
-  /// **'Choose model roles'**
+  /// **'Choose primary model'**
   String get modelRolesTitle;
 
   /// No description provided for @modelRolesDescription.
   ///
   /// In en, this message translates to:
-  /// **'Most users only need a text model and a vision-capable model. Advanced agent overrides stay available below.'**
+  /// **'Super Agent uses one model for text and image inputs. Advanced agent overrides stay available below.'**
   String get modelRolesDescription;
 
   /// No description provided for @textModelRoleTitle.
   ///
   /// In en, this message translates to:
-  /// **'Text model'**
+  /// **'Primary model'**
   String get textModelRoleTitle;
 
   /// No description provided for @textModelRoleDescription.
   ///
   /// In en, this message translates to:
-  /// **'Used for cards, knowledge, insights, chat, comments, schedule, and memory.'**
+  /// **'Used by Super Agent for text, images, cards, knowledge, insights, chat, comments, schedule, and memory.'**
   String get textModelRoleDescription;
-
-  /// No description provided for @visionModelRoleTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Vision model'**
-  String get visionModelRoleTitle;
-
-  /// No description provided for @visionModelRoleDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Used for image/media analysis and cloud audio transcription when enabled.'**
-  String get visionModelRoleDescription;
-
-  /// No description provided for @followTextModel.
-  ///
-  /// In en, this message translates to:
-  /// **'Follow text model'**
-  String get followTextModel;
 
   /// No description provided for @modelConnectionsTitle.
   ///
@@ -2121,41 +1917,17 @@ abstract class AppLocalizations {
   /// **'Model role updated'**
   String get modelSlotUpdated;
 
-  /// No description provided for @visionModelNonMultimodalWarning.
-  ///
-  /// In en, this message translates to:
-  /// **'This model is not known to support image input. Media analysis may fail unless the provider supports vision.'**
-  String get visionModelNonMultimodalWarning;
-
   /// No description provided for @aiServiceMemexRouteTitle.
   ///
   /// In en, this message translates to:
   /// **'Connect through Memex'**
   String get aiServiceMemexRouteTitle;
 
-  /// No description provided for @aiServiceTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'The AI journal for your real life'**
-  String get aiServiceTitle;
-
-  /// No description provided for @aiServiceSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Turn scattered notes, photos, and voice records into a structured second brain.'**
-  String get aiServiceSubtitle;
-
   /// No description provided for @aiServiceLongDescription.
   ///
   /// In en, this message translates to:
   /// **'Memex uses a multi-agent system to organize life records, knowledge notes, and social context, discover deeper insights, and provide AI companionship with persistent memory. Your data is stored as plain-text Markdown, preserving data freedom and portability.'**
   String get aiServiceLongDescription;
-
-  /// No description provided for @aiServiceCustomModelTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Connect your own AI model'**
-  String get aiServiceCustomModelTitle;
 
   /// No description provided for @aiServiceCustomApiRouteTitle.
   ///
@@ -2169,35 +1941,11 @@ abstract class AppLocalizations {
   /// **'Choose this first if you already have an API key from OpenAI, Anthropic, DeepSeek, Gemini, or another provider.'**
   String get aiServiceCustomModelDescription;
 
-  /// No description provided for @aiServiceStepAccount.
-  ///
-  /// In en, this message translates to:
-  /// **'One account manages credit, billing, and usage history.'**
-  String get aiServiceStepAccount;
-
-  /// No description provided for @aiServiceStepBalance.
-  ///
-  /// In en, this message translates to:
-  /// **'Pay as you go. Top up when balance runs low; no fixed monthly fee.'**
-  String get aiServiceStepBalance;
-
-  /// No description provided for @aiServiceStepEnable.
-  ///
-  /// In en, this message translates to:
-  /// **'Once enabled, text, photo, and voice records enter the AI organization queue.'**
-  String get aiServiceStepEnable;
-
   /// No description provided for @enableAiService.
   ///
   /// In en, this message translates to:
   /// **'Connect with Memex'**
   String get enableAiService;
-
-  /// No description provided for @aiServiceWaitingForPayment.
-  ///
-  /// In en, this message translates to:
-  /// **'Sign in and choose credit to turn on'**
-  String get aiServiceWaitingForPayment;
 
   /// No description provided for @aiServiceReadyToast.
   ///
@@ -2223,35 +1971,17 @@ abstract class AppLocalizations {
   /// **'Skip for now'**
   String get skipForNow;
 
-  /// No description provided for @modelAuth.
-  ///
-  /// In en, this message translates to:
-  /// **'Model auth'**
-  String get modelAuth;
-
   /// No description provided for @clearAuth.
   ///
   /// In en, this message translates to:
   /// **'Clear auth'**
   String get clearAuth;
 
-  /// No description provided for @openAiAuthCleared.
-  ///
-  /// In en, this message translates to:
-  /// **'OpenAI auth cleared'**
-  String get openAiAuthCleared;
-
   /// No description provided for @authorizing.
   ///
   /// In en, this message translates to:
   /// **'Authorizing...'**
   String get authorizing;
-
-  /// No description provided for @openAiAuthSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'OpenAI auth success! AccountId: {accountId}'**
-  String openAiAuthSuccess(Object accountId);
 
   /// No description provided for @authFailed.
   ///
@@ -2264,12 +1994,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Authorized'**
   String get authorized;
-
-  /// No description provided for @viewAuthInfo.
-  ///
-  /// In en, this message translates to:
-  /// **'View auth info'**
-  String get viewAuthInfo;
 
   /// No description provided for @config.
   ///
@@ -2355,90 +2079,6 @@ abstract class AppLocalizations {
   /// **'Ignore'**
   String get ignore;
 
-  /// No description provided for @appLockOn.
-  ///
-  /// In en, this message translates to:
-  /// **'App lock enabled'**
-  String get appLockOn;
-
-  /// No description provided for @appLockOff.
-  ///
-  /// In en, this message translates to:
-  /// **'App lock disabled'**
-  String get appLockOff;
-
-  /// No description provided for @enableAppLockFirst.
-  ///
-  /// In en, this message translates to:
-  /// **'Please enable app lock first'**
-  String get enableAppLockFirst;
-
-  /// No description provided for @enterFourDigitPassword.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter 4-digit password'**
-  String get enterFourDigitPassword;
-
-  /// No description provided for @passwordSetAndLockOn.
-  ///
-  /// In en, this message translates to:
-  /// **'Password set and app lock enabled'**
-  String get passwordSetAndLockOn;
-
-  /// No description provided for @appLockSettings.
-  ///
-  /// In en, this message translates to:
-  /// **'App lock settings'**
-  String get appLockSettings;
-
-  /// No description provided for @enableAppLock.
-  ///
-  /// In en, this message translates to:
-  /// **'Enable app lock'**
-  String get enableAppLock;
-
-  /// No description provided for @enableAppLockSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Password required when launching the app'**
-  String get enableAppLockSubtitle;
-
-  /// No description provided for @enableBiometrics.
-  ///
-  /// In en, this message translates to:
-  /// **'Enable biometrics'**
-  String get enableBiometrics;
-
-  /// No description provided for @biometricsSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Use Face ID or Touch ID to unlock'**
-  String get biometricsSubtitle;
-
-  /// No description provided for @changePassword.
-  ///
-  /// In en, this message translates to:
-  /// **'Change password'**
-  String get changePassword;
-
-  /// No description provided for @setFourDigitPassword.
-  ///
-  /// In en, this message translates to:
-  /// **'Set 4-digit password'**
-  String get setFourDigitPassword;
-
-  /// No description provided for @reenterPasswordToConfirm.
-  ///
-  /// In en, this message translates to:
-  /// **'Re-enter password to confirm'**
-  String get reenterPasswordToConfirm;
-
-  /// No description provided for @passwordMismatch.
-  ///
-  /// In en, this message translates to:
-  /// **'Passwords do not match. Please try again.'**
-  String get passwordMismatch;
-
   /// No description provided for @confirmDelete.
   ///
   /// In en, this message translates to:
@@ -2468,12 +2108,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete failed: {error}'**
   String deleteFailed(Object error);
-
-  /// No description provided for @continueChat.
-  ///
-  /// In en, this message translates to:
-  /// **'Continue conversation...'**
-  String get continueChat;
 
   /// No description provided for @daysAgo.
   ///
@@ -2649,12 +2283,6 @@ abstract class AppLocalizations {
   /// **'Delete failed: {error}'**
   String deleteFailedShort(Object error);
 
-  /// No description provided for @aboutThisInsightHint.
-  ///
-  /// In en, this message translates to:
-  /// **'What would you like to know about this insight...'**
-  String get aboutThisInsightHint;
-
   /// No description provided for @knowledgeInsight.
   ///
   /// In en, this message translates to:
@@ -2684,12 +2312,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This insight is still being generated or was updated. Refresh insights and try again later.'**
   String get insightUnavailableMessage;
-
-  /// No description provided for @scheduleAggregation.
-  ///
-  /// In en, this message translates to:
-  /// **'Schedule aggregation'**
-  String get scheduleAggregation;
 
   /// No description provided for @noScheduleAggregation.
   ///
@@ -2763,12 +2385,6 @@ abstract class AppLocalizations {
   /// **'Schedule briefing'**
   String get scheduleBriefingTitle;
 
-  /// No description provided for @scheduleBriefingNeedsUpdate.
-  ///
-  /// In en, this message translates to:
-  /// **'Needs update'**
-  String get scheduleBriefingNeedsUpdate;
-
   /// No description provided for @scheduleBriefingOpen.
   ///
   /// In en, this message translates to:
@@ -2793,12 +2409,6 @@ abstract class AppLocalizations {
   /// **'{count} done'**
   String scheduleBriefingDoneCount(Object count);
 
-  /// No description provided for @scheduleBriefingConflictCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} conflicts'**
-  String scheduleBriefingConflictCount(Object count);
-
   /// No description provided for @updating.
   ///
   /// In en, this message translates to:
@@ -2822,6 +2432,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Disabled'**
   String get disabled;
+
+  /// No description provided for @appLockOn.
+  ///
+  /// In en, this message translates to:
+  /// **'App lock enabled'**
+  String get appLockOn;
+
+  /// No description provided for @appLockOff.
+  ///
+  /// In en, this message translates to:
+  /// **'App lock disabled'**
+  String get appLockOff;
+
+  /// No description provided for @enableAppLockFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enable app lock first'**
+  String get enableAppLockFirst;
+
+  /// No description provided for @enterFourDigitPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter 4-digit password'**
+  String get enterFourDigitPassword;
+
+  /// No description provided for @passwordSetAndLockOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Password set and app lock enabled'**
+  String get passwordSetAndLockOn;
+
+  /// No description provided for @appLockSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'App lock settings'**
+  String get appLockSettings;
+
+  /// No description provided for @enableAppLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable app lock'**
+  String get enableAppLock;
+
+  /// No description provided for @enableAppLockSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Password required when launching the app'**
+  String get enableAppLockSubtitle;
+
+  /// No description provided for @enableBiometrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable biometrics'**
+  String get enableBiometrics;
+
+  /// No description provided for @biometricsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Face ID or Touch ID to unlock'**
+  String get biometricsSubtitle;
+
+  /// No description provided for @changePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Change password'**
+  String get changePassword;
+
+  /// No description provided for @setFourDigitPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Set 4-digit password'**
+  String get setFourDigitPassword;
+
+  /// No description provided for @reenterPasswordToConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-enter password to confirm'**
+  String get reenterPasswordToConfirm;
+
+  /// No description provided for @passwordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match. Please try again.'**
+  String get passwordMismatch;
 
   /// No description provided for @confirmDeleteCharacter.
   ///
@@ -2858,18 +2552,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to load characters: {error}'**
   String loadCharacterFailed(Object error);
-
-  /// No description provided for @characterDesignerHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Describe the character you want to create or update...'**
-  String get characterDesignerHint;
-
-  /// No description provided for @characterDesigner.
-  ///
-  /// In en, this message translates to:
-  /// **'Character designer'**
-  String get characterDesigner;
 
   /// No description provided for @noTags.
   ///
@@ -2961,36 +2643,6 @@ abstract class AppLocalizations {
   /// **'Please enter character persona'**
   String get pleaseEnterCharacterPersona;
 
-  /// No description provided for @systemFeaturesAndExtensions.
-  ///
-  /// In en, this message translates to:
-  /// **'System features & extensions'**
-  String get systemFeaturesAndExtensions;
-
-  /// No description provided for @shareExtensionTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Share extension'**
-  String get shareExtensionTitle;
-
-  /// No description provided for @shareExtensionSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Share content to the app from system share sheet'**
-  String get shareExtensionSubtitle;
-
-  /// No description provided for @screenTimeTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Screen Time (Screen Time API)'**
-  String get screenTimeTitle;
-
-  /// No description provided for @screenTimeSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Access app usage and attention data'**
-  String get screenTimeSubtitle;
-
   /// No description provided for @permissionRequestError.
   ///
   /// In en, this message translates to:
@@ -3026,18 +2678,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Authorized. Go to system settings to change.'**
   String get authorizedGoToSettings;
-
-  /// No description provided for @goToSettingsShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Open Settings'**
-  String get goToSettingsShort;
-
-  /// No description provided for @basicPermissions.
-  ///
-  /// In en, this message translates to:
-  /// **'Basic permissions'**
-  String get basicPermissions;
 
   /// No description provided for @location.
   ///
@@ -3129,29 +2769,11 @@ abstract class AppLocalizations {
   /// **'Load detail failed, please retry later.'**
   String get loadDetailFailedRetryShort;
 
-  /// No description provided for @llmCallStats.
-  ///
-  /// In en, this message translates to:
-  /// **'LLM call stats'**
-  String get llmCallStats;
-
-  /// No description provided for @noLlmCallRecords.
-  ///
-  /// In en, this message translates to:
-  /// **'No LLM call records'**
-  String get noLlmCallRecords;
-
   /// No description provided for @total.
   ///
   /// In en, this message translates to:
   /// **'Total'**
   String get total;
-
-  /// No description provided for @callCount.
-  ///
-  /// In en, this message translates to:
-  /// **'Call count'**
-  String get callCount;
 
   /// No description provided for @estimatedCost.
   ///
@@ -3164,24 +2786,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'By Agent'**
   String get byAgent;
-
-  /// No description provided for @cardGenerationAgent.
-  ///
-  /// In en, this message translates to:
-  /// **'Card generation Agent'**
-  String get cardGenerationAgent;
-
-  /// No description provided for @knowledgeOrgAgent.
-  ///
-  /// In en, this message translates to:
-  /// **'Knowledge org Agent'**
-  String get knowledgeOrgAgent;
-
-  /// No description provided for @commentGenerationAgent.
-  ///
-  /// In en, this message translates to:
-  /// **'Comment generation Agent'**
-  String get commentGenerationAgent;
 
   /// No description provided for @timeUpdated.
   ///
@@ -3206,18 +2810,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete this card? This cannot be undone.'**
   String get confirmDeleteCardMessage;
-
-  /// No description provided for @profileAgent.
-  ///
-  /// In en, this message translates to:
-  /// **'Profile Agent'**
-  String get profileAgent;
-
-  /// No description provided for @assetAnalysis.
-  ///
-  /// In en, this message translates to:
-  /// **'Asset analysis'**
-  String get assetAnalysis;
 
   /// No description provided for @cardDetailNotFound.
   ///
@@ -3273,53 +2865,17 @@ abstract class AppLocalizations {
   /// **'Timeline card templates'**
   String get timelineTemplateGalleryTitle;
 
-  /// No description provided for @categoryGeneral.
-  ///
-  /// In en, this message translates to:
-  /// **'General'**
-  String get categoryGeneral;
-
   /// No description provided for @categoryTextual.
   ///
   /// In en, this message translates to:
   /// **'Textual'**
   String get categoryTextual;
 
-  /// No description provided for @k411.
-  ///
-  /// In en, this message translates to:
-  /// **'## 什么是心流？  心流（Flow）是由心理学家米哈里·契克森米哈提出的一种心理状态。当你完全沉浸在一项具有挑战性但可完成的任务中，时间感消失，注意力高度集中，这就是心流。  > 人在做感兴趣的事情时，常常浑然忘我。  研究发现，心流状态下的人往往生产力最高，幸福感也最强。'**
-  String get k411;
-
   /// No description provided for @timelineFilterAll.
   ///
   /// In en, this message translates to:
   /// **'ALL'**
   String get timelineFilterAll;
-
-  /// No description provided for @timelineDays.
-  ///
-  /// In en, this message translates to:
-  /// **'Days'**
-  String get timelineDays;
-
-  /// No description provided for @timelineWeeks.
-  ///
-  /// In en, this message translates to:
-  /// **'Weeks'**
-  String get timelineWeeks;
-
-  /// No description provided for @timelineMonths.
-  ///
-  /// In en, this message translates to:
-  /// **'Months'**
-  String get timelineMonths;
-
-  /// No description provided for @timelineYears.
-  ///
-  /// In en, this message translates to:
-  /// **'Years'**
-  String get timelineYears;
 
   /// No description provided for @insights.
   ///
@@ -3483,12 +3039,6 @@ abstract class AppLocalizations {
   /// **'Set as default'**
   String get setAsDefault;
 
-  /// No description provided for @missingApiKey.
-  ///
-  /// In en, this message translates to:
-  /// **'Missing API Key'**
-  String get missingApiKey;
-
   /// No description provided for @invalidJsonInExtraField.
   ///
   /// In en, this message translates to:
@@ -3552,7 +3102,7 @@ abstract class AppLocalizations {
   /// No description provided for @keyIdHelper.
   ///
   /// In en, this message translates to:
-  /// **'Used to distinguish multiple model configs. Most users do not need to change it.'**
+  /// **'Name this setup, such as deepseek or work-gpt.'**
   String get keyIdHelper;
 
   /// No description provided for @required.
@@ -3566,30 +3116,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Model provider'**
   String get clientLabel;
-
-  /// No description provided for @geminiClient.
-  ///
-  /// In en, this message translates to:
-  /// **'Gemini'**
-  String get geminiClient;
-
-  /// No description provided for @chatCompletionClient.
-  ///
-  /// In en, this message translates to:
-  /// **'OpenAI (ChatCompletion)'**
-  String get chatCompletionClient;
-
-  /// No description provided for @responsesClient.
-  ///
-  /// In en, this message translates to:
-  /// **'OpenAI (Responses)'**
-  String get responsesClient;
-
-  /// No description provided for @bedrockClient.
-  ///
-  /// In en, this message translates to:
-  /// **'Bedrock'**
-  String get bedrockClient;
 
   /// No description provided for @providerGroupOpenAi.
   ///
@@ -3729,18 +3255,6 @@ abstract class AppLocalizations {
   /// **'Create Account'**
   String get memexCreateAccount;
 
-  /// No description provided for @memexSignInToMemex.
-  ///
-  /// In en, this message translates to:
-  /// **'Sign in to Memex AI'**
-  String get memexSignInToMemex;
-
-  /// No description provided for @memexCreateMemexAccount.
-  ///
-  /// In en, this message translates to:
-  /// **'Create Memex AI account'**
-  String get memexCreateMemexAccount;
-
   /// No description provided for @memexUsername.
   ///
   /// In en, this message translates to:
@@ -3770,18 +3284,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Top up to start using Memex AI'**
   String get memexTopUp;
-
-  /// No description provided for @memexApplyCredentials.
-  ///
-  /// In en, this message translates to:
-  /// **'Apply Credentials'**
-  String get memexApplyCredentials;
-
-  /// No description provided for @memexCredentialsApplied.
-  ///
-  /// In en, this message translates to:
-  /// **'Credentials applied'**
-  String get memexCredentialsApplied;
 
   /// No description provided for @memexTopUpSuccess.
   ///
@@ -4101,12 +3603,6 @@ abstract class AppLocalizations {
   /// **'Choose Avatar'**
   String get chooseAvatar;
 
-  /// No description provided for @coachMarkConfigureModel.
-  ///
-  /// In en, this message translates to:
-  /// **'Set up your AI model first to unlock all features 🔑'**
-  String get coachMarkConfigureModel;
-
   /// No description provided for @configureNow.
   ///
   /// In en, this message translates to:
@@ -4137,89 +3633,11 @@ abstract class AppLocalizations {
   /// **'Failed'**
   String get failedStatus;
 
-  /// No description provided for @viewDetails.
-  ///
-  /// In en, this message translates to:
-  /// **'View Details'**
-  String get viewDetails;
-
   /// No description provided for @failureReason.
   ///
   /// In en, this message translates to:
   /// **'Failure Reason'**
   String get failureReason;
-
-  /// No description provided for @cardGenerationFailedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Card generation failed'**
-  String get cardGenerationFailedTitle;
-
-  /// No description provided for @cardGenerationFailedDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Your original record is saved. You can regenerate the card without creating a duplicate record.'**
-  String get cardGenerationFailedDescription;
-
-  /// No description provided for @regenerateCard.
-  ///
-  /// In en, this message translates to:
-  /// **'Regenerate Card'**
-  String get regenerateCard;
-
-  /// No description provided for @cardRegenerationStarted.
-  ///
-  /// In en, this message translates to:
-  /// **'Card regeneration started'**
-  String get cardRegenerationStarted;
-
-  /// No description provided for @cardRegenerationFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to start card regeneration'**
-  String get cardRegenerationFailed;
-
-  /// No description provided for @cardRegeneratingTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Regenerating card'**
-  String get cardRegeneratingTitle;
-
-  /// No description provided for @cardRegeneratingDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Memex is rebuilding this card from the saved original record.'**
-  String get cardRegeneratingDescription;
-
-  /// No description provided for @failedCardsRetryTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 card failed to generate} other{{count} cards failed to generate}}'**
-  String failedCardsRetryTitle(num count);
-
-  /// No description provided for @failedCardsRetryDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Original records are saved. Retry all failed card generations from the saved records.'**
-  String get failedCardsRetryDescription;
-
-  /// No description provided for @retryAllFailedCards.
-  ///
-  /// In en, this message translates to:
-  /// **'Retry All'**
-  String get retryAllFailedCards;
-
-  /// No description provided for @failedCardsRetryStarted.
-  ///
-  /// In en, this message translates to:
-  /// **'Started regenerating {count} failed cards'**
-  String failedCardsRetryStarted(Object count);
-
-  /// No description provided for @failedCardsRetryPartial.
-  ///
-  /// In en, this message translates to:
-  /// **'Started {retried} retries. {failed} cards need attention.'**
-  String failedCardsRetryPartial(Object retried, Object failed);
 
   /// No description provided for @unknownError.
   ///
@@ -4665,12 +4083,6 @@ abstract class AppLocalizations {
   /// **'Data Storage'**
   String get dataStorage;
 
-  /// No description provided for @dataStorageDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose where Memex stores your data. Custom folder or iCloud keeps data when you reinstall the app.'**
-  String get dataStorageDescription;
-
   /// No description provided for @dataStorageDescriptionAndroid.
   ///
   /// In en, this message translates to:
@@ -4719,23 +4131,11 @@ abstract class AppLocalizations {
   /// **'Sync your workspace across Apple devices. Data stays after reinstall.'**
   String get storageLocationICloudDesc;
 
-  /// No description provided for @chooseFolder.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose folder'**
-  String get chooseFolder;
-
   /// No description provided for @storageLocationCurrent.
   ///
   /// In en, this message translates to:
   /// **'Current: {location}'**
   String storageLocationCurrent(Object location);
-
-  /// No description provided for @icloudNotAvailable.
-  ///
-  /// In en, this message translates to:
-  /// **'iCloud not available'**
-  String get icloudNotAvailable;
 
   /// No description provided for @icloudRequiresCapability.
   ///
@@ -4760,18 +4160,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Switching storage…'**
   String get switchingStorage;
-
-  /// No description provided for @customPathInvalid.
-  ///
-  /// In en, this message translates to:
-  /// **'Selected folder is no longer accessible. Using app storage.'**
-  String get customPathInvalid;
-
-  /// No description provided for @storagePermissionRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Storage permission is needed to use a custom folder. Please allow it.'**
-  String get storagePermissionRequired;
 
   /// No description provided for @customFolderAccessDenied.
   ///
@@ -4838,12 +4226,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This will permanently delete all your data including timeline cards, knowledge base, recordings, and settings. This action cannot be undone.'**
   String get deleteAccountConfirmMessage;
-
-  /// No description provided for @deleteAccountSuccess.
-  ///
-  /// In en, this message translates to:
-  /// **'All data has been deleted.'**
-  String get deleteAccountSuccess;
 
   /// No description provided for @deleteAccountTypeName.
   ///
@@ -5091,12 +4473,6 @@ abstract class AppLocalizations {
   /// **'Download Skill'**
   String get downloadSkill;
 
-  /// No description provided for @downloadSkillHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter skill zip URL'**
-  String get downloadSkillHint;
-
   /// No description provided for @downloading.
   ///
   /// In en, this message translates to:
@@ -5126,12 +4502,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Are you sure you want to delete \"{name}\"?'**
   String deleteConfirmMessage(String name);
-
-  /// No description provided for @emptyDirectory.
-  ///
-  /// In en, this message translates to:
-  /// **'Empty directory'**
-  String get emptyDirectory;
 
   /// No description provided for @invalidUrl.
   ///
@@ -5216,18 +4586,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'How Memex handles your data'**
   String get privacyPolicyDesc;
-
-  /// No description provided for @dataShareBanner.
-  ///
-  /// In en, this message translates to:
-  /// **'When AI features are enabled, your data is sent to the configured provider for processing. Tap to learn more.'**
-  String get dataShareBanner;
-
-  /// No description provided for @llmConsentDataShareNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Data sharing: Your data will be sent to {provider} for AI processing.'**
-  String llmConsentDataShareNote(Object provider);
 
   /// No description provided for @llmAuthError.
   ///
@@ -5325,12 +4683,6 @@ abstract class AppLocalizations {
   /// **'Connecting...'**
   String get speechModelConnecting;
 
-  /// No description provided for @speechModelDownloadFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Download failed: {error}'**
-  String speechModelDownloadFailed(Object error);
-
   /// No description provided for @deleteSpeechModel.
   ///
   /// In en, this message translates to:
@@ -5366,12 +4718,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recognizing...'**
   String get speechTranscribing;
-
-  /// No description provided for @speechTranscriptionTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Transcription'**
-  String get speechTranscriptionTitle;
 
   /// No description provided for @speechNoResult.
   ///
@@ -5493,35 +4839,11 @@ abstract class AppLocalizations {
   /// **'Recommended'**
   String get recommendedBadge;
 
-  /// No description provided for @reanalyzeMediaAssets.
-  ///
-  /// In en, this message translates to:
-  /// **'Re-analyze media assets'**
-  String get reanalyzeMediaAssets;
-
-  /// No description provided for @reanalyzeMediaAssetsDesc.
-  ///
-  /// In en, this message translates to:
-  /// **'Refreshes media analysis files before regenerating cards.'**
-  String get reanalyzeMediaAssetsDesc;
-
-  /// No description provided for @readOnlyMode.
-  ///
-  /// In en, this message translates to:
-  /// **'Chat'**
-  String get readOnlyMode;
-
   /// No description provided for @readOnlyBadge.
   ///
   /// In en, this message translates to:
   /// **'CHAT'**
   String get readOnlyBadge;
-
-  /// No description provided for @chatModeLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Agent'**
-  String get chatModeLabel;
 
   /// No description provided for @switchCompanion.
   ///
@@ -5534,12 +4856,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Type a message...'**
   String get personaChatInputHint;
-
-  /// No description provided for @personaChatEmptyHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Send the first message to begin this companion chat'**
-  String get personaChatEmptyHint;
 
   /// No description provided for @today.
   ///
@@ -5732,12 +5048,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Test current location'**
   String get testCurrentLocation;
-
-  /// No description provided for @locationUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'location unavailable'**
-  String get locationUnavailable;
 
   /// No description provided for @locationTestFailed.
   ///
@@ -6464,18 +5774,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Card updates'**
   String get dismissTypeCardUpdate;
-
-  /// No description provided for @dismissAllConfirm.
-  ///
-  /// In en, this message translates to:
-  /// **'Clear all notifications?'**
-  String get dismissAllConfirm;
-
-  /// No description provided for @dismissTypeConfirm.
-  ///
-  /// In en, this message translates to:
-  /// **'Clear all {type} notifications?'**
-  String dismissTypeConfirm(Object type);
 
   /// No description provided for @dismissedCount.
   ///

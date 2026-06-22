@@ -6,6 +6,7 @@ import 'package:memex/ui/settings/widgets/model_stats_page.dart';
 import 'package:memex/ui/insight/widgets/insight_template_gallery_page.dart';
 import 'package:memex/ui/timeline/widgets/timeline_template_gallery_page.dart';
 import 'package:memex/ui/settings/widgets/log_viewer_page.dart';
+import 'package:memex/ui/settings/widgets/agent_state_viewer_page.dart';
 import 'package:memex/ui/settings/widgets/async_task_list_page.dart';
 import 'package:memex/ui/settings/widgets/agent_config_list_page.dart';
 import 'package:memex/ui/settings/widgets/custom_agent_config_page.dart';
@@ -16,15 +17,15 @@ class DebugSettingsPage extends StatelessWidget {
   final Future<void> Function() onClearToken;
   final Future<void> Function() onClearData;
   final Future<void> Function() onClearFailedAgentContexts;
+  final Future<void> Function() onCloneToTestUser;
   final Future<void> Function() onReprocessCards;
   final Future<void> Function() onReprocessComments;
-  final Future<void> Function() onReprocessKnowledgeBase;
   final Future<void> Function() onRebuildSearchIndex;
   final bool isClearingData;
   final bool isClearingFailedAgentContexts;
+  final bool isCloningTestUser;
   final bool isReprocessingCards;
   final bool isReprocessingComments;
-  final bool isReprocessingKnowledgeBase;
   final bool isRebuildingSearchIndex;
 
   const DebugSettingsPage({
@@ -32,15 +33,15 @@ class DebugSettingsPage extends StatelessWidget {
     required this.onClearToken,
     required this.onClearData,
     required this.onClearFailedAgentContexts,
+    required this.onCloneToTestUser,
     required this.onReprocessCards,
     required this.onReprocessComments,
-    required this.onReprocessKnowledgeBase,
     required this.onRebuildSearchIndex,
     required this.isClearingData,
     required this.isClearingFailedAgentContexts,
+    required this.isCloningTestUser,
     required this.isReprocessingCards,
     required this.isReprocessingComments,
-    required this.isReprocessingKnowledgeBase,
     required this.isRebuildingSearchIndex,
   });
 
@@ -211,6 +212,14 @@ class DebugSettingsPage extends StatelessWidget {
           const SizedBox(height: 12),
           _buildFunctionTab(
             context: context,
+            icon: Icons.copy_all_outlined,
+            title: UserStorage.l10n.cloneToTestUser,
+            onTap: onCloneToTestUser,
+            isLoading: isCloningTestUser,
+          ),
+          const SizedBox(height: 12),
+          _buildFunctionTab(
+            context: context,
             icon: Icons.delete_sweep_outlined,
             title: UserStorage.l10n.deleteSpeechModel,
             onTap: () => _deleteSpeechModel(context),
@@ -242,14 +251,6 @@ class DebugSettingsPage extends StatelessWidget {
           const SizedBox(height: 12),
           _buildFunctionTab(
             context: context,
-            icon: Icons.menu_book_outlined,
-            title: UserStorage.l10n.reprocessKnowledgeBase,
-            onTap: onReprocessKnowledgeBase,
-            isLoading: isReprocessingKnowledgeBase,
-          ),
-          const SizedBox(height: 12),
-          _buildFunctionTab(
-            context: context,
             icon: Icons.chat_bubble_outline,
             title: UserStorage.l10n.regenerateComments,
             onTap: onReprocessComments,
@@ -265,6 +266,20 @@ class DebugSettingsPage extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const LogViewerPage(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          _buildFunctionTab(
+            context: context,
+            icon: Icons.psychology_alt_outlined,
+            title: 'Agent States',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AgentStateViewerPage(),
                 ),
               );
             },

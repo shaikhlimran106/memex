@@ -182,8 +182,7 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: CharacterAvatar(
-                                  avatar:
-                                      _userAvatar ??
+                                  avatar: _userAvatar ??
                                       UserStorage.defaultAvatarSeed,
                                   name: _userId ?? '',
                                   size: 80,

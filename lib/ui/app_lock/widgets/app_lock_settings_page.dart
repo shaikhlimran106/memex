@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:logging/logging.dart';
-import 'package:memex/utils/toast_helper.dart';
-import 'package:memex/utils/logger.dart';
-import 'package:memex/utils/user_storage.dart';
-import 'package:memex/ui/core/widgets/agent_logo_loading.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
+import 'package:memex/ui/core/widgets/agent_logo_loading.dart';
+import 'package:memex/utils/logger.dart';
+import 'package:memex/utils/toast_helper.dart';
+import 'package:memex/utils/user_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AppLockSettingsPage extends StatefulWidget {
   const AppLockSettingsPage({super.key});
@@ -39,7 +39,6 @@ class _AppLockSettingsPageState extends State<AppLockSettingsPage> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // Check if device supports biometrics
     bool canCheckBio = false;
     try {
       canCheckBio =
@@ -59,8 +58,7 @@ class _AppLockSettingsPageState extends State<AppLockSettingsPage> {
 
   Future<void> _toggleLock(bool value) async {
     if (value && _password.isEmpty) {
-      // Trying to enable but no password set
-      _showSetPasswordDialog(enableAfterSet: true);
+      _showSetPasswordDialog();
       return;
     }
 
@@ -73,8 +71,10 @@ class _AppLockSettingsPageState extends State<AppLockSettingsPage> {
         _isLockEnabled = value;
         _isLoading = false;
       });
-      ToastHelper.showSuccess(context,
-          value ? UserStorage.l10n.appLockOn : UserStorage.l10n.appLockOff);
+      ToastHelper.showSuccess(
+        context,
+        value ? UserStorage.l10n.appLockOn : UserStorage.l10n.appLockOff,
+      );
     }
   }
 
@@ -105,7 +105,6 @@ class _AppLockSettingsPageState extends State<AppLockSettingsPage> {
     setState(() => _isLoading = true);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefKeyPassword, newPassword);
-    // Auto-enable lock if setting password for the first time or explicitly needed
     if (!_isLockEnabled) {
       await prefs.setBool(_prefKeyLockEnabled, true);
     }
@@ -113,14 +112,14 @@ class _AppLockSettingsPageState extends State<AppLockSettingsPage> {
     if (mounted) {
       setState(() {
         _password = newPassword;
-        _isLockEnabled = true; // Auto enable
+        _isLockEnabled = true;
         _isLoading = false;
       });
       ToastHelper.showSuccess(context, UserStorage.l10n.passwordSetAndLockOn);
     }
   }
 
-  void _showSetPasswordDialog({bool enableAfterSet = false}) {
+  void _showSetPasswordDialog() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -153,7 +152,7 @@ class _AppLockSettingsPageState extends State<AppLockSettingsPage> {
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
       ),
       body: _isLoading
-          ? Center(child: AgentLogoLoading())
+          ? const Center(child: AgentLogoLoading())
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [
@@ -178,7 +177,7 @@ class _AppLockSettingsPageState extends State<AppLockSettingsPage> {
                         ),
                         value: _isLockEnabled,
                         onChanged: _toggleLock,
-                        activeColor: AppColors.primary,
+                        activeThumbColor: AppColors.primary,
                       ),
                       if (_canCheckBiometrics && _isLockEnabled) ...[
                         const Divider(height: 1),
@@ -200,7 +199,7 @@ class _AppLockSettingsPageState extends State<AppLockSettingsPage> {
                           ),
                           value: _isBiometricsEnabled,
                           onChanged: _toggleBiometrics,
-                          activeColor: AppColors.primary,
+                          activeThumbColor: AppColors.primary,
                         ),
                       ],
                     ],
@@ -219,7 +218,7 @@ class _AppLockSettingsPageState extends State<AppLockSettingsPage> {
                         ),
                       ),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _showSetPasswordDialog(),
+                      onTap: _showSetPasswordDialog,
                     ),
                   ),
               ],
@@ -246,7 +245,7 @@ class _AppLockSettingsPageState extends State<AppLockSettingsPage> {
 }
 
 class _SetPasswordSheet extends StatefulWidget {
-  final Function(String) onSave;
+  final Future<void> Function(String) onSave;
 
   const _SetPasswordSheet({required this.onSave});
 
@@ -269,54 +268,54 @@ class _SetPasswordSheetState extends State<_SetPasswordSheet> {
   }
 
   void _onKeyPress(String value) {
-    if (_input.length < _codeLength) {
-      setState(() {
-        _input += value;
-        _errorMessage = '';
-      });
-      HapticFeedback.lightImpact();
+    if (_input.length >= _codeLength) return;
 
-      if (_input.length == _codeLength) {
-        if (!_isConfirming) {
-          // First time entry complete, move to confirm
-          Future.delayed(const Duration(milliseconds: 200), () {
-            setState(() {
-              _firstInput = _input;
-              _input = '';
-              _isConfirming = true;
-              _title = UserStorage.l10n.reenterPasswordToConfirm;
-            });
-          });
-        } else {
-          // Confirmation entry complete
-          if (_input == _firstInput) {
-            Future.delayed(const Duration(milliseconds: 200), () {
-              widget.onSave(_input);
-            });
-          } else {
-            // Mismatch
-            HapticFeedback.heavyImpact();
-            setState(() {
-              _errorMessage = UserStorage.l10n.passwordMismatch;
-              _input = '';
-              _firstInput = '';
-              _isConfirming = false; // Reset to start
-              _title = UserStorage.l10n.setFourDigitPassword;
-            });
-          }
-        }
-      }
+    setState(() {
+      _input += value;
+      _errorMessage = '';
+    });
+    HapticFeedback.lightImpact();
+
+    if (_input.length != _codeLength) return;
+
+    if (!_isConfirming) {
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (!mounted) return;
+        setState(() {
+          _firstInput = _input;
+          _input = '';
+          _isConfirming = true;
+          _title = UserStorage.l10n.reenterPasswordToConfirm;
+        });
+      });
+      return;
     }
+
+    if (_input == _firstInput) {
+      Future.delayed(const Duration(milliseconds: 200), () {
+        widget.onSave(_input);
+      });
+      return;
+    }
+
+    HapticFeedback.heavyImpact();
+    setState(() {
+      _errorMessage = UserStorage.l10n.passwordMismatch;
+      _input = '';
+      _firstInput = '';
+      _isConfirming = false;
+      _title = UserStorage.l10n.setFourDigitPassword;
+    });
   }
 
   void _onDelete() {
-    if (_input.isNotEmpty) {
-      setState(() {
-        _input = _input.substring(0, _input.length - 1);
-        _errorMessage = '';
-      });
-      HapticFeedback.lightImpact();
-    }
+    if (_input.isEmpty) return;
+
+    setState(() {
+      _input = _input.substring(0, _input.length - 1);
+      _errorMessage = '';
+    });
+    HapticFeedback.lightImpact();
   }
 
   @override
@@ -358,7 +357,6 @@ class _SetPasswordSheetState extends State<_SetPasswordSheet> {
             ),
           ],
           const SizedBox(height: 40),
-          // Dots display
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(_codeLength, (index) {
@@ -375,7 +373,6 @@ class _SetPasswordSheetState extends State<_SetPasswordSheet> {
             }),
           ),
           const Spacer(),
-          // Numpad
           Expanded(
             flex: 4,
             child: Padding(

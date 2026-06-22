@@ -33,8 +33,7 @@ class _ScheduleAggregatorScreenBody extends StatefulWidget {
 }
 
 class _ScheduleAggregatorScreenState
-    extends State<_ScheduleAggregatorScreenBody>
-    with WidgetsBindingObserver {
+    extends State<_ScheduleAggregatorScreenBody> with WidgetsBindingObserver {
   DateTime _relativeDate = DateTime.now();
   Timer? _dayRefreshTimer;
 

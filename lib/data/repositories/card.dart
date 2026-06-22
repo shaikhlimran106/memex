@@ -1,5 +1,3 @@
-import 'dart:io';
-import 'package:path/path.dart' as path;
 import 'package:memex/domain/models/card_detail_model.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/user_storage.dart';
@@ -8,6 +6,7 @@ import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/llm_call_record_service.dart';
 import 'package:memex/data/services/character_service.dart';
 import 'package:memex/data/services/card_renderer.dart';
+import 'package:memex/data/services/timeline_card_event_publisher.dart';
 import 'package:memex/utils/token_usage_utils.dart';
 
 final _logger = getLogger('CardDetailEndpoint');
@@ -64,27 +63,8 @@ Future<CardDetailModel> getCardDetail(String cardId) async {
       address = locationInfo['name'] as String? ?? address;
     }
 
-    // Read raw fact content
-    final factInfo = await _fileSystemService.extractFactContentFromFile(
-      userId,
-      factId,
-    );
-    var rawContent = factInfo?.content ?? '';
-    final originalRawContent = rawContent;
-
-    // Build asset analysis result map (kept but unused)
-    if (factInfo?.assetAnalyses != null && factInfo!.assetAnalyses.isNotEmpty) {
-      // Map index -> analysis result
-      final analysisMap = <int, String>{};
-      for (final analysis in factInfo.assetAnalyses) {
-        final index = analysis['index'] as int;
-        final analysisContent = analysis['analysis'] as String;
-        final toolAnalysis = _extractToolAnalysis(analysisContent);
-        if (toolAnalysis.isNotEmpty) {
-          analysisMap[index] = toolAnalysis;
-        }
-      }
-    }
+    // Raw user input now lives on the card itself (card.fact).
+    var rawContent = cardData.fact ?? '';
 
     // Extract insight
     final insightData = cardData.insight;
@@ -155,24 +135,22 @@ Future<CardDetailModel> getCardDetail(String cardId) async {
         // card_id uses same format as fact_id
         final relatedCardId = relatedId;
 
-        // Read related card content and process assets
-        final relatedFactInfo = await _fileSystemService
-            .extractFactContentFromFile(userId, relatedId);
-        final relatedRawContent = relatedFactInfo?.content ?? '';
-
-        final relatedProcessed = await _parseAssetsAndCleanContent(
-          userId,
-          relatedRawContent,
-          maxContentLength: 60,
-        );
+        // Related card content + assets now come from the card's own fields.
+        final relatedAssetsAndText =
+            await extractAssetsAndRawText(userId, relatedCardData);
+        var relatedRawText =
+            (relatedAssetsAndText['rawText'] as String?)?.trim() ?? '';
+        if (relatedRawText.length > 60) {
+          relatedRawText = '${relatedRawText.substring(0, 60)}...';
+        }
 
         relatedCards.add(
           RelatedCard(
             id: relatedCardId,
             title: relatedTitle,
             date: dateStr,
-            rawContent: relatedProcessed['content'] as String,
-            assets: relatedProcessed['assets'] as List<AssetData>,
+            rawContent: relatedRawText,
+            assets: relatedAssetsAndText['assets'] as List<AssetData>,
           ),
         );
       } catch (e) {
@@ -181,10 +159,11 @@ Future<CardDetailModel> getCardDetail(String cardId) async {
       }
     }
 
-    // Extract assets and clean rawContent
-    final processed = await _parseAssetsAndCleanContent(userId, rawContent);
-    final assets = processed['assets'] as List<AssetData>;
-    rawContent = processed['content'] as String;
+    // Assets come from the card's own fields; rawContent (card.fact) is
+    // already free of asset markers.
+    final assetsAndText = await extractAssetsAndRawText(userId, cardData);
+    final assets = assetsAndText['assets'] as List<AssetData>;
+    rawContent = (assetsAndText['rawText'] as String?) ?? rawContent;
 
     // Read comments (from card file comments field if present)
     final comments = <Comment>[];
@@ -327,8 +306,7 @@ Future<CardDetailModel> getCardDetail(String cardId) async {
             cachedTokens: (prev?.cachedTokens ?? 0) + cachedTokens,
             effectivePromptTokens:
                 (prev?.effectivePromptTokens ?? 0) + (effPrompt ?? 0),
-            cachedTokensForRate:
-                (prev?.cachedTokensForRate ?? 0) +
+            cachedTokensForRate: (prev?.cachedTokensForRate ?? 0) +
                 (effPrompt != null ? cachedTokens : 0),
             thoughtTokens: (prev?.thoughtTokens ?? 0) + thoughtTokens,
             totalTokens: (prev?.totalTokens ?? 0) + tokens,
@@ -354,13 +332,11 @@ Future<CardDetailModel> getCardDetail(String cardId) async {
       // Continue without stats
     }
 
-    // rawContent already cleaned in _parseAssetsAndCleanContent
-
     // Render card to get uiConfigs
     final renderResult = await renderCard(
       userId: userId,
       cardData: cardData,
-      factContent: originalRawContent,
+      factContent: cardData.fact,
     );
 
     // Build CardDetailModel
@@ -468,6 +444,12 @@ Future<bool> updateCardTimeEndpoint(String cardId, int timestamp) async {
       return false;
     }
 
+    await emitTimelineCardUpdated(
+      userId: userId,
+      cardId: cardId,
+      cardData: updatedCardData,
+    );
+
     _logger.info('Updated user_fixed_timestamp for card $cardId to $timestamp');
     return true;
   } catch (e) {
@@ -517,119 +499,24 @@ Future<bool> updateCardLocationEndpoint(
       return false;
     }
 
+    final savedUserLocation =
+        await _fileSystemService.addUserLocation(userId, lat, lng, name);
+    if (!savedUserLocation) {
+      _logger.warning(
+        'Updated card location for $cardId, but failed to save reusable user location mark: $name',
+      );
+    }
+
+    await emitTimelineCardUpdated(
+      userId: userId,
+      cardId: cardId,
+      cardData: updatedCardData,
+    );
+
     _logger.info('Updated user_fixed_location for card $cardId');
     return true;
   } catch (e) {
     _logger.severe('Failed to update card location for $cardId: $e');
     return false;
   }
-}
-
-/// Extract tool analysis part from analysis result (excluding EXIF)
-/// EXIF section starts with "Image metadata:" or "Image Metadata:", format: Image metadata:...\n\nTool analysis result
-String _extractToolAnalysis(String analysisContent) {
-  // Support both Chinese and English markers
-  final exifMarkers = ['Image metadata:', 'Image Metadata:'];
-  String? foundMarker;
-  int? exifIndex;
-
-  // Find first matching marker
-  for (final marker in exifMarkers) {
-    final index = analysisContent.indexOf(marker);
-    if (index != -1) {
-      foundMarker = marker;
-      exifIndex = index;
-      break;
-    }
-  }
-
-  // If EXIF present, split it out
-  if (foundMarker != null && exifIndex != null) {
-    // Search after marker
-    final afterExif = analysisContent.substring(exifIndex + foundMarker.length);
-    // Content after first double newline is tool analysis
-    // Per analyze_assets_handler, EXIF and tool analysis are separated by two newlines
-    final doubleNewlineIndex = afterExif.indexOf('\n\n');
-    if (doubleNewlineIndex != -1) {
-      final toolAnalysis = afterExif.substring(doubleNewlineIndex + 2).trim();
-      if (toolAnalysis.isNotEmpty) {
-        return toolAnalysis;
-      }
-    }
-    // No double newline or empty after it => EXIF only
-    return '';
-  }
-  // No EXIF, return full analysis
-  return analysisContent.trim();
-}
-
-/// Parse assets and clean rawContent
-Future<Map<String, dynamic>> _parseAssetsAndCleanContent(
-  String userId,
-  String rawContent, {
-  int? maxContentLength,
-}) async {
-  final assets = <AssetData>[];
-  var cleanedContent = rawContent;
-
-  if (rawContent.isNotEmpty) {
-    // Find images: ![image](fs://xxx.png)
-    final imgPattern = RegExp(r'!\[.*?\]\(fs://([^\)]+)\)');
-    final imgMatches = imgPattern.allMatches(rawContent);
-    final imgFiles = <String>[];
-    for (final match in imgMatches) {
-      final imgFile = match.group(1)!;
-      imgFiles.add(imgFile);
-
-      // Build full assets path
-      final assetsPath = _fileSystemService.getAssetsPath(userId);
-      final imgPath = path.join(assetsPath, imgFile);
-      final imgFileObj = File(imgPath);
-      if (await imgFileObj.exists()) {
-        // In local mode, convert to local HTTP URL
-        final url = await FileSystemService.convertFsToLocalHttp(
-          'fs://$imgFile',
-          userId,
-        );
-        assets.add(AssetData(type: 'image', url: url));
-      }
-    }
-
-    // Find audio: [audio](fs://xxx.m4a)
-    final audioPattern = RegExp(r'\[.*?\]\(fs://([^\)]+)\)');
-    final audioMatches = audioPattern.allMatches(rawContent);
-    for (final match in audioMatches) {
-      final audioFile = match.group(1)!;
-      // Skip image files (already handled)
-      if (!imgFiles.contains(audioFile)) {
-        final assetsPath = _fileSystemService.getAssetsPath(userId);
-        final audioPath = path.join(assetsPath, audioFile);
-        final audioFileObj = File(audioPath);
-        if (await audioFileObj.exists()) {
-          // In local mode, convert to local HTTP URL
-          final url = await FileSystemService.convertFsToLocalHttp(
-            'fs://$audioFile',
-            userId,
-          );
-          assets.add(AssetData(type: 'audio', url: url));
-        }
-      }
-    }
-  }
-
-  // Remove all image/audio placeholders from rawContent
-  final assetPattern = RegExp(
-    r'((?:!\[(?:图片|image)\]|\[(?:音频|audio)\])\(fs://[^)]+\))',
-  );
-  cleanedContent = cleanedContent.replaceAll(assetPattern, '');
-
-  // Collapse 3+ newlines to 2, trim
-  cleanedContent = cleanedContent.replaceAll(RegExp(r'\n{3,}'), '\n\n').trim();
-
-  // Truncate if max length given
-  if (maxContentLength != null && cleanedContent.length > maxContentLength) {
-    cleanedContent = '${cleanedContent.substring(0, maxContentLength)}...';
-  }
-
-  return {'assets': assets, 'content': cleanedContent};
 }

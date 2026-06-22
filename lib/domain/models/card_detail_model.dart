@@ -70,8 +70,8 @@ class CardDetailModel {
       rawContent: json['raw_content'] as String? ?? '',
       insight:
           json['insight'] != null && json['insight'] is Map<String, dynamic>
-          ? InsightData.fromJson(json['insight'] as Map<String, dynamic>)
-          : InsightData.fromJson({}),
+              ? InsightData.fromJson(json['insight'] as Map<String, dynamic>)
+              : InsightData.fromJson({}),
       assets: (json['assets'] as List<dynamic>? ?? const [])
           .where((asset) => asset != null && asset is Map<String, dynamic>)
           .map((asset) => AssetData.fromJson(asset as Map<String, dynamic>))
@@ -116,9 +116,8 @@ class CardDetailModel {
       llmStats: llmStats ?? this.llmStats,
       uiConfigs: uiConfigs ?? this.uiConfigs,
       status: status ?? this.status,
-      failureReason: clearFailureReason
-          ? null
-          : failureReason ?? this.failureReason,
+      failureReason:
+          clearFailureReason ? null : failureReason ?? this.failureReason,
     );
   }
 }

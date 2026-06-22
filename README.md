@@ -244,12 +244,8 @@ For Android local development, prefer `globalDev` / `cnDev`; they use isolated p
 ```
 lib/
 ├── agent/          # Multi-agent system
-│   ├── pkm_agent/        # Personal knowledge management
-│   ├── card_agent/       # Timeline card generation
-│   ├── insight_agent/    # Cross-record insight discovery
 │   ├── comment_agent/    # AI commentary
 │   ├── memory_agent/     # Memory summarization
-│   ├── persona_agent/    # User profile modeling
 │   ├── super_agent/      # Orchestrator agent
 │   └── skills/           # Composable agent skills
 ├── data/           # Repositories & services

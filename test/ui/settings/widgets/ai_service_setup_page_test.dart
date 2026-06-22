@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:memex/config/app_flavor.dart';
 import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/data/services/settings_registry.dart';
-import 'package:memex/domain/models/agent_definitions.dart';
 import 'package:memex/domain/models/llm_config.dart';
 import 'package:memex/ui/settings/view_models/ai_service_setup_viewmodel.dart';
 import 'package:memex/ui/settings/widgets/agent_config_list_page.dart';
@@ -48,7 +47,6 @@ void main() {
     );
     expect(find.text(UserStorage.l10n.modelRolesTitle), findsNothing);
     expect(find.text(UserStorage.l10n.textModelRoleTitle), findsNothing);
-    expect(find.text(UserStorage.l10n.visionModelRoleTitle), findsNothing);
     expect(
       find.byKey(const ValueKey('ai-service-speech-local-switch')),
       findsNothing,
@@ -78,6 +76,13 @@ void main() {
     expect(item.title, UserStorage.l10n.aiModelHubTitle);
     expect(item.description, UserStorage.l10n.aiModelHubSubtitle);
     expect(targetPage, isA<AiServiceSetupPage>());
+  });
+
+  test('settings registry does not expose app lock entry', () {
+    expect(
+      SettingsRegistry.allItems.map((item) => item.id),
+      isNot(contains('app_lock')),
+    );
   });
 
   testWidgets('official route opens the existing Memex auth flow', (
@@ -146,7 +151,10 @@ void main() {
         findsOneWidget);
     expect(find.text(UserStorage.l10n.modelRolesTitle), findsOneWidget);
     expect(find.text(UserStorage.l10n.textModelRoleTitle), findsOneWidget);
-    expect(find.text(UserStorage.l10n.visionModelRoleTitle), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('ai-model-vision-slot')),
+      findsNothing,
+    );
     expect(find.text(UserStorage.l10n.aiSetupServiceCapabilitiesTitle),
         findsOneWidget);
     expect(
@@ -167,7 +175,7 @@ void main() {
     expect(find.text(UserStorage.l10n.aiServiceMemexRouteTitle), findsNothing);
   });
 
-  testWidgets('model role selectors update default and media agent model', (
+  testWidgets('model role selector updates the primary model', (
     tester,
   ) async {
     const textConfig = LLMConfig(
@@ -177,17 +185,17 @@ void main() {
       apiKey: 'sk-text',
       baseUrl: 'https://api.deepseek.com',
     );
-    const visionConfig = LLMConfig(
-      key: 'vision-main',
+    const otherConfig = LLMConfig(
+      key: 'other-main',
       type: LLMConfig.typeChatCompletion,
       modelId: 'gpt-5.4',
-      apiKey: 'sk-vision',
+      apiKey: 'sk-other',
       baseUrl: 'https://api.openai.com/v1',
     );
     await UserStorage.saveLLMConfigs([
       LLMConfig.createDefaultClientConfig(),
       textConfig,
-      visionConfig,
+      otherConfig,
     ]);
 
     await _pumpCustomPage(tester);
@@ -202,43 +210,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(await UserStorage.getDefaultLLMConfigKey(), textConfig.key);
-
-    final visionDropdown = find.byKey(
-      const ValueKey('ai-model-vision-slot-dropdown'),
-    );
-    await tester.ensureVisible(visionDropdown);
-    await tester.tap(visionDropdown);
-    await tester.pumpAndSettle();
-    await tester.tap(find.textContaining(visionConfig.key).last);
-    await tester.pumpAndSettle();
-
-    final mediaConfig = await UserStorage.getAgentConfig(
-      AgentDefinitions.analyzeAssets,
-    );
-    expect(mediaConfig.llmConfigKey, visionConfig.key);
-
-    await tester.ensureVisible(visionDropdown);
-    await tester.tap(visionDropdown);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(UserStorage.l10n.followTextModel).last);
-    await tester.pumpAndSettle();
-
-    final resetMediaConfig = await UserStorage.getAgentConfig(
-      AgentDefinitions.analyzeAssets,
-    );
-    expect(resetMediaConfig.llmConfigKey, isNull);
   });
 
-  testWidgets('vision selector warns when selected model is not multimodal', (
+  testWidgets('custom route does not expose a separate vision model slot', (
     tester,
   ) async {
-    const multimodalConfig = LLMConfig(
-      key: 'vision-ready',
-      type: LLMConfig.typeChatCompletion,
-      modelId: 'gpt-4o',
-      apiKey: 'sk-vision',
-      baseUrl: 'https://api.openai.com/v1',
-    );
     const textOnlyConfig = LLMConfig(
       key: 'text-only',
       type: LLMConfig.typeDeepSeek,
@@ -248,30 +224,18 @@ void main() {
     );
     await UserStorage.saveLLMConfigs([
       LLMConfig.createDefaultClientConfig(),
-      multimodalConfig,
       textOnlyConfig,
     ]);
-    await UserStorage.setDefaultLLMConfigKey(multimodalConfig.key);
 
     await _pumpCustomPage(tester);
 
     expect(
-      find.text(UserStorage.l10n.visionModelNonMultimodalWarning),
-      findsNothing,
-    );
-
-    final visionDropdown = find.byKey(
-      const ValueKey('ai-model-vision-slot-dropdown'),
-    );
-    await tester.ensureVisible(visionDropdown);
-    await tester.tap(visionDropdown);
-    await tester.pumpAndSettle();
-    await tester.tap(find.textContaining(textOnlyConfig.key).last);
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text(UserStorage.l10n.visionModelNonMultimodalWarning),
+      find.byKey(const ValueKey('ai-model-text-slot-dropdown')),
       findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('ai-model-vision-slot-dropdown')),
+      findsNothing,
     );
   });
 

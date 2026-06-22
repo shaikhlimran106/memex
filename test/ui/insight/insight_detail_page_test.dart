@@ -35,6 +35,7 @@ void main() {
       ),
       findsWidgets,
     );
-    expect(find.textContaining('Knowledge insight card not found'), findsNothing);
+    expect(
+        find.textContaining('Knowledge insight card not found'), findsNothing);
   });
 }

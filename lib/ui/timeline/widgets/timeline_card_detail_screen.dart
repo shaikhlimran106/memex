@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +21,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:memex/ui/timeline/widgets/timeline/asset_header_gallery.dart';
 import 'package:memex/ui/core/widgets/local_image.dart';
 
-import 'package:memex/ui/chat/widgets/agent_chat_dialog.dart';
+import 'package:memex/ui/chat/widgets/open_super_agent_dialog.dart';
+import 'package:memex/ui/chat/widgets/reference_asset_formatter.dart';
 import 'package:memex/data/services/event_bus_service.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
@@ -33,30 +33,12 @@ import 'package:memex/ui/core/widgets/agent_logo_loading.dart';
 import 'package:memex/ui/character/widgets/persona_chat_screen.dart';
 import 'package:memex/utils/share_service.dart';
 import 'package:memex/ui/core/cards/native_card_factory.dart';
-import 'package:memex/ui/timeline/widgets/failed_card_recovery_banner.dart';
-import 'package:memex/utils/logger.dart';
-
-typedef CardDetailFetcher = Future<CardDetailModel> Function(String cardId);
-typedef ActiveCardTaskFetcher = Future<bool> Function(String cardId);
 
 /// Timeline card detail screen - plays full card detail
 class TimelineCardDetailScreen extends StatefulWidget {
   final String cardId;
-  final CardDetailFetcher? fetchCardDetail;
-  final ActiveCardTaskFetcher? hasActiveTaskForCard;
-  final Duration activeTaskQueryTimeout;
-  final bool enableRouterSideEffects;
 
-  const TimelineCardDetailScreen({
-    super.key,
-    required this.cardId,
-    this.fetchCardDetail,
-    this.hasActiveTaskForCard,
-    this.activeTaskQueryTimeout = defaultActiveTaskQueryTimeout,
-    this.enableRouterSideEffects = true,
-  });
-
-  static const Duration defaultActiveTaskQueryTimeout = Duration(seconds: 2);
+  const TimelineCardDetailScreen({super.key, required this.cardId});
 
   @override
   State<TimelineCardDetailScreen> createState() =>
@@ -67,30 +49,21 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
   CardDetailModel? _detail;
   bool _isLoading = true;
   String? _errorMessage;
-  MemexRouter? _memexRouter;
+  late final MemexRouter _memexRouter;
   String _userName = 'User';
   String? _userAvatar;
   double? _firstImageAspectRatio;
   bool _showInsightText = true;
   String? _replyToCommentId;
   String? _replyToCommentName;
-  bool _isRetryingCard = false;
-  bool _hasActiveCardTask = false;
-  int _detailFetchGeneration = 0;
-  final _logger = getLogger('TimelineCardDetailScreen');
-
-  MemexRouter get _router => _memexRouter ??= MemexRouter();
 
   @override
   void initState() {
     super.initState();
-    if (widget.enableRouterSideEffects) {
-      _router.registerCardDetailForeground(widget.cardId);
-    }
+    _memexRouter = MemexRouter();
+    _memexRouter.registerCardDetailForeground(widget.cardId);
     _fetchDetail();
-    if (widget.enableRouterSideEffects) {
-      _loadUserInfo();
-    }
+    _loadUserInfo();
     _setupEventBus();
   }
 
@@ -123,8 +96,8 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
 
   Future<void> _loadUserInfo() async {
     final name = await UserStorage.getUserId();
-    final avatar = await _router.getUserAvatar();
-    final settings = await _router.getCommentSettings();
+    final avatar = await _memexRouter.getUserAvatar();
+    final settings = await _memexRouter.getCommentSettings();
     if (mounted) {
       setState(() {
         _userName = name ?? 'User';
@@ -149,10 +122,7 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
 
   @override
   void dispose() {
-    _detailFetchGeneration++;
-    if (widget.enableRouterSideEffects) {
-      _memexRouter?.unregisterCardDetailForeground(widget.cardId);
-    }
+    _memexRouter.unregisterCardDetailForeground(widget.cardId);
     EventBusService.instance.removeHandler(
       EventBusMessageType.cardDetailUpdated,
       _handleCardDetailUpdated,
@@ -165,7 +135,6 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
   }
 
   Future<void> _fetchDetail() async {
-    final generation = ++_detailFetchGeneration;
     if (_detail == null) {
       setState(() {
         _isLoading = true;
@@ -174,143 +143,88 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
     }
 
     try {
-      final fetchDetail = widget.fetchCardDetail ?? _router.fetchCardDetail;
-      final detail = await fetchDetail(widget.cardId);
-      if (!mounted || generation != _detailFetchGeneration) return;
+      final detail = await _memexRouter.fetchCardDetail(widget.cardId);
+      if (!mounted) return;
       setState(() {
         _detail = detail;
-        _hasActiveCardTask = false;
-        _isLoading = false;
-        _errorMessage = null;
       });
       _resolveFirstImageAspectRatio(detail);
 
       // Dismiss any pending card-detail notification for this card.
-      if (widget.enableRouterSideEffects) {
-        unawaited(_router.dismissCardDetailOnViewed(widget.cardId));
-      }
-      unawaited(_refreshActiveCardTask(generation));
+      _memexRouter.dismissCardDetailOnViewed(widget.cardId);
     } catch (e) {
-      if (!mounted || generation != _detailFetchGeneration) return;
+      if (!mounted) return;
       setState(() {
         _errorMessage = UserStorage.l10n.loadDetailFailedRetryShort;
-        _isLoading = false;
       });
       ToastHelper.showError(context, e);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
-  }
-
-  Future<void> _refreshActiveCardTask(int generation) async {
-    final fetchActiveTask =
-        widget.hasActiveTaskForCard ?? _router.hasActiveTaskForCard;
-    var hasActiveCardTask = false;
-    try {
-      hasActiveCardTask = await fetchActiveTask(
-        widget.cardId,
-      ).timeout(widget.activeTaskQueryTimeout);
-    } on TimeoutException catch (e, st) {
-      _logger.warning('hasActiveTaskForCard timed out', e, st);
-    } catch (e, st) {
-      _logger.warning('hasActiveTaskForCard failed', e, st);
-    }
-    if (!mounted || generation != _detailFetchGeneration) return;
-    setState(() {
-      _hasActiveCardTask = hasActiveCardTask;
-    });
   }
 
   void _showChatDialog() {
     if (_detail == null) return;
 
-    final contextString = StringBuffer();
-    contextString.writeln('Card Fact ID: ${_detail!.id}');
-    contextString.writeln(
-      'Card Local Time: ${formatLocalDateTimeWithZone(_detail!.timestamp)}',
+    openSuperAgentDialog(
+      context,
+      sceneId: _detail!.id,
+      initialRefs: [
+        {
+          'title': _detail!.title,
+          'content': _buildCardReferenceContent(_detail!),
+          'type': 'timeline_card',
+        },
+      ],
     );
-    contextString.writeln('Card Title: ${_detail!.title}');
-    contextString.writeln('Card Content: ${_detail!.rawContent}');
-    if (_detail!.insight.text.isNotEmpty) {
-      contextString.writeln('Asset analysis results: ${_detail!.insight.text}');
-    }
+  }
 
-    if (_detail!.insight.comments.isNotEmpty) {
-      contextString.writeln('Card Comments:');
-      for (var comment in _detail!.insight.comments) {
-        final authorName =
-            comment.isAi ? 'AI' : (comment.character?.name ?? 'User');
-        final authorId =
-            comment.isAi ? 'ai_agent' : (comment.character?.id ?? 'user');
-        final time = formatLocalDateTimeWithZone(
-          DateTime.fromMillisecondsSinceEpoch(comment.timestamp * 1000),
-        );
-        contextString.writeln(
-          '- [$time] $authorName (ID: $authorId): ${comment.content}',
+  String _buildCardReferenceContent(CardDetailModel detail) {
+    final buffer = StringBuffer()
+      ..writeln('Reference Type: timeline_card')
+      ..writeln('Target Card ID: ${detail.id}')
+      ..writeln(
+          'Record Local Time: ${formatLocalDateTimeWithZone(detail.timestamp)}')
+      ..writeln('Title: ${detail.title}')
+      ..writeln('Status: ${detail.status}');
+
+    if (detail.tags.isNotEmpty) {
+      buffer.writeln('Tags: ${detail.tags.join(', ')}');
+    }
+    if (detail.address.isNotEmpty && detail.address != 'Unknown') {
+      buffer.writeln('Location: ${detail.address}');
+    }
+    if (detail.rawContent.isNotEmpty) {
+      buffer.writeln('Record Content:\n${detail.rawContent}');
+    }
+    if (detail.assets.isNotEmpty) {
+      buffer.writeln('Assets:');
+      for (final asset in detail.assets) {
+        buffer.writeln(
+          '- ${asset.type}: ${formatAssetReferenceForAgent(asset)}',
         );
       }
     }
-
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: '',
-      barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 500),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return AgentChatDialog(
-          agentName: 'memex_agent',
-          title: UserStorage.l10n.aiAssistant,
-          inputHint: UserStorage.l10n.aiInputHint,
-          scene: 'assistant_timeline_card_detail',
-          sceneId: _detail!.id,
-          initialRefs: [
-            {
-              'title': _detail!.title,
-              'content': contextString.toString(),
-              'type': 'timeline_card',
-            },
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _retryCardGeneration() async {
-    if (_isRetryingCard) return;
-
-    setState(() => _isRetryingCard = true);
-    final success = await _router.retryCardGeneration(widget.cardId);
-    if (!mounted) return;
-
-    setState(() => _isRetryingCard = false);
-    if (success) {
-      ToastHelper.showSuccess(
-        context,
-        UserStorage.l10n.cardRegenerationStarted,
-      );
-      await _fetchDetail();
-    } else {
-      ToastHelper.showError(context, UserStorage.l10n.cardRegenerationFailed);
+    if (detail.insight.text.isNotEmpty) {
+      buffer.writeln('Existing AI Insight:\n${detail.insight.text}');
     }
-  }
+    if (detail.insight.comments.isNotEmpty) {
+      buffer.writeln('Comments:');
+      for (final comment in detail.insight.comments) {
+        final authorName =
+            comment.isAi ? 'AI' : (comment.character?.name ?? 'User');
+        final time = formatLocalDateTimeWithZone(
+          DateTime.fromMillisecondsSinceEpoch(comment.timestamp * 1000),
+        );
+        buffer.writeln('- [$time] $authorName: ${comment.content}');
+      }
+    }
 
-  void _showFailureReason() {
-    final reason = _detail?.failureReason;
-    if (reason == null || reason.isEmpty) return;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        title: Text(UserStorage.l10n.failureReason),
-        content: SingleChildScrollView(child: SelectableText(reason)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(MaterialLocalizations.of(context).closeButtonLabel),
-          ),
-        ],
-      ),
-    );
+    return buffer.toString();
   }
 
   void _openCalendar() {
@@ -412,7 +326,7 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
       // API call
       // Server expects unix timestamp in seconds
       final timestamp = newDateTime.millisecondsSinceEpoch ~/ 1000;
-      await _router.updateCardTime(widget.cardId, timestamp);
+      await _memexRouter.updateCardTime(widget.cardId, timestamp);
       if (!mounted) return;
       ToastHelper.showSuccess(context, UserStorage.l10n.timeUpdated);
     } catch (e) {
@@ -455,7 +369,7 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
       });
 
       try {
-        await _router.updateCardLocation(
+        await _memexRouter.updateCardLocation(
           widget.cardId,
           result.point.latitude,
           result.point.longitude,
@@ -505,7 +419,7 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
 
     try {
       // call delete API
-      await _router.deleteCard(widget.cardId);
+      await _memexRouter.deleteCard(widget.cardId);
 
       if (mounted) {
         ToastHelper.showSuccess(context, UserStorage.l10n.deleteSuccess);
@@ -1177,17 +1091,8 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const SizedBox(height: 16),
-                                  CardProcessingStatusBanner(
-                                    status: detail.status,
-                                    failureReason: detail.failureReason,
-                                    hasActiveTask: _hasActiveCardTask,
-                                    isRetrying: _isRetryingCard,
-                                    onRetry: _retryCardGeneration,
-                                    onShowReason: _showFailureReason,
-                                  ),
-                                  if (detail.status == 'failed' ||
-                                      (detail.status == 'processing' &&
-                                          _hasActiveCardTask)) ...[
+                                  if (detail.status == 'processing') ...[
+                                    const CardProcessingBanner(),
                                     const SizedBox(height: 16),
                                   ],
                                   // Title
@@ -1209,77 +1114,15 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
                                       ),
                                     ),
 
-                                  // Content with tags
-                                  if (detail.rawContent.isNotEmpty ||
-                                      detail.tags.isNotEmpty)
-                                    Text.rich(
-                                      TextSpan(
-                                        children: [
-                                          TextSpan(
-                                            text: detail.rawContent,
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              color: Color(0xFF334155),
-                                              height: 1.6,
-                                            ),
-                                          ),
-                                          if (detail.rawContent.isNotEmpty &&
-                                              detail.tags.isNotEmpty)
-                                            const TextSpan(text: ' '),
-                                          ...detail.tags.map((tag) {
-                                            return TextSpan(
-                                              text: '#$tag',
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                color: Color(0xFF6366F1),
-                                                fontWeight: FontWeight.w400,
-                                                height: 1.25,
-                                                letterSpacing: 0,
-                                              ),
-                                              recognizer: TapGestureRecognizer()
-                                                ..onTap = () {
-                                                  Navigator.pop(
-                                                    context,
-                                                    {
-                                                      'action': 'filter_tag',
-                                                      'tag': tag,
-                                                    },
-                                                  );
-                                                },
-                                            );
-                                          }).expand(
-                                            (span) => [
-                                              span,
-                                              const TextSpan(text: ' '),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  else if (detail.tags.isNotEmpty)
-                                    Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: detail.tags.map((tag) {
-                                        return GestureDetector(
-                                          onTap: () {
-                                            Navigator.pop(context, {
-                                              'action': 'filter_tag',
-                                              'tag': tag,
-                                            });
-                                          },
-                                          child: Text(
-                                            '#$tag',
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              color: Color(0xFF6366F1),
-                                              fontWeight: FontWeight.w400,
-                                              letterSpacing: 0,
-                                            ),
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ),
+                                  TimelineCardDetailBodySection(
+                                    detail: detail,
+                                    onTagTap: (tag) {
+                                      Navigator.pop(context, {
+                                        'action': 'filter_tag',
+                                        'tag': tag,
+                                      });
+                                    },
+                                  ),
 
                                   const SizedBox(height: 16),
 
@@ -2127,6 +1970,61 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
   }
 }
 
+class TimelineCardDetailBodySection extends StatelessWidget {
+  const TimelineCardDetailBodySection({
+    super.key,
+    required this.detail,
+    this.onTagTap,
+  });
+
+  final CardDetailModel detail;
+  final ValueChanged<String>? onTagTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (detail.rawContent.isEmpty && detail.tags.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: detail.rawContent,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Color(0xFF334155),
+              height: 1.6,
+            ),
+          ),
+          if (detail.rawContent.isNotEmpty && detail.tags.isNotEmpty)
+            const TextSpan(text: ' '),
+          ...detail.tags.map((tag) {
+            return TextSpan(
+              text: '#$tag',
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF6366F1),
+                fontWeight: FontWeight.w400,
+                height: 1.25,
+                letterSpacing: 0,
+              ),
+              recognizer: onTagTap == null
+                  ? null
+                  : (TapGestureRecognizer()..onTap = () => onTagTap!(tag)),
+            );
+          }).expand(
+            (span) => [
+              span,
+              const TextSpan(text: ' '),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _FullScreenGallery extends StatefulWidget {
   final List<AssetData> assets;
   final int initialIndex;
@@ -2390,6 +2288,42 @@ class _CommentInputWidgetState extends State<_CommentInputWidget> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class CardProcessingBanner extends StatelessWidget {
+  const CardProcessingBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEF2FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFF818CF8).withValues(alpha: 0.35),
+          width: 0.8,
+        ),
+      ),
+      child: Row(
+        children: [
+          const AgentLogoLoading(size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              UserStorage.l10n.processingStatus,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF3730A3),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

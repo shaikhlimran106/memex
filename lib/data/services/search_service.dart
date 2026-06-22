@@ -314,27 +314,12 @@ class SearchService {
         final cardData = await fs.readCardFile(userId, factId);
         if (cardData == null || cardData.deleted == true) continue;
 
-        final factInfo = await fs.extractFactContentFromFile(userId, factId);
-        final rawContent = factInfo?.content ?? '';
-        final assetAnalysisTexts = (factInfo?.assetAnalyses ?? [])
-            .map((a) => a['analysis'] as String? ?? '')
-            .where((s) => s.isNotEmpty)
-            .toList();
-        final assetText = assetAnalysisTexts.join(' ');
-        final assetOcrTexts = (factInfo?.assetOcrTexts ?? [])
-            .map((a) => a['ocr_text'] as String? ?? '')
-            .where((s) => s.isNotEmpty)
-            .toList();
-        final ocrText = assetOcrTexts.join(' ');
-        final combined = [rawContent, assetText, ocrText]
-            .where((s) => s.isNotEmpty)
-            .join(' ');
-
+        // The card's `fact` field is the source text used for card search.
         await dao.upsertCardFts(
           factId: factId,
           title: cardData.title ?? '',
           tags: cardData.tags.join(' '),
-          content: combined,
+          content: cardData.fact ?? '',
           insight: cardData.insight?.text ?? '',
         );
         count++;
@@ -441,6 +426,7 @@ class SearchService {
     Map<String, dynamic> after,
   ) {
     return _stringValue(before['title']) != _stringValue(after['title']) ||
+        _stringValue(before['fact']) != _stringValue(after['fact']) ||
         _stringListValue(before['tags']) != _stringListValue(after['tags']) ||
         _insightText(before['insight']) != _insightText(after['insight']);
   }

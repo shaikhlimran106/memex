@@ -1,11 +1,8 @@
 import 'package:dart_agent_core/dart_agent_core.dart';
-import 'package:memex/agent/prompts.dart';
 import 'package:memex/utils/date_util.dart';
 import 'package:memex/data/services/file_system_service.dart';
-import 'package:memex/data/services/file_operation_service.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/time_context.dart';
-import 'dart:io';
 
 final getCurrentTimeTool = Tool(
   name: 'getCurrentTime',
@@ -29,10 +26,21 @@ final getCurrentTimeTool = Tool(
   },
 );
 
-final getPkmOverviewTool = Tool(
-  name: 'get_pkm_overview',
+/// Mint a fresh `fact_id` for a brand-new record, reserving the id by writing a
+/// `processing` placeholder card. This is a SuperAgent base tool (not buried in
+/// a skill) so the agent can mint without first activating
+/// `manage_timeline_card` — capture then becomes a clean "mint, then delegate"
+/// flow. It writes data, so it is intentionally excluded from Quick Query
+/// (read-only) mode.
+final mintRecordFactIdTool = Tool(
+  name: 'mint_record_fact_id',
   description:
-      'Get current directory structure and file information of the PKM knowledge base.',
+      "Mint a fresh fact_id for a brand-new record BEFORE creating its card. "
+      "The system reserves the id (it never collides and is never guessed by "
+      "you). Pass the returned fact_id into the task_brief of every worker for "
+      "this record (card / PKM / schedule) so they all link to one identity. "
+      "Use this only for a NEW record — to edit an existing card, reuse that "
+      "card's id instead.",
   parameters: {
     'type': 'object',
     'properties': {},
@@ -41,34 +49,23 @@ final getPkmOverviewTool = Tool(
     final context = AgentCallToolContext.current;
     if (context == null) {
       throw StateError(
-          "get_pkm_overview must be called within an agent execution context.");
+          "mint_record_fact_id must be called within an agent execution context.");
     }
     final userId = context.state.metadata['userId'] as String;
-    final fileService = FileSystemService.instance;
-    final fileOpService = FileOperationService.instance;
-
-    final workingDirectory = fileService.getWorkspacePath(userId);
-    final pkmPath = fileService.getPkmPath(userId);
-    final pkmDir = Directory(pkmPath);
-
-    String pkmStructure = '';
-    try {
-      if (pkmDir.existsSync()) {
-        pkmStructure = await fileOpService.listDirectory(
-          dirPath: pkmPath,
-          workingDirectory: workingDirectory,
-        );
-      } else {
-        pkmStructure = Prompts.pkmAgentDirectoryNotCreated;
-      }
-    } catch (e) {
-      getLogger('PkmAgent').warning('Failed to get PKM structure: $e');
-      pkmStructure = Prompts.pkmAgentDirectoryStructureError(e.toString());
-    }
-    final header = pkmStructure.contains('passing a specific path') ? Prompts.pkmAgentTruncatedOverviewHeader : Prompts.pkmAgentFullOverviewHeader;
-    return '''<system-reminder>
-$header
-$pkmStructure
-</system-reminder>''';
+    final factId = await FileSystemService.instance.allocateCardFactId(userId);
+    getLogger('CommonTools').info('Minted fact_id: $factId');
+    return AgentToolResult(
+      content: TextPart(
+          "Minted fact_id: $factId. Use this exact id when saving the card "
+          "(save_timeline_card), organizing it into PKM "
+          "(`<!-- fact_id: $factId -->`), and updating the schedule, so every "
+          "part of this record shares one identity."),
+      metadata: {
+        'artifact': {
+          'type': 'fact_id',
+          'id': factId,
+        },
+      },
+    );
   },
 );

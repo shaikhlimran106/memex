@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:memex/data/repositories/get_schedule_briefing_timeline_card.dart'
     as schedule_briefing_endpoint;
+import 'package:memex/data/repositories/migrate_cards_fact_assets.dart';
 import 'package:memex/data/repositories/update_card_ui_config.dart'
     as update_config_endpoint;
 import 'package:memex/data/services/search_service.dart';
@@ -10,14 +11,9 @@ import 'package:memex/data/services/backup_service.dart';
 import 'package:memex/data/services/user_stats_service.dart';
 import 'package:memex/domain/models/calendar_model.dart';
 import 'package:memex/data/repositories/hydrate_card.dart';
-import 'package:memex/data/services/task_handlers/knowledge_insight_handler.dart';
-import 'package:memex/data/services/task_handlers/schedule_aggregator_handler.dart';
-import 'package:memex/data/services/task_handlers/post_card_router_handler.dart';
-import 'package:memex/data/services/task_handlers/clarification_resolution_handler.dart';
 import 'package:memex/data/services/table_change_notifier.dart';
 import 'package:memex/data/services/card_attachment_service.dart';
 import 'package:memex/data/services/card_detail_notifier.dart';
-import 'package:memex/data/services/clarification_request_service.dart';
 import 'package:memex/data/services/agent_background_coordinator.dart';
 import 'package:memex/data/services/agent_background_task_service.dart';
 import 'package:memex/data/services/event_bus_service.dart';
@@ -45,21 +41,10 @@ import 'package:memex/data/services/chat_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/data/services/global_event_bus.dart';
-import 'package:memex/data/repositories/submit_input.dart'
-    as submit_input_endpoint;
-import 'package:memex/data/repositories/reprocess_pending_cards.dart';
-import 'package:memex/data/repositories/retry_failed_cards.dart'
-    as retry_failed_cards_endpoint;
-import 'package:memex/data/services/task_handlers/analyze_assets_handler.dart';
-import 'package:memex/data/services/task_handlers/card_agent_handler.dart';
-import 'package:memex/data/services/task_handlers/pkm_agent_handler.dart';
-import 'package:memex/data/services/task_handlers/ask_clarification_handler.dart';
 import 'package:memex/data/services/task_handlers/fts_index_handler.dart';
 import 'package:memex/data/services/task_handlers/llm_error_utils.dart';
 import 'package:memex/data/services/task_handlers/comment_agent_handler.dart';
-import 'package:memex/data/services/task_handlers/reprocess_cards_handler.dart';
 import 'package:memex/data/services/task_handlers/reprocess_comments_handler.dart';
-import 'package:memex/data/services/task_handlers/reprocess_knowledge_base_handler.dart';
 import 'package:memex/data/services/task_handlers/custom_agent_task_handler.dart';
 import 'package:memex/data/services/custom_agent_config_service.dart';
 import 'package:memex/data/repositories/get_tags.dart';
@@ -75,7 +60,6 @@ import 'package:memex/data/repositories/character.dart';
 import 'package:memex/data/repositories/health.dart' as health_endpoint;
 import 'package:memex/data/repositories/pkm.dart' as pkm_endpoint;
 import 'package:memex/domain/models/knowledge_insight_card.dart';
-import 'package:memex/domain/models/card_generation_retry_result.dart';
 import 'package:memex/data/repositories/get_knowledge_insight_detail.dart';
 import 'package:memex/data/repositories/chat.dart' as chat_endpoint;
 import 'package:memex/data/services/llm_call_record_service.dart';
@@ -120,6 +104,8 @@ class MemexRouter {
       // Use userId to init DB (drift_flutter handles path isolation via name)
       _logger.info('Initializing Local DB for user: $userId');
       await AppDatabase.init(userId);
+
+      _registerTaskHandlers(LocalTaskExecutor.instance);
       await LocalTaskExecutor.instance.start(userId: userId);
 
       // Start table change notifier (binlog-style listener for Drift tables)
@@ -130,10 +116,6 @@ class MemexRouter {
       UserNotificationService.instance.init();
       // Register card-detail change notifier (subscribes to GlobalEventBus)
       CardDetailNotifier.instance.init();
-      // Register clarification request table watcher (creates timeline cards for global Ask)
-      ClarificationRequestService.instance.init();
-
-      _registerTaskHandlers(LocalTaskExecutor.instance);
 
       // Register event subscriptions after task handlers are ready.
       _registerEventSubscriptions();
@@ -152,6 +134,12 @@ class MemexRouter {
       // Also triggers a one-time full rebuild when FTS tables were just created
       // via migration (existing users upgrading to schema v10).
       SearchService.instance.init(userId);
+
+      // One-time migration: backfill legacy cards' fact/assets/created_at
+      // fields from their Facts files. Runs after SearchService subscribes so
+      // migrated card facts are incrementally reflected in FTS.
+      await migrateCardsToFactAssets(userId);
+
       await ScheduleStateService.instance.ensureInitialized(userId);
 
       scheduleAutoBackupCheck(trigger: 'app_start');
@@ -169,96 +157,17 @@ class MemexRouter {
   void _registerEventSubscriptions() {
     final eventBus = GlobalEventBus.instance;
 
-    eventBus.subscribe(
-      eventType: SystemEventTypes.userInputSubmitted,
-      subscription: EventTaskSubscription(
-        subscriptionId: 'analyze_assets',
-        taskType: 'handle_analyze_assets',
-        payloadBuilder: (_, event) {
-          final p = event.payload as UserInputSubmittedPayload;
-          return Future.value({
-            'run_id': p.factId,
-            'fact_id': p.factId,
-            'asset_paths': p.assetPaths,
-          });
-        },
-      ),
-    );
-
-    eventBus.subscribe(
-      eventType: SystemEventTypes.userInputSubmitted,
-      subscription: EventTaskSubscription(
-        subscriptionId: 'card_agent',
-        taskType: 'card_agent_task',
-        dependsOn: const ['analyze_assets'],
-        payloadBuilder: (_, event) {
-          final p = event.payload as UserInputSubmittedPayload;
-          return Future.value({
-            'run_id': p.factId,
-            'fact_id': p.factId,
-            'combined_text': p.combinedText,
-            'markdown_entry': p.markdownEntry,
-            'created_at_ts': p.createdAtTs,
-            'location_context_reminder': p.locationContextReminder,
-          });
-        },
-      ),
-    );
-
-    eventBus.subscribe(
-      eventType: SystemEventTypes.userInputSubmitted,
-      subscription: EventTaskSubscription(
-        subscriptionId: 'pkm_agent',
-        taskType: 'pkm_agent_task',
-        dependsOn: const ['analyze_assets'],
-        payloadBuilder: (_, event) {
-          final p = event.payload as UserInputSubmittedPayload;
-          return Future.value({
-            'run_id': p.factId,
-            'fact_id': p.factId,
-            'combined_text': p.combinedText,
-            'created_at_ts': p.pkmCreatedAtTs,
-            'location_context_reminder': p.locationContextReminder,
-          });
-        },
-        dependenciesBuilder: (_, __) async {
-          final lastPkmTaskId = await LocalTaskExecutor.instance
-              .getLastTaskByType('pkm_agent_task');
-          return lastPkmTaskId == null ? const [] : [lastPkmTaskId];
-        },
-      ),
-    );
-
+    // Capture happens inside SuperAgent. After a new card is saved,
+    // SuperAgent re-publishes this event so independent consumers such as
+    // comment_agent can react through the persistent task queue.
     eventBus.subscribe(
       eventType: SystemEventTypes.userInputSubmitted,
       subscription: EventTaskSubscription(
         subscriptionId: 'comment_agent',
         taskType: 'comment_agent_task',
-        dependsOn: const ['pkm_agent'],
         payloadBuilder: (_, event) {
           final p = event.payload as UserInputSubmittedPayload;
           return Future.value({
-            'run_id': p.factId,
-            'fact_id': p.factId,
-            'combined_text': p.combinedText,
-            'created_at_ts': p.createdAtTs,
-            'location_context_reminder': p.locationContextReminder,
-          });
-        },
-      ),
-    );
-
-    eventBus.subscribe(
-      eventType: SystemEventTypes.userInputSubmitted,
-      subscription: EventTaskSubscription(
-        subscriptionId: 'post_card_router',
-        taskType: 'post_card_router_task',
-        dependsOn: const ['analyze_assets'],
-        priority: -1,
-        payloadBuilder: (_, event) {
-          final p = event.payload as UserInputSubmittedPayload;
-          return Future.value({
-            'run_id': p.factId,
             'fact_id': p.factId,
             'combined_text': p.combinedText,
             'created_at_ts': p.createdAtTs,
@@ -300,45 +209,6 @@ class MemexRouter {
       subscription: EventSyncSubscription<CardUiConfigUpdatedPayload>(
         subscriptionId: 'schedule_state_on_card_ui_config_update',
         handler: handleScheduleStateOnCardUiConfigUpdated,
-      ),
-    );
-
-    eventBus.subscribe(
-      eventType: SystemEventTypes.knowledgeInsightRefreshRequested,
-      subscription: EventTaskSubscription(
-        subscriptionId: 'knowledge_insight_refresh',
-        taskType: 'knowledge_insight_task',
-        payloadBuilder: (_, event) => Future.value(const {}),
-      ),
-    );
-
-    eventBus.subscribe(
-      eventType: SystemEventTypes.scheduleAggregationRequested,
-      subscription: EventTaskSubscription(
-        subscriptionId: 'schedule_aggregation_refresh',
-        taskType: 'schedule_aggregator_task',
-        payloadBuilder: (_, event) {
-          final payload = event.payload;
-          if (payload is Map<String, dynamic>) {
-            return Future.value(Map<String, dynamic>.from(payload));
-          }
-          if (payload is Map) {
-            return Future.value(Map<String, dynamic>.from(payload));
-          }
-          return Future.value(const {});
-        },
-      ),
-    );
-
-    eventBus.subscribe(
-      eventType: SystemEventTypes.clarificationAnswered,
-      subscription: EventTaskSubscription(
-        subscriptionId: 'clarification_resolution',
-        taskType: 'clarification_resolution_task',
-        payloadBuilder: (_, event) {
-          final p = event.payload as ClarificationAnsweredPayload;
-          return Future.value({'request_id': p.requestId});
-        },
       ),
     );
   }
@@ -390,25 +260,13 @@ class MemexRouter {
   static void _registerTaskHandlers(LocalTaskExecutor executor) {
     // LocalTaskExecutor handles this map; re-registering overwrites which is fine.
     executor.registerHandler(
-      'handle_analyze_assets',
-      handleAnalyzeAssetsImpl,
-    );
-    executor.registerHandler(
-      'card_agent_task',
-      handleCardAgentImpl,
-    );
-    executor.registerHandler(
-      'pkm_agent_task',
-      handlePkmAgentImpl,
+      'super_agent_chat_turn_task',
+      ChatService.instance.handleSuperAgentChatTurnTask,
+      concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
     );
     executor.registerHandler(
       'fts_index_update',
       handleFtsIndexUpdateImpl,
-    );
-    executor.registerHandler(
-      'reprocess_cards_task',
-      handleReprocessCardsImpl,
-      concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
     );
     executor.registerHandler(
       'comment_agent_task',
@@ -420,54 +278,13 @@ class MemexRouter {
       concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
     );
     executor.registerHandler(
-      'reprocess_knowledge_base_task',
-      handleReprocessKnowledgeBaseImpl,
-      concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
-    );
-    executor.registerHandler(
       'process_ai_reply',
       handleProcessAiReplyImpl,
     );
-    executor.registerHandler(
-      'knowledge_insight_task',
-      handleKnowledgeInsight,
-      concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
-    );
-    executor.registerHandler(
-      'schedule_aggregator_task',
-      handleScheduleAggregation,
-      concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
-    );
-    executor.registerHandler(
-      'post_card_router_task',
-      handlePostCardRouter,
-    );
-    executor.registerHandler(
-      'ask_clarification_task',
-      handleAskClarificationTask,
-    );
-    executor.registerHandler(
-      'clarification_resolution_task',
-      handleClarificationResolution,
-    );
-
-    executor.registerFailureHandler(
-      'card_agent_task',
-      handleCardAgentFailureImpl,
-    );
     for (final taskType in [
-      'pkm_agent_task',
       'comment_agent_task',
-      'knowledge_insight_task',
-      'schedule_aggregator_task',
-      'post_card_router_task',
-      'ask_clarification_task',
-      'clarification_resolution_task',
-      'reprocess_cards_task',
       'reprocess_comments_task',
-      'reprocess_knowledge_base_task',
       'process_ai_reply',
-      'handle_analyze_assets',
     ]) {
       executor.registerFailureHandler(
         taskType,
@@ -528,7 +345,7 @@ class MemexRouter {
     unawaited(AgentBackgroundTaskService.instance.stopMonitoring(
       reason: 'logout',
     ));
-    unawaited(LocalTaskExecutor.instance.stop());
+    LocalTaskExecutor.instance.stop();
     SearchService.instance.reset();
   }
 
@@ -537,7 +354,7 @@ class MemexRouter {
     unawaited(AgentBackgroundTaskService.instance.stopMonitoring(
       reason: 'router_dispose',
     ));
-    unawaited(LocalTaskExecutor.instance.stop());
+    LocalTaskExecutor.instance.stop();
   }
 
   AgentActivityService get agentActivityService =>
@@ -547,63 +364,6 @@ class MemexRouter {
     return null;
   }
 
-  Future<Map<String, dynamic>> submitInput({
-    String? text,
-    List<XFile> images = const [],
-    String? audioPath,
-    String? textHash,
-    List<String>? imageHashes,
-    String? audioHash,
-  }) async {
-    await _ensureInitialized();
-    _logger.info(
-      'LocalMode: submitInput called. Text: $text, Images: ${images.length}, Audio: $audioPath',
-    );
-
-    final content = <Map<String, dynamic>>[];
-
-    // Add Text
-    if (text != null && text.isNotEmpty) {
-      content.add({'type': 'text', 'text': text, 'client_hash': textHash});
-    }
-
-    // Add Images
-    for (var i = 0; i < images.length; i++) {
-      final image = images[i];
-      final hash = (imageHashes != null && i < imageHashes.length)
-          ? imageHashes[i]
-          : null;
-
-      // Local Optimization: Pass file path directly
-      content.add({
-        'type': 'image_url',
-        'client_hash': hash,
-        'image_url': {'filePath': image.path},
-      });
-    }
-
-    // Add Audio
-    if (audioPath != null) {
-      final audioFile = File(audioPath);
-      if (await audioFile.exists()) {
-        // Local Optimization: Pass file path directly
-        content.add({
-          'type': 'input_audio',
-          'client_hash': audioHash,
-          'input_audio': {'filePath': audioPath},
-        });
-      }
-    }
-
-    // Get current user ID
-    final userId = await UserStorage.getUserId();
-    if (userId == null) {
-      throw Exception('User not logged in, cannot submit local data');
-    }
-
-    return submit_input_endpoint.submitInput(userId, content);
-  }
-
   Future<List<String>> checkProcessedHashes(List<String> hashes) async {
     await _ensureInitialized();
     if (hashes.isEmpty) return [];
@@ -611,7 +371,17 @@ class MemexRouter {
     final userId = await UserStorage.getUserId();
     if (userId == null) return hashes;
 
-    return submit_input_endpoint.checkUnprocessedHashes(userId, hashes);
+    return fileSystemService.checkUnprocessedHashes(userId, hashes);
+  }
+
+  Future<void> recordProcessedHashes(List<String> hashes) async {
+    await _ensureInitialized();
+    if (hashes.isEmpty) return;
+
+    final userId = await UserStorage.getUserId();
+    if (userId == null) return;
+
+    await fileSystemService.recordProcessedHashes(userId, hashes);
   }
 
   Future<Result<List<TagModel>>> fetchTags() async {
@@ -732,30 +502,6 @@ class MemexRouter {
     return getCardDetail(cardId);
   }
 
-  Future<int> countFailedCardGenerations() async {
-    await _ensureInitialized();
-    return retry_failed_cards_endpoint.countFailedCardGenerations();
-  }
-
-  Future<bool> retryCardGeneration(String cardId) async {
-    await _ensureInitialized();
-    _logger.info('LocalMode: retryCardGeneration called: cardId=$cardId');
-    try {
-      return await retry_failed_cards_endpoint.retryFailedCardGeneration(
-        cardId,
-      );
-    } catch (e) {
-      _logger.severe('Failed to retry card generation for $cardId: $e');
-      return false;
-    }
-  }
-
-  Future<CardGenerationRetryResult> retryAllFailedCardGenerations() async {
-    await _ensureInitialized();
-    _logger.info('LocalMode: retryAllFailedCardGenerations called');
-    return retry_failed_cards_endpoint.retryAllFailedCardGenerations();
-  }
-
   Future<Map<String, dynamic>> postComment(
     String cardId,
     String content, {
@@ -860,8 +606,7 @@ class MemexRouter {
     }
   }
 
-  /// Clears all workspace data except the Facts directory.
-  /// Only the Facts directory is kept; all other subdirectories are deleted.
+  /// Clears all workspace data for the current user.
   Future<void> clearData() async {
     await _ensureInitialized();
     try {
@@ -874,8 +619,6 @@ class MemexRouter {
 
       await for (final entity in workspaceDir.list(followLinks: false)) {
         if (entity is Directory) {
-          final name = path.basename(entity.path);
-          if (name == 'Facts') continue;
           try {
             await entity.delete(recursive: true);
             _logger.info('Deleted directory: ${entity.path}');
@@ -1279,14 +1022,22 @@ class MemexRouter {
     });
   }
 
-  Future<Map<String, dynamic>> fetchChatSessionDetail(String sessionId) async {
+  Future<Map<String, dynamic>> fetchChatSessionDetail(
+    String sessionId, {
+    int? messageLimit,
+    int messageOffset = 0,
+  }) async {
     await _ensureInitialized();
     _logger.info(
       'LocalMode: fetchChatSessionDetail called: sessionId=$sessionId',
     );
 
     try {
-      return await chat_endpoint.fetchChatSessionDetailEndpoint(sessionId);
+      return await chat_endpoint.fetchChatSessionDetailEndpoint(
+        sessionId,
+        messageLimit: messageLimit,
+        messageOffset: messageOffset,
+      );
     } catch (e) {
       _logger.severe('Failed to fetch chat session detail: $e');
       rethrow;
@@ -1399,18 +1150,35 @@ class MemexRouter {
     String? scene = 'assistant',
     String? sceneId,
     List<Map<String, String>>? refs,
+    List<XFile> images = const [],
+    Map<String, String>? imageOriginalFilenames,
     bool isQuickQuery = false,
-  }) {
-    return ChatService.instance.sendMessage(
+    String runMode = 'auto',
+  }) async* {
+    await _ensureInitialized();
+    yield* ChatService.instance.sendMessage(
       message,
       sessionId: sessionId,
       agentName: agentName,
       scene: scene,
       sceneId: sceneId,
       refs: refs,
+      images: images,
+      imageOriginalFilenames: imageOriginalFilenames,
       isQuickQuery: isQuickQuery,
+      runMode: runMode,
     );
   }
+
+  /// Whether the session has an in-memory run or a persisted chat turn waiting
+  /// to resume after app restart.
+  Future<bool> hasActiveChatRun(String? sessionId) =>
+      ChatService.instance.hasActiveRun(sessionId);
+
+  /// Re-attaches to an in-flight chat run: replays missed events, then
+  /// continues live.
+  Stream<ChatEvent> attachToChatRun(String sessionId) =>
+      ChatService.instance.attachToActiveRun(sessionId);
 
   Future<bool> reportDailyHealthSummary(
     Map<String, Map<String, dynamic>> dailySummary,
@@ -1672,19 +1440,7 @@ class MemexRouter {
   }
 
   Future<void> saveLLMConfigs(List<LLMConfig> configs) async {
-    final previousConfigs = await UserStorage.getLLMConfigs();
-    final hadValidConfig = previousConfigs.any((c) => c.isValid);
-    final hasValidConfig = configs.any((c) => c.isValid);
-
     await UserStorage.saveLLMConfigs(configs);
-
-    if (!hadValidConfig && hasValidConfig) {
-      final userId = await UserStorage.getUserId();
-      if (userId != null) {
-        reprocessPendingCards(userId);
-      }
-    }
-
     _emitLLMConfigChanged(configs, reason: 'saved');
   }
 
@@ -1730,54 +1486,12 @@ class MemexRouter {
 
   Future<void> resetAllAgentConfigs() => UserStorage.resetAllAgentConfigs();
 
-  Future<Result<void>> updateKnowledgeInsights() => runResultVoid(() async {
-        await _ensureInitialized();
-        final userId = await UserStorage.getUserId();
-        if (userId == null) {
-          throw Exception('User not logged in');
-        }
-
-        await GlobalEventBus.instance.publish(
-          userId: userId,
-          event: SystemEvent(
-            type: SystemEventTypes.knowledgeInsightRefreshRequested,
-            source: 'memex_router.updateKnowledgeInsights',
-            payload: const {},
-          ),
-        );
-      });
-
-  Future<Result<void>> refreshScheduleAggregation() => runResultVoid(() async {
-        await _ensureInitialized();
-        final userId = await UserStorage.getUserId();
-        if (userId == null) {
-          throw Exception('User not logged in');
-        }
-
-        await GlobalEventBus.instance.publish(
-          userId: userId,
-          event: SystemEvent(
-            type: SystemEventTypes.scheduleAggregationRequested,
-            source: 'memex_router.refreshScheduleAggregation',
-            payload: const {},
-          ),
-        );
-      });
-
   Future<List<Task>> getTasks({int limit = 10, int offset = 0}) =>
       LocalTaskExecutor.instance.getTasks(limit: limit, offset: offset);
 
   Future<TaskActivitySnapshot> getTaskActivitySnapshot() async {
     await _ensureInitialized();
     return LocalTaskExecutor.instance.getTaskActivitySnapshot();
-  }
-
-  Future<bool> hasActiveTaskForCard(String cardId) async {
-    await _ensureInitialized();
-    return LocalTaskExecutor.instance.hasActiveTaskForFactId(
-      cardId,
-      taskTypes: const {'handle_analyze_assets', 'card_agent_task'},
-    );
   }
 
   // ---------------------------------------------------------------------------

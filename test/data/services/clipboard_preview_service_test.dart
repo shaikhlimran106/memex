@@ -34,11 +34,6 @@ void main() {
       }
       return null;
     });
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-      const MethodChannel('com.memexlab.memex/clipboard_preview'),
-      (_) async => null,
-    );
   });
 
   tearDown(() {
@@ -99,6 +94,24 @@ void main() {
       expect(candidate.previewText.endsWith('...'), isTrue);
     });
 
+    test('returns text candidate from native clipboard summary', () async {
+      clipboardText = null;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        const MethodChannel('com.memexlab.memex/clipboard_preview'),
+        (_) async => {
+          'type': 'text',
+          'text': 'Native clipboard text',
+        },
+      );
+
+      final candidate = await service.fetchUnhandledText();
+
+      expect(candidate, isNotNull);
+      expect(candidate!.isText, isTrue);
+      expect(candidate.text, 'Native clipboard text');
+    });
+
     test('treats image data URI as an image candidate', () async {
       clipboardText =
           'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ';
@@ -146,6 +159,38 @@ void main() {
       expect(await service.fetchUnhandledText(), isNull);
     });
 
+    test('skips fallback when native clipboard summary is empty', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        const MethodChannel('com.memexlab.memex/clipboard_preview'),
+        (_) async => null,
+      );
+
+      expect(await service.fetchUnhandledText(), isNull);
+    });
+
+    test('uses plain text fallback only when native channel is missing',
+        () async {
+      final candidate = await service.fetchUnhandledText();
+      expect(candidate, isNotNull);
+      expect(candidate!.isText, isTrue);
+      expect(candidate.text, clipboardText);
+    });
+
+    test('ignores binary-looking clipboard text from image bytes', () async {
+      clipboardText = '\u0089PNG\r\n\u001A\n'
+          '\u0000\u0000\u0000\rIHDR'
+          '\u0000\u0000\u0001,\u0000\u0000\u0002X';
+
+      expect(await service.fetchUnhandledText(), isNull);
+    });
+
+    test('ignores replacement-heavy decoded binary clipboard text', () async {
+      clipboardText = '${List.filled(16, '\uFFFD').join()}JFIF';
+
+      expect(await service.fetchUnhandledText(), isNull);
+    });
+
     test(
       'does not return the same candidate after it is marked handled',
       () async {
@@ -173,18 +218,17 @@ void main() {
       expect(await service.fetchUnhandledText(), isNull);
     });
 
-    test('keeps only the most recent handled hashes', () async {
-      for (var i = 0; i < 81; i += 1) {
-        await service.markTextHandled('handled text $i');
-      }
+    test('only suppresses the last handled clipboard token', () async {
+      await service.markTextHandled('handled text 0');
+      await service.markTextHandled('handled text 1');
 
-      clipboardText = 'handled text 80';
+      clipboardText = 'handled text 1';
       expect(await service.fetchUnhandledText(), isNull);
 
       clipboardText = 'handled text 0';
-      final droppedCandidate = await service.fetchUnhandledText();
-      expect(droppedCandidate, isNotNull);
-      expect(droppedCandidate!.text, 'handled text 0');
+      final previousCandidate = await service.fetchUnhandledText();
+      expect(previousCandidate, isNotNull);
+      expect(previousCandidate!.text, 'handled text 0');
     });
 
     test(

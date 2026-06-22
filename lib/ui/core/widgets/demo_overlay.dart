@@ -204,7 +204,7 @@ class _SpotlightOverlayState extends State<_SpotlightOverlay> {
   }
 
   void _findTarget() {
-    // Delay for animated widgets (InputSheet slide-up, page transitions, card rebuild).
+    // Delay for animated widgets (chat dialog, page transitions, card rebuild).
     final delay = widget.targetKey == DemoService.instance.sendButtonKey
         ? const Duration(milliseconds: 400)
         : widget.targetKey == DemoService.instance.firstCardKey

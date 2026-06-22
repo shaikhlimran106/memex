@@ -245,8 +245,7 @@ class AssetSafetyService {
       }
     }
 
-    final inlineSafe =
-        fileSize <= config.maxFileBytesForInlineBase64 &&
+    final inlineSafe = fileSize <= config.maxFileBytesForInlineBase64 &&
         safeForPreview &&
         safeForAnalysis;
 
@@ -290,8 +289,7 @@ class AssetSafetyService {
     }
 
     final safeForAnalysis = reasons.isEmpty;
-    final inlineSafe =
-        fileSize <= config.maxFileBytesForInlineBase64 &&
+    final inlineSafe = fileSize <= config.maxFileBytesForInlineBase64 &&
         durationSeconds != null &&
         durationSeconds <= config.maxAudioSecondsForAutoTranscribe;
 

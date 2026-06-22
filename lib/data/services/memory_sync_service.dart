@@ -89,40 +89,25 @@ class MemorySyncService {
         final fileSystem = FileSystemService.instance;
 
         for (final factId in batch) {
-          final factInfo =
-              await fileSystem.extractFactContentFromFile(userId, factId);
-
-          if (factInfo == null) {
-            _logger.warning('Failed to extract fact content for: $factId');
+          // The card's own `fact` field is the source-of-truth user input
+          // (text + meaningful attachment content). Cards created through
+          // SuperAgent have no Facts file, so read the card directly.
+          final card = await fileSystem.readCardFile(userId, factId);
+          final factText = card?.fact?.trim() ?? '';
+          if (card == null || factText.isEmpty) {
+            _logger.warning('No card.fact to sync for: $factId');
             continue;
           }
 
-          // Build enriched content with asset analyses from factInfo
           final contentBuffer = StringBuffer();
           contentBuffer.writeln("<user_fact>");
           contentBuffer.writeln('ID: $factId');
-          contentBuffer.writeln(
-              "Published Time: ${formatLocalDateTimeWithZone(factInfo.datetime)}");
-
-          // Explicitly label the user's original text input
-          contentBuffer.writeln('User Original Content:');
-          contentBuffer.writeln(factInfo.content);
-          contentBuffer.writeln('\n');
-
-          if (factInfo.assetAnalyses.isNotEmpty) {
-            // Explicitly label the asset analysis as system-generated auxiliary info
+          if (card.timestamp > 0) {
             contentBuffer.writeln(
-                '\n--- System Asset Analysis (AI Generated - Reference Only) ---');
-
-            for (final analysis in factInfo.assetAnalyses) {
-              final name = analysis['name'];
-              final analysisText = analysis['analysis'];
-              contentBuffer.writeln('Asset index: ${analysis['index']}\n');
-              contentBuffer.writeln('$name analysis:');
-              contentBuffer.writeln(analysisText);
-              contentBuffer.writeln('\n');
-            }
+                "Published Time: ${formatLocalDateTimeWithZone(DateTime.fromMillisecondsSinceEpoch(card.timestamp * 1000))}");
           }
+          contentBuffer.writeln('User Original Content:');
+          contentBuffer.writeln(factText);
           contentBuffer.writeln("</user_fact>");
 
           facts.add({
@@ -177,11 +162,9 @@ class MemorySyncService {
 
     // Add global context about the data structure
     buffer.writeln("## Data Structure Definition");
-    buffer.writeln("Each item in <user_facts> consist of:");
+    buffer.writeln("Each item in <user_facts> contains:");
     buffer.writeln(
-        "1. 'User Original Content': The actual text typed by the user. THIS IS THE SOURCE OF TRUTH for user opinions/thoughts.");
-    buffer.writeln(
-        "2. 'System Asset Analysis': AI-generated descriptions of images/audio attached by the user. Use this ONLY as context to understand what the user is referring to. DO NOT attribute these descriptions as user's own words.");
+        "'User Original Content': the source-of-truth record for this user — the user's own text plus the meaningful content of any attachments they captured. Base memory extraction on this.");
     buffer.writeln("");
 
     buffer.writeln("## User Facts");

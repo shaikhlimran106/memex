@@ -3,16 +3,27 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_agent_core/dart_agent_core.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:logging/logging.dart';
 import 'package:memex/agent/memex_skill_host_agent/memex_skill_host_agent.dart';
+import 'package:memex/agent/run_mode/agent_run_mode.dart';
 import 'package:memex/agent/pure_skill_host_agent/pure_skill_host_agent.dart';
+import 'package:memex/agent/state_util.dart';
 import 'package:memex/agent/super_agent/super_agent.dart';
+import 'package:memex/agent/super_agent/subagent/delegate_progress.dart';
+import 'package:memex/data/services/asset_safety_service.dart';
+import 'package:memex/data/services/agent_run_service.dart';
+import 'package:memex/data/services/chat_history_sanitizer.dart';
+import 'package:memex/data/services/chat_run_registry.dart';
 import 'package:memex/data/services/custom_agent_config_service.dart';
+import 'package:memex/data/services/llm_image_codec.dart';
 import 'package:memex/data/services/location_context_service.dart';
 import 'package:memex/domain/models/custom_agent_config.dart';
 import 'package:memex/domain/models/location_context_config.dart';
 import 'package:memex/domain/models/llm_config.dart';
 import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/data/services/image_exif_context.dart';
+import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/time_context.dart';
 import 'package:memex/domain/models/agent_definitions.dart';
@@ -28,6 +39,184 @@ export 'package:memex/data/model/chat_events.dart';
 
 // --- Chat Service ---
 
+class _ChatDelegateProgressSink implements DelegateProgressSink {
+  _ChatDelegateProgressSink(this._run);
+
+  final ActiveChatRun _run;
+  final Map<String, List<String>> _pendingDelegateCallIdsByBrief = {};
+  final Map<String, String> _delegateParentIds = {};
+  final Map<String, int> _childTraceCounters = {};
+  final Map<String, List<String>> _pendingChildTraceIdsByTool = {};
+
+  void registerDelegateToolCall({
+    required String callId,
+    required String arguments,
+  }) {
+    final taskBrief = _taskBriefFromArguments(arguments);
+    if (taskBrief == null || taskBrief.isEmpty) return;
+    (_pendingDelegateCallIdsByBrief[taskBrief] ??= <String>[]).add(callId);
+  }
+
+  @override
+  void delegateStarted(DelegateProgress progress) {
+    final parentCallId = _takePendingDelegateCallId(progress.taskBrief);
+    if (parentCallId == null) return;
+    _delegateParentIds[progress.delegateRunId] = parentCallId;
+    final event = ChatTraceStartedEvent(
+      id: parentCallId,
+      kind: ChatTraceKind.delegate,
+      name: 'delegate_to_subagent',
+      args: progress.taskBrief,
+      label: progress.childName,
+    );
+    _run.add(event);
+  }
+
+  @override
+  void childToolStarted({
+    required DelegateProgress progress,
+    required String toolName,
+    required String arguments,
+  }) {
+    final parentId = _delegateParentIds[progress.delegateRunId];
+    if (parentId == null) return;
+    final childTraceId = _nextChildTraceId(progress.delegateRunId, toolName);
+    final event = ChatTraceStartedEvent(
+      id: childTraceId,
+      parentId: parentId,
+      kind: ChatTraceKind.tool,
+      name: toolName,
+      args: arguments,
+      label: progress.childName,
+    );
+    _run.add(event);
+  }
+
+  @override
+  void childToolFinished({
+    required DelegateProgress progress,
+    required FunctionExecutionResult result,
+  }) {
+    final parentId = _delegateParentIds[progress.delegateRunId];
+    final childTraceId = _takeChildTraceId(progress.delegateRunId, result.name);
+    if (parentId == null || childTraceId == null) return;
+    final resultText = _toolResultText(result);
+    _run.add(ChatTraceCompletedEvent(
+      id: childTraceId,
+      result: _preview(resultText, 300),
+      isError: result.isError,
+    ));
+  }
+
+  @override
+  void delegateFinished({
+    required DelegateProgress progress,
+    required String status,
+    required String summary,
+  }) {
+    final parentId = _delegateParentIds.remove(progress.delegateRunId);
+    if (parentId == null) return;
+    _childTraceCounters.remove(progress.delegateRunId);
+    _pendingChildTraceIdsByTool
+        .removeWhere((key, _) => key.startsWith('${progress.delegateRunId}:'));
+    final event = ChatTraceCompletedEvent(
+      id: parentId,
+      status: status,
+      result: summary,
+      isError: status == 'failed',
+    );
+    _run.add(event);
+  }
+
+  String _toolResultText(FunctionExecutionResult result) {
+    final dynamic content = result.content;
+    if (content is List) {
+      return content.map((e) {
+        if (e is TextPart) return e.text;
+        return e.toString();
+      }).join('\n');
+    } else if (content is TextPart) {
+      return content.text;
+    } else {
+      return content.toString();
+    }
+  }
+
+  String? _taskBriefFromArguments(String arguments) {
+    try {
+      final decoded = jsonDecode(arguments);
+      if (decoded is! Map) return null;
+      final taskBrief = decoded['task_brief'];
+      return taskBrief is String ? taskBrief : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String? _takePendingDelegateCallId(String taskBrief) {
+    final calls = _pendingDelegateCallIdsByBrief[taskBrief];
+    if (calls == null || calls.isEmpty) return null;
+    final callId = calls.removeAt(0);
+    if (calls.isEmpty) {
+      _pendingDelegateCallIdsByBrief.remove(taskBrief);
+    }
+    return callId;
+  }
+
+  String _nextChildTraceId(String delegateRunId, String toolName) {
+    final next = (_childTraceCounters[delegateRunId] ?? 0) + 1;
+    _childTraceCounters[delegateRunId] = next;
+    final id = '$delegateRunId/tool/$next';
+    (_pendingChildTraceIdsByTool[_childTraceKey(delegateRunId, toolName)] ??=
+            <String>[])
+        .add(id);
+    return id;
+  }
+
+  String? _takeChildTraceId(String delegateRunId, String toolName) {
+    final key = _childTraceKey(delegateRunId, toolName);
+    final ids = _pendingChildTraceIdsByTool[key];
+    if (ids == null || ids.isEmpty) return null;
+    final id = ids.removeAt(0);
+    if (ids.isEmpty) {
+      _pendingChildTraceIdsByTool.remove(key);
+    }
+    return id;
+  }
+
+  String _childTraceKey(String delegateRunId, String toolName) =>
+      '$delegateRunId:$toolName';
+}
+
+String _preview(String text, int maxChars) {
+  if (text.length <= maxChars) return text;
+  return '${text.substring(0, maxChars)}...';
+}
+
+bool isActiveChatTurnTaskForSession({
+  required String sessionId,
+  required String taskType,
+  required String expectedTaskType,
+  required String status,
+  required String? payloadJson,
+}) {
+  if (sessionId.isEmpty) return false;
+  if (taskType != expectedTaskType) return false;
+  if (!const {'pending', 'processing', 'retrying'}.contains(status)) {
+    return false;
+  }
+
+  try {
+    final payload = payloadJson == null || payloadJson.isEmpty
+        ? null
+        : jsonDecode(payloadJson);
+    if (payload is! Map) return false;
+    return payload['session_id'] == sessionId;
+  } catch (_) {
+    return false;
+  }
+}
+
 class ChatService {
   static final ChatService _instance = ChatService._internal();
   static ChatService get instance => _instance;
@@ -36,6 +225,58 @@ class ChatService {
   final Logger _logger = getLogger('ChatService');
   FileSystemService get _fileService => FileSystemService.instance;
   final Uuid _uuid = const Uuid();
+  static const String _superAgentChatTurnTaskType =
+      'super_agent_chat_turn_task';
+
+  /// In-flight runs keyed by session id. Runs are owned by the service so a
+  /// closed chat dialog does not interrupt them; a reopened dialog can
+  /// re-attach and replay what it missed.
+  final ChatRunRegistry _runRegistry = ChatRunRegistry();
+
+  /// Whether [sessionId] has an in-memory run, or a persisted chat turn waiting
+  /// to resume after app restart.
+  Future<bool> hasActiveRun(String? sessionId) async {
+    if (sessionId == null || sessionId.isEmpty) return false;
+    if (_runRegistry.isActive(sessionId)) return true;
+    return _hasQueuedChatTurn(sessionId);
+  }
+
+  /// Replays everything the in-flight run emitted so far, then continues
+  /// live. If the app restarted while this session had a persisted queued
+  /// turn, creates a placeholder run so the task handler can publish into the
+  /// same stream once it resumes.
+  Stream<ChatEvent> attachToActiveRun(String sessionId) async* {
+    final activeRun = _runRegistry[sessionId];
+    if (activeRun != null) {
+      yield* activeRun.attach();
+      return;
+    }
+
+    if (!await _hasQueuedChatTurn(sessionId)) return;
+    yield* _runRegistry.getOrStart(sessionId).attach();
+  }
+
+  Future<bool> _hasQueuedChatTurn(String sessionId) async {
+    try {
+      final tasks = await LocalTaskExecutor.instance.getTasks(limit: 200);
+      return tasks.any(
+        (task) => isActiveChatTurnTaskForSession(
+          sessionId: sessionId,
+          taskType: task.type,
+          expectedTaskType: _superAgentChatTurnTaskType,
+          status: task.status,
+          payloadJson: task.payload,
+        ),
+      );
+    } catch (e, stackTrace) {
+      _logger.warning(
+        'Failed to query queued chat turn for session $sessionId',
+        e,
+        stackTrace,
+      );
+      return false;
+    }
+  }
 
   /// Send a message and get a stream of events.
   ///
@@ -48,7 +289,10 @@ class ChatService {
     String? scene = 'assistant',
     String? sceneId,
     List<Map<String, String>>? refs,
+    List<XFile> images = const [],
+    Map<String, String>? imageOriginalFilenames,
     bool isQuickQuery = false,
+    String runMode = 'auto',
   }) async* {
     _logger.info(
       'sendMessage: sessionId=$sessionId, message=$message, refs=${refs?.length}',
@@ -62,6 +306,35 @@ class ChatService {
 
     String finalSessionId = sessionId ?? '';
     final userMessageTime = DateTime.now();
+    final turnId = _uuid.v4();
+    final trimmedMessage = message.trim();
+    final preparedImages = <_PreparedChatImage>[];
+
+    try {
+      for (final image in images) {
+        preparedImages.add(
+          await _prepareChatImage(
+            userId: userId,
+            image: image,
+            originalName: imageOriginalFilenames?[image.path],
+          ),
+        );
+      }
+    } catch (e) {
+      _logger.severe('Failed to prepare chat image attachment', e);
+      yield ChatErrorEvent('Failed to prepare image attachment: $e');
+      return;
+    }
+
+    if (trimmedMessage.isEmpty && preparedImages.isEmpty) {
+      yield ChatErrorEvent('Message is empty');
+      return;
+    }
+
+    final sessionContent = _buildSessionUserContent(
+      trimmedMessage,
+      preparedImages,
+    );
 
     // 1. Session Management
     try {
@@ -69,10 +342,10 @@ class ChatService {
         finalSessionId = await _createSession(
           userId,
           agentName,
-          [
-            {'type': 'text', 'text': message},
-          ],
+          sessionContent,
           isQuickQuery: isQuickQuery,
+          scene: scene,
+          sceneId: sceneId,
           createdAt: userMessageTime,
         );
       }
@@ -85,12 +358,11 @@ class ChatService {
         userId,
         finalSessionId,
         'user',
-        [
-          {'type': 'text', 'text': message},
-        ],
+        sessionContent,
         refs: refs,
         isQuickQuery: isQuickQuery,
         timestamp: userMessageTime,
+        turnId: turnId,
       );
 
       // Log chat event
@@ -104,11 +376,13 @@ class ChatService {
             'scene': scene ?? 'assistant',
             'scene_id': sceneId,
             'session_id': finalSessionId,
-            'message': message,
+            'message': trimmedMessage,
             'message_local_time': formatLocalDateTimeWithZone(userMessageTime),
             'message_unix_seconds': unixSecondsFromDateTime(userMessageTime),
             'has_refs': refs != null && refs.isNotEmpty,
+            'has_images': preparedImages.isNotEmpty,
             'is_quick_query': isQuickQuery,
+            'run_mode': runMode,
           },
         );
       } catch (e) {
@@ -120,6 +394,121 @@ class ChatService {
       return;
     }
 
+    final runAlreadyActive = _runRegistry.isActive(finalSessionId);
+    final run = _runRegistry.getOrStart(finalSessionId);
+
+    try {
+      final previousTaskId = await LocalTaskExecutor.instance.getLastTaskByType(
+        _superAgentChatTurnTaskType,
+      );
+      final runId = await AgentRunService.instance.createForSuperAgentChatTurn(
+        userId: userId,
+        sessionId: finalSessionId,
+        turnId: turnId,
+      );
+      await LocalTaskExecutor.instance.enqueueTask(
+        userId: userId,
+        taskType: _superAgentChatTurnTaskType,
+        payload: {
+          'turn_id': turnId,
+          'session_id': finalSessionId,
+          'message': trimmedMessage,
+          'agent_name': agentName ?? 'memex_agent',
+          'scene': scene ?? 'assistant',
+          'scene_id': sceneId,
+          'refs': refs,
+          'images': preparedImages.map((image) => image.toTaskJson()).toList(),
+          'is_quick_query': isQuickQuery,
+          'run_mode': runMode,
+          'user_message_time': userMessageTime.toIso8601String(),
+        },
+        // A chat turn is user-visible and should start promptly, but keep it
+        // below system maintenance work that may use higher explicit priority.
+        priority: 10,
+        bizId: 'chat_turn:$finalSessionId:$turnId',
+        dependencies: previousTaskId == null ? null : [previousTaskId],
+        runId: runId,
+      );
+    } catch (e, st) {
+      _logger.severe('Failed to enqueue chat turn', e, st);
+      run.add(ChatErrorEvent('Failed to enqueue chat turn: $e'));
+      run.close();
+    }
+
+    if (runAlreadyActive) {
+      // The dialog already has a live subscription for this session. This call
+      // only persists/enqueues the next turn; returning live events here would
+      // create a second UI subscription and duplicate or steal stream handling.
+      return;
+    }
+
+    yield* run.attach();
+  }
+
+  Future<void> handleSuperAgentChatTurnTask(
+    String userId,
+    Map<String, dynamic> payload,
+    TaskContext taskContext,
+  ) async {
+    final sessionId = payload['session_id'] as String;
+    final turnId = payload['turn_id'] as String;
+    final message = payload['message'] as String? ?? '';
+    final agentName = payload['agent_name'] as String? ?? 'memex_agent';
+    final scene = payload['scene'] as String? ?? 'assistant';
+    final sceneId = payload['scene_id'] as String?;
+    final refs = _decodeRefs(payload['refs']);
+    final preparedImages = _decodePreparedImages(payload['images']);
+    final isQuickQuery = payload['is_quick_query'] as bool? ?? false;
+    final runMode = payload['run_mode'] as String? ?? 'auto';
+    final userMessageTime =
+        tryParseDateTime(payload['user_message_time']) ?? DateTime.now();
+
+    if (await _sessionHasAssistantForTurn(userId, sessionId, turnId)) {
+      _logger.info(
+        'Skipping already-completed chat turn $turnId for session $sessionId',
+      );
+      if (await _shouldCloseRunAfterTask(taskContext.taskId)) {
+        _runRegistry[sessionId]?.close();
+      }
+      return;
+    }
+
+    final run = _runRegistry.getOrStart(sessionId);
+
+    await _runSuperAgentChatTurn(
+      userId: userId,
+      sessionId: sessionId,
+      turnId: turnId,
+      taskId: taskContext.taskId,
+      message: message,
+      agentName: agentName,
+      scene: scene,
+      sceneId: sceneId,
+      refs: refs,
+      preparedImages: preparedImages,
+      isQuickQuery: isQuickQuery,
+      runMode: runMode,
+      userMessageTime: userMessageTime,
+      run: run,
+    );
+  }
+
+  Future<void> _runSuperAgentChatTurn({
+    required String userId,
+    required String sessionId,
+    required String turnId,
+    required String taskId,
+    required String message,
+    required String agentName,
+    required String scene,
+    required String? sceneId,
+    required List<Map<String, String>>? refs,
+    required List<_PreparedChatImage> preparedImages,
+    required bool isQuickQuery,
+    required String runMode,
+    required DateTime userMessageTime,
+    required ActiveChatRun run,
+  }) async {
     // 2. Initialize Agent
     StatefulAgent? agent;
     AgentController? controller;
@@ -129,9 +518,9 @@ class ChatService {
       // Check if this session belongs to a custom agent by reading session metadata,
       // then load the latest config from CustomAgentConfigService.
       CustomAgentConfig? customAgentCfg;
-      if (sessionId != null && sessionId.isNotEmpty) {
-        final isCustom = await _isCustomAgentSession(userId, finalSessionId);
-        if (isCustom && agentName != null && agentName.isNotEmpty) {
+      if (sessionId.isNotEmpty) {
+        final isCustom = await _isCustomAgentSession(userId, sessionId);
+        if (isCustom && agentName.isNotEmpty) {
           final configs = await CustomAgentConfigService.instance.loadAll(
             userId,
           );
@@ -149,16 +538,51 @@ class ChatService {
       );
       final client = resources.client;
       final modelConfig = resources.modelConfig;
-
       // Load State
-      final stateDirPath = await _fileService.getAgentStateDirectory(userId);
-      final stateDir = Directory(stateDirPath);
-      final storage = FileStateStorage(stateDir);
-      final state = await storage.loadOrCreate(finalSessionId, {
+      final state = await loadOrCreateAgentState(sessionId, {
         'userId': userId,
         'scene': scene,
         'sceneId': sceneId,
       });
+      // Refresh per-turn: the user can switch run modes between messages.
+      state.metadata[AgentRunMode.metadataKey] = runMode;
+
+      // Heal sessions that inlined provider-unsafe images (e.g. HEIC before
+      // transcoding existed): they are replayed every turn and would fail
+      // OpenAI-compatible providers with 400 forever.
+      if (state.metadata['history_images_sanitized_v1'] != true) {
+        try {
+          final sanitized = await LlmImageCodec.sanitizeHistoryImages(state);
+          if (sanitized > 0) {
+            _logger.info(
+              'Sanitized $sanitized provider-unsafe history image(s) '
+              'in session $sessionId',
+            );
+          }
+          state.metadata['history_images_sanitized_v1'] = true;
+        } catch (e) {
+          _logger.warning('History image sanitize failed: $e');
+        }
+      }
+
+      // Heal sessions poisoned by the legacy reminder injection (a fake
+      // "Understood, I will keep this context in mind." assistant turn per
+      // message), which made the loop detector misfire. New turns use the
+      // transient systemReminders channel instead (see below).
+      if (state.metadata['history_reminder_migrated_v1'] != true) {
+        try {
+          final stripped = ChatHistorySanitizer.stripLegacyReminderTurns(state);
+          if (stripped > 0) {
+            _logger.info(
+              'Stripped $stripped legacy reminder turn message(s) '
+              'in session $sessionId',
+            );
+          }
+          state.metadata['history_reminder_migrated_v1'] = true;
+        } catch (e) {
+          _logger.warning('Legacy reminder strip failed: $e');
+        }
+      }
 
       controller = AgentController();
 
@@ -186,7 +610,7 @@ class ChatService {
               client: client,
               modelConfig: modelConfig,
               userId: userId,
-              name: agentName ?? 'custom_agent',
+              name: agentName,
               state: state,
               skillDirectoryPath: skillSync.effectivePath,
               workingDirectory: workingDirAbs,
@@ -199,7 +623,7 @@ class ChatService {
               client: client,
               modelConfig: modelConfig,
               userId: userId,
-              name: agentName ?? 'custom_agent',
+              name: agentName,
               state: state,
               skillDirectoryPath: skillSync.effectivePath,
               workingDirectory: workingDirAbs,
@@ -209,21 +633,12 @@ class ChatService {
             break;
         }
       } else {
-        // Default: use SuperAgent for normal chat sessions.
-        var additionalSystemPrompt = """## Comprehensive Correction Principles
-When the user disputes content you generated (such as Cards, PKM entries, or Asset Analysis Results) and provides correction suggestions, you must perform a **comprehensive** correction.
--   **Do not modify only a single dimension** (e.g., do not just modify the card body or just the asset analysis).
--   **You must check and synchronously correct all related content** to ensure overall consistency.
--   **Example**: If the user corrects the description of an image, you must not only update the image analysis result (`.analysis.txt`) but also check if the Card body (`Cards/...`) or related PKM entries that reference this image need to be updated synchronously.
-
-## Interaction Guidelines
-- **Ask Clarifying Questions**: You are engaging in a direct dialogue. If the user's request is unclear, explicitly ask for clarification instead of guessing.
-- **Professional Tone**: You are communicating directly with the knowledge base owner. Maintain a formal, concise, and professional tone.
-- **Know Your Limits**: If a task cannot be accomplished with your current skills and tools, explicitly decline the request with an explanation.
-
-## Important
-- **Language**: ${UserStorage.l10n.chatLanguageInstruction}
-""";
+        // Default: use SuperAgent for normal chat sessions. Behavioral
+        // guidance (orchestration, truthfulness, comprehensive correction,
+        // tone, judgment) lives in superAgentSystemPrompt; only the dynamic
+        // language instruction is appended per session here.
+        var additionalSystemPrompt =
+            """## Language\n${UserStorage.l10n.chatLanguageInstruction}""";
 
         final forceActiveSkills = <String>[];
         if (scene == 'assistant_timeline_card_detail') {
@@ -237,10 +652,9 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
           client: client,
           modelConfig: modelConfig,
           userId: userId,
-          name: agentName ?? 'memex_agent',
+          name: agentName,
           state: state,
           controller: controller,
-          disableSubAgents: false,
           forceActiveSkills: forceActiveSkills,
           quickQuery: isQuickQuery,
           additionalSystemPrompt: additionalSystemPrompt,
@@ -248,24 +662,33 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
       }
     } catch (e) {
       _logger.severe('Failed to initialize agent', e);
-      yield ChatErrorEvent('Failed to initialize agent: $e');
-      return;
+      run.add(ChatErrorEvent('Failed to initialize agent: $e'));
+      if (await _shouldCloseRunAfterTask(taskId)) {
+        run.close();
+      }
+      rethrow;
     }
 
     // 3. Setup Listeners & Run
-    final streamController = StreamController<ChatEvent>();
+    final progressSink = _ChatDelegateProgressSink(run);
 
-    // Forward events from agent controller to stream
+    // Forward events from agent controller to the run channel
     _setupControllerListeners(
       controller,
-      streamController,
+      run,
       userId,
-      finalSessionId,
+      sessionId,
+      turnId,
+      taskId,
+      progressSink,
     );
 
     // Build scene context reminder
     String sceneContext = "";
     switch (scene) {
+      case 'super_agent_home':
+        sceneContext = "";
+        break;
       case 'assistant_timeline_card_detail':
         sceneContext =
             "The user is currently viewing a **Timeline Card Detail Page**. They may want to edit, analyze, or discuss this specific card.";
@@ -279,6 +702,18 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
         sceneContext = "";
     }
 
+    if (runMode == AgentRunMode.confirm.wireName) {
+      const modeContext =
+          "Run mode: ASK-FIRST. Every mutating tool call (records, cards, "
+          "PKM/file writes, reminders, deletions) pauses for explicit in-app "
+          "user approval before executing. Propose actions normally and do "
+          "NOT additionally ask for permission in text — the approval card is "
+          "the confirmation. If a tool result says the user declined, do not "
+          "retry the same call; acknowledge and adjust.";
+      sceneContext =
+          sceneContext.isEmpty ? modeContext : "$sceneContext\n\n$modeContext";
+    }
+
     List<LLMMessage> userMessages = [];
     CurrentLocationContext? locationContext;
     String? locationContextReminder;
@@ -290,95 +725,288 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
       _logger.warning('Failed to decorate chat with location context: $e');
     }
 
-    // Build combined system reminder content
-    if (sceneContext.isNotEmpty ||
-        locationContextReminder != null ||
-        (refs != null && refs.isNotEmpty)) {
-      final StringBuffer reminderContent = StringBuffer();
-      reminderContent.write('<system-reminder>\n');
+    // Per-turn context (message time, scene, location, refs) is
+    // folded into a SINGLE <system-reminder> block at the head of this turn's
+    // user message — rather than scattered across separate systemReminders
+    // entries (which the agent loop would each wrap in its own
+    // <system-reminder> tag).
+    final referencedContent = (refs != null && refs.isNotEmpty)
+        ? 'The user opened this chat from the following in-app reference. '
+            'Treat it as the current page context for understanding words like '
+            '"this", "this card", or "this insight", and use the target IDs if '
+            'the user asks to update or organize the referenced content:\n${refs.map(
+                  (r) =>
+                      'Title: ${r['title']}\nType: ${r['type'] ?? 'unknown'}\nContent: ${r['content']}',
+                ).join('\n\n')}'
+        : null;
 
-      // Add scene context if available
-      if (sceneContext.isNotEmpty) {
-        reminderContent.write(sceneContext);
-        reminderContent.write('\n');
+    final reminderSections = <String>[
+      // Two distinct facts: when the message was sent (stays fixed on
+      // reprocessing) vs the current processing moment (becomes "now" on
+      // reprocessing). They coincide for a live turn.
+      'User Message Time: ${formatLocalDateTimeWithZone(userMessageTime)}',
+      'Current Local Time: ${formatLocalDateTimeWithZone(DateTime.now())}',
+      if (locationContextReminder != null && locationContextReminder.isNotEmpty)
+        locationContextReminder.trim(),
+      if (sceneContext.isNotEmpty) sceneContext.trim(),
+      if (referencedContent != null) referencedContent,
+    ];
+    final combinedReminder =
+        '<system-reminder>\n${reminderSections.join('\n\n')}\n</system-reminder>';
+
+    final userContentParts = <UserContentPart>[
+      TextPart(combinedReminder),
+      TextPart(
+        message.isEmpty
+            ? 'User sent ${preparedImages.length} image attachment(s).'
+            : message,
+      ),
+    ];
+    final inlinedImageFileNames = <String>[];
+    for (var i = 0; i < preparedImages.length; i++) {
+      final image = preparedImages[i];
+      userContentParts.add(TextPart(_buildAttachmentReminder(i, image)));
+      final inline = await _inlinePreparedImage(image);
+      if (inline != null) {
+        userContentParts.add(ImagePart(inline.base64Data, inline.mimeType));
+        inlinedImageFileNames.add(image.fsFilename);
       }
-
-      if (locationContextReminder != null) {
-        if (sceneContext.isNotEmpty) {
-          reminderContent.write('\n');
-        }
-        reminderContent.write(locationContextReminder);
-        reminderContent.write('\n');
-      }
-
-      // Add refs context if available
-      if (refs != null && refs.isNotEmpty) {
-        if (sceneContext.isNotEmpty || locationContextReminder != null) {
-          reminderContent.write('\n');
-        }
-        final refsString = refs
-            .map(
-              (r) =>
-                  'Title: ${r['title']}\nType: ${r['type'] ?? 'unknown'}\nContent: ${r['content']}',
-            )
-            .join('\n\n');
-        reminderContent.write(
-          'The user has referenced the following content. Use this context to answer the user query:\n',
-        );
-        reminderContent.write(refsString);
-        reminderContent.write('\n');
-      }
-
-      reminderContent.write('</system-reminder>');
-
-      userMessages.addAll([
-        UserMessage.text(reminderContent.toString()),
-        ModelMessage(
-          model: "mocked",
-          textOutput: "Understood, I will keep this context in mind.",
-        ),
-      ]);
     }
 
-    userMessages.add(
-      UserMessage([
-        TextPart(buildCurrentTimeReminder(userMessageTime)),
-        TextPart(buildMessageTimePrefix(userMessageTime)),
-        TextPart(message),
-      ]),
-    );
+    userMessages.add(UserMessage(
+      userContentParts,
+      metadata: {
+        // Lets the context compressor replace archived image bytes with
+        // fs:// filename placeholders (see SuperAgentContextCompressor).
+        if (inlinedImageFileNames.isNotEmpty)
+          'image_fs_paths': inlinedImageFileNames,
+      },
+    ));
 
-    // We don't await the result here, we rely on AgentStoppedEvent to handle completion
-    agent.run(userMessages).whenComplete(() async {
-      // Sync skill changes back to the original directory if we made a copy.
-      if (skillSync != null) {
-        try {
-          await _fileService.syncSkillsBack(skillSync);
-        } catch (e) {
-          _logger.warning('Failed to sync skills back: $e');
+    final activeAgent = agent;
+    await DelegateProgressContext.run(progressSink, () async {
+      try {
+        await activeAgent.run(userMessages).whenComplete(() async {
+          // Sync skill changes back to the original directory if we made a copy.
+          if (skillSync != null) {
+            try {
+              await _fileService.syncSkillsBack(skillSync);
+            } catch (e) {
+              _logger.warning('Failed to sync skills back: $e');
+            }
+          }
+        });
+      } catch (e) {
+        _logger.severe('Agent run failed', e);
+        if (!run.isClosed) {
+          run.add(ChatErrorEvent(e.toString()));
+          if (await _shouldCloseRunAfterTask(taskId)) {
+            run.close();
+          }
         }
+        rethrow;
       }
-    }).catchError((e) {
-      // This catchError is for synchronous errors during startup or unhandled async errors
-      // causing the run future to fail before AgentStoppedEvent might be emitted (though AgentStoppedEvent is in finally block)
-      _logger.severe('Agent run failed (catchError)', e);
-      if (!streamController.isClosed) {
-        streamController.add(ChatErrorEvent(e.toString()));
-        streamController.close();
-      }
-      return <LLMMessage>[];
     });
+  }
 
-    yield* streamController.stream;
+  Future<_PreparedChatImage> _prepareChatImage({
+    required String userId,
+    required XFile image,
+    required String? originalName,
+  }) async {
+    // Store chat attachments in Facts/assets using the same fs:// reference
+    // scheme as records. The card the agent creates will reference them via
+    // `![image](fs://<filename>)`.
+    final (fsFilename, relativePath) = await _fileService.saveAssetFromFile(
+      userId: userId,
+      sourcePath: image.path,
+      assetType: 'img',
+    );
+    final absolutePath = _fileService.toAbsolutePath(relativePath);
+    final mimeType = _mimeTypeForImagePath(absolutePath);
+
+    String? base64Data;
+    String? inlineMimeType;
+    try {
+      final safety =
+          await AssetSafetyService.instance.inspectFile(absolutePath);
+      if (safety.safeForInlineBase64) {
+        // iOS gallery originals are commonly HEIC, which OpenAI-compatible
+        // endpoints (Kimi, OpenAI) reject. Inline a bounded JPEG transcode;
+        // the stored original stays untouched.
+        final transcoded = await LlmImageCodec.transcodeForLlm(absolutePath);
+        if (transcoded != null) {
+          base64Data = base64Encode(transcoded);
+          inlineMimeType = LlmImageCodec.jpegMimeType;
+        } else {
+          // Only fall back to original bytes when the format is universally
+          // accepted; inlining HEIC would poison the session history.
+          final originalBytes = await File(absolutePath).readAsBytes();
+          if (LlmImageCodec.isLlmSafeImageBytes(originalBytes)) {
+            _logger.warning(
+              'Transcode failed, inlining original bytes for $relativePath',
+            );
+            base64Data = base64Encode(originalBytes);
+          } else {
+            _logger.warning(
+              'Transcode failed and original format is not LLM-safe, '
+              'skipping inline for $relativePath',
+            );
+          }
+        }
+      } else {
+        _logger.warning(
+          'Skipping inline chat image $relativePath: ${safety.reason}',
+        );
+      }
+    } catch (e) {
+      _logger.warning('Failed to inline chat image $relativePath: $e');
+    }
+
+    // Read EXIF (capture time + GPS → reverse-geocoded address) from the
+    // stored original. saveAssetFromFile copies raw bytes, so EXIF survives;
+    // the transcoded inline copy intentionally strips it.
+    final exifInfo = await buildImageExifInfo(userId, absolutePath);
+
+    return _PreparedChatImage(
+      relativePath: relativePath,
+      fsFilename: fsFilename,
+      mimeType: inlineMimeType ?? mimeType,
+      originalName: originalName,
+      base64Data: base64Data,
+      exifInfo: exifInfo,
+    );
+  }
+
+  List<Map<String, dynamic>> _buildSessionUserContent(
+    String message,
+    List<_PreparedChatImage> images,
+  ) {
+    return [
+      if (message.isNotEmpty) {'type': 'text', 'text': message},
+      for (final image in images)
+        {
+          'type': 'image_url',
+          'image_url': {'filePath': image.relativePath},
+          'mime_type': image.mimeType,
+          if (image.originalName != null && image.originalName!.isNotEmpty)
+            'name': image.originalName,
+        },
+    ];
+  }
+
+  String _buildAttachmentReminder(int index, _PreparedChatImage image) {
+    final buffer = StringBuffer()
+      ..writeln('<system-reminder>')
+      ..writeln('Attachment ${index + 1}: fs://${image.fsFilename}')
+      ..writeln(
+        'The following image part is this attachment; do not call '
+        'view_image for this fs:// id.',
+      );
+    if (image.originalName != null && image.originalName!.isNotEmpty) {
+      buffer.writeln('original_name: ${image.originalName}');
+    }
+    buffer.writeln('mime_type: ${image.mimeType}');
+    if (image.exifInfo != null && image.exifInfo!.isNotEmpty) {
+      for (final line in image.exifInfo!.split('\n')) {
+        buffer.writeln(line);
+      }
+    }
+    buffer.writeln('</system-reminder>');
+    return buffer.toString().trimRight();
+  }
+
+  String _mimeTypeForImagePath(String filePath) {
+    final ext = p.extension(filePath).toLowerCase();
+    switch (ext) {
+      case '.jpg':
+      case '.jpeg':
+        return 'image/jpeg';
+      case '.webp':
+        return 'image/webp';
+      case '.gif':
+        return 'image/gif';
+      case '.heic':
+      case '.heif':
+        return 'image/heic';
+      case '.png':
+      default:
+        return 'image/png';
+    }
+  }
+
+  List<Map<String, String>>? _decodeRefs(dynamic raw) {
+    if (raw is! List) return null;
+    final refs = <Map<String, String>>[];
+    for (final item in raw) {
+      if (item is! Map) continue;
+      refs.add({
+        for (final entry in item.entries)
+          if (entry.key != null && entry.value != null)
+            entry.key.toString(): entry.value.toString(),
+      });
+    }
+    return refs.isEmpty ? null : refs;
+  }
+
+  List<_PreparedChatImage> _decodePreparedImages(dynamic raw) {
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map((item) => _PreparedChatImage.fromTaskJson(item))
+        .whereType<_PreparedChatImage>()
+        .toList();
+  }
+
+  Future<_InlinePreparedImage?> _inlinePreparedImage(
+    _PreparedChatImage image,
+  ) async {
+    try {
+      final absolutePath = _fileService.toAbsolutePath(image.relativePath);
+      final safety =
+          await AssetSafetyService.instance.inspectFile(absolutePath);
+      if (!safety.safeForInlineBase64) {
+        _logger.warning(
+          'Skipping inline chat image ${image.relativePath}: ${safety.reason}',
+        );
+        return null;
+      }
+
+      final transcoded = await LlmImageCodec.transcodeForLlm(absolutePath);
+      if (transcoded != null) {
+        return _InlinePreparedImage(
+          base64Data: base64Encode(transcoded),
+          mimeType: LlmImageCodec.jpegMimeType,
+        );
+      }
+
+      final originalBytes = await File(absolutePath).readAsBytes();
+      if (!LlmImageCodec.isLlmSafeImageBytes(originalBytes)) {
+        _logger.warning(
+          'Transcode failed and original format is not LLM-safe, '
+          'skipping inline for ${image.relativePath}',
+        );
+        return null;
+      }
+      return _InlinePreparedImage(
+        base64Data: base64Encode(originalBytes),
+        mimeType: image.mimeType,
+      );
+    } catch (e) {
+      _logger.warning('Failed to inline chat image ${image.relativePath}: $e');
+      return null;
+    }
   }
 
   void _setupControllerListeners(
     AgentController controller,
-    StreamController<ChatEvent> stream,
+    ActiveChatRun stream,
     String userId,
     String sessionId,
+    String turnId,
+    String taskId,
+    _ChatDelegateProgressSink progressSink,
   ) {
-    // 1. Lifecycle Events
     // 1. Lifecycle Events
     controller.on((AgentStartedEvent event) {
       _logger.info('Agent started');
@@ -444,7 +1072,9 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
         if (!stream.isClosed) {
           stream.add(ChatAgentStoppedEvent());
           stream.add(ChatErrorEvent(event.error.toString()));
-          stream.close();
+          if (await _shouldCloseRunAfterTask(taskId)) {
+            stream.close();
+          }
         }
         return;
       }
@@ -458,26 +1088,32 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
         }
       }
 
+      final usage = {
+        'prompt_tokens': totalPrompt,
+        'completion_tokens': totalCompletion,
+        'cached_tokens': totalCached,
+        if (turnCacheSemantics != null)
+          'cache_tokens_included_in_prompt': turnCacheSemantics,
+        'total_tokens': totalTokens,
+        'total_cost': totalCost,
+      };
+
       // Save AI response with usage stats
       final responseTime = DateTime.now();
-      final sessionTotalUsage = await _addMessageToSession(
-        userId,
-        sessionId,
-        'ai',
-        [
-          {'type': 'text', 'text': response},
-        ],
-        usage: {
-          'prompt_tokens': totalPrompt,
-          'completion_tokens': totalCompletion,
-          'cached_tokens': totalCached,
-          if (turnCacheSemantics != null)
-            'cache_tokens_included_in_prompt': turnCacheSemantics,
-          'total_tokens': totalTokens,
-          'total_cost': totalCost,
-        },
-        timestamp: responseTime,
-      );
+      final sessionTotalUsage =
+          await _sessionHasAssistantForTurn(userId, sessionId, turnId)
+              ? null
+              : await _addMessageToSession(
+                  userId,
+                  sessionId,
+                  'ai',
+                  [
+                    {'type': 'text', 'text': response},
+                  ],
+                  usage: usage,
+                  timestamp: responseTime,
+                  turnId: turnId,
+                );
 
       // Emit Token Usage (Cumulative if available, else current turn)
       if (sessionTotalUsage != null) {
@@ -512,7 +1148,9 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
         // Send a final empty chunk to mark isDone=true without duplicating text
         stream.add(ChatResponseChunkEvent('', isDone: true));
         stream.add(ChatAgentStoppedEvent());
-        stream.close();
+        if (await _shouldCloseRunAfterTask(taskId)) {
+          stream.close();
+        }
       }
     });
 
@@ -559,43 +1197,56 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
 
     // 4. Tool Call
     controller.on((BeforeToolCallEvent event) {
-      stream.add(
-        ChatToolCallEvent(
-          event.functionCall.name,
-          event.functionCall.arguments.toString(),
-        ),
+      if (event.functionCall.name == 'delegate_to_subagent') {
+        progressSink.registerDelegateToolCall(
+          callId: event.functionCall.id,
+          arguments: event.functionCall.arguments,
+        );
+      }
+      final traceEvent = ChatTraceStartedEvent(
+        id: event.functionCall.id,
+        kind: event.functionCall.name == 'delegate_to_subagent'
+            ? ChatTraceKind.delegate
+            : ChatTraceKind.tool,
+        name: event.functionCall.name,
+        args: event.functionCall.arguments.toString(),
       );
+      stream.add(traceEvent);
     });
 
     // 5. Tool Result
-    // 5. Tool Result
     controller.on((AfterToolCallEvent event) {
-      // Format result for display
       final dynamic content = event.result.content;
-      String resultPreview;
+      String resultText;
 
       if (content is List) {
-        resultPreview = content.map((e) {
+        resultText = content.map((e) {
           if (e is TextPart) return e.text;
           return e.toString();
         }).join('\n');
       } else if (content is TextPart) {
-        resultPreview = content.text;
+        resultText = content.text;
       } else {
-        resultPreview = content.toString();
+        resultText = content.toString();
       }
 
-      if (resultPreview.length > 300) {
-        resultPreview = '${resultPreview.substring(0, 300)}...';
-      }
+      final resultPreview = _preview(resultText, 300);
       stream.add(
-        ChatToolResultEvent(
-          event.result.name,
-          resultPreview,
+        ChatTraceCompletedEvent(
+          id: event.result.id,
+          result: resultPreview,
           isError: event.result.isError,
+          metadata: event.result.metadata,
         ),
       );
     });
+  }
+
+  Future<bool> _shouldCloseRunAfterTask(String taskId) async {
+    final latestTaskId = await LocalTaskExecutor.instance.getLastTaskByType(
+      _superAgentChatTurnTaskType,
+    );
+    return latestTaskId == taskId;
   }
 
   // --- Session Helpers (Recreated from chat.dart to be independent) ---
@@ -620,6 +1271,8 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     String? agentName,
     List<Map<String, dynamic>> initialContent, {
     bool isQuickQuery = false,
+    String? scene,
+    String? sceneId,
     DateTime? createdAt,
   }) async {
     final uuidStr = _uuid.v4();
@@ -629,17 +1282,23 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     final now = createdAt ?? DateTime.now();
 
     String? title;
+    var imageCount = 0;
     for (final item in initialContent) {
       if (item['type'] == 'text' && item['text'] != null) {
         final text = item['text'] as String;
         title = text.length > 50 ? text.substring(0, 50) : text;
         break;
+      } else if (item['type'] == 'image_url') {
+        imageCount += 1;
       }
     }
+    title ??= imageCount > 0 ? 'Image conversation ($imageCount)' : null;
 
     final sessionData = {
       'session_id': sessionId,
       'agent_name': agentName,
+      'scene': scene,
+      'scene_id': sceneId,
       'title': title ?? 'New Chat',
       'created_at': now.toIso8601String(),
       'created_at_local': formatLocalDateTimeWithZone(now),
@@ -668,6 +1327,7 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     List<Map<String, String>>? refs,
     bool? isQuickQuery,
     DateTime? timestamp,
+    String? turnId,
   }) async {
     final sessionFile = _getSessionFilePath(userId, sessionId);
     if (!await sessionFile.exists()) return null;
@@ -683,6 +1343,7 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
       'content': content,
       if (usage != null) 'usage': usage,
       if (refs != null) 'refs': refs,
+      if (turnId != null) 'turn_id': turnId,
       'timestamp': messageTime.toIso8601String(),
       'local_time': formatLocalDateTimeWithZone(messageTime),
       'unix_seconds': unixSecondsFromDateTime(messageTime),
@@ -734,6 +1395,25 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
     return sessionData['total_usage'] as Map<String, dynamic>?;
   }
 
+  Future<bool> _sessionHasAssistantForTurn(
+    String userId,
+    String sessionId,
+    String turnId,
+  ) async {
+    final sessionFile = _getSessionFilePath(userId, sessionId);
+    if (!await sessionFile.exists()) return false;
+
+    final fileContent = await sessionFile.readAsString();
+    final doc = loadYaml(fileContent);
+    final sessionData = jsonDecode(jsonEncode(doc)) as Map<String, dynamic>;
+    final messages = sessionData['messages'] as List<dynamic>? ?? const [];
+    return messages.any((message) {
+      return message is Map &&
+          message['role'] == 'ai' &&
+          message['turn_id'] == turnId;
+    });
+  }
+
   File _getSessionFilePath(String userId, String sessionId) {
     final sessionsPath = _fileService.getChatSessionsPath(userId);
     return File(p.join(sessionsPath, '$sessionId.yaml'));
@@ -779,4 +1459,68 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
           message['unix_seconds'] ?? unixSecondsFromDateTime(parsed),
     };
   }
+}
+
+class _PreparedChatImage {
+  final String relativePath;
+
+  /// Bare stored filename, used to build the `fs://<filename>` reference the
+  /// agent sees (resolves to Facts/assets/<filename>, same as in-text fs:// refs).
+  final String fsFilename;
+  final String mimeType;
+  final String? originalName;
+  final String? base64Data;
+
+  /// Pre-formatted EXIF metadata block (capture time, GPS coordinates, and
+  /// reverse-geocoded address) for this image, or null when none is available.
+  final String? exifInfo;
+
+  const _PreparedChatImage({
+    required this.relativePath,
+    required this.fsFilename,
+    required this.mimeType,
+    required this.originalName,
+    required this.base64Data,
+    this.exifInfo,
+  });
+
+  Map<String, dynamic> toTaskJson() => {
+        'relative_path': relativePath,
+        'fs_filename': fsFilename,
+        'mime_type': mimeType,
+        if (originalName != null) 'original_name': originalName,
+        if (exifInfo != null) 'exif_info': exifInfo,
+      };
+
+  static _PreparedChatImage? fromTaskJson(Map<dynamic, dynamic> json) {
+    final relativePath = json['relative_path']?.toString();
+    final fsFilename = json['fs_filename']?.toString();
+    final mimeType = json['mime_type']?.toString();
+    if (relativePath == null ||
+        relativePath.isEmpty ||
+        fsFilename == null ||
+        fsFilename.isEmpty ||
+        mimeType == null ||
+        mimeType.isEmpty) {
+      return null;
+    }
+    return _PreparedChatImage(
+      relativePath: relativePath,
+      fsFilename: fsFilename,
+      mimeType: mimeType,
+      originalName: json['original_name']?.toString(),
+      base64Data: null,
+      exifInfo: json['exif_info']?.toString(),
+    );
+  }
+}
+
+class _InlinePreparedImage {
+  const _InlinePreparedImage({
+    required this.base64Data,
+    required this.mimeType,
+  });
+
+  final String base64Data;
+  final String mimeType;
 }

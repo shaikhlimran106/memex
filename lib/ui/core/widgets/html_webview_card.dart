@@ -196,6 +196,25 @@ class HtmlWebViewCard extends StatefulWidget {
   /// Callback for content taps (when not clicking interactive elements)
   final VoidCallback? onContentTap;
 
+  /// Wraps raw card HTML into the normalized timeline document used by the live
+  /// WebView card. Shared by the live render path and the off-screen snapshot
+  /// path (see `WebviewSnapshotService`) so agent render previews match the real
+  /// Timeline rendering pixel-for-pixel.
+  ///
+  /// - [interactive] mirrors `onContentTap != null` and controls pointer-events.
+  /// - [extraScript] is injected before `</body>`; the live card passes its
+  ///   height/click-reporting script, the snapshot path passes nothing.
+  static String buildTimelineHtmlDocument(
+    String html, {
+    bool interactive = false,
+    String extraScript = '',
+  }) =>
+      _HtmlWebViewCardState.buildTimelineHtmlDocument(
+        html,
+        interactive: interactive,
+        extraScript: extraScript,
+      );
+
   @override
   State<HtmlWebViewCard> createState() => _HtmlWebViewCardState();
 }
@@ -223,7 +242,7 @@ class _HtmlWebViewCardState extends State<HtmlWebViewCard> {
   /// Removes border-radius from root container only to avoid duplicate rounding
   /// Flutter layer handles root container border radius uniformly
   /// Internal elements (icons, badges, etc.) keep their border-radius
-  String _removeBorderRadius(String html) {
+  static String _removeBorderRadius(String html) {
     // Remove border-radius from .card class (root container)
     // This preserves border-radius for internal elements like icons, badges, etc.
     // Note: Border removal is handled by CSS, not here
@@ -425,11 +444,35 @@ class _HtmlWebViewCardState extends State<HtmlWebViewCard> {
     // Remove border-radius from outermost container only
     // Flutter layer handles all border radius uniformly
     // Border removal is handled by CSS (body > *:first-child rule)
+    // Delegate normalization + structure wrapping to the shared builder so the
+    // off-screen snapshot path renders identically to the live card.
+    return buildTimelineHtmlDocument(
+      html,
+      interactive: widget.onContentTap != null,
+      extraScript: script,
+    );
+  }
+
+  /// Wraps raw card HTML into the normalized timeline document used by the live
+  /// WebView card. Shared by the live render path and the off-screen snapshot
+  /// path (see `WebviewSnapshotService`) so agent render previews match the real
+  /// Timeline rendering pixel-for-pixel.
+  ///
+  /// - [interactive] mirrors `onContentTap != null` and controls pointer-events.
+  /// - [extraScript] is injected before `</body>`; the live card passes its
+  ///   height/click-reporting script, while the snapshot path passes nothing
+  ///   (those channels do not exist off-screen and have no visual effect).
+  static String buildTimelineHtmlDocument(
+    String html, {
+    bool interactive = false,
+    String extraScript = '',
+  }) {
     html = _removeBorderRadius(html);
+    final String pointer = interactive ? 'auto' : 'none !important';
 
     // CSS to disable pointer events and ensure proper sizing
     // Add cross-platform normalization for iOS and Android WebView rendering
-    String pointerEventsStyle = '''
+    final String pointerEventsStyle = '''
       <style>
         html, body {
           margin: 0;
@@ -437,7 +480,7 @@ class _HtmlWebViewCardState extends State<HtmlWebViewCard> {
           border: 0;
           outline: 0;
           overflow: hidden;
-          pointer-events: ${widget.onContentTap != null ? 'auto' : 'none !important'};
+          pointer-events: $pointer;
           height: auto !important;
           min-height: 0 !important;
           -webkit-text-size-adjust: 100%;
@@ -448,7 +491,7 @@ class _HtmlWebViewCardState extends State<HtmlWebViewCard> {
           -moz-osx-font-smoothing: grayscale;
         }
         * {
-          pointer-events: ${widget.onContentTap != null ? 'auto' : 'none !important'};
+          pointer-events: $pointer;
           -webkit-box-sizing: border-box;
           -moz-box-sizing: border-box;
           box-sizing: border-box;
@@ -518,17 +561,17 @@ class _HtmlWebViewCardState extends State<HtmlWebViewCard> {
       // Insert style before </head> and script before </body>
       html = html.replaceAll('</head>', '$pointerEventsStyle</head>');
       if (html.contains('</body>')) {
-        html = html.replaceAll('</body>', '$script</body>');
+        html = html.replaceAll('</body>', '$extraScript</body>');
       } else {
-        html = '$html$script';
+        html = '$html$extraScript';
       }
     } else if (html.contains('<head>')) {
       // Insert style after <head> and script before </body>
       html = html.replaceAll('<head>', '<head>$pointerEventsStyle');
       if (html.contains('</body>')) {
-        html = html.replaceAll('</body>', '$script</body>');
+        html = html.replaceAll('</body>', '$extraScript</body>');
       } else {
-        html = '$html$script';
+        html = '$html$extraScript';
       }
     } else {
       // Wrap in full HTML structure with enhanced viewport for cross-platform consistency
@@ -544,7 +587,7 @@ class _HtmlWebViewCardState extends State<HtmlWebViewCard> {
       </head>
       <body>
         $html
-        $script
+        $extraScript
       </body>
       </html>
       ''';

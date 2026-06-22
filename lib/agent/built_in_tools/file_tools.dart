@@ -1,22 +1,91 @@
+// ignore_for_file: non_constant_identifier_names
+
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:dart_agent_core/dart_agent_core.dart';
+import 'package:flutter/foundation.dart' show compute;
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:memex/agent/prompts.dart';
+import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
 import 'package:memex/agent/security/file_permission_manager.dart';
+import 'package:memex/agent/super_agent/pending_tool_image_buffer.dart';
+import 'package:memex/data/services/asset_safety_service.dart';
+import 'package:memex/data/services/api_exception.dart';
 import 'package:memex/data/services/file_operation_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/data/services/image_exif_context.dart';
 import 'package:path/path.dart' as p;
 
 // Helper to access services
 final _fileOpService = FileOperationService.instance;
 FileSystemService get _fileSystem => FileSystemService.instance;
 
+typedef ViewImageCompressor = Future<Uint8List?> Function(
+  String filePath, {
+  int targetSize,
+  int quality,
+});
+
+typedef ViewImageExifInfoBuilder = Future<String?> Function(
+  String userId,
+  String imagePath,
+);
+
 class FileToolFactory {
   final FilePermissionManager permissionManager;
   final String workingDirectory;
+  final ViewImageCompressor _viewImageCompressor;
+  final ViewImageExifInfoBuilder _viewImageExifInfoBuilder;
 
   FileToolFactory({
     required this.permissionManager,
     required this.workingDirectory,
-  });
+    ViewImageCompressor? viewImageCompressor,
+    ViewImageExifInfoBuilder? viewImageExifInfoBuilder,
+  })  : _viewImageCompressor =
+            viewImageCompressor ?? _defaultViewImageCompressor,
+        _viewImageExifInfoBuilder =
+            viewImageExifInfoBuilder ?? buildImageExifInfo;
+
+  static Future<Uint8List?> _defaultViewImageCompressor(
+    String filePath, {
+    int targetSize = 2048,
+    int quality = 85,
+  }) {
+    return FlutterImageCompress.compressWithFile(
+      filePath,
+      minWidth: targetSize,
+      minHeight: targetSize,
+      quality: quality,
+      format: CompressFormat.webp,
+      autoCorrectionAngle: true,
+      keepExif: false,
+    );
+  }
+
+  static const _viewImageExtensions = {
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.bmp',
+    '.webp',
+    '.heic',
+    '.heif',
+    '.tiff',
+    '.tif',
+  };
+
+  static String _formatBytes(int bytes) {
+    if (bytes >= 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
+    }
+    if (bytes >= 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)}KB';
+    }
+    return '${bytes}B';
+  }
 
   String _resolvePath(String pathStr) {
     if (pathStr.startsWith(workingDirectory)) {
@@ -27,6 +96,108 @@ class FileToolFactory {
       return p.join(workingDirectory, pathStr.substring(1));
     }
     return p.join(workingDirectory, pathStr);
+  }
+
+  /// Resolve the image argument for `view_image`.
+  ///
+  /// Accepts `fs://<filename>` references (the canonical form used in card
+  /// media and in-text attachments), mapping them to the asset pool at
+  /// `Facts/assets/<filename>` under the working directory. Other forms fall
+  /// back to [_resolvePath] for backward compatibility.
+  String _resolveImagePath(String pathStr) {
+    if (pathStr.startsWith('fs://')) {
+      final filename = pathStr.substring(5);
+      return p.join(workingDirectory, 'Facts', 'assets', filename);
+    }
+    return _resolvePath(pathStr);
+  }
+
+  Tool buildViewImageTool() {
+    return Tool(
+      name: 'view_image',
+      description:
+          'View a local image file by attaching it to the next model message. '
+          'Use this when you need to view an image that is not already in your '
+          'context. Provide the image by its `fs://<filename>` reference (the '
+          'same form used in card media and in-text attachments). Images loaded '
+          'by this tool are visible for the next model call only and are not '
+          'kept in message history; if you need to compare multiple images, '
+          'call view_image for all of them in the same turn before inspecting '
+          'them.',
+      parameters: {
+        'type': 'object',
+        'properties': {
+          'path': {
+            'type': 'string',
+            'description':
+                'The image to view, given as its `fs://<filename>` reference (for example fs://img_20260612_ts_0_no_1_800x600.jpg).',
+          },
+        },
+        'required': ['path'],
+      },
+      executable: (String path) async {
+        final imagePath = _resolveImagePath(path);
+        permissionManager.checkPermission(imagePath, FileAccessType.read);
+
+        final extension = p.extension(imagePath).toLowerCase();
+        if (!_viewImageExtensions.contains(extension)) {
+          throw ArgumentError('Unsupported image type: $extension');
+        }
+
+        final originalSize = await _fileOpService.validateReadableFile(
+          filePath: imagePath,
+          workingDirectory: workingDirectory,
+        );
+
+        final safety = await AssetSafetyService.instance.inspectFile(imagePath);
+        if (!safety.safeForAnalysis) {
+          return 'Image was not attached: ${safety.analysisSkipText(p.basename(imagePath))}';
+        }
+
+        final compressedBytes = await _viewImageCompressor(
+          imagePath,
+          targetSize: 2048,
+          quality: 85,
+        );
+        if (compressedBytes == null || compressedBytes.isEmpty) {
+          throw Exception('Image compression failed.');
+        }
+
+        final sessionId = AgentCallToolContext.current?.state.sessionId ?? '';
+        final userId =
+            AgentCallToolContext.current?.state.metadata['userId'] as String?;
+        String? exifInfo;
+        if (userId != null && userId.isNotEmpty) {
+          exifInfo = await _viewImageExifInfoBuilder(userId, imagePath);
+        }
+
+        final message = StringBuffer()
+          ..writeln(
+            'Image loaded from `${_displayPath(imagePath)}`. Inspect it now.',
+          );
+        if (exifInfo != null && exifInfo.isNotEmpty) {
+          message.writeln();
+          message.write(exifInfo);
+        }
+
+        PendingToolImageBuffer.instance.add(
+          sessionId,
+          ImagePart(await compute(base64Encode, compressedBytes), 'image/webp'),
+          message: message.toString(),
+        );
+
+        return 'Image attached to the next model message (${_formatBytes(originalSize)}).'
+            '${exifInfo == null || exifInfo.isEmpty ? '' : ' EXIF metadata is included.'}';
+      },
+    );
+  }
+
+  String _displayPath(String absolutePath) {
+    if (absolutePath.startsWith(workingDirectory)) {
+      final relative = p.relative(absolutePath, from: workingDirectory);
+      return relative == '.' ? '/' : '/$relative';
+    }
+    return absolutePath;
   }
 
   Tool buildReadTool() {
@@ -53,7 +224,9 @@ class FileToolFactory {
       },
       executable: (String file_path, int? offset, int? limit) {
         file_path = _resolvePath(file_path);
-        permissionManager.checkPermission(file_path, FileAccessType.read);
+        if (!permissionManager.allowsRead(file_path)) {
+          throw ApiException('File ${_displayPath(file_path)} does not exist');
+        }
         return _fileOpService.readFile(
           filePath: file_path,
           workingDirectory: workingDirectory,
@@ -144,7 +317,7 @@ class FileToolFactory {
         var filesReadCount = 0;
 
         for (final filePath in uniqueFilePaths) {
-          buffer.writeln('=' * 20 + ' File: $filePath ' + '=' * 20);
+          buffer.writeln('${'=' * 20} File: $filePath ${'=' * 20}');
           try {
             // Double check just in case, though we checked above
             permissionManager.checkPermission(filePath, FileAccessType.read);
@@ -191,11 +364,20 @@ class FileToolFactory {
       executable: (String file_path, String content) async {
         file_path = _resolvePath(file_path);
         permissionManager.checkPermission(file_path, FileAccessType.write);
+        final denied = await gateMutatingToolCall(
+          toolName: 'Write',
+          summary: file_path,
+          details: {'size': '${content.length} chars'},
+        );
+        if (denied != null) return denied;
         final result = await _fileOpService.writeFile(
           filePath: file_path,
           workingDirectory: workingDirectory,
           content: content,
         );
+
+        String? artifactPath;
+        var artifactIsUpdate = false;
 
         // Log event
         try {
@@ -207,6 +389,8 @@ class FileToolFactory {
             final relativePath =
                 _fileSystem.toRelativePath(file_path, rootPath: workspacePath);
             final isCreate = result.contains('File created successfully');
+            artifactPath = relativePath;
+            artifactIsUpdate = !isCreate;
             if (isCreate) {
               await _fileSystem.eventLogService.logFileCreated(
                 userId: userId,
@@ -225,7 +409,20 @@ class FileToolFactory {
           // Event logging failure should not break tool
         }
 
-        return result;
+        if (artifactPath == null) return result;
+        return AgentToolResult(
+          content: TextPart(result),
+          metadata: {
+            'artifact': {
+              'type': 'file',
+              'path': artifactPath,
+              'updated': artifactIsUpdate,
+              'snippet': content.length > 160
+                  ? '${content.substring(0, 160)}…'
+                  : content,
+            },
+          },
+        );
       },
     );
   }
@@ -263,6 +460,11 @@ class FileToolFactory {
           bool? replace_all) async {
         file_path = _resolvePath(file_path);
         permissionManager.checkPermission(file_path, FileAccessType.write);
+        final denied = await gateMutatingToolCall(
+          toolName: 'Edit',
+          summary: file_path,
+        );
+        if (denied != null) return denied;
         final result = await _fileOpService.editFile(
           filePath: file_path,
           workingDirectory: workingDirectory,
@@ -270,6 +472,8 @@ class FileToolFactory {
           newString: new_string,
           replaceAll: replace_all ?? false,
         );
+
+        String? artifactPath;
 
         // Log event
         try {
@@ -279,6 +483,7 @@ class FileToolFactory {
             final workspacePath = _fileSystem.getWorkspacePath(userId);
             final relativePath =
                 _fileSystem.toRelativePath(file_path, rootPath: workspacePath);
+            artifactPath = relativePath;
             await _fileSystem.eventLogService.logFileModified(
               userId: userId,
               filePath: relativePath,
@@ -289,7 +494,20 @@ class FileToolFactory {
           // Event logging failure should not break tool
         }
 
-        return result;
+        if (artifactPath == null) return result;
+        return AgentToolResult(
+          content: TextPart(result),
+          metadata: {
+            'artifact': {
+              'type': 'file',
+              'path': artifactPath,
+              'updated': true,
+              'snippet': new_string.length > 160
+                  ? '${new_string.substring(0, 160)}…'
+                  : new_string,
+            },
+          },
+        );
       },
     );
   }
@@ -318,13 +536,18 @@ class FileToolFactory {
         'required': ['source_path', 'destination_path']
       },
       executable:
-          (String source_path, String destination_path, bool? overwrite) {
+          (String source_path, String destination_path, bool? overwrite) async {
         // Must have Write Access to BOTH source (to delete it) and destination (to create it)
         source_path = _resolvePath(source_path);
         destination_path = _resolvePath(destination_path);
         permissionManager.checkPermission(source_path, FileAccessType.write);
         permissionManager.checkPermission(
             destination_path, FileAccessType.write);
+        final denied = await gateMutatingToolCall(
+          toolName: 'Move',
+          summary: '$source_path → $destination_path',
+        );
+        if (denied != null) return denied;
 
         return _fileOpService.moveFile(
           sourcePath: source_path,
@@ -358,6 +581,11 @@ class FileToolFactory {
       executable: (String path, bool confirm) async {
         path = _resolvePath(path);
         permissionManager.checkPermission(path, FileAccessType.write);
+        final denied = await gateMutatingToolCall(
+          toolName: 'Remove',
+          summary: path,
+        );
+        if (denied != null) return denied;
         final result = await _fileOpService.removeFile(
           filePath: path,
           workingDirectory: workingDirectory,
@@ -413,13 +641,18 @@ class FileToolFactory {
       },
       executable: (String path, List? ignore, int? depth) {
         path = _resolvePath(path);
-        permissionManager.checkPermission(path, FileAccessType.read);
+        if (!permissionManager.canTraverseForRead(path)) {
+          throw ApiException(
+            'Directory ${_displayPath(path)} does not exist',
+          );
+        }
         return _fileOpService.listDirectory(
           dirPath: path,
           workingDirectory: workingDirectory,
           ignore: ignore?.cast<String>(),
           depth: depth ?? 3,
           filter: (p) => permissionManager.allowsRead(p),
+          traversalFilter: (p) => permissionManager.canTraverseForRead(p),
         );
       },
     );
@@ -445,18 +678,24 @@ class FileToolFactory {
         'required': ['pattern']
       },
       executable: (String pattern, String? path) {
+        final searchRoot = path != null ? _resolvePath(path) : workingDirectory;
+        if (!permissionManager.canTraverseForRead(searchRoot)) {
+          if (path != null) {
+            throw ApiException(
+              'Directory ${_displayPath(searchRoot)} does not exist',
+            );
+          }
+          return 'No files found';
+        }
         if (path != null) {
           path = _resolvePath(path);
-          permissionManager.checkPermission(path, FileAccessType.read);
-        } else {
-          permissionManager.checkPermission(
-              workingDirectory, FileAccessType.read);
         }
         return _fileOpService.globFiles(
           pattern: pattern,
           searchPath: path,
           workingDirectory: workingDirectory,
           filter: (p) => permissionManager.allowsRead(p),
+          traversalFilter: (p) => permissionManager.canTraverseForRead(p),
         );
       },
     );
@@ -543,9 +782,17 @@ class FileToolFactory {
           String? type,
           int? head_limit,
           bool? multiline) {
-        // Check permission for the search path
         final searchPath = _resolvePath(path ?? workingDirectory);
-        permissionManager.checkPermission(searchPath, FileAccessType.read);
+        if (!permissionManager.canTraverseForRead(searchPath)) {
+          if (path != null) {
+            throw ApiException(
+              'path ${_displayPath(searchPath)} does not exist',
+            );
+          }
+          return output_mode == 'files_with_matches' || output_mode == null
+              ? 'No files found'
+              : 'No matches found';
+        }
 
         return _fileOpService.grepFiles(
           pattern: pattern,

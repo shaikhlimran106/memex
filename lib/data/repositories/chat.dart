@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:memex/utils/logger.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/data/services/file_system_service.dart';
@@ -92,23 +93,31 @@ Future<List<Map<String, dynamic>>> fetchChatSessionsEndpoint({
           final lastMsg = messages.last as Map<String, dynamic>;
           final contentList = lastMsg['content'] as List<dynamic>? ?? [];
           final textParts = <String>[];
+          var imageCount = 0;
           for (final item in contentList) {
             if (item is Map<String, dynamic> &&
                 item['type'] == 'text' &&
                 item['text'] != null) {
               textParts.add(item['text'] as String);
+            } else if (item is Map<String, dynamic> &&
+                item['type'] == 'image_url') {
+              imageCount += 1;
             }
           }
           if (textParts.isNotEmpty) {
             final preview = textParts.join(' ');
             lastMessagePreview =
                 preview.length > 100 ? preview.substring(0, 100) : preview;
+          } else if (imageCount > 0) {
+            lastMessagePreview = 'Sent $imageCount image(s)';
           }
         }
 
         sessions.add({
           'session_id': sessionId,
           'agent_name': sessionAgentName,
+          'scene': sessionData['scene'] as String?,
+          'scene_id': sessionData['scene_id'] as String?,
           'title': sessionData['title'] as String? ?? 'New chat',
           'created_at': sessionData['created_at'] as String? ??
               DateTime.now().toIso8601String(),
@@ -152,8 +161,10 @@ Future<List<Map<String, dynamic>>> fetchChatSessionsEndpoint({
 /// Returns:
 ///   Map<String, dynamic>: session detail (session_id, agent_name, title, created_at, updated_at, messages)
 Future<Map<String, dynamic>> fetchChatSessionDetailEndpoint(
-  String sessionId,
-) async {
+  String sessionId, {
+  int? messageLimit,
+  int messageOffset = 0,
+}) async {
   _logger.info('fetchChatSessionDetail called: sessionId=$sessionId');
 
   try {
@@ -175,11 +186,24 @@ Future<Map<String, dynamic>> fetchChatSessionDetailEndpoint(
     final doc = loadYaml(content);
     final sessionData = jsonDecode(jsonEncode(doc)) as Map<String, dynamic>;
 
-    final messages = await _getSessionMessages(userId, sessionId);
+    final allMessages = sessionData['messages'] as List<dynamic>? ?? [];
+    final messages = _sliceSessionMessages(
+      allMessages,
+      limit: messageLimit,
+      offset: messageOffset,
+    );
+    final totalMessages = allMessages.length;
+    final sliceStart = _sessionMessageSliceStart(
+      totalMessages,
+      limit: messageLimit,
+      offset: messageOffset,
+    );
 
     return {
       'session_id': sessionId,
       'agent_name': sessionData['agent_name'],
+      'scene': sessionData['scene'] as String?,
+      'scene_id': sessionData['scene_id'] as String?,
       'title': sessionData['title'] as String? ?? 'New chat',
       'created_at': sessionData['created_at'] as String? ??
           DateTime.now().toIso8601String(),
@@ -194,6 +218,10 @@ Future<Map<String, dynamic>> fetchChatSessionDetailEndpoint(
       'updated_at_unix_seconds': sessionData['updated_at_unix_seconds'] ??
           unixSecondsFromDateTimeOrNull(sessionData['updated_at']),
       'messages': messages,
+      'message_count': totalMessages,
+      'message_limit': messageLimit,
+      'message_offset': messageOffset,
+      'has_more_messages': sliceStart > 0,
       if (sessionData['total_usage'] != null)
         'total_usage': sessionData['total_usage'],
       'is_quick_query': sessionData['is_quick_query'] == true,
@@ -249,26 +277,41 @@ File _getSessionFilePath(String userId, String sessionId) {
   return File(p.join(sessionsPath, '$sessionId.yaml'));
 }
 
-Future<List<Map<String, dynamic>>> _getSessionMessages(
-  String userId,
-  String sessionId,
-) async {
-  final sessionFile = _getSessionFilePath(userId, sessionId);
-  if (!await sessionFile.exists()) {
-    return [];
-  }
+List<Map<String, dynamic>> _sliceSessionMessages(
+  List<dynamic> messages, {
+  int? limit,
+  int offset = 0,
+}) {
+  final total = messages.length;
+  final start = _sessionMessageSliceStart(total, limit: limit, offset: offset);
+  final end = _sessionMessageSliceEnd(total, limit: limit, offset: offset);
 
-  final content = await sessionFile.readAsString();
-  final doc = loadYaml(content);
-  final sessionData = jsonDecode(jsonEncode(doc)) as Map<String, dynamic>;
-
-  final messages = sessionData['messages'] as List<dynamic>? ?? [];
-  return messages.map((msg) {
+  return messages.sublist(start, end).map((msg) {
     if (msg is Map<String, dynamic>) {
       return _withLocalTimestampFallback(msg);
     }
     return <String, dynamic>{};
   }).toList();
+}
+
+int _sessionMessageSliceStart(
+  int total, {
+  int? limit,
+  int offset = 0,
+}) {
+  if (limit == null || limit <= 0) return 0;
+  final end = _sessionMessageSliceEnd(total, limit: limit, offset: offset);
+  return math.max(0, end - limit);
+}
+
+int _sessionMessageSliceEnd(
+  int total, {
+  int? limit,
+  int offset = 0,
+}) {
+  if (limit == null || limit <= 0) return total;
+  final safeOffset = math.max(0, offset);
+  return math.max(0, total - safeOffset);
 }
 
 Map<String, dynamic> _withLocalTimestampFallback(Map<String, dynamic> msg) {

@@ -37,9 +37,8 @@ class WorkmanagerAgentQueueDrainScheduler implements AgentQueueDrainScheduler {
       ),
       existingWorkPolicy: existingWorkPolicy,
       tag: tag,
-      outOfQuotaPolicy: expedited
-          ? OutOfQuotaPolicy.runAsNonExpeditedWorkRequest
-          : null,
+      outOfQuotaPolicy:
+          expedited ? OutOfQuotaPolicy.runAsNonExpeditedWorkRequest : null,
     );
     debugPrint(
       'Agent queue drain scheduled '

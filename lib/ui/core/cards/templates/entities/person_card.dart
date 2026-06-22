@@ -28,8 +28,8 @@ class PersonCard extends StatelessWidget {
                     avatarUrl != null ? NetworkImage(avatarUrl) : null,
                 child: avatarUrl == null
                     ? Text(name.substring(0, 1).toUpperCase(),
-                        style:
-                            const TextStyle(fontSize: 24, color: Color(0xFF99A1AF)))
+                        style: const TextStyle(
+                            fontSize: 24, color: Color(0xFF99A1AF)))
                     : null,
               ),
               if (status != null)

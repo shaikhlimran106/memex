@@ -8,18 +8,18 @@ class ReprocessCardsDebugOptions {
     this.dateTo,
     this.limit,
     this.reanalyzeAssets = false,
-    this.downstreamMode = ReprocessCardsDownstreamMode.cardOnly,
+    this.scope = ReprocessCardsScope.cardsOnly,
   });
 
   final DateTime? dateFrom;
   final DateTime? dateTo;
   final int? limit;
   final bool reanalyzeAssets;
-  final ReprocessCardsDownstreamMode downstreamMode;
+  final ReprocessCardsScope scope;
 
   Map<String, dynamic> toTaskPayload() {
     final payload = <String, dynamic>{
-      ReprocessCardsPayloadKeys.downstreamMode: downstreamMode.payloadValue,
+      ReprocessCardsPayloadKeys.scope: scope.payloadValue,
     };
     final from = dateFrom;
     if (from != null) {
@@ -37,6 +37,50 @@ class ReprocessCardsDebugOptions {
       payload['reanalyze_assets'] = true;
     }
     return payload;
+  }
+
+  String toSuperAgentMessage() {
+    final lines = <String>[
+      'Debug request: reprocess existing timeline cards.',
+      'Do not create a new timeline card for this debug request itself.',
+      'Use existing Facts/Cards data as the source of truth.',
+    ];
+
+    final from = dateFrom;
+    final to = dateTo;
+    if (from != null || to != null) {
+      lines.add(
+        'Date range: ${from == null ? 'unbounded' : _formatDate(from)} to '
+        '${to == null ? 'unbounded' : _formatDate(to)}.',
+      );
+    }
+
+    final limitValue = limit;
+    if (limitValue != null && limitValue > 0) {
+      lines.add('Limit: process at most $limitValue card(s).');
+    }
+
+    if (reanalyzeAssets) {
+      lines.add('Re-read attached media when it is useful for the record.');
+    }
+
+    if (scope.includeRelatedFollowUps) {
+      lines.add(
+        'Scope: regenerate cards and update related PKM, schedule, or '
+        'knowledge insight outputs when the card content requires it.',
+      );
+    } else {
+      lines.add('Scope: regenerate timeline cards only.');
+    }
+
+    return lines.join('\n');
+  }
+
+  String toReferenceContent() {
+    return toTaskPayload()
+        .entries
+        .map((entry) => '${entry.key}: ${entry.value}')
+        .join('\n');
   }
 
   static String _formatDate(DateTime date) {
@@ -66,7 +110,7 @@ class _ReprocessCardsDialogState extends State<ReprocessCardsDialog> {
   DateTime? _dateTo;
   int? _limit;
   var _reanalyzeAssets = false;
-  var _downstreamMode = ReprocessCardsDownstreamMode.cardOnly;
+  var _scope = ReprocessCardsScope.cardsOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -133,13 +177,13 @@ class _ReprocessCardsDialogState extends State<ReprocessCardsDialog> {
             ),
             _buildModeTile(
               key: const Key('reprocess_cards_mode_card_only'),
-              mode: ReprocessCardsDownstreamMode.cardOnly,
+              scope: ReprocessCardsScope.cardsOnly,
               title: Text(UserStorage.l10n.reprocessCardsCardOnly),
               subtitle: Text(UserStorage.l10n.reprocessCardsCardOnlyDesc),
             ),
             _buildModeTile(
-              key: const Key('reprocess_cards_mode_post_card_router'),
-              mode: ReprocessCardsDownstreamMode.postCardRouter,
+              key: const Key('reprocess_cards_mode_related_follow_ups'),
+              scope: ReprocessCardsScope.cardsAndRelatedFollowUps,
               title: Text(UserStorage.l10n.reprocessCardsRerunDownstream),
               subtitle: Text(
                 UserStorage.l10n.reprocessCardsRerunDownstreamDesc,
@@ -162,7 +206,7 @@ class _ReprocessCardsDialogState extends State<ReprocessCardsDialog> {
                 dateTo: _dateTo,
                 limit: _limit,
                 reanalyzeAssets: _reanalyzeAssets,
-                downstreamMode: _downstreamMode,
+                scope: _scope,
               ),
             );
           },
@@ -201,20 +245,20 @@ class _ReprocessCardsDialogState extends State<ReprocessCardsDialog> {
     });
   }
 
-  void _setDownstreamMode(ReprocessCardsDownstreamMode? value) {
+  void _setScope(ReprocessCardsScope? value) {
     if (value == null) return;
     setState(() {
-      _downstreamMode = value;
+      _scope = value;
     });
   }
 
   Widget _buildModeTile({
     required Key key,
-    required ReprocessCardsDownstreamMode mode,
+    required ReprocessCardsScope scope,
     required Widget title,
     required Widget subtitle,
   }) {
-    final selected = _downstreamMode == mode;
+    final selected = _scope == scope;
     return ListTile(
       key: key,
       contentPadding: EdgeInsets.zero,
@@ -224,7 +268,7 @@ class _ReprocessCardsDialogState extends State<ReprocessCardsDialog> {
       ),
       title: title,
       subtitle: subtitle,
-      onTap: () => _setDownstreamMode(mode),
+      onTap: () => _setScope(scope),
     );
   }
 }

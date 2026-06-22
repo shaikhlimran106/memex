@@ -11,17 +11,43 @@ class ChatThoughtChunkEvent extends ChatEvent {
   ChatThoughtChunkEvent(this.text);
 }
 
-class ChatToolCallEvent extends ChatEvent {
-  final String toolName;
+enum ChatTraceKind { tool, delegate }
+
+class ChatTraceStartedEvent extends ChatEvent {
+  final String id;
+  final String? parentId;
+  final ChatTraceKind kind;
+  final String name;
   final String args;
-  ChatToolCallEvent(this.toolName, this.args);
+  final String? label;
+
+  ChatTraceStartedEvent({
+    required this.id,
+    this.parentId,
+    required this.kind,
+    required this.name,
+    required this.args,
+    this.label,
+  });
 }
 
-class ChatToolResultEvent extends ChatEvent {
-  final String toolName;
+class ChatTraceCompletedEvent extends ChatEvent {
+  final String id;
   final String result;
   final bool isError;
-  ChatToolResultEvent(this.toolName, this.result, {this.isError = false});
+  final String? status;
+
+  /// Structured metadata returned by the tool (e.g. an `artifact` entry
+  /// describing a created record/card/document for UI previews).
+  final Map<String, dynamic>? metadata;
+
+  ChatTraceCompletedEvent({
+    required this.id,
+    required this.result,
+    this.isError = false,
+    this.status,
+    this.metadata,
+  });
 }
 
 class ChatErrorEvent extends ChatEvent {

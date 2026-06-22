@@ -66,8 +66,8 @@ class CanvasCard extends StatelessWidget {
               Container(
                 height: 180,
                 width: double.infinity,
-                color:
-                    Colors.white.withValues(alpha: 0.5), // Translucent to show grid
+                color: Colors.white
+                    .withValues(alpha: 0.5), // Translucent to show grid
                 child: imageUrl != null
                     ? LocalImage(url: imageUrl, fit: BoxFit.contain)
                     : Center(
@@ -75,7 +75,8 @@ class CanvasCard extends StatelessWidget {
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                               border: Border.all(
-                                  color: const Color(0xFF5B6CFF).withValues(alpha: 0.2),
+                                  color: const Color(0xFF5B6CFF)
+                                      .withValues(alpha: 0.2),
                                   width: 2),
                               borderRadius: BorderRadius.circular(12)),
                           child: const Text("Sketch Content",
@@ -104,7 +105,8 @@ class CanvasCard extends StatelessWidget {
 class DotGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color(0xFF99A1AF).withValues(alpha: 0.2);
+    final paint = Paint()
+      ..color = const Color(0xFF99A1AF).withValues(alpha: 0.2);
     const spacing = 20.0;
     for (var x = 0.0; x < size.width; x += spacing) {
       for (var y = 0.0; y < size.height; y += spacing) {

@@ -90,6 +90,10 @@ final Uint8List _transparentPng = Uint8List.fromList(const [
 /// - If URL does not start with http (local path), use Image.file
 /// - else use Image.network for remote images
 class LocalImage extends StatefulWidget {
+  static const AssetSafetyConfig previewSourceSafetyConfig = AssetSafetyConfig(
+    maxPixelsForDecode: 48000000,
+  );
+
   /// Image URL
   final String url;
 
@@ -321,7 +325,10 @@ class _LocalImageState extends State<LocalImage> {
         return;
       }
 
-      final safety = AssetSafetyService.instance.inspectFileSync(originalPath);
+      final safety = AssetSafetyService.instance.inspectFileSync(
+        originalPath,
+        config: LocalImage.previewSourceSafetyConfig,
+      );
       if (!safety.safeForPreview) {
         _logger.warning(
           'Local image preview blocked for $originalPath: ${safety.reason}',
@@ -393,6 +400,7 @@ class _LocalImageState extends State<LocalImage> {
 
       final previewSafety = AssetSafetyService.instance.inspectFileSync(
         sourcePath,
+        config: LocalImage.previewSourceSafetyConfig,
       );
       if (!previewSafety.safeForPreview) {
         _logger.warning(
@@ -456,6 +464,20 @@ class _LocalImageState extends State<LocalImage> {
       // 6. update status
       if (mounted) {
         if (resultPath != null) {
+          final resultSafety =
+              AssetSafetyService.instance.inspectFileSync(resultPath);
+          if (!resultSafety.safeForPreview) {
+            _logger.warning(
+              'Generated image preview blocked for $originalPath: ${resultSafety.reason}',
+            );
+            setState(() {
+              _imageFile = null;
+              _isLoading = false;
+              _previewUnavailable = true;
+              _previewUnavailableReason = resultSafety.reason;
+            });
+            return;
+          }
           _logger.info('Compression/Copy success for image: $originalPath');
           setState(() {
             _imageFile = File(resultPath!);

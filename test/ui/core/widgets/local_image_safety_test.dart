@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:memex/data/services/asset_safety_service.dart';
 import 'package:memex/ui/core/widgets/local_image.dart';
 
 void main() {
@@ -43,6 +44,32 @@ void main() {
       expect(find.byType(Image), findsNothing);
     },
   );
+
+  test('preview source config allows high-pixel phone photos only', () {
+    final phonePhoto = File('${tempDir.path}/phone_photo.png');
+    phonePhoto.writeAsBytesSync(_pngHeader(width: 4217, height: 6325));
+
+    final defaultReport =
+        AssetSafetyService.instance.inspectFileSync(phonePhoto.path);
+    final previewSourceReport = AssetSafetyService.instance.inspectFileSync(
+      phonePhoto.path,
+      config: LocalImage.previewSourceSafetyConfig,
+    );
+
+    expect(defaultReport.safeForPreview, isFalse);
+    expect(defaultReport.reason, contains('pixel count'));
+    expect(previewSourceReport.safeForPreview, isTrue);
+
+    final extremeLong = File('${tempDir.path}/extreme_long.png');
+    extremeLong.writeAsBytesSync(_pngHeader(width: 1000, height: 13000));
+    final longReport = AssetSafetyService.instance.inspectFileSync(
+      extremeLong.path,
+      config: LocalImage.previewSourceSafetyConfig,
+    );
+
+    expect(longReport.safeForPreview, isFalse);
+    expect(longReport.reason, contains('long edge'));
+  });
 
   testWidgets(
     'shows a safe placeholder for unsafe downloaded network images',
