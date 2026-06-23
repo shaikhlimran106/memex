@@ -17,6 +17,9 @@ class DemoOverlay extends StatelessWidget {
       listenable: DemoService.instance,
       builder: (context, _) {
         final demo = DemoService.instance;
+        if (demo.isOverlaySuspended) {
+          return const SizedBox.shrink();
+        }
         if (!demo.isActive && demo.currentStep != DemoStep.done) {
           return const SizedBox.shrink();
         }

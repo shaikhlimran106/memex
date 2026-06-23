@@ -2637,6 +2637,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get demoTapCard => 'اضغط لترى كيف نظم الذكاء الاصطناعي سجلك';
 
   @override
+  String get demoDetailHint =>
+      'هذه تفاصيل السجل التي نظمها الذكاء الاصطناعي. تصفحها، ثم عُد لمتابعة الجولة.';
+
+  @override
   String get demoTapInsight =>
       'اضغط لرؤية الرؤى المولدة بواسطة الذكاء الاصطناعي';
 

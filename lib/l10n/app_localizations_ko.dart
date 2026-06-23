@@ -2595,6 +2595,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get demoTapCard => 'AI가 기록을 어떻게 정리했는지 보려면 탭하세요';
 
   @override
+  String get demoDetailHint => 'AI가 정리한 기록 상세 화면입니다. 자유롭게 살펴본 뒤 돌아가 투어를 계속하세요.';
+
+  @override
   String get demoTapInsight => 'AI 생성 인사이트를 보려면 탭하세요';
 
   @override

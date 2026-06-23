@@ -5,8 +5,11 @@ import 'package:memex/agent/prompts.dart';
 import 'package:memex/agent/run_mode/agent_action_approval_service.dart';
 import 'package:memex/agent/skills/knowledge_insight/native_widgets.dart';
 
+import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/data/services/timeline_card_event_publisher.dart';
 import 'package:memex/data/services/user_stats_service.dart';
+import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/domain/models/user_stats_model.dart';
 import 'package:memex/utils/user_storage.dart';
 import '../../../utils/logger.dart';
@@ -16,7 +19,7 @@ class KnowledgeInsightSkill extends Skill {
       : super(
           name: "update_knowledge_insight",
           description:
-              "Creates, updates, or removes Knowledge Insight cards: the chart-style visualizations (trends, breakdowns, recaps, comparisons) that surface patterns across many of the user's records, each rendered from a template and backed by the facts it draws on. "
+              "Creates, updates, or removes Knowledge Insight cards: the chart-style visualizations (trends, breakdowns, recaps, comparisons) that surface patterns across many of the user's Timeline Cards, each rendered from a template and backed by the `card.fact` records it draws on. "
               "Use when the user wants a cross-record insight, chart, recap, or trend, or when an existing insight card needs revising or deleting. "
               "Not for single-record timeline cards: use manage_timeline_card for those.",
           systemPrompt: Prompts.knowledgeInsightSkillPrompt(
@@ -144,6 +147,7 @@ Tool buildDeleteKnowledgeInsightCardTool() {
         final success =
             await fileSystem.deleteKnowledgeInsightCard(userId, cardId);
         if (success) {
+          _emitKnowledgeInsightChanged(cardId);
           return "Card $cardId deleted successfully.";
         }
         throw StateError(
@@ -186,6 +190,7 @@ Tool buildDeleteKnowledgeInsightTagsTool() {
       try {
         final tagList = tags.cast<String>();
         await fileSystem.deleteInsightTags(userId, tagList);
+        _emitKnowledgeInsightChanged('');
         return "Successfully deleted tags: ${tagList.join(', ')}";
       } catch (e, st) {
         logger.warning('Failed to delete insight tags', e, st);
@@ -406,7 +411,29 @@ Tool buildSaveKnowledgeInsightCardsTool() {
           await fileSystem.saveInsightTags(userId, allTags.toList());
         }
 
-        // Track added/updated cards in state metadata for summary card generation
+        _emitKnowledgeInsightChanged(
+          createdIds.isNotEmpty
+              ? createdIds.first
+              : updatedIds.isNotEmpty
+                  ? updatedIds.first
+                  : '',
+        );
+
+        final addedSummaryCards = <Map<String, dynamic>>[];
+        final updatedSummaryCards = <Map<String, dynamic>>[];
+        for (final chart in chartObjects) {
+          final info = <String, dynamic>{
+            'id': chart.id ?? '',
+            'title': chart.title ?? '',
+          };
+          if (chart.type == 'add') {
+            addedSummaryCards.add(info);
+          } else if (chart.type == 'update') {
+            updatedSummaryCards.add(info);
+          }
+        }
+
+        // Track added/updated cards in state metadata for run debugging.
         try {
           final state = AgentCallToolContext.current!.state;
           final tracker =
@@ -417,20 +444,24 @@ Tool buildSaveKnowledgeInsightCardsTool() {
           final updatedList =
               List<Map<String, dynamic>>.from(tracker['updated'] ?? []);
 
-          for (final chart in chartObjects) {
-            final info = {'id': chart.id, 'title': chart.title ?? ''};
-            if (chart.type == 'add') {
-              addedList.add(info);
-            } else if (chart.type == 'update') {
-              updatedList.add(info);
-            }
-          }
+          addedList.addAll(addedSummaryCards);
+          updatedList.addAll(updatedSummaryCards);
           state.metadata['insight_updates'] = {
             'added': addedList,
             'updated': updatedList
           };
         } catch (e) {
-          // Tracking failure should not break the tool
+          logger.warning('Failed to track insight updates in state: $e');
+        }
+
+        try {
+          await _createInsightSummaryTimelineCard(
+            userId: userId,
+            addedCards: addedSummaryCards,
+            updatedCards: updatedSummaryCards,
+          );
+        } catch (e) {
+          logger.warning('Failed to create insight summary timeline card: $e');
         }
 
         return Prompts.knowledgeInsightToolSuccessUpdate(
@@ -440,6 +471,52 @@ Tool buildSaveKnowledgeInsightCardsTool() {
         throw Exception('Failed to update knowledge insight cards: $e');
       }
     },
+  );
+}
+
+void _emitKnowledgeInsightChanged(String insightId) {
+  EventBusService.instance.emitEvent(
+    NewInsightMessage(insightId: insightId, html: ''),
+  );
+}
+
+Future<void> _createInsightSummaryTimelineCard({
+  required String userId,
+  required List<Map<String, dynamic>> addedCards,
+  required List<Map<String, dynamic>> updatedCards,
+}) async {
+  if (addedCards.isEmpty && updatedCards.isEmpty) return;
+
+  final fileSystem = FileSystemService.instance;
+  final now = DateTime.now();
+  final timestamp = now.millisecondsSinceEpoch ~/ 1000;
+  final factId = await fileSystem.allocateCardFactId(userId);
+  final cardData = CardData(
+    factId: factId,
+    createdAt: timestamp,
+    title: UserStorage.l10n.knowledgeNewDiscovery,
+    timestamp: timestamp,
+    status: 'completed',
+    tags: const ['insight'],
+    uiConfigs: [
+      UiConfig(
+        templateId: 'insight_summary',
+        data: {
+          'added_insight_cards': addedCards,
+          'updated_insight_cards': updatedCards,
+        },
+      ),
+    ],
+  );
+
+  final saved = await fileSystem.safeWriteCardFile(userId, factId, cardData);
+  if (!saved) {
+    throw StateError('Failed to write insight summary timeline card $factId');
+  }
+  await emitTimelineCardAdded(
+    userId: userId,
+    cardId: factId,
+    cardData: cardData,
   );
 }
 

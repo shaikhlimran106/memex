@@ -15,6 +15,7 @@ import 'package:memex/agent/run_mode/agent_run_mode.dart';
 import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/data/model/chat_artifact.dart';
 import 'package:memex/data/model/chat_events.dart';
+import 'package:memex/data/services/demo_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/input_draft_service.dart';
 import 'package:memex/ui/core/widgets/html_webview_card.dart';
@@ -314,6 +315,13 @@ Map<String, String> initialOriginalFilenamesForSelectedImages(
       if (selectedPaths.contains(entry.key) && entry.value.trim().isNotEmpty)
         entry.key: entry.value,
   };
+}
+
+@visibleForTesting
+Key? superAgentDemoPublishTargetKey(DemoStep? currentStep) {
+  return currentStep == DemoStep.tapSend
+      ? DemoService.instance.sendButtonKey
+      : null;
 }
 
 /// Agent Chat Dialog with Real-time Event Streaming
@@ -1091,11 +1099,52 @@ class _AgentChatDialogState extends State<AgentChatDialog>
   }
 
   void _handleSuperAgentSubmit() {
+    final message = _messageController.text;
+    final images = List<XFile>.from(_selectedImages);
+    final imageOriginalFilenames = Map<String, String>.from(_originalFilenames);
+
+    if (_handleDemoSubmitIfNeeded(message, images: images)) return;
+
     _sendMessage(
-      _messageController.text,
-      images: List<XFile>.from(_selectedImages),
-      imageOriginalFilenames: Map<String, String>.from(_originalFilenames),
+      message,
+      images: images,
+      imageOriginalFilenames: imageOriginalFilenames,
     );
+  }
+
+  bool _handleDemoSubmitIfNeeded(
+    String message, {
+    required List<XFile> images,
+  }) {
+    final demo = DemoService.instance;
+    if (demo.currentStep != DemoStep.tapSend) return false;
+    if (message.trim().isEmpty && images.isEmpty) return false;
+
+    final combinedText = message.trim().isNotEmpty
+        ? message.trim()
+        : UserStorage.l10n.attachedImagesMessage(images.length);
+
+    demo.tryAdvance(DemoStep.tapSend);
+    _messageFocusNode.unfocus();
+    _messageController.clear();
+    _selectedImages.clear();
+    _originalFilenames.clear();
+    _clearDraftAfterAcceptedSend();
+
+    unawaited(Navigator.of(context).maybePop());
+    unawaited(_writeSuperAgentDemoSubmit(combinedText));
+    return true;
+  }
+
+  Future<void> _writeSuperAgentDemoSubmit(String combinedText) async {
+    final userId = await UserStorage.getUserId();
+    if (userId == null) {
+      _logger.warning(
+        'Cannot submit onboarding demo from Super Agent; user not logged in',
+      );
+      return;
+    }
+    await DemoService.instance.handleSuperAgentDemoSubmit(userId, combinedText);
   }
 
   void _handleChatEvent(ChatEvent event) {
@@ -1850,37 +1899,42 @@ class _AgentChatDialogState extends State<AgentChatDialog>
                       ),
                     ),
                     const SizedBox(width: 12),
-                    GestureDetector(
-                      key: const ValueKey('super_agent_publish_button'),
-                      onTap: _handleSuperAgentSubmit,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 160),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 11,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.textPrimary,
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              UserStorage.l10n.sendLabel,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
+                    SizedBox(
+                      key: superAgentDemoPublishTargetKey(
+                        DemoService.instance.currentStep,
+                      ),
+                      child: GestureDetector(
+                        key: const ValueKey('super_agent_publish_button'),
+                        onTap: _handleSuperAgentSubmit,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 160),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 11,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.textPrimary,
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                UserStorage.l10n.sendLabel,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Icon(
-                              Icons.arrow_upward,
-                              size: 17,
-                              color: Colors.white,
-                            ),
-                          ],
+                              const SizedBox(width: 8),
+                              const Icon(
+                                Icons.arrow_upward,
+                                size: 17,
+                                color: Colors.white,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

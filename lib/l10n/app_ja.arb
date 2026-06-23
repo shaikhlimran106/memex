@@ -1217,6 +1217,7 @@
   "demoTapAdd": "ここをタップして最初の記録を作成",
   "demoTapSend": "タップして最初の記録を送信",
   "demoTapCard": "AI が記録をどう整理したかを見るにはタップ",
+  "demoDetailHint": "これは AI が整理した記録の詳細です。自由に確認してから戻り、ツアーを続けてください。",
   "demoTapInsight": "AI 生成インサイトを見るにはタップ",
   "demoTapInsightUpdate": "記録からインサイトを生成するにはタップ",
   "demoTapKnowledge": "自動整理されたナレッジファイルを確認",

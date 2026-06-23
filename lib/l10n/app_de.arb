@@ -1217,6 +1217,7 @@
   "demoTapAdd": "Tippen Sie hier, um Ihren ersten Datensatz zu erstellen",
   "demoTapSend": "Tippen Sie hier, um Ihren ersten Datensatz zu senden",
   "demoTapCard": "Tippen Sie hier, um zu sehen, wie die KI Ihren Datensatz organisiert hat",
+  "demoDetailHint": "Dies sind die von der KI organisierten Datensatzdetails. Scrolle herum und gehe dann zurück, um die Tour fortzusetzen.",
   "demoTapInsight": "Tippen Sie hier, um KI-generierte Erkenntnisse anzuzeigen",
   "demoTapInsightUpdate": "Tippen Sie hier, um Erkenntnisse aus Ihren Datensätzen zu generieren",
   "demoTapKnowledge": "Überprüfen Sie Ihre automatisch organisierten Wissensdateien",

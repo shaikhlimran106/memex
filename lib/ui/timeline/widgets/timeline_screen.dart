@@ -532,8 +532,11 @@ class TimelineScreenState extends State<TimelineScreen> {
                     vm.setViewMode(action['tag'] == 'insight'
                         ? TimelineViewMode.insight
                         : TimelineViewMode.timeline);
+                    final toastContext = context;
                     vm.loadCards(refresh: true).catchError((e) {
-                      if (mounted) ToastHelper.showError(context, e);
+                      if (toastContext.mounted) {
+                        ToastHelper.showError(toastContext, e);
+                      }
                     });
                     // Also sync PageView
                     final pageIdx = _filterToPageIndex(vm);
@@ -855,18 +858,39 @@ class TimelineScreenState extends State<TimelineScreen> {
                 vm.setActiveFilter('schedule');
                 return;
               }
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TimelineCardDetailScreen(cardId: card.id),
-                ),
-              );
-              if (!mounted) return;
+              if (isDemoTarget) {
+                DemoService.instance.suspendOverlay();
+              }
+              final Object? result;
+              var shouldAdvanceDemo = false;
+              try {
+                result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TimelineCardDetailScreen(
+                      cardId: card.id,
+                      showDemoHint: isDemoTarget,
+                    ),
+                  ),
+                );
+                shouldAdvanceDemo = isDemoTarget;
+              } finally {
+                if (isDemoTarget && !shouldAdvanceDemo) {
+                  DemoService.instance.resumeOverlay();
+                }
+              }
+              if (!mounted) {
+                if (isDemoTarget) {
+                  DemoService.instance.resumeOverlay();
+                }
+                return;
+              }
 
               // Advance demo AFTER returning from detail screen so the
               // knowledgeTab spotlight measures the correct position.
-              if (isDemoTarget) {
+              if (shouldAdvanceDemo) {
                 DemoService.instance.tryAdvance(DemoStep.tapCard);
+                DemoService.instance.resumeOverlay();
               }
 
               if (result == true) {

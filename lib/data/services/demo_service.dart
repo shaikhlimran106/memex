@@ -37,6 +37,9 @@ class DemoService extends ChangeNotifier {
   DemoStep? get currentStep => _currentStep;
   bool get isActive => _currentStep != null && _currentStep != DemoStep.done;
 
+  bool _isOverlaySuspended = false;
+  bool get isOverlaySuspended => _isOverlaySuspended;
+
   /// Whether the demo card has finished updating and is ready for spotlight.
   bool _cardReady = false;
   bool get cardReady => _cardReady;
@@ -77,12 +80,13 @@ class DemoService extends ChangeNotifier {
     await _writeIntroCard(userId);
 
     _currentStep = DemoStep.welcome;
+    _isOverlaySuspended = false;
     notifyListeners();
   }
 
   void advance() {
     if (_currentStep == null) return;
-    final steps = DemoStep.values;
+    const steps = DemoStep.values;
     final idx = steps.indexOf(_currentStep!);
     if (idx < steps.length - 1) {
       _currentStep = steps[idx + 1];
@@ -106,8 +110,21 @@ class DemoService extends ChangeNotifier {
     _finish();
   }
 
+  void suspendOverlay() {
+    if (_isOverlaySuspended) return;
+    _isOverlaySuspended = true;
+    notifyListeners();
+  }
+
+  void resumeOverlay() {
+    if (!_isOverlaySuspended) return;
+    _isOverlaySuspended = false;
+    notifyListeners();
+  }
+
   void _finish() {
     _currentStep = null;
+    _isOverlaySuspended = false;
     OnboardingService.markDemoAsSeen();
     notifyListeners();
   }
@@ -266,7 +283,7 @@ class DemoService extends ChangeNotifier {
       final kbFile =
           File(path.join(kbDir, _isZh ? 'Memex 指南.md' : 'Memex Guide.md'));
       final kbContent =
-          (_isZh ? _kbContentZh : _kbContentEn) + '\n<!-- fact_id: $factId -->';
+          '${_isZh ? _kbContentZh : _kbContentEn}\n<!-- fact_id: $factId -->';
       await kbFile.writeAsString(kbContent);
 
       // Ensure tags exist
@@ -290,80 +307,128 @@ class DemoService extends ChangeNotifier {
   Future<void> handleDemoSubmit(
       String userId, String factId, String combinedText) async {
     try {
-      final fs = FileSystemService.instance;
-      final eventBus = EventBusService.instance;
-
-      // Ensure default characters are created before writing comment
-      await CharacterService.instance.getAllCharacters(userId);
-
-      // Pick a default character for the comment (死党/Buddy)
-      final defaultChars = UserStorage.l10n.defaultCharacters;
-      var commentCharId = '5';
-      for (final charData in defaultChars) {
-        if (charData['id'] == '5') {
-          commentCharId = charData['id'] as String;
-          break;
-        }
-      }
-
-      // Wait a moment to simulate processing
-      await Future.delayed(const Duration(milliseconds: 1500));
-
-      // Build completed card
-      final relatedFacts = _introFactId != null
-          ? [RelatedFact(id: _introFactId!)]
-          : <RelatedFact>[];
-      final createdAt = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-
-      final completedCard = CardData(
-        factId: factId,
-        createdAt: createdAt,
-        timestamp: createdAt,
-        status: 'completed',
-        title: _isZh ? '我的第一条记录' : 'My First Record',
-        tags: const ['Knowledge'],
-        uiConfigs: [
-          UiConfig(templateId: 'snippet', data: {
-            'text': combinedText,
-            'style': 'default',
-          }),
-        ],
-        insight: CardInsight(
-          text: _isZh
-              ? '收到了你的第一条记录 🎉 。以后你记下的每一笔，我都会帮你整理、归类，还会把相关的内容串联起来。'
-              : 'Your first record is here 🎉 Filed under "Knowledge." Every note you jot down from now on, I\'ll organize, categorize, and connect the dots for you.',
-          summary: _isZh ? '第一条记录' : 'First record',
-          relatedFacts: relatedFacts,
-          characterId: '0',
-        ),
-        comments: [
-          CardComment(
-            id: _uuid.v4(),
-            content: _isZh
-                ? '哟，开张大吉！🎉 期待你接下来的记录～'
-                : 'And so it begins! 🎉 Looking forward to what comes next~',
-            isAi: true,
-            characterId: commentCharId,
-            timestamp: createdAt,
-          ),
-        ],
-      );
-
-      await fs.safeWriteCardFile(userId, factId, completedCard);
-
-      // Render and push update to timeline
-      final renderResult = await renderCard(
+      await _writeCompletedDemoCard(
         userId: userId,
-        cardData: completedCard,
-        factContent: combinedText,
+        factId: factId,
+        combinedText: combinedText,
+        publishAsAdded: false,
       );
-      final assetsAndText =
-          await extractAssetsAndRawText(userId, completedCard);
-      final assets = (assetsAndText['assets'] as List<AssetData>)
-          .map((a) => a.toJson())
-          .toList();
-      final rawText = assetsAndText['rawText'] as String?;
+    } catch (e) {
+      _logger.severe('Failed to handle demo submit: $e');
+    }
+  }
 
+  /// Called when the onboarding demo is submitted from Super Agent chat.
+  ///
+  /// The Super Agent chat stream does not synchronously return the legacy
+  /// submitInput fact_id, so the demo creates and publishes its own card.
+  Future<void> handleSuperAgentDemoSubmit(
+      String userId, String combinedText) async {
+    try {
+      final factId =
+          await FileSystemService.instance.allocateCardFactId(userId);
+      await _writeCompletedDemoCard(
+        userId: userId,
+        factId: factId,
+        combinedText: combinedText,
+        publishAsAdded: true,
+      );
+    } catch (e) {
+      _logger.severe('Failed to handle super agent demo submit: $e');
+    }
+  }
+
+  Future<void> _writeCompletedDemoCard({
+    required String userId,
+    required String factId,
+    required String combinedText,
+    required bool publishAsAdded,
+  }) async {
+    final fs = FileSystemService.instance;
+    final eventBus = EventBusService.instance;
+
+    // Ensure default characters are created before writing comment
+    await CharacterService.instance.getAllCharacters(userId);
+
+    // Pick a default character for the comment (死党/Buddy)
+    final defaultChars = UserStorage.l10n.defaultCharacters;
+    var commentCharId = '5';
+    for (final charData in defaultChars) {
+      if (charData['id'] == '5') {
+        commentCharId = charData['id'] as String;
+        break;
+      }
+    }
+
+    // Wait a moment to simulate processing
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    // Build completed card
+    final relatedFacts = _introFactId != null
+        ? [RelatedFact(id: _introFactId!)]
+        : <RelatedFact>[];
+    final createdAt = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+    final completedCard = CardData(
+      factId: factId,
+      createdAt: createdAt,
+      timestamp: createdAt,
+      status: 'completed',
+      title: _isZh ? '我的第一条记录' : 'My First Record',
+      tags: const ['Knowledge'],
+      uiConfigs: [
+        UiConfig(templateId: 'snippet', data: {
+          'text': combinedText,
+          'style': 'default',
+        }),
+      ],
+      insight: CardInsight(
+        text: _isZh
+            ? '收到了你的第一条记录 🎉 。以后你记下的每一笔，我都会帮你整理、归类，还会把相关的内容串联起来。'
+            : 'Your first record is here 🎉 Filed under "Knowledge." Every note you jot down from now on, I\'ll organize, categorize, and connect the dots for you.',
+        summary: _isZh ? '第一条记录' : 'First record',
+        relatedFacts: relatedFacts,
+        characterId: '0',
+      ),
+      comments: [
+        CardComment(
+          id: _uuid.v4(),
+          content: _isZh
+              ? '哟，开张大吉！🎉 期待你接下来的记录～'
+              : 'And so it begins! 🎉 Looking forward to what comes next~',
+          isAi: true,
+          characterId: commentCharId,
+          timestamp: createdAt,
+        ),
+      ],
+    );
+
+    await fs.safeWriteCardFile(userId, factId, completedCard);
+
+    final renderResult = await renderCard(
+      userId: userId,
+      cardData: completedCard,
+      factContent: combinedText,
+    );
+    final assetsAndText = await extractAssetsAndRawText(userId, completedCard);
+    final assets = (assetsAndText['assets'] as List<AssetData>)
+        .map((a) => a.toJson())
+        .toList();
+    final rawText = assetsAndText['rawText'] as String?;
+
+    if (publishAsAdded) {
+      eventBus.emitEvent(CardAddedMessage(
+        id: factId,
+        html: renderResult.html ?? '',
+        timestamp: completedCard.timestamp,
+        tags: completedCard.tags,
+        status: renderResult.status,
+        title: completedCard.title,
+        uiConfigs: renderResult.uiConfigs,
+        assets: assets.isNotEmpty ? assets : null,
+        rawText: rawText,
+      ));
+    } else {
       eventBus.emitEvent(CardUpdatedMessage(
         id: factId,
         html: renderResult.html ?? '',
@@ -375,31 +440,29 @@ class DemoService extends ChangeNotifier {
         assets: assets.isNotEmpty ? assets : null,
         rawText: rawText,
       ));
+    }
 
-      // Card is now stable — signal the overlay to measure.
-      _cardReady = true;
-      notifyListeners();
+    // Card is now stable — signal the overlay to measure.
+    _cardReady = true;
+    notifyListeners();
 
-      _logger.info('Demo: wrote completed card for $factId');
+    _logger.info('Demo: wrote completed card for $factId');
 
-      // Append user's first record to the KB file with fact_id reference
-      try {
-        final pkmRoot = fs.getPkmPath(userId);
-        final kbDir = path.join(pkmRoot, 'Resources');
-        final kbFileName = _isZh ? 'Memex 指南.md' : 'Memex Guide.md';
-        final kbFile = File(path.join(kbDir, kbFileName));
-        if (await kbFile.exists()) {
-          final existing = await kbFile.readAsString();
-          final appendSection = _isZh
-              ? '\n\n## 用户的第一条记录\n\n$combinedText\n\n<!-- fact_id: $factId -->'
-              : '\n\n## User\'s First Record\n\n$combinedText\n\n<!-- fact_id: $factId -->';
-          await kbFile.writeAsString('$existing$appendSection');
-        }
-      } catch (e) {
-        _logger.warning('Failed to append to KB file: $e');
+    // Append user's first record to the KB file with fact_id reference
+    try {
+      final pkmRoot = fs.getPkmPath(userId);
+      final kbDir = path.join(pkmRoot, 'Resources');
+      final kbFileName = _isZh ? 'Memex 指南.md' : 'Memex Guide.md';
+      final kbFile = File(path.join(kbDir, kbFileName));
+      if (await kbFile.exists()) {
+        final existing = await kbFile.readAsString();
+        final appendSection = _isZh
+            ? '\n\n## 用户的第一条记录\n\n$combinedText\n\n<!-- fact_id: $factId -->'
+            : '\n\n## User\'s First Record\n\n$combinedText\n\n<!-- fact_id: $factId -->';
+        await kbFile.writeAsString('$existing$appendSection');
       }
     } catch (e) {
-      _logger.severe('Failed to handle demo submit: $e');
+      _logger.warning('Failed to append to KB file: $e');
     }
   }
 

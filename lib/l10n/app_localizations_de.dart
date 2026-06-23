@@ -2700,6 +2700,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Tippen Sie hier, um zu sehen, wie die KI Ihren Datensatz organisiert hat';
 
   @override
+  String get demoDetailHint =>
+      'Dies sind die von der KI organisierten Datensatzdetails. Scrolle herum und gehe dann zurück, um die Tour fortzusetzen.';
+
+  @override
   String get demoTapInsight =>
       'Tippen Sie hier, um KI-generierte Erkenntnisse anzuzeigen';
 

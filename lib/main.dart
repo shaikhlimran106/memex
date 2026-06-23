@@ -399,7 +399,7 @@ class _MemexAppState extends State<MemexApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<Locale>(
       valueListenable: UserStorage.localeNotifier,
-      builder: (context, locale, child) {
+      builder: (context, locale, _) {
         return MaterialApp.router(
           title: 'Memex',
           debugShowCheckedModeBanner: false,
@@ -416,6 +416,7 @@ class _MemexAppState extends State<MemexApp> with WidgetsBindingObserver {
               child: Stack(
                 children: [
                   if (child != null) child,
+                  const DemoOverlay(),
                   if (_isLocked && _hasUser)
                     _requiresAuth
                         ? LockScreen(
@@ -1715,9 +1716,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     : null,
                 isCalibrating: _isQuickCalibrating,
               ),
-
-            // Onboarding demo overlay
-            const DemoOverlay(),
           ],
         ),
       ),

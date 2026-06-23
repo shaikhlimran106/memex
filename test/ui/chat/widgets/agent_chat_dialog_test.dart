@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:memex/data/model/chat_events.dart';
+import 'package:memex/data/services/demo_service.dart';
 import 'package:memex/l10n/app_localizations.dart';
 import 'package:memex/ui/chat/widgets/agent_chat_dialog.dart';
 import 'package:memex/utils/user_storage.dart';
@@ -245,6 +246,28 @@ void main() {
         }),
         {'/tmp/a.jpg': 'camera-original.jpg'},
       );
+    });
+
+    test('uses demo send key only while spotlighting super agent publish', () {
+      expect(superAgentDemoPublishTargetKey(null), isNull);
+      expect(superAgentDemoPublishTargetKey(DemoStep.tapAddButton), isNull);
+      expect(
+        superAgentDemoPublishTargetKey(DemoStep.tapSend),
+        same(DemoService.instance.sendButtonKey),
+      );
+    });
+
+    test('toggles demo overlay suspension for routed detail pages', () {
+      final demo = DemoService.instance;
+
+      demo.resumeOverlay();
+      expect(demo.isOverlaySuspended, isFalse);
+
+      demo.suspendOverlay();
+      expect(demo.isOverlaySuspended, isTrue);
+
+      demo.resumeOverlay();
+      expect(demo.isOverlaySuspended, isFalse);
     });
   });
 

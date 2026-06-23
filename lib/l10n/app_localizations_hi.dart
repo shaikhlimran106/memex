@@ -2657,6 +2657,10 @@ class AppLocalizationsHi extends AppLocalizations {
       'एआई ने आपके रिकॉर्ड को कैसे व्यवस्थित किया, देखने के लिए टैप करें';
 
   @override
+  String get demoDetailHint =>
+      'यह आपका एआई द्वारा व्यवस्थित रिकॉर्ड विवरण है। इसे देखें, फिर टूर जारी रखने के लिए वापस जाएँ।';
+
+  @override
   String get demoTapInsight => 'एआई-जनित अंतर्दृष्टियाँ देखने के लिए टैप करें';
 
   @override

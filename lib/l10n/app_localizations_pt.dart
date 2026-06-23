@@ -2672,6 +2672,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get demoTapCard => 'Toque para ver como AI organizou seu registro';
 
   @override
+  String get demoDetailHint =>
+      'Este é o detalhe do seu registro organizado pela AI. Explore e depois volte para continuar a tour.';
+
+  @override
   String get demoTapInsight => 'Toque para ver insights gerados por AI';
 
   @override
