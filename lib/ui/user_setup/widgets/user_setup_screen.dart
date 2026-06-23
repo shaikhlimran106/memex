@@ -13,6 +13,7 @@ import 'package:memex/ui/settings/widgets/data_storage_page.dart';
 import 'package:memex/ui/settings/widgets/ai_service_setup_page.dart';
 import 'package:memex/ui/core/widgets/avatar_picker.dart';
 import 'package:memex/ui/core/widgets/character_avatar.dart';
+import 'package:memex/ui/core/widgets/language_picker.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
 
 /// User setup screen. Shown when user opens app for the first time or no local userId.
@@ -33,7 +34,7 @@ class _UserSetupScreenState extends State<UserSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _userIdController = TextEditingController();
   bool _isSubmitting = false;
-  String _selectedLang = 'en';
+  String _selectedLocaleTag = 'en';
   String _selectedAvatar = UserStorage.defaultAvatarSeed;
   String? _pendingAvatarImagePath;
   bool _hasPickedAvatar = false;
@@ -56,11 +57,13 @@ class _UserSetupScreenState extends State<UserSetupScreen> {
 
   void _detectSystemLanguage() {
     final systemLocale = PlatformDispatcher.instance.locale;
-    final langCode = systemLocale.languageCode;
+    final localeTag = UserStorage.localeTag(
+      UserStorage.resolveToSupportedLocale(systemLocale),
+    );
     setState(() {
-      _selectedLang = (langCode == 'zh') ? 'zh' : 'en';
+      _selectedLocaleTag = localeTag;
     });
-    _applyLanguage(_selectedLang);
+    _applyLanguage(_selectedLocaleTag);
   }
 
   Future<void> _loadExistingUserId() async {
@@ -80,11 +83,24 @@ class _UserSetupScreenState extends State<UserSetupScreen> {
     }
   }
 
-  Future<void> _applyLanguage(String langCode) async {
-    final locale = Locale(langCode);
+  Future<void> _applyLanguage(String localeTag) async {
+    final locale = UserStorage.localeFromTag(localeTag);
     await UserStorage.setLocale(locale);
-    await UserStorage.initL10n();
     if (mounted) setState(() {});
+  }
+
+  Future<void> _showLanguagePicker() async {
+    final localeTag = await showLanguagePickerSheet(
+      context: context,
+      selectedLocaleTag: _selectedLocaleTag,
+      title: UserStorage.l10n.chooseLanguage,
+    );
+    if (!mounted || localeTag == null || localeTag == _selectedLocaleTag) {
+      return;
+    }
+
+    setState(() => _selectedLocaleTag = localeTag);
+    await _applyLanguage(localeTag);
   }
 
   Future<void> _handleSubmit() async {
@@ -412,7 +428,11 @@ class _UserSetupScreenState extends State<UserSetupScreen> {
   Widget _buildLanguageSelector() {
     return Row(
       children: [
-        Icon(Icons.language, size: 18, color: AppColors.textTertiary),
+        const Icon(
+          Icons.language,
+          size: 18,
+          color: AppColors.textTertiary,
+        ),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
@@ -426,41 +446,12 @@ class _UserSetupScreenState extends State<UserSetupScreen> {
           ),
         ),
         const SizedBox(width: 8),
-        _buildLangChip('EN', 'en'),
-        const SizedBox(width: 8),
-        _buildLangChip('中文', 'zh'),
+        LanguageValueButton(
+          localeTag: _selectedLocaleTag,
+          onTap: _showLanguagePicker,
+          compact: true,
+        ),
       ],
-    );
-  }
-
-  Widget _buildLangChip(String label, String langCode) {
-    final isSelected = _selectedLang == langCode;
-    return GestureDetector(
-      onTap: () {
-        if (_selectedLang != langCode) {
-          setState(() => _selectedLang = langCode);
-          _applyLanguage(langCode);
-        }
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.grey[300]!,
-          ),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: isSelected ? Colors.white : AppColors.textSecondary,
-          ),
-        ),
-      ),
     );
   }
 }

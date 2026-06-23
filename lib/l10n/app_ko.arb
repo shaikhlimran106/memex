@@ -1,0 +1,1483 @@
+{
+  "@@locale": "ko",
+  "timesLabel": "횟수",
+  "modelSetAsDefault": "{modelId}을(를) 기본 모델로 설정",
+  "@modelSetAsDefault": {
+    "placeholders": {
+      "modelId": {}
+    }
+  },
+  "retry": "재시도",
+  "unknownModel": "알 수 없는 모델",
+  "notSet": "설정되지 않음",
+  "confirmClear": "지우기 확인",
+  "confirmClearTokenMessage": "현재 사용자를 지우시겠습니까? 사용자 ID를 다시 입력해야 합니다.",
+  "cancel": "취소",
+  "confirm": "확인",
+  "tokenCleared": "사용자를 지웠습니다",
+  "clearTokenFailed": "사용자를 지우지 못했습니다: {error}",
+  "@clearTokenFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "selectDateRangeOptional": "날짜 범위 선택(선택 사항):",
+  "startDate": "시작일",
+  "endDate": "종료일",
+  "select": "선택",
+  "processLimitOptional": "처리 제한(선택 사항)",
+  "leaveEmptyForAll": "전체를 처리하려면 비워 두세요",
+  "startProcessing": "처리 시작",
+  "userIdNotFound": "사용자 ID를 찾을 수 없습니다",
+  "createTaskFailed": "작업을 만들지 못했습니다: {error}",
+  "@createTaskFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "reprocessCards": "카드 다시 처리",
+  "reprocessCardsTaskCreated": "다시 처리 요청을 슈퍼 에이전트 대기열에 추가했습니다",
+  "reprocessCardsDownstreamMode": "범위",
+  "reprocessCardsCardOnly": "카드만",
+  "reprocessCardsCardOnlyDesc": "선택한 타임라인 카드를 검토하고 다시 생성하도록 슈퍼 에이전트에 요청합니다.",
+  "reprocessCardsRerunDownstream": "카드 및 관련 후속 작업",
+  "reprocessCardsRerunDownstreamDesc": "필요할 때 관련 PKM, 일정, 인사이트 업데이트도 고려하도록 슈퍼 에이전트에 요청합니다.",
+  "reanalyzeMediaAssets": "미디어 첨부 다시 읽기",
+  "reanalyzeMediaAssetsDesc": "카드를 다시 생성할 때 첨부 미디어를 다시 검사하도록 슈퍼 에이전트에 요청합니다.",
+  "regenerateComments": "댓글 다시 생성",
+  "regenerateCommentsTaskCreated": "댓글 다시 생성 작업이 생성되어 백그라운드에서 실행 중입니다",
+  "rebuildSearchIndex": "검색 인덱스 다시 만들기",
+  "rebuildSearchIndexSuccess": "검색 인덱스를 성공적으로 다시 만들었습니다",
+  "rebuildSearchIndexFailed": "검색 인덱스를 다시 만들지 못했습니다",
+  "clearData": "데이터 지우기",
+  "confirmClearDataMessage": "데이터를 지우시겠습니까?",
+  "confirmClearDataDeletesWorkspaceMessage": "현재 사용자의 모든 로컬 워크스페이스 데이터가 삭제됩니다. 카드, 미디어, 지식 파일, 인사이트, 메모리, 채팅 기록, 시스템 상태가 포함됩니다.\n\n이 작업은 되돌릴 수 없습니다!",
+  "clearFailedAgentContexts": "실패한 대화 컨텍스트 지우기",
+  "confirmClearFailedAgentContextsMessage": "인사이트 에이전트와 일정 에이전트의 저장된 대화 컨텍스트를 지우시겠습니까? 모델을 변경한 뒤 이전 에이전트 메시지가 더 이상 호환되지 않을 때 유용합니다. 사실, 카드, 지식, 메모리, 모델 설정은 삭제되지 않습니다.",
+  "failedAgentContextsCleared": "저장된 대화 컨텍스트 {count}개를 지웠습니다",
+  "@failedAgentContextsCleared": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "clearFailedAgentContextsFailed": "대화 컨텍스트를 지우지 못했습니다: {error}",
+  "@clearFailedAgentContextsFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "cloneToTestUser": "테스트 사용자로 복제",
+  "confirmCloneToTestUserMessage": "현재 워크스페이스를 새 로컬 테스트 사용자로 복사하고 그 사용자로 전환합니다. 에이전트 실행 상태는 복사되지 않습니다. 현재 사용자 데이터는 변경되지 않습니다.",
+  "testUserIdLabel": "테스트 사용자 ID",
+  "testUserIdHelper": "영문자, 숫자, 하이픈 또는 밑줄을 사용하세요.",
+  "testUserIdInvalid": "영문자, 숫자, 하이픈 또는 밑줄만 사용할 수 있습니다.",
+  "overwriteExistingTestUser": "같은 ID의 기존 테스트 사용자 바꾸기",
+  "testUserCloneSuccess": "테스트 사용자 {userId}(으)로 전환했습니다",
+  "@testUserCloneSuccess": {
+    "placeholders": {
+      "userId": {}
+    }
+  },
+  "testUserCloneFailed": "테스트 사용자 복제에 실패했습니다: {error}",
+  "@testUserCloneFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "dataClearedSuccess": "데이터를 성공적으로 지웠습니다",
+  "clearDataFailed": "데이터를 지우지 못했습니다: {error}",
+  "@clearDataFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "personalCenter": "개인 센터",
+  "viewLogs": "로그 보기",
+  "systemAuthorization": "시스템 권한",
+  "aiCharacterConfig": "AI 캐릭터 설정",
+  "modelConfig": "모델 설정",
+  "agentConfig": "에이전트 설정",
+  "experimentalLab": "실험실",
+  "experimentalLabDescription": "나중에 변경되거나 이동될 수 있는 실험적 기능입니다.",
+  "modelUsageStats": "모델 사용 통계",
+  "asyncTaskList": "비동기 작업 목록",
+  "clearLocalToken": "사용자 지우기",
+  "insightCardTemplates": "인사이트 카드 템플릿",
+  "timelineCardTemplates": "타임라인 카드 템플릿",
+  "logViewer": "로그 뷰어",
+  "autoRefresh": "자동 새로고침",
+  "lineCount": "줄 수: ",
+  "all": "전체",
+  "schedule": "일정",
+  "statistics": "통계",
+  "appLockConfig": "앱 잠금 설정",
+  "activityStats": "활동 통계",
+  "activityStatsSummary": "이 기간 동안 {inputs}번 기록했고, 카드 {cards}장을 생성했으며, 할 일 {todos}개를 완료했습니다.",
+  "@activityStatsSummary": {
+    "placeholders": {
+      "inputs": {},
+      "cards": {},
+      "todos": {}
+    }
+  },
+  "last7Days": "7일",
+  "last30Days": "30일",
+  "last90Days": "90일",
+  "records": "기록",
+  "words": "단어",
+  "cards": "카드",
+  "knowledgeUnits": "지식 단위",
+  "completedTodos": "완료한 할 일",
+  "activeDays": "활동한 날",
+  "streakDays": "연속 기록",
+  "dailyRhythm": "일일 리듬",
+  "recordToOutput": "기록에서 출력까지",
+  "sourceBreakdown": "소스 분석",
+  "topThemes": "주요 테마",
+  "textInput": "텍스트",
+  "imageInput": "이미지",
+  "audioInput": "오디오",
+  "noStatsYet": "아직 활동 통계가 없습니다",
+  "tapDayForDetails": "세부 정보를 보려면 날짜를 탭하세요",
+  "dayDetails": "일별 세부 정보",
+  "loadStatsFailed": "통계를 불러오지 못했습니다: {error}",
+  "@loadStatsFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "overview": "개요",
+  "daily": "일별",
+  "modelStatsByAgent": "에이전트별",
+  "detail": "세부 정보",
+  "date": "날짜",
+  "agent": "에이전트",
+  "noData": "데이터 없음",
+  "totalCalls": "총 호출",
+  "calls": "호출",
+  "callsCount": "{count}회 호출",
+  "@callsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "selectDateRange": "날짜 범위 선택",
+  "totalTokens": "총 토큰",
+  "cacheRate": "캐시 비율",
+  "promptTokens": "프롬프트 토큰",
+  "completionTokens": "완성 토큰",
+  "cachedTokens": "캐시된 토큰",
+  "thoughtTokens": "사고 토큰",
+  "prompt": "프롬프트",
+  "completion": "완성",
+  "cached": "캐시됨",
+  "thought": "사고",
+  "model": "모델",
+  "scene": "장면",
+  "sceneId": "장면 ID",
+  "tokenUsage": "토큰 사용량",
+  "handler": "핸들러",
+  "modelBreakdown": "모델 분석",
+  "callDetails": "호출 세부 정보",
+  "recordDetailsTitle": "기록 세부 정보: {scene}",
+  "@recordDetailsTitle": {
+    "placeholders": {
+      "scene": {}
+    }
+  },
+  "saveLlmConfigFailed": "LLM 설정을 저장하지 못했습니다: {error}",
+  "@saveLlmConfigFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "webHtmlPreviewUnavailable": "웹에서는 HTML 미리보기를 사용할 수 없습니다. 모바일에서 확인해 주세요.",
+  "saveUserInfoFailed": "사용자 정보를 저장하지 못했습니다: {error}",
+  "@saveUserInfoFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "totalEstimatedCost": "총 예상 비용",
+  "close": "닫기",
+  "totalTokenConsumption": "총 토큰 소비량",
+  "dataLoadFailedRetry": "데이터를 불러오지 못했습니다. 나중에 다시 시도해 주세요.",
+  "timelineLoadFailedRetry": "타임라인을 불러오지 못했습니다. 나중에 다시 시도해 주세요.",
+  "newPerspective": "새로운 관점",
+  "startPoint": "시작",
+  "endPoint": "끝",
+  "originalInput": "원본 입력",
+  "referenceContent": "참조 내용",
+  "referenceWithTitle": "참조: {title}",
+  "@referenceWithTitle": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "actionCenterTitle": "대기 중인 작업",
+  "noPendingActions": "대기 중인 작업이 없습니다",
+  "clarificationNeeded": "Memex가 확인하고 싶어 합니다",
+  "clarificationTextHint": "짧은 답변을 입력하세요",
+  "clarificationTextRequired": "먼저 짧은 답변을 추가하세요",
+  "clarificationAnswered": "답변됨",
+  "clarificationAnswerPrefix": "답변: {answer}",
+  "@clarificationAnswerPrefix": {
+    "placeholders": {
+      "answer": {}
+    }
+  },
+  "answerSaved": "답변을 저장했습니다",
+  "clarificationOtherAnswer": "직접 입력",
+  "clarificationNotSure": "잘 모르겠음 / 답변하고 싶지 않음",
+  "yes": "예",
+  "no": "아니요",
+  "footprintMap": "발자국 지도",
+  "waypointPlaces": "경유 장소",
+  "unknownPlace": "알 수 없는 장소",
+  "releaseToSend": "놓으면 전송",
+  "selectFromAlbum": "앨범에서 선택",
+  "clipboardPreviewTitle": "새 클립보드",
+  "clipboardPreviewImageTitle": "클립보드 이미지",
+  "clipboardPreviewImageDescription": "추가할 이미지가 준비되었습니다",
+  "clipboardPreviewUnprocessed": "아직 붙여넣지 않았습니다",
+  "clipboardPreviewPasteToInput": "입력창에 붙여넣기",
+  "clipboardPreviewAddImageToInput": "이미지 추가",
+  "clipboardPreviewImageFailed": "클립보드 이미지를 읽을 수 없습니다",
+  "tellAiWhatHappened": "무슨 일이 있었는지 AI에게 알려 주세요...",
+  "recordingWithDuration": "녹음 중: {duration}",
+  "@recordingWithDuration": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "playing": "재생 중...",
+  "sendLabel": "보내기",
+  "attachedImagesMessage": "이미지 {count}장을 보냈습니다",
+  "@attachedImagesMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "noTaskData": "작업 데이터가 없습니다",
+  "createdAtDate": "생성: {date}",
+  "@createdAtDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "updatedAtDate": "업데이트: {date}",
+  "@updatedAtDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "durationLabel": "소요 시간: {duration}",
+  "@durationLabel": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "retryCount": "재시도: {count}",
+  "@retryCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "loadDetailFailedRetry": "세부 정보를 불러오지 못했습니다. 나중에 다시 시도해 주세요.",
+  "loadFailed": "불러오기 실패",
+  "reload": "다시 불러오기",
+  "aiInsightDetail": "인사이트 세부 정보",
+  "relatedRecordsCount": "관련 기록({count})",
+  "@relatedRecordsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "noRelatedRecords": "관련 기록이 없습니다",
+  "useFingerprintToUnlock": "지문으로 잠금 해제",
+  "locked": "잠김",
+  "wrongPassword": "비밀번호가 올바르지 않습니다",
+  "enterPassword": "비밀번호 입력",
+  "memexLocked": "Memex가 잠겨 있습니다",
+  "calendarShortSun": "일",
+  "calendarShortMon": "월",
+  "calendarShortTue": "화",
+  "calendarShortWed": "수",
+  "calendarShortThu": "목",
+  "calendarShortFri": "금",
+  "calendarShortSat": "토",
+  "noRecordsOnDate": "{date}에는 기록이 없습니다",
+  "@noRecordsOnDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "footprintPath": "발자국 경로",
+  "lifeCompositionTable": "생활 구성",
+  "emotionReframe": "감정 재구성",
+  "chronicleOfThings": "사물의 기록",
+  "goalProgress": "목표 진행",
+  "trendChart": "추세 차트",
+  "comparisonChart": "비교 차트",
+  "todayTimeFlow": "오늘의 시간 흐름",
+  "aiInputHint": "기억이든 지금의 일이든, 제가 여기 있어요...",
+  "refreshSuperAgentStateTooltip": "Memex 에이전트 컨텍스트 지우기",
+  "refreshSuperAgentStateTitle": "Memex 에이전트 기록 컨텍스트를 지우시겠습니까?",
+  "refreshSuperAgentStateMessage": "표시되는 채팅 기록은 유지되지만, Memex 에이전트의 과거 실행 컨텍스트는 지워지고 이후 답변은 새로운 컨텍스트에서 시작됩니다. 영구 메모리, 지식 베이스 파일, 카드 및 기타 저장된 데이터에는 영향을 주지 않습니다. Memex 에이전트가 계속 비정상적으로 동작할 때 사용하세요. 계속하시겠습니까?",
+  "refreshSuperAgentStateActiveRunMessage": "현재 Memex 에이전트 메시지가 끝난 뒤 컨텍스트를 지워 주세요.",
+  "refreshSuperAgentStateSuccess": "Memex 에이전트 컨텍스트를 지웠습니다",
+  "refreshSuperAgentStateFailed": "Memex 에이전트 컨텍스트를 지우지 못했습니다: {error}",
+  "@refreshSuperAgentStateFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "nothingHere": "아직 아무것도 없습니다",
+  "nothingHereHint": "아래 버튼을 눌러 첫 카드를 만드세요",
+  "agentProcessing": "AI가 처리 중입니다...",
+  "keepAppOpen": "앱을 닫지 마세요",
+  "activityDetail": "활동 세부 정보",
+  "noAgentActivityYet": "아직 에이전트 활동이 없습니다",
+  "processingEllipsis": "처리 중...",
+  "agentBackgroundTitle": "Memex 에이전트",
+  "agentBackgroundPausedTitle": "Memex 에이전트 일시 중지됨",
+  "agentBackgroundNeedsAttentionTitle": "Memex 에이전트에 확인이 필요합니다",
+  "agentBackgroundStageIdle": "대기 중",
+  "agentBackgroundStageProcessing": "처리 중",
+  "agentBackgroundStageQueued": "대기열에 있음",
+  "agentBackgroundStageRetrying": "재시도 대기 중",
+  "agentBackgroundStagePaused": "일시 중지됨",
+  "agentBackgroundStageCompleted": "완료됨",
+  "agentBackgroundStageNeedsAttention": "확인 필요",
+  "agentBackgroundStageAnalyzingMedia": "미디어 분석 중",
+  "agentBackgroundStageGeneratingCard": "카드 생성 중",
+  "agentBackgroundStageUpdatingKnowledge": "지식 업데이트 중",
+  "agentBackgroundStagePreparingComment": "댓글 준비 중",
+  "agentBackgroundStageRoutingFollowUps": "후속 작업 라우팅 중",
+  "agentBackgroundTaskSummary": "실행 중 {running}, 대기 중 {pending}, 재시도 {retrying}",
+  "@agentBackgroundTaskSummary": {
+    "placeholders": {
+      "running": {},
+      "pending": {},
+      "retrying": {}
+    }
+  },
+  "agentBackgroundTaskDetail": "대기열 작업 {count}개를 처리 중입니다.",
+  "@agentBackgroundTaskDetail": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "agentBackgroundNoTasks": "백그라운드 작업이 없습니다.",
+  "agentBackgroundStarting": "처리를 시작하고 있습니다.",
+  "agentBackgroundCompletedDetail": "모든 백그라운드 작업이 완료되었습니다.",
+  "agentBackgroundFailedDetail": "오류로 인해 처리가 중단되었습니다.",
+  "agentBackgroundPausedDetail": "처리가 일시 중지되었으며 나중에 계속됩니다.",
+  "agentBackgroundQueuedDetail": "다음 처리 단계를 기다리는 중입니다.",
+  "agentBackgroundRetryingDetail": "현재 단계가 자동으로 다시 시도됩니다.",
+  "agentBackgroundAnalyzeMediaDetail": "첨부 파일과 로컬 컨텍스트를 읽는 중입니다.",
+  "agentBackgroundGeneratingCardDetail": "기록을 타임라인 카드로 변환 중입니다.",
+  "agentBackgroundUpdatingKnowledgeDetail": "로컬 지식과 메모리를 업데이트 중입니다.",
+  "agentBackgroundPreparingCommentDetail": "어시스턴트 후속 답변을 준비 중입니다.",
+  "agentBackgroundRoutingFollowUpsDetail": "이 카드의 후속 작업을 확인 중입니다.",
+  "agentBackgroundPausedStatus": "일시 중지됨 - {summary}",
+  "@agentBackgroundPausedStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "agentBackgroundNeedsAttentionStatus": "확인 필요 - {summary}",
+  "@agentBackgroundNeedsAttentionStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "settings": "설정",
+  "languageSettings": "언어",
+  "languageSettingsDesc": "앱 표시 언어 변경",
+  "noPendingActionsToast": "대기 중인 작업이 없습니다",
+  "knowledgeNewDiscovery": "새로운 지식 발견",
+  "discoveredNewInsightsCount": "새 인사이트 {count}개를 발견했습니다",
+  "@discoveredNewInsightsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "updatedExistingInsightsCount": "기존 인사이트 {count}개를 업데이트했습니다",
+  "@updatedExistingInsightsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "sectionNewInsights": "새 인사이트",
+  "sectionUpdatedInsights": "업데이트된 인사이트",
+  "unnamedInsight": "이름 없는 인사이트",
+  "copiedToClipboard": "클립보드에 복사했습니다",
+  "copy": "복사",
+  "selectedLocation": "선택한 위치",
+  "confirmLocationName": "위치 이름 확인",
+  "confirmLocationNameHint": "이름을 수정할 수 있습니다(좌표는 그대로 유지)",
+  "nameLabel": "이름",
+  "inputPlaceNameHint": "장소 이름 입력...",
+  "currentCoordinates": "좌표: {lat}, {lng}",
+  "@currentCoordinates": {
+    "placeholders": {
+      "lat": {},
+      "lng": {}
+    }
+  },
+  "confirmLocation": "위치 확인",
+  "welcomeToMemex": "Memex에 오신 것을 환영합니다",
+  "createUserIdToStart": "프로필 만들기",
+  "userIdLabel": "이름 / 닉네임",
+  "userIdHint": "이름 또는 닉네임 입력",
+  "pleaseEnterUserId": "이름을 입력해 주세요",
+  "userIdMaxLength": "이름은 50자를 넘을 수 없습니다",
+  "startUsing": "계속",
+  "userIdTip": "개인화된 경험을 제공하는 데 사용됩니다.",
+  "setupModelConfigTitle": "AI 모델 설정",
+  "setupModelConfigSubtitle": "Memex가 기록을 정리하고 이미지를 분석하며 인사이트를 생성하려면 최첨단 AI 모델이 필요합니다. 연결 방법을 선택하세요.",
+  "setupModelConfigComplete": "완료하고 이동",
+  "aiService": "Memex 모델 서비스",
+  "aiModelHubTitle": "AI 모델 및 서비스",
+  "aiModelHubSubtitle": "Memex 공식 서비스를 선택하거나 직접 보유한 제공업체를 연결하세요. 필요할 때 고급 모델 라우팅도 사용할 수 있습니다.",
+  "aiSetupCurrentStatusTitle": "현재 설정",
+  "aiSetupStatusNotConfiguredTitle": "AI 서비스가 설정되지 않았습니다",
+  "aiSetupStatusNotConfiguredDescription": "기록, 미디어, 인사이트의 AI 정리를 활성화하려면 연결 방법을 선택하세요.",
+  "aiSetupStatusMemexTitle": "MemeX 공식 서비스 사용 중",
+  "aiSetupStatusMemexDescription": "Memex는 MemeX 계정에서 관리하는 공식 연결과 API 인증 정보를 사용합니다.",
+  "aiSetupStatusCustomTitle": "사용자 지정 제공업체 설정 사용 중",
+  "aiSetupStatusCustomDescription": "Memex는 설정된 제공업체 인증 정보와 모델 역할 선택을 사용합니다.",
+  "aiSetupChooseConnectionTitle": "연결 방법 선택",
+  "aiSetupChooseConnectionDescription": "Memex가 AI 모델에 접근하는 방식에 맞는 경로부터 시작하세요.",
+  "aiSetupOfficialRouteDescription": "MemeX에 로그인하여 제공업체, 키, 에이전트별 모델을 선택하지 않고 공식 서비스를 사용합니다.",
+  "aiSetupCustomRouteDescription": "직접 보유한 제공업체 인증 정보를 추가하고 슈퍼 에이전트가 사용할 모델을 선택하며, 필요하면 에이전트별 모델을 덮어씁니다.",
+  "aiSetupCustomPageTitle": "사용자 지정 AI 서비스",
+  "aiSetupCustomPageSubtitle": "먼저 제공업체 인증 정보를 설정한 다음 Memex가 사용할 모델을 선택하세요.",
+  "aiSetupProviderCredentialsTitle": "제공업체 및 API 키",
+  "aiSetupProviderCredentialsDescription": "OpenAI, Anthropic, DeepSeek, Gemini, OpenRouter, Ollama 또는 다른 호환 제공업체를 추가하거나 편집합니다.",
+  "modelRolesTitle": "기본 모델 선택",
+  "modelRolesDescription": "슈퍼 에이전트는 텍스트와 이미지 입력에 하나의 모델을 사용합니다. 고급 에이전트 재정의는 아래에서 계속 사용할 수 있습니다.",
+  "textModelRoleTitle": "기본 모델",
+  "textModelRoleDescription": "슈퍼 에이전트가 텍스트, 이미지, 카드, 지식, 인사이트, 채팅, 댓글, 일정, 메모리에 사용합니다.",
+  "modelConnectionsTitle": "모델 제공업체 및 API 키",
+  "modelConnectionsDescription": "Memex 공식 서비스를 연결하거나 직접 보유한 제공업체 인증 정보를 추가하세요.",
+  "relatedAiCapabilitiesTitle": "고급 및 관련 기능",
+  "relatedAiCapabilitiesDescription": "에이전트 할당, 위치 제공업체, 음성 전사 동작을 세부 조정합니다.",
+  "aiSetupServiceCapabilitiesTitle": "서비스 기능",
+  "aiSetupServiceCapabilitiesDescription": "음성 및 역지오코딩처럼 AI 기반 주변 기능에 Memex가 사용할 제공업체를 선택하세요.",
+  "aiSetupAdvancedCustomizationTitle": "고급 모델 라우팅",
+  "aiSetupAdvancedCustomizationDescription": "개별 에이전트가 서로 다른 제공업체나 모델 설정을 사용하기 원하는 고급 사용자를 위한 옵션입니다.",
+  "locationProviderSettings": "위치 제공업체",
+  "speechProviderSettings": "음성 전사",
+  "advancedAgentModelAssignments": "에이전트 모델 할당",
+  "openAdvancedAgentModelAssignments": "개별 에이전트 재정의",
+  "noConfiguredModelOptions": "모델 역할을 선택하기 전에 제공업체 또는 API 키를 추가하세요.",
+  "modelSlotUpdated": "모델 역할을 업데이트했습니다",
+  "aiServiceMemexRouteTitle": "Memex를 통해 연결",
+  "aiServiceLongDescription": "Memex는 멀티 에이전트 시스템을 사용하여 생활 기록, 지식 노트, 사회적 맥락을 정리하고, 더 깊은 인사이트를 발견하며, 지속 메모리를 갖춘 AI 동반을 제공합니다. 데이터는 일반 텍스트 Markdown으로 저장되어 데이터의 자유와 이동성을 보존합니다.",
+  "aiServiceCustomApiRouteTitle": "API 키가 있습니다",
+  "aiServiceCustomModelDescription": "OpenAI, Anthropic, DeepSeek, Gemini 또는 다른 제공업체의 API 키를 이미 가지고 있다면 먼저 이 옵션을 선택하세요.",
+  "enableAiService": "Memex와 연결",
+  "aiServiceReadyToast": "AI 정리가 켜졌습니다",
+  "aiServiceSettingsDescription": "API 키가 없다면 Memex 계정으로 주요 모델 서비스에 연결하세요.",
+  "advancedModelConfiguration": "API 키 설정",
+  "skipForNow": "지금은 건너뛰기",
+  "clearAuth": "인증 지우기",
+  "authorizing": "인증 중...",
+  "authFailed": "인증 실패: {error}",
+  "@authFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "authorized": "인증됨",
+  "config": "설정",
+  "calendar": "캘린더",
+  "reminders": "미리 알림",
+  "writeToSystemFailed": "시스템에 쓰지 못했습니다",
+  "permissionRequired": "{name} 권한이 필요합니다",
+  "@permissionRequired": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "permissionRationale": "앱이 {name}에 접근할 수 있도록 설정에서 허용해 주세요. 그래야 대신 생성할 수 있습니다.",
+  "@permissionRationale": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "goToSettings": "설정으로 이동",
+  "unknownAction": "알 수 없는 작업",
+  "discoveredCalendarEvent": "캘린더 이벤트를 찾았습니다",
+  "discoveredReminder": "미리 알림을 찾았습니다",
+  "addToCalendar": "캘린더에 추가",
+  "addToReminders": "미리 알림에 추가",
+  "addedToSuccess": "{target}에 성공적으로 추가했습니다",
+  "@addedToSuccess": {
+    "placeholders": {
+      "target": {}
+    }
+  },
+  "ignore": "무시",
+  "confirmDelete": "삭제 확인",
+  "confirmDeleteSessionMessage": "이 대화를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+  "delete": "삭제",
+  "deleteSuccess": "성공적으로 삭제했습니다",
+  "deleteFailed": "삭제 실패: {error}",
+  "@deleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "daysAgo": "{count}일 전",
+  "chatHistory": "채팅 기록",
+  "enterFullScreenTooltip": "전체 화면으로 전환",
+  "exitFullScreenTooltip": "전체 화면 종료",
+  "noConversations": "대화가 없습니다",
+  "loadSessionListFailed": "대화 목록을 불러오지 못했습니다: {error}",
+  "@loadSessionListFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "yesterdayAt": "어제 {time}",
+  "@yesterdayAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "newChat": "새 채팅",
+  "messageCount": "메시지 {count}개",
+  "@messageCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "organize": "정리",
+  "pkmCategoryProject": "프로젝트",
+  "pkmCategoryProjectSubtitle": "단기 · 목표 · 마감",
+  "pkmCategoryArea": "영역",
+  "pkmCategoryAreaSubtitle": "장기 · 책임 · 기준",
+  "pkmCategoryResource": "리소스",
+  "pkmCategoryResourceSubtitle": "관심사 · 영감 · 저장",
+  "pkmCategoryArchive": "아카이브",
+  "pkmCategoryArchiveSubtitle": "완료 · 휴면 · 참조",
+  "recentChanges": "최근 변경 사항",
+  "noRecentChangesInThreeDays": "지난 3일 동안 변경 사항이 없습니다",
+  "unpinned": "고정 해제됨",
+  "pinnedStyle": "스타일 고정됨",
+  "operationFailed": "작업 실패: {error}",
+  "@operationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "refreshingInsightData": "인사이트 데이터를 새로고침 중입니다. 잠시 걸릴 수 있습니다...",
+  "refreshFailed": "새로고침 실패: {error}",
+  "@refreshFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sortUpdated": "정렬 순서를 업데이트했습니다",
+  "sortSaveFailed": "정렬을 저장하지 못했습니다: {error}",
+  "@sortSaveFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "insightCardDeleted": "인사이트 카드를 삭제했습니다",
+  "deleteFailedShort": "삭제 실패: {error}",
+  "@deleteFailedShort": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "knowledgeInsight": "지식 인사이트",
+  "completeSort": "정렬 완료",
+  "noKnowledgeInsight": "지식 인사이트가 없습니다",
+  "insightProcessingBacklogMessage": "백그라운드 작업 {count}개가 아직 처리 중입니다.",
+  "@insightProcessingBacklogMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "insightUnavailableMessage": "이 인사이트는 아직 생성 중이거나 업데이트되었습니다. 인사이트를 새로고침한 뒤 나중에 다시 시도해 주세요.",
+  "noScheduleAggregation": "일정 집계가 없습니다",
+  "scheduleAggregationEmptyHint": "업데이트를 눌러 실제 시간 기반 카드에서 일정과 할 일을 정리하세요.",
+  "scheduleAggregationLoadFailed": "일정 데이터를 불러오지 못했습니다",
+  "scheduleAggregationRefreshFailed": "일정 데이터를 새로고침하지 못했습니다",
+  "scheduleTaskUpdateFailed": "작업을 업데이트하지 못했습니다",
+  "scheduleFeatured": "추천",
+  "scheduleThisWeek": "이번 주",
+  "scheduleDone": "완료",
+  "scheduleTbd": "미정",
+  "scheduleWeekOverview": "이번 주",
+  "scheduleImportant": "중요",
+  "scheduleBriefingTitle": "일정 브리핑",
+  "scheduleBriefingOpen": "열기",
+  "scheduleBriefingNoData": "아직 일정 브리핑이 없습니다",
+  "scheduleBriefingUpdated": "{time} 업데이트",
+  "@scheduleBriefingUpdated": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "scheduleBriefingDoneCount": "{count}개 완료",
+  "@scheduleBriefingDoneCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "updating": "업데이트 중...",
+  "update": "업데이트",
+  "enabled": "활성화됨",
+  "disabled": "비활성화됨",
+  "appLockOn": "앱 잠금이 켜졌습니다",
+  "appLockOff": "앱 잠금이 꺼졌습니다",
+  "enableAppLockFirst": "먼저 앱 잠금을 켜 주세요",
+  "enterFourDigitPassword": "4자리 비밀번호 입력",
+  "passwordSetAndLockOn": "비밀번호를 설정하고 앱 잠금을 켰습니다",
+  "appLockSettings": "앱 잠금 설정",
+  "enableAppLock": "앱 잠금 켜기",
+  "enableAppLockSubtitle": "앱을 실행할 때 비밀번호 필요",
+  "enableBiometrics": "생체 인증 켜기",
+  "biometricsSubtitle": "Face ID 또는 Touch ID로 잠금 해제",
+  "changePassword": "비밀번호 변경",
+  "setFourDigitPassword": "4자리 비밀번호 설정",
+  "reenterPasswordToConfirm": "확인을 위해 비밀번호 다시 입력",
+  "passwordMismatch": "비밀번호가 일치하지 않습니다. 다시 시도해 주세요.",
+  "confirmDeleteCharacter": "캐릭터 \"{name}\"을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+  "@confirmDeleteCharacter": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "configureAiCharacter": "AI 캐릭터 설정",
+  "addCharacter": "캐릭터 추가",
+  "addCharacterSubtitle": "인사이트 팀에 참여할 AI 캐릭터를 선택하세요. 각 캐릭터가 서로 다른 관점에서 생활 데이터를 분석합니다.",
+  "noCharacters": "캐릭터가 없습니다",
+  "loadCharacterFailed": "캐릭터를 불러오지 못했습니다: {error}",
+  "@loadCharacterFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "noTags": "태그 없음",
+  "createSuccess": "성공적으로 생성했습니다",
+  "updateSuccess": "성공적으로 업데이트했습니다",
+  "saveFailed": "저장 실패: {error}",
+  "@saveFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "newCharacter": "새 캐릭터",
+  "editCharacter": "캐릭터 편집",
+  "save": "저장",
+  "characterName": "캐릭터 이름",
+  "characterNameHint": "캐릭터 이름을 입력하세요",
+  "pleaseEnterCharacterName": "캐릭터 이름을 입력해 주세요",
+  "tagsLabel": "태그",
+  "tagsHint": "예: 지혜, 인정, 거시적\n여러 태그는 쉼표로 구분하세요",
+  "characterPersonaLabel": "캐릭터 페르소나",
+  "characterPersonaHint": "페르소나, 스타일 가이드, 대화 예시, 지식 필터 등을 포함하세요.\n섹션 제목에는 ##을 사용하세요.",
+  "pleaseEnterCharacterPersona": "캐릭터 페르소나를 입력해 주세요",
+  "permissionRequestError": "권한 요청 오류: {error}",
+  "@permissionRequestError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "permissionRequiredTitle": "권한 필요",
+  "permissionPermanentlyDeniedMessage": "이 권한을 영구적으로 거부했거나 시스템에서 요구합니다. 시스템 설정에서 활성화해 주세요.",
+  "getting": "가져오는 중...",
+  "unauthorized": "인증되지 않음",
+  "authorizedGoToSettings": "인증됨. 변경하려면 시스템 설정으로 이동하세요.",
+  "location": "위치",
+  "locationPermissionReason": "장소 기록 및 위치 관련 기능을 위해",
+  "photos": "사진",
+  "photosPermissionReason": "사진 선택, 생성 이미지 저장 등을 위해",
+  "camera": "카메라",
+  "cameraPermissionReason": "사진과 동영상 촬영을 위해",
+  "microphone": "마이크",
+  "microphonePermissionReason": "음성 인식, 녹음 등을 위해",
+  "calendarPermissionReason": "일정 기록 및 캘린더 이벤트 읽기를 위해",
+  "remindersPermissionReason": "미리 알림 기록 및 읽기를 위해",
+  "fitnessAndMotion": "피트니스 및 동작",
+  "fitnessPermissionReason": "건강 및 동작 데이터 기록을 위해",
+  "notification": "알림",
+  "notificationPermissionReason": "일정 및 중요한 미리 알림을 보내기 위해",
+  "loadDetailFailedRetryShort": "세부 정보를 불러오지 못했습니다. 나중에 다시 시도해 주세요.",
+  "total": "합계",
+  "estimatedCost": "예상 비용",
+  "byAgent": "에이전트별",
+  "timeUpdated": "업데이트 시간",
+  "updateFailed": "업데이트 실패: {error}",
+  "@updateFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "locationUpdated": "위치를 업데이트했습니다",
+  "confirmDeleteCardMessage": "이 카드를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+  "cardDetailNotFound": "카드 세부 정보를 찾을 수 없습니다",
+  "saySomething": "무언가 입력하세요...",
+  "relatedMemories": "관련 메모리",
+  "viewMore": "더 보기",
+  "relatedRecords": "관련 기록",
+  "reply": "답장",
+  "replySent": "답장을 보냈습니다",
+  "insightTemplateGalleryTitle": "인사이트 카드 템플릿",
+  "timelineTemplateGalleryTitle": "타임라인 카드 템플릿",
+  "categoryTextual": "텍스트",
+  "timelineFilterAll": "전체",
+  "insights": "인사이트",
+  "memoryTitle": "메모리",
+  "longTermProfile": "장기 프로필",
+  "recentBuffer": "최근 버퍼",
+  "errorLoadingMemory": "메모리를 불러오는 중 오류: {error}",
+  "@errorLoadingMemory": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "agentConfiguration": "에이전트 설정",
+  "resetToDefaults": "기본값으로 재설정",
+  "resetAllAgentConfigurationsTitle": "모든 에이전트 설정 재설정",
+  "resetAllAgentConfigurationsMessage": "모든 에이전트 설정을 기본값으로 재설정하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+  "resetButton": "재설정",
+  "loadDataFailed": "데이터를 불러오지 못했습니다: {error}",
+  "@loadDataFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "saveConfigFailed": "설정을 저장하지 못했습니다: {error}",
+  "@saveConfigFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "selectLlmClient": "LLM 클라이언트 선택:",
+  "agentConfigurationsReset": "에이전트 설정을 재설정했습니다",
+  "resetFailed": "재설정 실패: {error}",
+  "@resetFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "modelConfiguration": "모델 설정",
+  "resetAllConfigurationsTitle": "모든 설정 재설정",
+  "resetAllModelConfigurationsMessage": "모든 모델 설정을 기본값으로 재설정하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+  "modelConfigurationsReset": "모델 설정을 재설정했습니다",
+  "cannotDeleteDefaultConfiguration": "기본 설정은 삭제할 수 없습니다",
+  "cannotDeleteConfigurationTitle": "설정을 삭제할 수 없음",
+  "configUsedByAgentsMessage": "이 설정은 현재 다음 에이전트에서 사용 중입니다:\n\n{agentList}\n\n삭제하기 전에 이 에이전트들을 다시 할당해 주세요.",
+  "@configUsedByAgentsMessage": {
+    "placeholders": {
+      "agentList": {}
+    }
+  },
+  "ok": "확인",
+  "deleteConfigurationTitle": "설정 삭제",
+  "confirmDeleteConfigMessage": "\"{key}\"을(를) 삭제하시겠습니까?",
+  "@confirmDeleteConfigMessage": {
+    "placeholders": {
+      "key": {}
+    }
+  },
+  "defaultLabel": "기본값",
+  "setAsDefault": "기본값으로 설정",
+  "invalidJsonInExtraField": "Extra 필드의 JSON이 올바르지 않습니다",
+  "keyAlreadyExists": "키가 이미 존재합니다",
+  "resetConfigurationTitle": "설정 재설정",
+  "resetConfigurationMessage": "이 설정을 초기 기본값으로 재설정하시겠습니까? 현재 변경 사항은 사라집니다.",
+  "configurationResetPressSave": "설정을 재설정했습니다. 적용하려면 저장을 누르세요.",
+  "addConfiguration": "설정 추가",
+  "editConfiguration": "설정 편집",
+  "duplicateConfiguration": "설정 복제",
+  "duplicate": "복제",
+  "keyIdLabel": "설정 ID",
+  "keyIdHelper": "deepseek 또는 work-gpt처럼 이 설정의 이름을 지정하세요.",
+  "required": "필수",
+  "clientLabel": "모델 제공업체",
+  "providerGroupOpenAi": "OpenAI",
+  "providerGroupAnthropic": "Anthropic",
+  "providerGroupGoogle": "Google",
+  "providerGroupOthers": "인기",
+  "providerOpenAiApiKey": "API 키",
+  "providerOpenAiResponses": "API 키(Responses)",
+  "providerChatGptOauth": "ChatGPT Pro/Plus",
+  "providerClaudeApiKey": "API 키",
+  "providerBedrockSecret": "Bedrock Secret",
+  "providerGemini": "Gemini",
+  "providerGeminiOauth": "Gemini(Google OAuth)",
+  "providerKimi": "Kimi(Moonshot)",
+  "providerQwen": "Aliyun",
+  "providerSeed": "Volcengine",
+  "providerZhipu": "Zhipu GLM",
+  "providerDeepSeek": "DeepSeek",
+  "providerMinimax": "MiniMax",
+  "providerOpenRouter": "OpenRouter",
+  "providerOllama": "Ollama(로컬)",
+  "providerMimo": "Xiaomi MIMO",
+  "providerMemex": "Memex 프록시 서비스",
+  "memexSignIn": "로그인",
+  "memexCreateAccount": "계정 만들기",
+  "memexUsername": "사용자 이름",
+  "memexPassword": "비밀번호",
+  "memexCreateAccountLink": "계정 만들기",
+  "memexSignInLink": "대신 로그인",
+  "memexTopUp": "Memex AI 사용을 시작하려면 충전하세요",
+  "memexTopUpSuccess": "충전 성공!",
+  "memexFillAllFields": "모든 필드를 입력해 주세요",
+  "memexUsernameTooShort": "사용자 이름은 최소 6자여야 합니다",
+  "memexAuthFailed": "인증 실패",
+  "memexPaymentFailed": "결제를 만들지 못했습니다",
+  "memexLogout": "로그아웃",
+  "memexTopUpButton": "충전",
+  "memexTopUpChooseAmount": "금액 선택",
+  "memexTopUpEstimatedRecords": "약 {range}개의 기록",
+  "@memexTopUpEstimatedRecords": {
+    "placeholders": {
+      "range": {}
+    }
+  },
+  "memexTopUpPlanStarter": "스타터",
+  "memexTopUpPlanEveryday": "일상",
+  "memexTopUpPlanHighVolume": "대용량",
+  "memexTopUpPlanCustom": "사용자 지정 크레딧",
+  "memexTopUpPlanStarterSubtitle": "Memex AI를 시험해 보기 좋습니다",
+  "memexTopUpPlanEverydaySubtitle": "정기적인 정리에 좋습니다",
+  "memexTopUpPlanHighVolumeSubtitle": "더 큰 배치에 좋습니다",
+  "memexTopUpPlanCustomSubtitle": "USD 1-10,000 입력",
+  "memexTopUpCustomEstimate": "예상치는 입력한 금액을 기준으로 합니다",
+  "memexCustomAmount": "사용자 지정 금액",
+  "memexViewHistory": "사용 기록",
+  "memexBalanceLabel": "잔액: {amount}",
+  "@memexBalanceLabel": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "memexConfirmPassword": "비밀번호 확인",
+  "memexPasswordMismatch": "비밀번호가 일치하지 않습니다",
+  "memexPayAmount": "{amount} 충전",
+  "@memexPayAmount": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "modelIdLabel": "모델",
+  "modelIdHelper": "예: gemini-3.1-pro-preview, gpt-4o",
+  "fetchingModels": "모델을 가져오는 중...",
+  "fetchModelsButton": "모델 가져오기",
+  "enterApiKeyFirst": "모델을 가져오려면 먼저 API 키를 입력하세요",
+  "apiKeyLabel": "API 키",
+  "baseUrlLabel": "API 엔드포인트",
+  "advancedSettings": "고급 설정",
+  "testConnectionSuccess": "연결 성공",
+  "testConnectionFailed": "연결 실패",
+  "testTypeText": "텍스트",
+  "testTypeVision": "비전",
+  "testButton": "테스트",
+  "testing": "테스트 중...",
+  "proxyUrlOptional": "프록시 URL(선택 사항)",
+  "proxyUrlHelper": "예: http://127.0.0.1:7890",
+  "temperatureLabel": "Temperature",
+  "topPLabel": "Top P",
+  "maxTokensLabel": "Max Tokens",
+  "extraParamsJson": "추가 매개변수(JSON)",
+  "invalidJson": "올바르지 않은 JSON",
+  "warning": "설정이 완료되지 않았습니다",
+  "invalidConfigurationWarning": "설정이 아직 완전하지 않습니다(예: API 키 또는 모델 ID 누락). 그래도 저장하고 나중에 설정할 수 있습니다. 계속하시겠습니까?",
+  "invalidModelConfigDetailed": "AI 에이전트 \"{agentId}\"가 작동하려면 유효한 모델 설정(키: \"{configKey}\")이 필요합니다. 모델 설정을 확인해 주세요.",
+  "discardChangesTitle": "이 페이지를 떠나시겠습니까?",
+  "discardChangesMessage": "변경 사항이 있다면 떠나기 전에 저장해 주세요.",
+  "discardButton": "버리기",
+  "chooseLanguage": "언어 선택",
+  "chooseAvatar": "아바타 선택",
+  "configureNow": "지금 설정",
+  "modelNotConfiguredBanner": "AI 모델이 아직 설정되지 않았습니다. 설정하면 모든 기능을 사용할 수 있습니다.",
+  "modelNotConfiguredSubmitHint": "게시하기 전에 AI 모델을 설정해 주세요",
+  "processingStatus": "처리 중",
+  "failedStatus": "실패",
+  "failureReason": "실패 원인",
+  "unknownError": "알 수 없는 오류가 발생했습니다",
+  "enableFitness": "피트니스 활성화",
+  "fitnessBannerMessage": "건강 및 활동 데이터를 추적할 수 있도록 피트니스 접근을 허용해 주세요.",
+  "fitnessDismissTitle": "피트니스 접근을 건너뛰시겠습니까?",
+  "fitnessDismissMessage": "피트니스 권한이 없으면 앱이 인사이트와 자동 기록을 위해 건강 데이터를 자동 수집할 수 없습니다.",
+  "skipAnyway": "그래도 건너뛰기",
+  "proModelHint": "이 모델을 사용하려면 ChatGPT Pro/Plus 구독이 필요합니다.",
+  "searchKnowledgeBase": "지식 베이스 검색...",
+  "searchKnowledgeHint": "파일 이름 또는 내용을 검색할 키워드를 입력하세요",
+  "noSearchResults": "\"{query}\"에 대한 결과를 찾을 수 없습니다",
+  "@noSearchResults": {
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "onlyMarkdownPreview": "Markdown 미리보기만 지원됩니다",
+  "backupAndRestore": "백업 및 복원",
+  "createBackup": "백업 만들기",
+  "restoreBackup": "백업 복원",
+  "backupDescription": "모든 데이터(카드, 지식 베이스, 인사이트, 설정)를 .memex 파일로 묶습니다. 공유 시트를 통해 iCloud Drive, Google Drive 또는 원하는 위치에 저장하세요.",
+  "restoreDescription": ".memex 백업 파일을 선택해 모든 데이터를 복원합니다. 현재 데이터는 덮어써집니다.",
+  "selectBackupFile": "백업 파일 선택",
+  "estimatedSize": "예상 크기",
+  "backupComplete": "백업이 생성되었습니다",
+  "backupFailed": "백업 실패: {error}",
+  "@backupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "confirmRestore": "복원 확인",
+  "confirmRestoreMessage": "복원하면 카드, 지식 베이스, 인사이트, 설정을 포함한 현재 모든 데이터가 덮어써집니다. 이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?",
+  "restoreComplete": "복원 완료",
+  "restoreRestartHint": "데이터가 복원되었습니다. 모든 변경 사항을 적용하려면 앱을 다시 시작해 주세요.",
+  "restoreFailed": "복원 실패: {error}",
+  "@restoreFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "invalidBackupFile": "올바르지 않은 백업 파일입니다. .memex 파일을 선택해 주세요.",
+  "automaticBackup": "자동 백업",
+  "autoBackupDescription": "활성화하면 Memex가 시작 후 또는 포그라운드로 돌아올 때 하루 최대 한 번 로컬 스냅샷을 만듭니다.",
+  "backupSensitiveSettingsHint": "백업에는 설정과 모델 제공업체 키가 포함됩니다. 신뢰할 수 있는 위치에 보관하세요.",
+  "backupLocation": "위치",
+  "backupLocationDetails": "위치 세부 정보",
+  "backupLocationSummary": "앱에 표시됨",
+  "backupLocationFullPath": "전체 경로",
+  "backupLocationUri": "폴더 접근 URI",
+  "copyBackupLocationPath": "경로 복사",
+  "backupLocationCopied": "백업 위치를 복사했습니다",
+  "androidBackupLocationSelected": "선택한 폴더: {folderName}",
+  "@androidBackupLocationSelected": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "iosICloudBackupLocation": "iCloud Drive > Memex > Backups",
+  "iosAppDocumentsBackupLocation": "파일 > 나의 iPhone > Memex > Backups",
+  "autoBackupStatus": "상태",
+  "noAutoBackupYet": "아직 자동 백업이 없습니다",
+  "lastBackupAt": "마지막 백업: {time}",
+  "@lastBackupAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "autoBackupRetention": "보존",
+  "autoBackupRetentionDays": "{days}일",
+  "@autoBackupRetentionDays": {
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "autoBackupRetentionForever": "영구 보존",
+  "autoBackupMaxSize": "저장 용량 한도",
+  "autoBackupRetentionLimitHint": "자동 정리는 자동 스냅샷을 {size} 이하로 유지합니다. 안전 스냅샷과 수동 내보내기 백업은 별도로 보관됩니다.",
+  "@autoBackupRetentionLimitHint": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "createSnapshotNow": "지금 백업",
+  "backupLocationMenu": "위치 변경",
+  "defaultBackupLocation": "기본 백업 폴더",
+  "defaultBackupLocationAndroidDesc": "Memex의 앱 전용 외부 파일 폴더를 사용합니다. 저장소 권한이 필요하지 않습니다.",
+  "chooseBackupLocation": "백업 폴더 선택",
+  "chooseBackupLocationAndroidDesc": "Android 시스템 선택기로 폴더를 고르고 Memex에 지속 접근 권한을 부여합니다.",
+  "storedBackups": "저장된 백업",
+  "noStoredBackups": "첫 스냅샷 후 자동 백업이 여기에 표시됩니다.",
+  "backupTypeAutoSnapshot": "자동 스냅샷",
+  "backupTypeSafetySnapshot": "안전 스냅샷",
+  "backupTypeManualBackup": "수동 백업",
+  "refresh": "새로고침",
+  "restoreThisBackup": "이 백업 복원",
+  "deleteThisBackup": "이 백업 삭제",
+  "confirmDeleteBackup": "백업을 삭제하시겠습니까?",
+  "confirmDeleteBackupMessage": "{fileName}을(를) 삭제하시겠습니까? 저장된 백업 파일이 제거되며 되돌릴 수 없습니다.",
+  "@confirmDeleteBackupMessage": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupDeleted": "백업을 삭제했습니다: {fileName}",
+  "@backupDeleted": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupDeleteFailed": "백업을 삭제할 수 없습니다: {error}",
+  "@backupDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "creatingSafetySnapshot": "안전 스냅샷 생성 중...",
+  "autoBackupCreated": "스냅샷 생성됨: {fileName}",
+  "@autoBackupCreated": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupLocationFailed": "백업 위치를 업데이트할 수 없습니다: {error}",
+  "@backupLocationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "backupImportCreatedAt": "생성됨",
+  "backupImportSourceVersion": "소스 버전",
+  "backupImportFlavor": "빌드",
+  "backupLegacyFormat": "레거시 백업(manifest 없음)",
+  "restoreInProgress": "백업 복원 중...",
+  "dataStorage": "데이터 저장소",
+  "dataStorageDescriptionAndroid": "워크스페이스를 저장할 사용자 지정 폴더를 선택하세요. 앱을 다시 설치해도 데이터가 유지됩니다.",
+  "dataStorageDescriptionIOS": "iCloud를 켜면 워크스페이스를 기기 간에 동기화하고 앱 재설치 후에도 데이터를 유지할 수 있습니다.",
+  "storageLocationApp": "앱 저장소",
+  "storageLocationAppDesc": "데이터가 앱 내부에 저장되며 제거하면 함께 삭제됩니다.",
+  "storageLocationCustom": "기기 저장소(사용자 지정 폴더)",
+  "storageLocationCustomDesc": "선택한 폴더에 데이터를 저장합니다. 폴더가 남아 있으면 재설치 후에도 데이터가 유지됩니다.",
+  "storageLocationICloud": "iCloud에 저장",
+  "storageLocationICloudDesc": "Apple 기기 간에 워크스페이스를 동기화합니다. 재설치 후에도 데이터가 유지됩니다.",
+  "storageLocationCurrent": "현재: {location}",
+  "@storageLocationCurrent": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "icloudRequiresCapability": "iCloud 저장소를 사용하려면 iCloud에 로그인하고 iCloud Drive를 켜세요.",
+  "loadingFromICloud": "iCloud에서 데이터 복원 중…",
+  "switchingToICloud": "iCloud 저장소로 전환 중…",
+  "switchingStorage": "저장소 전환 중…",
+  "customFolderAccessDenied": "이 폴더를 읽거나 쓸 수 없습니다. 저장소 권한을 허용하거나 다른 위치를 선택하세요.",
+  "configured": "설정됨",
+  "apiKeyNotSet": "API 키가 설정되지 않음 — 탭하여 설정",
+  "bottomNavTimeline": "타임라인",
+  "bottomNavLibrary": "라이브러리",
+  "aiGeneratedLabel": "AI 생성",
+  "sourceTraceWithCount": "소스 추적({count})",
+  "@sourceTraceWithCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "deleteAccount": "계정 삭제",
+  "deleteAccountDesc": "모든 로컬 데이터를 영구 삭제하고 앱을 재설정합니다.",
+  "deleteAccountConfirmTitle": "계정을 삭제하시겠습니까?",
+  "deleteAccountConfirmMessage": "타임라인 카드, 지식 베이스, 녹음, 설정을 포함한 모든 데이터가 영구 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
+  "deleteAccountTypeName": "확인하려면 \"{name}\"을(를) 입력하세요",
+  "@deleteAccountTypeName": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleteAccountTypeHint": "확인을 위해 사용자 이름 입력",
+  "llmConsentTitle": "데이터 공유 동의",
+  "llmConsentMessage": "AI 기능을 활성화하려면 Memex가 처리를 위해 사용자의 데이터를 {provider}에 보내야 합니다. 여기에는 다음이 포함됩니다:\n\n• 사용자가 입력한 텍스트(메모, 음성 전사)\n• 사진 메타데이터 및 추출된 텍스트(OCR)\n• 건강 및 피트니스 요약\n• 타임라인 카드 내용\n\n데이터는 사용자의 기기에서 {provider}로 직접 전송됩니다. Memex는 다른 서버를 통해 데이터를 저장하거나 중계하지 않습니다.\n\n{provider}가 데이터를 어떻게 처리하는지 개인정보 처리방침을 확인해 주세요.\n\nAI 처리를 위해 데이터를 {provider}에 보내는 데 동의하시겠습니까?",
+  "@llmConsentMessage": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "llmConsentAgree": "동의합니다",
+  "llmConsentDecline": "거부",
+  "customAgents": "사용자 지정 에이전트",
+  "noCustomAgents": "설정된 사용자 지정 에이전트가 없습니다.",
+  "deleteAgent": "에이전트 삭제",
+  "deleteAgentConfirm": "사용자 지정 에이전트 \"{name}\"을(를) 삭제하시겠습니까?",
+  "@deleteAgentConfirm": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleted": "삭제됨",
+  "saved": "저장됨",
+  "newAgent": "새 에이전트",
+  "editAgent": "에이전트 편집",
+  "agentName": "에이전트 이름",
+  "agentNameHint": "my-custom-agent",
+  "agentNameRequired": "필수",
+  "agentNameInvalid": "문자, 숫자, 하이픈만 허용됩니다",
+  "agentNameExists": "이름이 이미 존재합니다",
+  "hostAgentType": "호스트 에이전트 유형",
+  "skillDirectory": "스킬 디렉터리",
+  "skillDirInvalid": "상대 경로여야 합니다(앞의 / 또는 .. 불가)",
+  "workingDirectory": "작업 디렉터리(선택 사항)",
+  "workingDirectoryHint": "비워 두면 워크스페이스 기본값 사용",
+  "llmConfig": "LLM 설정",
+  "eventType": "이벤트 유형",
+  "executionMode": "실행 모드",
+  "executionModeAsync": "비동기",
+  "executionModeSync": "동기",
+  "dependsOn": "의존 대상",
+  "dependsOnHint": "의존 항목 선택",
+  "priority": "우선순위",
+  "maxRetries": "최대 재시도",
+  "systemPromptLabel": "시스템 프롬프트(선택 사항)",
+  "systemPromptHint": "호스트 에이전트 프롬프트에 추가되는 지시",
+  "eventSerializer": "이벤트 직렬화기",
+  "eventSerializerDefault": "기본값(XML)",
+  "enabledLabel": "활성화",
+  "skillsManagement": "스킬 관리",
+  "skillsManagementEmpty": "아직 스킬이 없습니다",
+  "downloadSkill": "스킬 다운로드",
+  "downloading": "다운로드 중...",
+  "downloadSuccess": "스킬을 성공적으로 다운로드했습니다",
+  "downloadFailed": "다운로드 실패: {error}",
+  "@downloadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "deleteConfirm": "삭제 확인",
+  "deleteConfirmMessage": "\"{name}\"을(를) 삭제하시겠습니까?",
+  "@deleteConfirmMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidUrl": "유효한 URL을 입력해 주세요",
+  "urlHint": "https://example.com/skill.zip",
+  "newFolder": "새 폴더",
+  "newFile": "새 파일",
+  "folderName": "폴더 이름",
+  "fileName": "파일 이름",
+  "nameRequired": "이름은 필수입니다",
+  "nameInvalid": "이름에는 / 또는 .. 을 포함할 수 없습니다",
+  "createFailed": "생성 실패: {error}",
+  "@createFailed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "fileContent": "파일 내용",
+  "saveSuccess": "성공적으로 저장했습니다",
+  "downloadToCurrentDir": "zip이 현재 디렉터리에 압축 해제됩니다: {dir}",
+  "@downloadToCurrentDir": {
+    "placeholders": {
+      "dir": {
+        "type": "String"
+      }
+    }
+  },
+  "privacyPolicy": "개인정보 처리방침",
+  "privacyPolicyDesc": "Memex가 데이터를 처리하는 방식",
+  "llmAuthError": "API 인증에 실패했습니다. 설정에서 LLM 설정을 확인해 주세요.",
+  "llmBadRequestError": "LLM 제공업체가 요청을 거부했습니다. 현재 모델이 입력 형식을 지원하지 않을 수 있습니다.",
+  "llmRateLimitError": "API 요청 한도를 초과했습니다. 나중에 다시 시도해 주세요.",
+  "llmServerError": "LLM 서비스를 일시적으로 사용할 수 없습니다. 나중에 다시 시도해 주세요.",
+  "llmNetworkError": "네트워크 연결에 실패했습니다. 인터넷 연결을 확인해 주세요.",
+  "llmUnknownError": "콘텐츠 처리 중 예상치 못한 오류가 발생했습니다.",
+  "llmErrorDialogTitle": "처리 실패",
+  "goToModelConfig": "설정으로 이동",
+  "speechModelDownloadTitle": "음성 모델 다운로드",
+  "speechModelDownloadDesc": "일회성 모델 다운로드(약 {sizeMB}MB)가 필요합니다.\n\n다운로드 후 전사는 완전히 기기에서 실행됩니다.",
+  "@speechModelDownloadDesc": {
+    "placeholders": {
+      "sizeMB": {}
+    }
+  },
+  "speechModelStartDownload": "다운로드 시작",
+  "speechModelChooseSource": "다운로드 소스 선택:",
+  "speechModelChinaMirror": "🇨🇳 중국 미러(중국 내 더 빠름)",
+  "speechModelGithub": "🌐 GitHub(글로벌)",
+  "speechModelDownloading": "모델 다운로드 중...",
+  "speechModelConnecting": "연결 중...",
+  "deleteSpeechModel": "음성 모델 삭제",
+  "confirmDeleteSpeechModelMessage": "다운로드한 로컬 음성 인식 모델 파일을 삭제하시겠습니까? 다음에 로컬 음성-텍스트를 사용할 때 다시 다운로드됩니다.",
+  "speechModelDeletedSuccess": "음성 모델 파일을 삭제했습니다",
+  "speechModelNotDownloaded": "다운로드된 음성 모델 파일을 찾을 수 없습니다",
+  "speechModelDeleteFailed": "음성 모델 파일 삭제 실패: {error}",
+  "@speechModelDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "speechTranscribing": "인식 중...",
+  "speechNoResult": "음성이 감지되지 않았습니다",
+  "useLocalSpeechToTextTitle": "로컬 음성-텍스트 사용",
+  "useLocalSpeechToTextDesc": "활성화하면 오디오가 전송 전에 기기에서 텍스트로 변환됩니다. 오디오 입력을 지원하지 않는 모델에 유용합니다. 비활성화하면 원본 오디오가 모델로 직접 전송됩니다.",
+  "pendingAiProcessingHint": "처리할 AI 모델 설정",
+  "demoWelcome": "Memex에 오신 것을 환영합니다!\nAI가 기록으로 무엇을 할 수 있는지 간단히 둘러보세요.",
+  "demoTapAdd": "여기를 눌러 첫 기록을 만드세요",
+  "demoTapSend": "첫 기록을 보내려면 탭하세요",
+  "demoTapCard": "AI가 기록을 어떻게 정리했는지 보려면 탭하세요",
+  "demoTapInsight": "AI 생성 인사이트를 보려면 탭하세요",
+  "demoTapInsightUpdate": "기록에서 인사이트를 생성하려면 탭하세요",
+  "demoTapKnowledge": "자동 정리된 지식 파일 확인",
+  "demoDone": "삶을 기록하기 시작하세요.",
+  "demoStartTour": "투어 시작",
+  "demoGetStarted": "시작하기",
+  "demoSkip": "건너뛰기",
+  "demoPrefillText": "안녕하세요 Memex! 이것은 제 첫 기록입니다 🎉",
+  "visionBadge": "비전",
+  "notMultimodalHint": "Memex는 미디어 분석에 멀티모달 모델 기능을 사용합니다. 기록에 이미지가 포함되어 있다면 설정한 모델이 이미지 입력을 지원하는지 확인해 주세요.",
+  "defaultModelPrefix": "기본값",
+  "recommendedBadge": "추천",
+  "readOnlyBadge": "CHAT",
+  "switchCompanion": "동반자 전환",
+  "personaChatInputHint": "메시지 입력...",
+  "today": "오늘",
+  "tomorrow": "내일",
+  "yesterday": "어제",
+  "showInsightTextTitle": "Memex 인사이트 댓글 표시",
+  "showInsightTextDesc": "카드 세부 댓글 섹션에서 Memex 인사이트를 고정 댓글로 표시할지 여부입니다.",
+  "enableCharacterCommentTitle": "캐릭터 자동 댓글",
+  "enableCharacterCommentDesc": "캐릭터가 새 기록에 자동으로 댓글을 남깁니다.",
+  "maxCommentCharactersTitle": "댓글 캐릭터 최대 수",
+  "maxCommentCharactersDesc": "각 기록에 댓글을 남길 수 있는 캐릭터 수입니다.",
+  "replyTo": "{name}에게 답장",
+  "@replyTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "cdnSignalsComments": "새 답장을 받았습니다",
+  "cdnSignalsInsight": "새 인사이트가 생성되었습니다",
+  "cdnSignalsBoth": "새 답장과 인사이트가 있습니다",
+  "untitledCard": "제목 없는 카드",
+  "locationContextTitle": "위치 컨텍스트",
+  "locationContextDescription": "에이전트 채팅을 위한 현재 도시 및 동네 컨텍스트",
+  "locationContextAttachTitle": "현재 위치를 채팅에 첨부",
+  "locationContextAttachDesc": "기기 GPS와 역지오코딩을 사용해 에이전트에 도시, 구역, 동네 컨텍스트를 제공합니다.",
+  "reverseGeocodingProvider": "역지오코딩 제공업체",
+  "amapProviderName": "Amap",
+  "amapApiKey": "Amap API 키",
+  "amapGcj02Note": "Amap은 GCJ-02 좌표를 사용합니다. 기기 GPS는 역지오코딩 전에 변환됩니다.",
+  "contextGranularity": "컨텍스트 세분화",
+  "granularityCity": "도시",
+  "granularityDistrict": "구역",
+  "granularityNeighborhood": "동네",
+  "granularityStreet": "거리",
+  "granularityFullAddress": "전체 주소 후보",
+  "locationFreshness": "위치 최신도",
+  "minutesShort": "{minutes}분",
+  "@minutesShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "oneHour": "1시간",
+  "testCurrentLocation": "현재 위치 테스트",
+  "locationTestFailed": "실패: {error}",
+  "@locationTestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "locationDebugGps": "GPS",
+  "locationDebugReverseGeocode": "역지오코딩",
+  "locationDebugProvider": "제공업체",
+  "locationDebugAgentContext": "에이전트 컨텍스트",
+  "locationDebugSource": "소스",
+  "locationDebugAddressSummary": "주소 요약",
+  "locationDebugFullAddress": "전체 주소",
+  "locationDebugCoordinates": "좌표",
+  "locationDebugAccuracy": "정확도",
+  "locationDebugReason": "이유",
+  "locationDebugOk": "OK",
+  "locationDebugUnavailable": "사용 불가",
+  "locationDebugInjected": "주입됨",
+  "locationDebugNotInjected": "주입되지 않음",
+  "locationStatusUpdatedAt": "업데이트됨",
+  "locationStatusSuccessTitle": "현재 위치가 준비되었습니다",
+  "locationStatusSuccessBody": "위치 컨텍스트가 관련 있을 때 Memex가 이 위치 요약을 첨부할 수 있습니다.",
+  "locationStatusApproximateTitle": "대략적인 위치만 있음",
+  "locationStatusApproximateBody": "정확도가 도시 또는 지역 수준으로 보입니다. 그대로 사용하거나 더 정확한 컨텍스트를 위해 시스템 설정에서 정확한 위치를 켤 수 있습니다.",
+  "locationStatusServiceDisabledTitle": "시스템 위치가 꺼져 있습니다",
+  "locationStatusServiceDisabledBody": "Memex는 기기 GPS만 사용하며 네트워크나 IP로 위치를 추정하지 않습니다. Android에서는 위치 설정을 열고, iOS에서는 설정 > 개인정보 보호 및 보안 > 위치 서비스를 켜세요.",
+  "locationStatusPermissionDeniedTitle": "위치 권한이 필요합니다",
+  "locationStatusPermissionDeniedBody": "테스트 중이거나 위치 컨텍스트가 필요할 때 Memex가 위치를 사용하도록 허용하세요. 항상 접근 권한은 요청하지 않습니다.",
+  "locationStatusPermissionForeverTitle": "위치 권한이 차단되었습니다",
+  "locationStatusPermissionForeverBody": "앱 설정을 열고 Memex의 위치 사용을 허용하세요. iOS에서는 앱 사용 중 허용이면 충분합니다.",
+  "locationStatusDisabledTitle": "위치 컨텍스트가 꺼져 있습니다",
+  "locationStatusDisabledBody": "Memex가 기기 위치를 에이전트 컨텍스트에 첨부하기를 원하면 위 스위치를 켜고 저장하세요.",
+  "locationStatusGeocodeUnavailableTitle": "GPS는 작동하지만 주소 조회에 실패했습니다",
+  "locationStatusGeocodeUnavailableBody": "Memex가 좌표는 가지고 있지만 GPS만 있는 컨텍스트는 에이전트에 주입하지 않습니다. 역지오코딩 제공업체를 확인하고 다시 시도하세요.",
+  "locationStatusUnavailableTitle": "위치를 사용할 수 없습니다",
+  "locationStatusUnavailableBody": "시스템 위치 서비스와 앱 권한을 확인한 뒤 다시 테스트하세요.",
+  "allowLocationPermissionButton": "위치 권한 허용",
+  "openAppSettingsButton": "앱 설정 열기",
+  "openLocationSettingsButton": "위치 설정 열기",
+  "locationSettingsOpenFailed": "시스템 설정을 열 수 없습니다.",
+  "locationActionFailed": "위치 작업 실패: {error}",
+  "@locationActionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSearchPlaceholder": "설정 검색...",
+  "settingsSearchEmpty": "일치하는 설정을 찾을 수 없습니다",
+  "importCharacterCard": "캐릭터 카드 가져오기",
+  "firstMessageLabel": "첫 메시지",
+  "firstMessageHint": "첫 대화에서 보내는 인사말(선택 사항)",
+  "systemPromptOverrideLabel": "시스템 프롬프트 재정의",
+  "systemPromptOverrideHint": "기본 시스템 프롬프트 재정의(고급, 선택 사항)",
+  "postHistoryInstructionsLabel": "기록 이후 지시",
+  "postHistoryInstructionsHint": "채팅 기록 뒤, 답변 전에 주입되는 지시(선택 사항)",
+  "mesExampleLabel": "메시지 예시",
+  "mesExampleHint": "캐릭터 스타일을 보여 주는 예시 대화(선택 사항)",
+  "worldBookTitle": "월드북",
+  "worldBookSubtitle": "키워드가 트리거될 때 주입되는 배경 지식",
+  "characterMemoryTitle": "캐릭터 메모리",
+  "characterMemorySubtitle": "캐릭터와 사용자 사이의 관계 역학 및 상호작용 메모리",
+  "addTooltip": "추가",
+  "constantBadge": "상시",
+  "worldEntryFallbackName": "항목 {index}",
+  "@worldEntryFallbackName": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "keywordsPrefix": "키워드: {keys}",
+  "@keywordsPrefix": {
+    "placeholders": {
+      "keys": {}
+    }
+  },
+  "memoryFallbackName": "메모리 {index}",
+  "@memoryFallbackName": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "addWorldEntry": "월드북 항목 추가",
+  "editWorldEntry": "월드북 항목 편집",
+  "commentTitleLabel": "댓글 / 제목",
+  "entryDescriptionHint": "항목 설명(선택 사항)",
+  "triggerKeywordsLabel": "트리거 키워드",
+  "triggerKeywordsHint": "쉼표로 구분, 예: magic, spell",
+  "contentLabel": "내용",
+  "worldEntryContentHint": "키워드가 트리거될 때 주입되는 배경 지식",
+  "enabledCheckbox": "활성화",
+  "addMemory": "메모리 추가",
+  "editMemory": "메모리 편집",
+  "memoryLabelField": "라벨",
+  "memoryLabelHint": "고유 식별자, 예: 호칭 선호",
+  "memoryContentHint": "메모리 내용",
+  "salienceLabel": "중요도: ",
+  "labelCannotBeEmpty": "라벨은 비워 둘 수 없습니다",
+  "importSuccess": "{name}을(를) 성공적으로 가져왔습니다",
+  "@importSuccess": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "importFailed": "가져오기 실패: {error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "supportedFormats": "지원 형식",
+  "tavernImportDescription": "• SillyTavern V2 캐릭터 카드(.json)\n• 카드가 내장된 PNG 이미지(.png)\n\n페르소나, 월드북 등의 필드는 Memex 캐릭터 형식으로 자동 매핑됩니다.",
+  "pickCharacterFile": "캐릭터 파일 선택",
+  "repickFile": "다른 파일 선택",
+  "personaSettingSection": "페르소나",
+  "systemPromptSection": "시스템 프롬프트",
+  "worldEntriesCount": "월드북: 항목 {count}개",
+  "@worldEntriesCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "fileLabel": "파일: {filename}",
+  "@fileLabel": {
+    "placeholders": {
+      "filename": {}
+    }
+  },
+  "conflictWarning": "같은 이름의 캐릭터가 이미 존재합니다: {names}. 가져오면 기존 캐릭터를 덮어쓰지 않고 새 캐릭터를 만듭니다.",
+  "@conflictWarning": {
+    "placeholders": {
+      "names": {}
+    }
+  },
+  "setPrimaryCompanionTitle": "기본 동반자로 설정",
+  "setPrimaryCompanionSubtitle": "가져온 뒤 자동으로 기본 동반자로 설정합니다",
+  "confirmImport": "가져오기 확인",
+  "chatBackground": "채팅 배경",
+  "chooseChatBackgroundImage": "배경 이미지 선택",
+  "earlyUpdateSettingsTitle": "Early 액세스 업데이트",
+  "earlyUpdateSettingsDesc": "현재 Early APK와 일치하는 GitHub 프리릴리스를 확인하고 다운로드한 뒤 Android 설치 프로그램에 전달합니다.",
+  "earlyUpdateUnsupported": "Early 업데이트는 Android Early 빌드에서만 사용할 수 있습니다.",
+  "earlyUpdateAutoCheckTitle": "업데이트 자동 확인",
+  "earlyUpdateAutoCheckDesc": "시작 시 최대 12시간에 한 번 확인합니다.",
+  "earlyUpdateWifiOnlyTitle": "Wi-Fi에서만 다운로드",
+  "earlyUpdateWifiOnlyDesc": "모바일 데이터를 사용할 때 업데이트 다운로드를 건너뜁니다.",
+  "earlyUpdateAutoInstallTitle": "자동 다운로드 및 설치",
+  "earlyUpdateAutoInstallDesc": "새 빌드를 찾으면 다운로드하고 Android 설치 프로그램을 자동으로 엽니다.",
+  "earlyUpdateCheckNow": "지금 확인",
+  "earlyUpdateChecking": "GitHub 프리릴리스 확인 중...",
+  "earlyUpdateSkippedMobile": "Wi-Fi 전용 다운로드가 켜져 있어 건너뛰었습니다.",
+  "earlyUpdateNoUpdate": "이미 최신 Early 빌드입니다.",
+  "earlyUpdateFound": "Early 빌드 {version}+{build}을(를) 사용할 수 있습니다.",
+  "@earlyUpdateFound": {
+    "placeholders": {
+      "version": {},
+      "build": {}
+    }
+  },
+  "earlyUpdateDownloadAndInstall": "다운로드 및 설치",
+  "earlyUpdateDownloadInProgress": "업데이트 다운로드 중...",
+  "earlyUpdateDownloadingPercent": "업데이트 다운로드 중: {percent}%",
+  "@earlyUpdateDownloadingPercent": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "earlyUpdateDownloadReadyToInstall": "업데이트 패키지가 다운로드되었습니다. 설치할 준비가 되었습니다.",
+  "earlyUpdateInstallDownloadedPackage": "다운로드한 패키지 설치",
+  "earlyUpdateClearDownloadedPackage": "다운로드한 패키지 지우기",
+  "earlyUpdateClearDownloadedPackageSuccess": "다운로드한 업데이트 패키지를 지웠습니다.",
+  "earlyUpdateInstallStarted": "Android 설치 프로그램을 열었습니다.",
+  "earlyUpdateInstallPermissionRequired": "Memex가 알 수 없는 앱을 설치하도록 허용한 다음, 다운로드 및 설치를 다시 탭하세요.",
+  "earlyUpdateLastChecked": "마지막 확인: {time}",
+  "@earlyUpdateLastChecked": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "earlyUpdateCheckFailed": "업데이트 확인 실패: {error}",
+  "@earlyUpdateCheckFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "earlyUpdateDialogTitle": "Early 업데이트 사용 가능",
+  "earlyUpdateReleaseNotes": "릴리스 노트",
+  "dismissAllNotifications": "모두 지우기",
+  "dismissByType": "유형별 지우기",
+  "dismissTypeSystemAction": "미리 알림 및 이벤트",
+  "dismissTypeClarification": "확인 요청",
+  "dismissTypeCardUpdate": "카드 업데이트",
+  "dismissedCount": "{count}개를 지웠습니다",
+  "@dismissedCount": {
+    "placeholders": {
+      "count": {}
+    }
+  }
+}

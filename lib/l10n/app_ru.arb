@@ -1,0 +1,1483 @@
+{
+  "@@locale": "ru",
+  "timesLabel": "Раз",
+  "@modelSetAsDefault": {
+    "placeholders": {
+      "modelId": {}
+    }
+  },
+  "modelSetAsDefault": "Сделать {modelId} моделью по умолчанию",
+  "retry": "Повторить",
+  "unknownModel": "Неизвестная модель",
+  "notSet": "Не задано",
+  "confirmClear": "Подтвердить очистку",
+  "confirmClearTokenMessage": "Очистить текущего пользователя? Нужно будет снова ввести ID пользователя.",
+  "cancel": "Отмена",
+  "confirm": "Подтвердить",
+  "tokenCleared": "Пользователь очищен",
+  "@clearTokenFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "clearTokenFailed": "Не удалось очистить пользователя: {error}",
+  "selectDateRangeOptional": "Выберите диапазон дат (необязательно):",
+  "startDate": "Дата начала",
+  "endDate": "Дата окончания",
+  "select": "Выбрать",
+  "processLimitOptional": "Лимит обработки (необязательно)",
+  "leaveEmptyForAll": "Оставьте пустым, чтобы обработать все",
+  "startProcessing": "Начать обработку",
+  "userIdNotFound": "ID пользователя не найден",
+  "@createTaskFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "createTaskFailed": "Не удалось создать задачу: {error}",
+  "reprocessCards": "Повторно обработать карточки",
+  "reprocessCardsTaskCreated": "Запрос на повторную обработку поставлен в очередь Super Agent",
+  "reprocessCardsDownstreamMode": "Область",
+  "reprocessCardsCardOnly": "Только карточки",
+  "reprocessCardsCardOnlyDesc": "Попросить Super Agent проверить и заново создать выбранные карточки ленты.",
+  "reprocessCardsRerunDownstream": "Карточки и связанные продолжения",
+  "reprocessCardsRerunDownstreamDesc": "Попросить Super Agent при необходимости также учесть связанные обновления PKM, расписания и инсайтов.",
+  "reanalyzeMediaAssets": "Повторно прочитать медиа-вложения",
+  "reanalyzeMediaAssetsDesc": "Попросить Super Agent снова проверить прикрепленные медиа при пересоздании карточек.",
+  "regenerateComments": "Сгенерировать комментарии заново",
+  "regenerateCommentsTaskCreated": "Задача повторной генерации комментариев создана и выполняется в фоне",
+  "rebuildSearchIndex": "Перестроить поисковый индекс",
+  "rebuildSearchIndexSuccess": "Поисковый индекс успешно перестроен",
+  "rebuildSearchIndexFailed": "Не удалось перестроить поисковый индекс",
+  "clearData": "Очистить данные",
+  "confirmClearDataMessage": "Очистить данные?",
+  "confirmClearDataDeletesWorkspaceMessage": "Все локальные данные workspace текущего пользователя будут удалены, включая карточки, медиа, файлы знаний, инсайты, память, историю чатов и состояние системы.\\n\\nЭто действие нельзя отменить!",
+  "clearFailedAgentContexts": "Очистить сбойный контекст разговора",
+  "confirmClearFailedAgentContextsMessage": "Очистить сохраненный контекст разговора для агентов Insight и Schedule? Это полезно после смены моделей, когда предыдущие сообщения агента больше несовместимы. Факты, карточки, знания, воспоминания и настройки модели не будут удалены.",
+  "failedAgentContextsCleared": "Очищено сохраненных контекстов разговора: {count}",
+  "@failedAgentContextsCleared": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "clearFailedAgentContextsFailed": "Не удалось очистить контекст разговора: {error}",
+  "@clearFailedAgentContextsFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "cloneToTestUser": "Клонировать в тестового пользователя",
+  "confirmCloneToTestUserMessage": "Скопировать текущий workspace в нового локального тестового пользователя и переключиться на него. Runtime-состояние агентов не копируется. Данные текущего пользователя не будут изменены.",
+  "testUserIdLabel": "ID тестового пользователя",
+  "testUserIdHelper": "Используйте буквы, цифры, дефис или нижнее подчеркивание.",
+  "testUserIdInvalid": "Используйте только буквы, цифры, дефис или нижнее подчеркивание.",
+  "overwriteExistingTestUser": "Заменить существующего тестового пользователя с тем же ID",
+  "testUserCloneSuccess": "Переключено на тестового пользователя {userId}",
+  "@testUserCloneSuccess": {
+    "placeholders": {
+      "userId": {}
+    }
+  },
+  "testUserCloneFailed": "Не удалось клонировать тестового пользователя: {error}",
+  "@testUserCloneFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "dataClearedSuccess": "Данные успешно очищены",
+  "@clearDataFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "clearDataFailed": "Не удалось очистить данные: {error}",
+  "personalCenter": "Личный центр",
+  "viewLogs": "Просмотр логов",
+  "systemAuthorization": "Системная авторизация",
+  "aiCharacterConfig": "Настройка AI-персонажа",
+  "modelConfig": "Настройка модели",
+  "agentConfig": "Настройка агента",
+  "experimentalLab": "Лаборатории",
+  "experimentalLabDescription": "Экспериментальные функции, которые позже могут измениться или переместиться.",
+  "modelUsageStats": "Статистика использования моделей",
+  "asyncTaskList": "Список асинхронных задач",
+  "clearLocalToken": "Очистить пользователя",
+  "insightCardTemplates": "Шаблоны карточек инсайтов",
+  "timelineCardTemplates": "Шаблоны карточек ленты",
+  "logViewer": "Просмотр логов",
+  "autoRefresh": "Автообновление",
+  "lineCount": "Строк: ",
+  "all": "Все",
+  "schedule": "Расписание",
+  "statistics": "Статистика",
+  "appLockConfig": "Настройка блокировки приложения",
+  "activityStats": "Статистика активности",
+  "activityStatsSummary": "За этот период вы сделали записей: {inputs}, создали карточек: {cards}, завершили задач: {todos}.",
+  "@activityStatsSummary": {
+    "placeholders": {
+      "inputs": {},
+      "cards": {},
+      "todos": {}
+    }
+  },
+  "last7Days": "7 дней",
+  "last30Days": "30 дней",
+  "last90Days": "90 дней",
+  "records": "Записи",
+  "words": "Слова",
+  "cards": "Карточки",
+  "knowledgeUnits": "Единицы знаний",
+  "completedTodos": "Завершенные todo",
+  "activeDays": "Активные дни",
+  "streakDays": "Серия",
+  "dailyRhythm": "Дневной ритм",
+  "recordToOutput": "От записи к результату",
+  "sourceBreakdown": "Разбивка источников",
+  "topThemes": "Главные темы",
+  "textInput": "Текст",
+  "imageInput": "Изображения",
+  "audioInput": "Аудио",
+  "noStatsYet": "Статистики активности пока нет",
+  "tapDayForDetails": "Нажмите день, чтобы посмотреть детали",
+  "dayDetails": "Детали дня",
+  "@loadStatsFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "loadStatsFailed": "Не удалось загрузить статистику: {error}",
+  "overview": "Обзор",
+  "daily": "По дням",
+  "modelStatsByAgent": "По агентам",
+  "detail": "Детали",
+  "date": "Дата",
+  "agent": "Агент",
+  "noData": "Нет данных",
+  "totalCalls": "Всего вызовов",
+  "calls": "Вызовы",
+  "@callsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "callsCount": "{count} вызовов",
+  "selectDateRange": "Выберите диапазон дат",
+  "totalTokens": "Всего токенов",
+  "cacheRate": "Доля кэша",
+  "promptTokens": "Токены промпта",
+  "completionTokens": "Токены ответа",
+  "cachedTokens": "Кэшированные токены",
+  "thoughtTokens": "Токены рассуждений",
+  "prompt": "Промпт",
+  "completion": "Ответ",
+  "cached": "Кэшировано",
+  "thought": "Рассуждение",
+  "model": "Модель",
+  "scene": "Сценарий",
+  "sceneId": "ID сценария",
+  "tokenUsage": "Использование токенов",
+  "handler": "Обработчик",
+  "modelBreakdown": "Разбивка по моделям",
+  "callDetails": "Детали вызова",
+  "@recordDetailsTitle": {
+    "placeholders": {
+      "scene": {}
+    }
+  },
+  "recordDetailsTitle": "Детали записи: {scene}",
+  "@saveLlmConfigFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "saveLlmConfigFailed": "Не удалось сохранить конфигурацию LLM: {error}",
+  "webHtmlPreviewUnavailable": "Предпросмотр HTML недоступен в веб-версии. Посмотрите на мобильном устройстве.",
+  "@saveUserInfoFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "saveUserInfoFailed": "Не удалось сохранить данные пользователя: {error}",
+  "totalEstimatedCost": "Общая примерная стоимость",
+  "close": "Закрыть",
+  "totalTokenConsumption": "Общее потребление токенов",
+  "dataLoadFailedRetry": "Не удалось загрузить данные, повторите позже.",
+  "timelineLoadFailedRetry": "Не удалось загрузить ленту, повторите позже.",
+  "newPerspective": "Новый взгляд",
+  "startPoint": "Начало",
+  "endPoint": "Конец",
+  "originalInput": "Исходный ввод",
+  "referenceContent": "Справочный контент",
+  "@referenceWithTitle": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "referenceWithTitle": "Справка: {title}",
+  "actionCenterTitle": "Ожидающие действия",
+  "noPendingActions": "Нет ожидающих действий",
+  "clarificationNeeded": "Memex хочет уточнить",
+  "clarificationTextHint": "Введите короткий ответ",
+  "clarificationTextRequired": "Сначала добавьте короткий ответ",
+  "clarificationAnswered": "Отвечено",
+  "@clarificationAnswerPrefix": {
+    "placeholders": {
+      "answer": {}
+    }
+  },
+  "clarificationAnswerPrefix": "Ответ: {answer}",
+  "answerSaved": "Ответ сохранен",
+  "clarificationOtherAnswer": "Ручной ввод",
+  "clarificationNotSure": "Не уверен / предпочитаю не отвечать",
+  "yes": "Да",
+  "no": "Нет",
+  "footprintMap": "Карта следов",
+  "waypointPlaces": "Промежуточные места",
+  "unknownPlace": "Неизвестное место",
+  "releaseToSend": "Отпустите, чтобы отправить",
+  "selectFromAlbum": "Выбрать из альбома",
+  "clipboardPreviewTitle": "Новый буфер обмена",
+  "clipboardPreviewImageTitle": "Изображение из буфера",
+  "clipboardPreviewImageDescription": "Изображение готово к добавлению",
+  "clipboardPreviewUnprocessed": "Еще не вставлено",
+  "clipboardPreviewPasteToInput": "Вставить в поле ввода",
+  "clipboardPreviewAddImageToInput": "Добавить изображение",
+  "clipboardPreviewImageFailed": "Не удалось прочитать изображение из буфера",
+  "tellAiWhatHappened": "Расскажите AI, что произошло...",
+  "@recordingWithDuration": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "recordingWithDuration": "Запись: {duration}",
+  "playing": "Воспроизведение...",
+  "sendLabel": "Отправить",
+  "attachedImagesMessage": "Отправлено изображений: {count}",
+  "@attachedImagesMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "noTaskData": "Нет данных задачи",
+  "@createdAtDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "createdAtDate": "Создано: {date}",
+  "@updatedAtDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "updatedAtDate": "Обновлено: {date}",
+  "@durationLabel": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "durationLabel": "Длительность: {duration}",
+  "@retryCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "retryCount": "Повтор: {count}",
+  "loadDetailFailedRetry": "Не удалось загрузить детали, повторите позже.",
+  "loadFailed": "Загрузка не удалась",
+  "reload": "Перезагрузить",
+  "aiInsightDetail": "Детали инсайта",
+  "@relatedRecordsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "relatedRecordsCount": "Связанные записи ({count})",
+  "noRelatedRecords": "Связанных записей нет",
+  "useFingerprintToUnlock": "Разблокировать отпечатком пальца",
+  "locked": "Заблокировано",
+  "wrongPassword": "Неверный пароль",
+  "enterPassword": "Введите пароль",
+  "memexLocked": "Memex заблокирован",
+  "calendarShortSun": "Вс",
+  "calendarShortMon": "Пн",
+  "calendarShortTue": "Вт",
+  "calendarShortWed": "Ср",
+  "calendarShortThu": "Чт",
+  "calendarShortFri": "Пт",
+  "calendarShortSat": "Сб",
+  "@noRecordsOnDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "noRecordsOnDate": "Нет записей за {date}",
+  "footprintPath": "Маршрут следов",
+  "lifeCompositionTable": "Состав жизни",
+  "emotionReframe": "Переосмысление эмоций",
+  "chronicleOfThings": "Хроника вещей",
+  "goalProgress": "Прогресс целей",
+  "trendChart": "График тренда",
+  "comparisonChart": "Сравнительный график",
+  "todayTimeFlow": "Поток времени сегодня",
+  "aiInputHint": "Будь то воспоминания или настоящее, я здесь...",
+  "refreshSuperAgentStateTooltip": "Очистить контекст Memex Agent",
+  "refreshSuperAgentStateTitle": "Очистить исторический контекст Memex Agent?",
+  "refreshSuperAgentStateMessage": "Видимая история чата останется, но исторический runtime-контекст Memex Agent будет очищен, и будущие ответы начнутся с чистого контекста. Постоянная память, файлы базы знаний, карточки и другие сохраненные данные не затрагиваются. Используйте это, если Memex Agent продолжает вести себя ненормально. Продолжить?",
+  "refreshSuperAgentStateActiveRunMessage": "Дождитесь завершения текущего сообщения Memex Agent перед очисткой контекста.",
+  "refreshSuperAgentStateSuccess": "Контекст Memex Agent очищен",
+  "@refreshSuperAgentStateFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "refreshSuperAgentStateFailed": "Не удалось очистить контекст Memex Agent: {error}",
+  "nothingHere": "Здесь пока ничего нет",
+  "nothingHereHint": "Нажмите кнопку ниже, чтобы создать первую карточку",
+  "agentProcessing": "AI обрабатывает...",
+  "keepAppOpen": "Не закрывайте приложение",
+  "activityDetail": "Детали активности",
+  "noAgentActivityYet": "Активности агента пока нет",
+  "processingEllipsis": "Обработка...",
+  "agentBackgroundTitle": "Memex Agent",
+  "agentBackgroundPausedTitle": "Memex Agent приостановлен",
+  "agentBackgroundNeedsAttentionTitle": "Memex Agent требует внимания",
+  "agentBackgroundStageIdle": "Ожидание",
+  "agentBackgroundStageProcessing": "Обработка",
+  "agentBackgroundStageQueued": "В очереди",
+  "agentBackgroundStageRetrying": "Ожидание повтора",
+  "agentBackgroundStagePaused": "Приостановлено",
+  "agentBackgroundStageCompleted": "Завершено",
+  "agentBackgroundStageNeedsAttention": "Требует внимания",
+  "agentBackgroundStageAnalyzingMedia": "Анализ медиа",
+  "agentBackgroundStageGeneratingCard": "Создание карточки",
+  "agentBackgroundStageUpdatingKnowledge": "Обновление знаний",
+  "agentBackgroundStagePreparingComment": "Подготовка комментария",
+  "agentBackgroundStageRoutingFollowUps": "Маршрутизация продолжений",
+  "@agentBackgroundTaskSummary": {
+    "placeholders": {
+      "running": {},
+      "pending": {},
+      "retrying": {}
+    }
+  },
+  "agentBackgroundTaskSummary": "Выполняется {running}, ожидает {pending}, повтор {retrying}",
+  "@agentBackgroundTaskDetail": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "agentBackgroundTaskDetail": "Обрабатывается задач в очереди: {count}.",
+  "agentBackgroundNoTasks": "Нет фоновых задач.",
+  "agentBackgroundStarting": "Обработка запускается.",
+  "agentBackgroundCompletedDetail": "Все фоновые задачи завершены.",
+  "agentBackgroundFailedDetail": "Обработка остановилась с ошибкой.",
+  "agentBackgroundPausedDetail": "Обработка приостановлена и продолжится позже.",
+  "agentBackgroundQueuedDetail": "Ожидание следующего шага обработки.",
+  "agentBackgroundRetryingDetail": "Текущий шаг будет автоматически повторен.",
+  "agentBackgroundAnalyzeMediaDetail": "Чтение вложений и локального контекста.",
+  "agentBackgroundGeneratingCardDetail": "Преобразование записи в карточку ленты.",
+  "agentBackgroundUpdatingKnowledgeDetail": "Обновление локальных знаний и памяти.",
+  "agentBackgroundPreparingCommentDetail": "Подготовка ответа-последствия от ассистента.",
+  "agentBackgroundRoutingFollowUpsDetail": "Проверка последующих действий для этой карточки.",
+  "@agentBackgroundPausedStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "agentBackgroundPausedStatus": "Приостановлено - {summary}",
+  "@agentBackgroundNeedsAttentionStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "agentBackgroundNeedsAttentionStatus": "Требует внимания - {summary}",
+  "settings": "Настройки",
+  "languageSettings": "Язык",
+  "languageSettingsDesc": "Изменить язык интерфейса приложения",
+  "noPendingActionsToast": "Нет ожидающих действий",
+  "knowledgeNewDiscovery": "Новое открытие в знаниях",
+  "@discoveredNewInsightsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "discoveredNewInsightsCount": "Найдено новых инсайтов: {count}",
+  "@updatedExistingInsightsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "updatedExistingInsightsCount": "Обновлено существующих инсайтов: {count}",
+  "sectionNewInsights": "Новые инсайты",
+  "sectionUpdatedInsights": "Обновленные инсайты",
+  "unnamedInsight": "Инсайт без названия",
+  "copiedToClipboard": "Скопировано в буфер обмена",
+  "copy": "Копировать",
+  "selectedLocation": "Выбранное место",
+  "confirmLocationName": "Подтвердите название места",
+  "confirmLocationNameHint": "Название можно изменить (координаты останутся прежними)",
+  "nameLabel": "Название",
+  "inputPlaceNameHint": "Введите название места...",
+  "@currentCoordinates": {
+    "placeholders": {
+      "lat": {},
+      "lng": {}
+    }
+  },
+  "currentCoordinates": "Координаты: {lat}, {lng}",
+  "confirmLocation": "Подтвердить место",
+  "welcomeToMemex": "Добро пожаловать в Memex",
+  "createUserIdToStart": "Создайте профиль",
+  "userIdLabel": "Ваше имя / никнейм",
+  "userIdHint": "Введите имя или никнейм",
+  "pleaseEnterUserId": "Введите имя",
+  "userIdMaxLength": "Имя не должно превышать 50 символов",
+  "startUsing": "Продолжить",
+  "userIdTip": "Это будет использоваться для персонализации опыта.",
+  "setupModelConfigTitle": "Настройте AI-модель",
+  "setupModelConfigSubtitle": "Memex нужна frontier AI-модель, чтобы организовывать записи, анализировать изображения и генерировать инсайты. Выберите один способ подключения.",
+  "setupModelConfigComplete": "Готово и перейти",
+  "aiService": "Сервис моделей Memex",
+  "aiModelHubTitle": "AI-модели и сервисы",
+  "aiModelHubSubtitle": "Выберите официальный сервис Memex или подключите своего провайдера. Расширенная маршрутизация моделей останется доступной при необходимости.",
+  "aiSetupCurrentStatusTitle": "Текущая настройка",
+  "aiSetupStatusNotConfiguredTitle": "AI-сервис не настроен",
+  "aiSetupStatusNotConfiguredDescription": "Выберите один способ подключения, чтобы включить AI-организацию записей, медиа и инсайтов.",
+  "aiSetupStatusMemexTitle": "Используется официальный сервис MemeX",
+  "aiSetupStatusMemexDescription": "Memex будет использовать официальное подключение и API-учетные данные, управляемые вашим аккаунтом MemeX.",
+  "aiSetupStatusCustomTitle": "Используются настройки своего провайдера",
+  "aiSetupStatusCustomDescription": "Memex будет использовать настроенные учетные данные провайдера и выбранные роли моделей.",
+  "aiSetupChooseConnectionTitle": "Выберите способ подключения",
+  "aiSetupChooseConnectionDescription": "Начните с варианта, который соответствует тому, как Memex должен получать доступ к AI-моделям.",
+  "aiSetupOfficialRouteDescription": "Войдите в MemeX и используйте официальный сервис без выбора провайдеров, ключей или моделей уровня агента.",
+  "aiSetupCustomRouteDescription": "Добавьте учетные данные своего провайдера, выберите модель для Super Agent и при необходимости переопределите модели по агентам.",
+  "aiSetupCustomPageTitle": "Свой AI-сервис",
+  "aiSetupCustomPageSubtitle": "Сначала настройте учетные данные провайдера, затем выберите модель, которую должен использовать Memex.",
+  "aiSetupProviderCredentialsTitle": "Провайдеры и API-ключи",
+  "aiSetupProviderCredentialsDescription": "Добавьте или измените OpenAI, Anthropic, DeepSeek, Gemini, OpenRouter, Ollama или другого совместимого провайдера.",
+  "modelRolesTitle": "Выберите основную модель",
+  "modelRolesDescription": "Super Agent использует одну модель для текстового и графического ввода. Расширенные переопределения агентов доступны ниже.",
+  "textModelRoleTitle": "Основная модель",
+  "textModelRoleDescription": "Используется Super Agent для текста, изображений, карточек, знаний, инсайтов, чата, комментариев, расписания и памяти.",
+  "modelConnectionsTitle": "Провайдеры моделей и API-ключи",
+  "modelConnectionsDescription": "Подключите официальный сервис Memex или добавьте учетные данные своего провайдера.",
+  "relatedAiCapabilitiesTitle": "Расширенные и связанные возможности",
+  "relatedAiCapabilitiesDescription": "Настройте назначения агентов, провайдера геолокации и поведение распознавания речи.",
+  "aiSetupServiceCapabilitiesTitle": "Возможности сервиса",
+  "aiSetupServiceCapabilitiesDescription": "Выберите провайдеров, которых Memex использует для смежных AI-возможностей, например речи и обратного геокодирования.",
+  "aiSetupAdvancedCustomizationTitle": "Расширенная маршрутизация моделей",
+  "aiSetupAdvancedCustomizationDescription": "Для опытных пользователей, которым нужно, чтобы разные агенты использовали разных провайдеров или конфигурации моделей.",
+  "locationProviderSettings": "Провайдер геолокации",
+  "speechProviderSettings": "Распознавание речи",
+  "advancedAgentModelAssignments": "Назначения моделей агентам",
+  "openAdvancedAgentModelAssignments": "Переопределить отдельных агентов",
+  "noConfiguredModelOptions": "Добавьте провайдера или API-ключ перед выбором ролей моделей.",
+  "modelSlotUpdated": "Роль модели обновлена",
+  "aiServiceMemexRouteTitle": "Подключиться через Memex",
+  "aiServiceLongDescription": "Memex использует многоагентную систему, чтобы организовывать жизненные записи, заметки знаний и социальный контекст, находить более глубокие инсайты и обеспечивать AI-компаньона с постоянной памятью. Ваши данные хранятся как обычный текст Markdown, сохраняя свободу и переносимость данных.",
+  "aiServiceCustomApiRouteTitle": "У меня есть API-ключ",
+  "aiServiceCustomModelDescription": "Выберите это сначала, если у вас уже есть API-ключ OpenAI, Anthropic, DeepSeek, Gemini или другого провайдера.",
+  "enableAiService": "Подключить через Memex",
+  "aiServiceReadyToast": "AI-организация включена",
+  "aiServiceSettingsDescription": "Если у вас нет API-ключа, используйте аккаунт Memex для подключения к основным сервисам моделей.",
+  "advancedModelConfiguration": "Настроить API-ключ",
+  "skipForNow": "Пропустить сейчас",
+  "clearAuth": "Очистить авторизацию",
+  "authorizing": "Авторизация...",
+  "@authFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "authFailed": "Авторизация не удалась: {error}",
+  "authorized": "Авторизовано",
+  "config": "Конфигурация",
+  "calendar": "Календарь",
+  "reminders": "Напоминания",
+  "writeToSystemFailed": "Не удалось записать в систему",
+  "@permissionRequired": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "permissionRequired": "Требуется разрешение: {name}",
+  "@permissionRationale": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "permissionRationale": "Разрешите приложению доступ к {name} в Настройках, чтобы мы могли создать это для вас.",
+  "goToSettings": "Перейти в настройки",
+  "unknownAction": "Неизвестное действие",
+  "discoveredCalendarEvent": "Найдено событие календаря",
+  "discoveredReminder": "Найдено напоминание",
+  "addToCalendar": "Добавить в календарь",
+  "addToReminders": "Добавить в напоминания",
+  "@addedToSuccess": {
+    "placeholders": {
+      "target": {}
+    }
+  },
+  "addedToSuccess": "Успешно добавлено в {target}",
+  "ignore": "Игнорировать",
+  "confirmDelete": "Подтвердить удаление",
+  "confirmDeleteSessionMessage": "Удалить этот разговор? Это действие нельзя отменить.",
+  "delete": "Удалить",
+  "deleteSuccess": "Успешно удалено",
+  "@deleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "deleteFailed": "Удаление не удалось: {error}",
+  "daysAgo": "{count} дн. назад",
+  "chatHistory": "История чатов",
+  "enterFullScreenTooltip": "Открыть на весь экран",
+  "exitFullScreenTooltip": "Выйти из полноэкранного режима",
+  "noConversations": "Нет разговоров",
+  "@loadSessionListFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "loadSessionListFailed": "Не удалось загрузить список сессий: {error}",
+  "@yesterdayAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "yesterdayAt": "Вчера {time}",
+  "newChat": "Новый чат",
+  "@messageCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "messageCount": "Сообщений: {count}",
+  "organize": "Организовать",
+  "pkmCategoryProject": "Проект",
+  "pkmCategoryProjectSubtitle": "Краткосрочное · Цели · Дедлайны",
+  "pkmCategoryArea": "Область",
+  "pkmCategoryAreaSubtitle": "Долгосрочное · Ответственность · Стандарты",
+  "pkmCategoryResource": "Ресурс",
+  "pkmCategoryResourceSubtitle": "Интересы · Вдохновение · Запас",
+  "pkmCategoryArchive": "Архив",
+  "pkmCategoryArchiveSubtitle": "Готово · Неактивно · Справка",
+  "recentChanges": "Недавние изменения",
+  "noRecentChangesInThreeDays": "За последние 3 дня изменений нет",
+  "unpinned": "Не закреплено",
+  "pinnedStyle": "Стиль закреплен",
+  "@operationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "operationFailed": "Операция не удалась: {error}",
+  "refreshingInsightData": "Обновление данных инсайтов, это может занять немного времени...",
+  "@refreshFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "refreshFailed": "Обновление не удалось: {error}",
+  "sortUpdated": "Порядок сортировки обновлен",
+  "@sortSaveFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sortSaveFailed": "Не удалось сохранить сортировку: {error}",
+  "insightCardDeleted": "Карточка инсайта удалена",
+  "@deleteFailedShort": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "deleteFailedShort": "Удаление не удалось: {error}",
+  "knowledgeInsight": "Инсайт знаний",
+  "completeSort": "Завершить сортировку",
+  "noKnowledgeInsight": "Нет инсайтов знаний",
+  "@insightProcessingBacklogMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "insightProcessingBacklogMessage": "Фоновые задачи все еще обрабатываются: {count}.",
+  "insightUnavailableMessage": "Этот инсайт еще генерируется или был обновлен. Обновите инсайты и повторите позже.",
+  "noScheduleAggregation": "Нет агрегации расписания",
+  "scheduleAggregationEmptyHint": "Нажмите Обновить, чтобы организовать расписания и todo из реальных временных карточек.",
+  "scheduleAggregationLoadFailed": "Не удалось загрузить данные расписания",
+  "scheduleAggregationRefreshFailed": "Не удалось обновить данные расписания",
+  "scheduleTaskUpdateFailed": "Не удалось обновить задачу",
+  "scheduleFeatured": "Главное",
+  "scheduleThisWeek": "На этой неделе",
+  "scheduleDone": "Готово",
+  "scheduleTbd": "TBD",
+  "scheduleWeekOverview": "На этой неделе",
+  "scheduleImportant": "Важно",
+  "scheduleBriefingTitle": "Брифинг расписания",
+  "scheduleBriefingOpen": "Открыть",
+  "scheduleBriefingNoData": "Брифинга расписания пока нет",
+  "@scheduleBriefingUpdated": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "scheduleBriefingUpdated": "Обновлено {time}",
+  "@scheduleBriefingDoneCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "scheduleBriefingDoneCount": "Готово: {count}",
+  "updating": "Обновление...",
+  "update": "Обновить",
+  "enabled": "Включено",
+  "disabled": "Отключено",
+  "appLockOn": "Блокировка приложения включена",
+  "appLockOff": "Блокировка приложения отключена",
+  "enableAppLockFirst": "Сначала включите блокировку приложения",
+  "enterFourDigitPassword": "Введите 4-значный пароль",
+  "passwordSetAndLockOn": "Пароль задан, блокировка приложения включена",
+  "appLockSettings": "Настройки блокировки приложения",
+  "enableAppLock": "Включить блокировку приложения",
+  "enableAppLockSubtitle": "Пароль требуется при запуске приложения",
+  "enableBiometrics": "Включить биометрию",
+  "biometricsSubtitle": "Использовать Face ID или Touch ID для разблокировки",
+  "changePassword": "Изменить пароль",
+  "setFourDigitPassword": "Задать 4-значный пароль",
+  "reenterPasswordToConfirm": "Введите пароль еще раз для подтверждения",
+  "passwordMismatch": "Пароли не совпадают. Повторите попытку.",
+  "@confirmDeleteCharacter": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "confirmDeleteCharacter": "Удалить персонажа \"{name}\"? Это действие нельзя отменить.",
+  "configureAiCharacter": "Настроить AI-персонажа",
+  "addCharacter": "Добавить персонажа",
+  "addCharacterSubtitle": "Выберите AI-персонажей для вашей команды инсайтов. Они будут анализировать данные вашей жизни с разных углов.",
+  "noCharacters": "Нет персонажей",
+  "@loadCharacterFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "loadCharacterFailed": "Не удалось загрузить персонажей: {error}",
+  "noTags": "Нет тегов",
+  "createSuccess": "Успешно создано",
+  "updateSuccess": "Успешно обновлено",
+  "@saveFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "saveFailed": "Сохранение не удалось: {error}",
+  "newCharacter": "Новый персонаж",
+  "editCharacter": "Редактировать персонажа",
+  "save": "Сохранить",
+  "characterName": "Имя персонажа",
+  "characterNameHint": "Дайте персонажу имя",
+  "pleaseEnterCharacterName": "Введите имя персонажа",
+  "tagsLabel": "Теги",
+  "tagsHint": "например wisdom, recognition, macro\\nРазделяйте несколько тегов запятыми",
+  "characterPersonaLabel": "Персона персонажа",
+  "characterPersonaHint": "Включите персону, руководство по стилю, пример диалога, фильтры знаний и т. д.\\nИспользуйте ## для заголовков разделов.",
+  "pleaseEnterCharacterPersona": "Введите персону персонажа",
+  "@permissionRequestError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "permissionRequestError": "Ошибка запроса разрешения: {error}",
+  "permissionRequiredTitle": "Требуется разрешение",
+  "permissionPermanentlyDeniedMessage": "Вы навсегда запретили это разрешение или оно требуется системой. Включите его в системных настройках.",
+  "getting": "Получение...",
+  "unauthorized": "Не авторизовано",
+  "authorizedGoToSettings": "Авторизовано. Перейдите в системные настройки, чтобы изменить.",
+  "location": "Геолокация",
+  "locationPermissionReason": "Для записи мест и функций, связанных с локацией",
+  "photos": "Фото",
+  "photosPermissionReason": "Для выбора фото, сохранения сгенерированных изображений и т. д.",
+  "camera": "Камера",
+  "cameraPermissionReason": "Для съемки фото и видео",
+  "microphone": "Микрофон",
+  "microphonePermissionReason": "Для распознавания речи, записи и т. д.",
+  "calendarPermissionReason": "Для записи расписания и чтения событий календаря",
+  "remindersPermissionReason": "Для записи и чтения ваших напоминаний",
+  "fitnessAndMotion": "Фитнес и движение",
+  "fitnessPermissionReason": "Для записи данных здоровья и движения",
+  "notification": "Уведомления",
+  "notificationPermissionReason": "Для отправки расписаний и важных напоминаний",
+  "loadDetailFailedRetryShort": "Не удалось загрузить детали, повторите позже.",
+  "total": "Всего",
+  "estimatedCost": "Примерная стоимость",
+  "byAgent": "По агентам",
+  "timeUpdated": "Время обновлено",
+  "@updateFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "updateFailed": "Обновление не удалось: {error}",
+  "locationUpdated": "Локация обновлена",
+  "confirmDeleteCardMessage": "Удалить эту карточку? Это действие нельзя отменить.",
+  "cardDetailNotFound": "Детали карточки не найдены",
+  "saySomething": "Напишите что-нибудь...",
+  "relatedMemories": "Связанные воспоминания",
+  "viewMore": "Показать еще",
+  "relatedRecords": "Связанные записи",
+  "reply": "Ответить",
+  "replySent": "Ответ отправлен",
+  "insightTemplateGalleryTitle": "Шаблоны карточек инсайтов",
+  "timelineTemplateGalleryTitle": "Шаблоны карточек ленты",
+  "categoryTextual": "Текстовые",
+  "timelineFilterAll": "ВСЕ",
+  "insights": "Инсайты",
+  "memoryTitle": "Память",
+  "longTermProfile": "Долгосрочный профиль",
+  "recentBuffer": "Недавний буфер",
+  "@errorLoadingMemory": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "errorLoadingMemory": "Ошибка загрузки памяти: {error}",
+  "agentConfiguration": "Конфигурация агента",
+  "resetToDefaults": "Сбросить к умолчаниям",
+  "resetAllAgentConfigurationsTitle": "Сбросить все конфигурации агентов",
+  "resetAllAgentConfigurationsMessage": "Вы уверены, что хотите сбросить все конфигурации агентов к значениям по умолчанию? Это действие нельзя отменить.",
+  "resetButton": "Сбросить",
+  "@loadDataFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "loadDataFailed": "Не удалось загрузить данные: {error}",
+  "@saveConfigFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "saveConfigFailed": "Не удалось сохранить конфигурацию: {error}",
+  "selectLlmClient": "Выберите LLM Client:",
+  "agentConfigurationsReset": "Конфигурации агентов сброшены",
+  "@resetFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "resetFailed": "Сброс не удался: {error}",
+  "modelConfiguration": "Конфигурация модели",
+  "resetAllConfigurationsTitle": "Сбросить все конфигурации",
+  "resetAllModelConfigurationsMessage": "Вы уверены, что хотите сбросить все конфигурации моделей к значениям по умолчанию? Это действие нельзя отменить.",
+  "modelConfigurationsReset": "Конфигурации моделей сброшены",
+  "cannotDeleteDefaultConfiguration": "Нельзя удалить конфигурацию по умолчанию",
+  "cannotDeleteConfigurationTitle": "Нельзя удалить конфигурацию",
+  "@configUsedByAgentsMessage": {
+    "placeholders": {
+      "agentList": {}
+    }
+  },
+  "configUsedByAgentsMessage": "Эта конфигурация сейчас используется следующими агентами:\\n\\n{agentList}\\n\\nПеред удалением переназначьте этих агентов.",
+  "ok": "OK",
+  "deleteConfigurationTitle": "Удалить конфигурацию",
+  "@confirmDeleteConfigMessage": {
+    "placeholders": {
+      "key": {}
+    }
+  },
+  "confirmDeleteConfigMessage": "Вы уверены, что хотите удалить \"{key}\"?",
+  "defaultLabel": "По умолчанию",
+  "setAsDefault": "Сделать по умолчанию",
+  "invalidJsonInExtraField": "Недопустимый JSON в поле Extra",
+  "keyAlreadyExists": "Ключ уже существует",
+  "resetConfigurationTitle": "Сбросить конфигурацию",
+  "resetConfigurationMessage": "Сбросить эту конфигурацию к начальным значениям по умолчанию? Текущие изменения будут потеряны.",
+  "configurationResetPressSave": "Конфигурация сброшена. Нажмите Сохранить, чтобы применить.",
+  "addConfiguration": "Добавить конфигурацию",
+  "editConfiguration": "Редактировать конфигурацию",
+  "duplicateConfiguration": "Дублировать конфигурацию",
+  "duplicate": "Дублировать",
+  "keyIdLabel": "ID конфигурации",
+  "keyIdHelper": "Назовите эту настройку, например deepseek или work-gpt.",
+  "required": "Обязательно",
+  "clientLabel": "Провайдер модели",
+  "providerGroupOpenAi": "OpenAI",
+  "providerGroupAnthropic": "Anthropic",
+  "providerGroupGoogle": "Google",
+  "providerGroupOthers": "Популярные",
+  "providerOpenAiApiKey": "API-ключ",
+  "providerOpenAiResponses": "API-ключ (Responses)",
+  "providerChatGptOauth": "ChatGPT Pro/Plus",
+  "providerClaudeApiKey": "API-ключ",
+  "providerBedrockSecret": "Bedrock Secret",
+  "providerGemini": "Gemini",
+  "providerGeminiOauth": "Gemini (Google OAuth)",
+  "providerKimi": "Kimi (Moonshot)",
+  "providerQwen": "Aliyun",
+  "providerSeed": "Volcengine",
+  "providerZhipu": "Zhipu GLM",
+  "providerDeepSeek": "DeepSeek",
+  "providerMinimax": "MiniMax",
+  "providerOpenRouter": "OpenRouter",
+  "providerOllama": "Ollama (локально)",
+  "providerMimo": "Xiaomi MIMO",
+  "providerMemex": "Прокси-сервис Memex",
+  "memexSignIn": "Войти",
+  "memexCreateAccount": "Создать аккаунт",
+  "memexUsername": "Имя пользователя",
+  "memexPassword": "Пароль",
+  "memexCreateAccountLink": "Создать аккаунт",
+  "memexSignInLink": "Уже есть аккаунт? Войти",
+  "memexTopUp": "Пополните баланс, чтобы начать использовать Memex AI",
+  "memexTopUpSuccess": "Пополнение успешно!",
+  "memexFillAllFields": "Заполните все поля",
+  "memexUsernameTooShort": "Имя пользователя должно быть не короче 6 символов",
+  "memexAuthFailed": "Аутентификация не удалась",
+  "memexPaymentFailed": "Не удалось создать платеж",
+  "memexLogout": "Выйти",
+  "memexTopUpButton": "Пополнить",
+  "memexTopUpChooseAmount": "Выберите сумму",
+  "memexTopUpEstimatedRecords": "Около {range} записей",
+  "@memexTopUpEstimatedRecords": {
+    "placeholders": {
+      "range": {}
+    }
+  },
+  "memexTopUpPlanStarter": "Стартовый",
+  "memexTopUpPlanEveryday": "На каждый день",
+  "memexTopUpPlanHighVolume": "Большой объем",
+  "memexTopUpPlanCustom": "Свои кредиты",
+  "memexTopUpPlanStarterSubtitle": "Подходит, чтобы попробовать Memex AI",
+  "memexTopUpPlanEverydaySubtitle": "Подходит для регулярной организации",
+  "memexTopUpPlanHighVolumeSubtitle": "Подходит для больших пакетов",
+  "memexTopUpPlanCustomSubtitle": "Введите USD 1-10 000",
+  "memexTopUpCustomEstimate": "Оценка основана на введенной сумме",
+  "memexCustomAmount": "Своя сумма",
+  "memexViewHistory": "История использования",
+  "memexBalanceLabel": "Баланс: {amount}",
+  "@memexBalanceLabel": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "memexConfirmPassword": "Подтвердите пароль",
+  "memexPasswordMismatch": "Пароли не совпадают",
+  "memexPayAmount": "Пополнить на {amount}",
+  "@memexPayAmount": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "modelIdLabel": "Модель",
+  "modelIdHelper": "например gemini-3.1-pro-preview, gpt-4o",
+  "fetchingModels": "Получение моделей...",
+  "fetchModelsButton": "Получить модели",
+  "enterApiKeyFirst": "Сначала введите API Key, чтобы получить модели",
+  "apiKeyLabel": "API-ключ",
+  "baseUrlLabel": "Конечная точка API",
+  "advancedSettings": "Расширенные настройки",
+  "testConnectionSuccess": "Подключение успешно",
+  "testConnectionFailed": "Подключение не удалось",
+  "testTypeText": "Текст",
+  "testTypeVision": "Зрение",
+  "testButton": "Тест",
+  "testing": "Тестирование...",
+  "proxyUrlOptional": "Proxy URL (необязательно)",
+  "proxyUrlHelper": "например http://127.0.0.1:7890",
+  "temperatureLabel": "Температура",
+  "topPLabel": "Top P",
+  "maxTokensLabel": "Макс. токенов",
+  "extraParamsJson": "Доп. параметры (JSON)",
+  "invalidJson": "Недопустимый JSON",
+  "warning": "Неполная настройка",
+  "invalidConfigurationWarning": "Конфигурация еще не завершена (например, отсутствует API Key или Model ID). Вы все равно можете сохранить ее и настроить позже. Продолжить?",
+  "invalidModelConfigDetailed": "AI Agent \"{agentId}\" нужна действительная конфигурация модели (ключ: \"{configKey}\") для работы. Проверьте настройки модели.",
+  "discardChangesTitle": "Покинуть эту страницу?",
+  "discardChangesMessage": "Если вы внесли изменения, сохраните их перед выходом.",
+  "discardButton": "Отбросить",
+  "chooseLanguage": "Выбрать язык",
+  "chooseAvatar": "Выбрать аватар",
+  "configureNow": "Настроить сейчас",
+  "modelNotConfiguredBanner": "AI-модель еще не настроена. Настройте ее, чтобы открыть все функции.",
+  "modelNotConfiguredSubmitHint": "Настройте AI-модель перед публикацией",
+  "processingStatus": "Обработка",
+  "failedStatus": "Сбой",
+  "failureReason": "Причина сбоя",
+  "unknownError": "Произошла неизвестная ошибка",
+  "enableFitness": "Включить фитнес",
+  "fitnessBannerMessage": "Разрешите доступ к фитнесу, чтобы отслеживать здоровье и активность.",
+  "fitnessDismissTitle": "Пропустить доступ к фитнесу?",
+  "fitnessDismissMessage": "Без разрешения фитнеса приложение не сможет автоматически собирать данные здоровья для инсайтов и автозаписи.",
+  "skipAnyway": "Все равно пропустить",
+  "proModelHint": "Эта модель требует подписку ChatGPT Pro/Plus.",
+  "searchKnowledgeBase": "Поиск в базе знаний...",
+  "searchKnowledgeHint": "Введите ключевое слово для поиска по именам файлов или содержимому",
+  "@noSearchResults": {
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "noSearchResults": "Нет результатов для \"{query}\"",
+  "onlyMarkdownPreview": "Поддерживается только предпросмотр Markdown",
+  "backupAndRestore": "Резервное копирование и восстановление",
+  "createBackup": "Создать резервную копию",
+  "restoreBackup": "Восстановить резервную копию",
+  "backupDescription": "Упакуйте все ваши данные (карточки, базу знаний, инсайты, настройки) в файл .memex. Сохраните его в iCloud Drive, Google Drive или любое место через share sheet.",
+  "restoreDescription": "Выберите файл резервной копии .memex для восстановления всех данных. Это перезапишет текущие данные.",
+  "selectBackupFile": "Выбрать файл резервной копии",
+  "estimatedSize": "Примерный размер",
+  "backupComplete": "Резервная копия создана",
+  "@backupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "backupFailed": "Резервное копирование не удалось: {error}",
+  "confirmRestore": "Подтвердить восстановление",
+  "confirmRestoreMessage": "Восстановление перезапишет все текущие данные, включая карточки, базу знаний, инсайты и настройки. Это нельзя отменить. Продолжить?",
+  "restoreComplete": "Восстановление завершено",
+  "restoreRestartHint": "Данные восстановлены. Перезапустите приложение, чтобы все изменения вступили в силу.",
+  "@restoreFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "restoreFailed": "Восстановление не удалось: {error}",
+  "invalidBackupFile": "Недопустимый файл резервной копии. Выберите файл .memex.",
+  "automaticBackup": "Автоматическое резервное копирование",
+  "autoBackupDescription": "Когда включено, Memex создает не более одного локального снимка в день после запуска или возвращения на передний план.",
+  "backupSensitiveSettingsHint": "Резервные копии включают настройки и ключи провайдеров моделей. Храните файлы резервных копий в надежном месте.",
+  "backupLocation": "Место",
+  "backupLocationDetails": "Сведения о месте",
+  "backupLocationSummary": "Показано в приложении",
+  "backupLocationFullPath": "Полный путь",
+  "backupLocationUri": "URI доступа к папке",
+  "copyBackupLocationPath": "Копировать путь",
+  "backupLocationCopied": "Место резервной копии скопировано",
+  "androidBackupLocationSelected": "Выбранная папка: {folderName}",
+  "@androidBackupLocationSelected": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "iosICloudBackupLocation": "iCloud Drive > Memex > Backups",
+  "iosAppDocumentsBackupLocation": "Files > On My iPhone > Memex > Backups",
+  "autoBackupStatus": "Статус",
+  "noAutoBackupYet": "Автоматических резервных копий пока нет",
+  "@lastBackupAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "lastBackupAt": "Последняя копия: {time}",
+  "autoBackupRetention": "Хранение",
+  "@autoBackupRetentionDays": {
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "autoBackupRetentionDays": "{days} дн.",
+  "autoBackupRetentionForever": "Хранить всегда",
+  "autoBackupMaxSize": "Лимит хранилища",
+  "@autoBackupRetentionLimitHint": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "autoBackupRetentionLimitHint": "Автоматическая очистка удерживает автоматические снимки в пределах {size}. Снимки безопасности и ручные экспорты хранятся отдельно.",
+  "createSnapshotNow": "Создать копию сейчас",
+  "backupLocationMenu": "Изменить место",
+  "defaultBackupLocation": "Папка резервных копий по умолчанию",
+  "defaultBackupLocationAndroidDesc": "Использовать внешнюю папку файлов Memex, специфичную для приложения. Разрешение на хранилище не нужно.",
+  "chooseBackupLocation": "Выбрать папку резервных копий",
+  "chooseBackupLocationAndroidDesc": "Выберите папку системным выборщиком Android и предоставьте Memex постоянный доступ.",
+  "storedBackups": "Сохраненные резервные копии",
+  "noStoredBackups": "Автоматические копии появятся здесь после первого снимка.",
+  "backupTypeAutoSnapshot": "Автоматический снимок",
+  "backupTypeSafetySnapshot": "Снимок безопасности",
+  "backupTypeManualBackup": "Ручная резервная копия",
+  "refresh": "Обновить",
+  "restoreThisBackup": "Восстановить эту копию",
+  "deleteThisBackup": "Удалить эту копию",
+  "confirmDeleteBackup": "Удалить резервную копию?",
+  "@confirmDeleteBackupMessage": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "confirmDeleteBackupMessage": "Удалить {fileName}? Это удалит сохраненный файл резервной копии, и действие нельзя отменить.",
+  "@backupDeleted": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupDeleted": "Резервная копия удалена: {fileName}",
+  "@backupDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "backupDeleteFailed": "Не удалось удалить резервную копию: {error}",
+  "creatingSafetySnapshot": "Создание снимка безопасности...",
+  "@autoBackupCreated": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "autoBackupCreated": "Снимок создан: {fileName}",
+  "@backupLocationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "backupLocationFailed": "Не удалось обновить место резервной копии: {error}",
+  "backupImportCreatedAt": "Создано",
+  "backupImportSourceVersion": "Версия источника",
+  "backupImportFlavor": "Сборка",
+  "backupLegacyFormat": "Старая резервная копия (без manifest)",
+  "restoreInProgress": "Восстановление резервной копии...",
+  "dataStorage": "Хранилище данных",
+  "dataStorageDescriptionAndroid": "Выберите свою папку для хранения workspace. Данные сохраняются при переустановке приложения.",
+  "dataStorageDescriptionIOS": "Включите iCloud, чтобы синхронизировать workspace между устройствами и сохранить данные при переустановке приложения.",
+  "storageLocationApp": "Хранилище приложения",
+  "storageLocationAppDesc": "Данные хранятся внутри приложения и будут удалены при его удалении.",
+  "storageLocationCustom": "Хранилище устройства (своя папка)",
+  "storageLocationCustomDesc": "Храните данные в выбранной вами папке. Данные сохранятся после переустановки, если папка останется.",
+  "storageLocationICloud": "Хранить в iCloud",
+  "storageLocationICloudDesc": "Синхронизируйте workspace между устройствами Apple. Данные сохранятся после переустановки.",
+  "storageLocationCurrent": "Сейчас: {location}",
+  "icloudRequiresCapability": "Войдите в iCloud и включите iCloud Drive, чтобы использовать хранилище iCloud.",
+  "loadingFromICloud": "Восстановление данных из iCloud…",
+  "switchingToICloud": "Переключение на хранилище iCloud…",
+  "switchingStorage": "Переключение хранилища…",
+  "customFolderAccessDenied": "Не удается читать или писать в эту папку. Предоставьте разрешение на хранилище или выберите другое место.",
+  "@storageLocationCurrent": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "configured": "Настроено",
+  "apiKeyNotSet": "API Key не задан — нажмите, чтобы настроить",
+  "bottomNavTimeline": "Лента",
+  "bottomNavLibrary": "Библиотека",
+  "aiGeneratedLabel": "Сгенерировано AI",
+  "@sourceTraceWithCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "sourceTraceWithCount": "СЛЕД ИСТОЧНИКОВ ({count})",
+  "deleteAccount": "Удалить аккаунт",
+  "deleteAccountDesc": "Навсегда удалить все локальные данные и сбросить приложение.",
+  "deleteAccountConfirmTitle": "Удалить аккаунт?",
+  "deleteAccountConfirmMessage": "Это навсегда удалит все ваши данные, включая карточки ленты, базу знаний, записи и настройки. Это действие нельзя отменить.",
+  "deleteAccountTypeName": "Введите \"{name}\" для подтверждения",
+  "@deleteAccountTypeName": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleteAccountTypeHint": "Введите имя пользователя для подтверждения",
+  "llmConsentTitle": "Согласие на передачу данных",
+  "llmConsentMessage": "Чтобы включить AI-функции, Memex должен отправлять ваши данные в {provider} для обработки. Это включает:\\n\\n• Введенный вами текст (заметки, расшифровки голоса)\\n• Метаданные фото и извлеченный текст (OCR)\\n• Сводки здоровья и фитнеса\\n• Содержимое карточек ленты\\n\\nВаши данные отправляются напрямую с вашего устройства в {provider}. Memex не хранит и не передает ваши данные через какой-либо другой сервер.\\n\\nОзнакомьтесь с политикой конфиденциальности {provider}, чтобы узнать, как они обрабатывают ваши данные.\\n\\nВы согласны отправлять ваши данные в {provider} для AI-обработки?",
+  "@llmConsentMessage": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "llmConsentAgree": "Согласен",
+  "llmConsentDecline": "Отклонить",
+  "customAgents": "Пользовательские агенты",
+  "noCustomAgents": "Пользовательские агенты не настроены.",
+  "deleteAgent": "Удалить агента",
+  "deleteAgentConfirm": "Удалить пользовательского агента \"{name}\"?",
+  "@deleteAgentConfirm": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleted": "Удалено",
+  "saved": "Сохранено",
+  "newAgent": "Новый агент",
+  "editAgent": "Редактировать агента",
+  "agentName": "Имя агента",
+  "agentNameHint": "my-custom-agent",
+  "agentNameRequired": "Обязательно",
+  "agentNameInvalid": "Только буквы, цифры и дефисы",
+  "agentNameExists": "Имя уже существует",
+  "hostAgentType": "Тип host-агента",
+  "skillDirectory": "Каталог skill",
+  "skillDirInvalid": "Должен быть относительным путем (без начального / или ..)",
+  "workingDirectory": "Рабочий каталог (необязательно)",
+  "workingDirectoryHint": "Оставьте пустым для workspace по умолчанию",
+  "llmConfig": "Конфигурация LLM",
+  "eventType": "Тип события",
+  "executionMode": "Режим выполнения",
+  "executionModeAsync": "Async",
+  "executionModeSync": "Sync",
+  "dependsOn": "Зависит от",
+  "dependsOnHint": "Выберите зависимости",
+  "priority": "Приоритет",
+  "maxRetries": "Макс. повторов",
+  "systemPromptLabel": "System Prompt (необязательно)",
+  "systemPromptHint": "Дополнительные инструкции, добавляемые к промпту host-агента",
+  "eventSerializer": "Сериализатор событий",
+  "eventSerializerDefault": "По умолчанию (XML)",
+  "enabledLabel": "Включено",
+  "skillsManagement": "Управление skills",
+  "skillsManagementEmpty": "Skills пока нет",
+  "downloadSkill": "Скачать skill",
+  "downloading": "Загрузка...",
+  "downloadSuccess": "Skill успешно скачан",
+  "downloadFailed": "Загрузка не удалась: {error}",
+  "@downloadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "deleteConfirm": "Подтвердить удаление",
+  "deleteConfirmMessage": "Вы уверены, что хотите удалить \"{name}\"?",
+  "@deleteConfirmMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidUrl": "Введите действительный URL",
+  "urlHint": "https://example.com/skill.zip",
+  "newFolder": "Новая папка",
+  "newFile": "Новый файл",
+  "folderName": "Имя папки",
+  "fileName": "Имя файла",
+  "nameRequired": "Имя обязательно",
+  "nameInvalid": "Имя не может содержать / или ..",
+  "createFailed": "Создание не удалось: {error}",
+  "@createFailed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "fileContent": "Содержимое файла",
+  "saveSuccess": "Успешно сохранено",
+  "downloadToCurrentDir": "Zip будет распакован в текущий каталог: {dir}",
+  "@downloadToCurrentDir": {
+    "placeholders": {
+      "dir": {
+        "type": "String"
+      }
+    }
+  },
+  "privacyPolicy": "Политика конфиденциальности",
+  "privacyPolicyDesc": "Как Memex обрабатывает ваши данные",
+  "llmAuthError": "Аутентификация API не удалась. Проверьте конфигурацию LLM в настройках.",
+  "llmBadRequestError": "Запрос был отклонен провайдером LLM. Текущий модель может не поддерживать формат ввода.",
+  "llmRateLimitError": "Превышен лимит API. Повторите позже.",
+  "llmServerError": "Сервис LLM временно недоступен. Повторите позже.",
+  "llmNetworkError": "Сетевое подключение не удалось. Проверьте интернет-соединение.",
+  "llmUnknownError": "При обработке вашего контента произошла непредвиденная ошибка.",
+  "llmErrorDialogTitle": "Обработка не удалась",
+  "goToModelConfig": "Перейти в настройки",
+  "speechModelDownloadTitle": "Скачать модель речи",
+  "speechModelDownloadDesc": "Требуется разовая загрузка модели (~{sizeMB} МБ).\\n\\nПосле загрузки транскрибация полностью выполняется на устройстве.",
+  "@speechModelDownloadDesc": {
+    "placeholders": {
+      "sizeMB": {}
+    }
+  },
+  "speechModelStartDownload": "Начать загрузку",
+  "speechModelChooseSource": "Выберите источник загрузки:",
+  "speechModelChinaMirror": "🇨🇳 China Mirror (быстрее в CN)",
+  "speechModelGithub": "🌐 GitHub (Global)",
+  "speechModelDownloading": "Загрузка модели...",
+  "speechModelConnecting": "Подключение...",
+  "deleteSpeechModel": "Удалить модель речи",
+  "confirmDeleteSpeechModelMessage": "Удалить загруженные файлы локальной модели распознавания речи? Они будут скачаны снова при следующем использовании локального speech-to-text.",
+  "speechModelDeletedSuccess": "Файлы модели речи удалены",
+  "speechModelNotDownloaded": "Загруженные файлы модели речи не найдены",
+  "speechModelDeleteFailed": "Не удалось удалить файлы модели речи: {error}",
+  "@speechModelDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "speechTranscribing": "Распознавание...",
+  "speechNoResult": "Речь не обнаружена",
+  "useLocalSpeechToTextTitle": "Использовать локальный speech-to-text",
+  "useLocalSpeechToTextDesc": "Когда включено, аудио транскрибируется на устройстве перед отправкой — полезно для моделей, которые не поддерживают аудиоввод. Когда отключено, исходное аудио отправляется напрямую в модель.",
+  "pendingAiProcessingHint": "Настройте AI-модель для обработки",
+  "demoWelcome": "Добро пожаловать в Memex!\\nДавайте быстро посмотрим, что AI может делать с вашими записями.",
+  "demoTapAdd": "Нажмите здесь, чтобы создать первую запись",
+  "demoTapSend": "Нажмите, чтобы отправить первую запись",
+  "demoTapCard": "Нажмите, чтобы увидеть, как AI организовал вашу запись",
+  "demoTapInsight": "Нажмите, чтобы увидеть AI-инсайты",
+  "demoTapInsightUpdate": "Нажмите, чтобы сгенерировать инсайты из записей",
+  "demoTapKnowledge": "Посмотрите автоматически организованные файлы знаний",
+  "demoDone": "Начните записывать свою жизнь.",
+  "demoStartTour": "Начать тур",
+  "demoGetStarted": "Начать",
+  "demoSkip": "Пропустить",
+  "demoPrefillText": "Привет, Memex! Это моя первая запись 🎉",
+  "visionBadge": "Зрение",
+  "notMultimodalHint": "Memex полагается на мультимодальные возможности модели для анализа медиа. Если ваши записи содержат изображения, убедитесь, что настроенная модель поддерживает ввод изображений.",
+  "defaultModelPrefix": "По умолчанию",
+  "recommendedBadge": "Рекомендуется",
+  "readOnlyBadge": "CHAT",
+  "switchCompanion": "Сменить компаньона",
+  "personaChatInputHint": "Введите сообщение...",
+  "today": "Сегодня",
+  "tomorrow": "Завтра",
+  "yesterday": "Вчера",
+  "showInsightTextTitle": "Показывать комментарий инсайта Memex",
+  "showInsightTextDesc": "Показывать ли инсайт Memex как закрепленный комментарий в разделе комментариев деталей карточки.",
+  "enableCharacterCommentTitle": "Автокомментарии персонажей",
+  "enableCharacterCommentDesc": "Персонажи автоматически комментируют новые записи.",
+  "maxCommentCharactersTitle": "Макс. персонажей для комментариев",
+  "maxCommentCharactersDesc": "Сколько персонажей могут комментировать каждую запись.",
+  "replyTo": "Ответить {name}",
+  "@replyTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "cdnSignalsComments": "Получен новый ответ",
+  "cdnSignalsInsight": "Сгенерирован новый инсайт",
+  "cdnSignalsBoth": "Новый ответ и инсайт",
+  "untitledCard": "Карточка без названия",
+  "locationContextTitle": "Контекст локации",
+  "locationContextDescription": "Текущий город и район для чата с агентом",
+  "locationContextAttachTitle": "Прикреплять текущую локацию к чату",
+  "locationContextAttachDesc": "Использует GPS устройства и обратное геокодирование, чтобы предоставить агенту контекст города, района и окрестностей.",
+  "reverseGeocodingProvider": "Провайдер обратного геокодирования",
+  "amapProviderName": "Amap",
+  "amapApiKey": "Amap API Key",
+  "amapGcj02Note": "Amap использует координаты GCJ-02. GPS устройства преобразуется перед обратным геокодированием.",
+  "contextGranularity": "Детализация контекста",
+  "granularityCity": "Город",
+  "granularityDistrict": "Район",
+  "granularityNeighborhood": "Окрестности",
+  "granularityStreet": "Улица",
+  "granularityFullAddress": "Кандидат полного адреса",
+  "locationFreshness": "Актуальность локации",
+  "minutesShort": "{minutes} мин.",
+  "@minutesShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "oneHour": "1 час",
+  "testCurrentLocation": "Проверить текущую локацию",
+  "locationTestFailed": "Сбой: {error}",
+  "@locationTestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "locationDebugGps": "GPS",
+  "locationDebugReverseGeocode": "Обратное геокодирование",
+  "locationDebugProvider": "Провайдер",
+  "locationDebugAgentContext": "Контекст агента",
+  "locationDebugSource": "Источник",
+  "locationDebugAddressSummary": "Сводка адреса",
+  "locationDebugFullAddress": "Полный адрес",
+  "locationDebugCoordinates": "Координаты",
+  "locationDebugAccuracy": "Точность",
+  "locationDebugReason": "Причина",
+  "locationDebugOk": "OK",
+  "locationDebugUnavailable": "недоступно",
+  "locationDebugInjected": "внедрено",
+  "locationDebugNotInjected": "не внедрено",
+  "locationStatusUpdatedAt": "Обновлено",
+  "locationStatusSuccessTitle": "Текущая локация готова",
+  "locationStatusSuccessBody": "Memex может прикрепить эту сводку локации, когда контекст локации уместен.",
+  "locationStatusApproximateTitle": "Только приблизительная локация",
+  "locationStatusApproximateBody": "Точность похожа на уровень города или района. Можно продолжать использовать ее или включить Точную геопозицию в системных настройках для более плотного контекста.",
+  "locationStatusServiceDisabledTitle": "Системная геолокация выключена",
+  "locationStatusServiceDisabledBody": "Memex использует только GPS устройства и не выводит локацию из сети или IP. На Android откройте настройки Location; на iOS включите Settings > Privacy & Security > Location Services.",
+  "locationStatusPermissionDeniedTitle": "Нужно разрешение на локацию",
+  "locationStatusPermissionDeniedBody": "Разрешите Memex использовать локацию при тестировании или когда нужен контекст локации. Постоянный доступ не запрашивается.",
+  "locationStatusPermissionForeverTitle": "Разрешение на локацию заблокировано",
+  "locationStatusPermissionForeverBody": "Откройте настройки приложения и разрешите локацию для Memex. На iOS достаточно While Using the App.",
+  "locationStatusDisabledTitle": "Контекст локации выключен",
+  "locationStatusDisabledBody": "Включите переключатель выше и сохраните, когда хотите, чтобы Memex прикреплял локацию устройства к контексту агента.",
+  "locationStatusGeocodeUnavailableTitle": "GPS работает, поиск адреса не удался",
+  "locationStatusGeocodeUnavailableBody": "У Memex есть координаты, но GPS-only контекст не будет внедрен в агента. Проверьте провайдера обратного геокодирования и повторите.",
+  "locationStatusUnavailableTitle": "Локация недоступна",
+  "locationStatusUnavailableBody": "Проверьте системные службы геолокации и разрешение приложения, затем повторите тест.",
+  "allowLocationPermissionButton": "Разрешить доступ к локации",
+  "openAppSettingsButton": "Открыть настройки приложения",
+  "openLocationSettingsButton": "Открыть настройки локации",
+  "locationSettingsOpenFailed": "Не удалось открыть системные настройки.",
+  "locationActionFailed": "Действие с локацией не удалось: {error}",
+  "@locationActionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSearchPlaceholder": "Поиск настроек...",
+  "settingsSearchEmpty": "Подходящие настройки не найдены",
+  "importCharacterCard": "Импортировать карточку персонажа",
+  "firstMessageLabel": "Первое сообщение",
+  "firstMessageHint": "Приветствие в первом разговоре (необязательно)",
+  "systemPromptOverrideLabel": "Переопределение System Prompt",
+  "systemPromptOverrideHint": "Переопределить system prompt по умолчанию (расширенно, необязательно)",
+  "postHistoryInstructionsLabel": "Инструкции после истории",
+  "postHistoryInstructionsHint": "Инструкции, внедряемые после истории чата и перед ответом (необязательно)",
+  "mesExampleLabel": "Примеры сообщений",
+  "mesExampleHint": "Примеры диалогов, показывающие стиль персонажа (необязательно)",
+  "worldBookTitle": "World Book",
+  "worldBookSubtitle": "Фоновые знания, внедряемые при срабатывании ключевых слов",
+  "characterMemoryTitle": "Память персонажа",
+  "characterMemorySubtitle": "Динамика отношений и воспоминания взаимодействий между персонажем и пользователем",
+  "addTooltip": "Добавить",
+  "constantBadge": "Постоянно",
+  "@worldEntryFallbackName": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "worldEntryFallbackName": "Запись {index}",
+  "@keywordsPrefix": {
+    "placeholders": {
+      "keys": {}
+    }
+  },
+  "keywordsPrefix": "Ключевые слова: {keys}",
+  "@memoryFallbackName": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "memoryFallbackName": "Память {index}",
+  "addWorldEntry": "Добавить запись World Book",
+  "editWorldEntry": "Редактировать запись World Book",
+  "commentTitleLabel": "Комментарий / Заголовок",
+  "entryDescriptionHint": "Описание записи (необязательно)",
+  "triggerKeywordsLabel": "Ключевые слова-триггеры",
+  "triggerKeywordsHint": "Через запятую, например: magic, spell",
+  "contentLabel": "Содержимое",
+  "worldEntryContentHint": "Фоновые знания, внедряемые при срабатывании ключевых слов",
+  "enabledCheckbox": "Включено",
+  "addMemory": "Добавить память",
+  "editMemory": "Редактировать память",
+  "memoryLabelField": "Метка",
+  "memoryLabelHint": "Уникальный идентификатор, например: предпочтение имени",
+  "memoryContentHint": "Содержимое памяти",
+  "salienceLabel": "Значимость: ",
+  "labelCannotBeEmpty": "Метка не может быть пустой",
+  "@importSuccess": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "importSuccess": "{name} успешно импортирован",
+  "@importFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "importFailed": "Импорт не удался: {error}",
+  "supportedFormats": "Поддерживаемые форматы",
+  "tavernImportDescription": "• Карточки персонажей SillyTavern V2 (.json)\\n• PNG-изображения со встроенными карточками (.png)\\n\\nПоля вроде persona, world book и т. д. будут автоматически сопоставлены с форматом персонажей Memex.",
+  "pickCharacterFile": "Выбрать файл персонажа",
+  "repickFile": "Выбрать другой файл",
+  "personaSettingSection": "Persona",
+  "systemPromptSection": "System Prompt",
+  "@worldEntriesCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "worldEntriesCount": "World Book: записей {count}",
+  "@fileLabel": {
+    "placeholders": {
+      "filename": {}
+    }
+  },
+  "fileLabel": "Файл: {filename}",
+  "@conflictWarning": {
+    "placeholders": {
+      "names": {}
+    }
+  },
+  "conflictWarning": "Персонаж с тем же именем уже существует: {names}. Импорт создаст нового персонажа, не перезаписывая существующих.",
+  "setPrimaryCompanionTitle": "Сделать основным компаньоном",
+  "setPrimaryCompanionSubtitle": "Автоматически сделать основным компаньоном после импорта",
+  "confirmImport": "Подтвердить импорт",
+  "chatBackground": "Фон чата",
+  "chooseChatBackgroundImage": "Выбрать фоновое изображение",
+  "earlyUpdateSettingsTitle": "Обновления раннего доступа",
+  "earlyUpdateSettingsDesc": "Проверять pre-release GitHub для подходящего Early APK, скачивать его и передавать установщику Android.",
+  "earlyUpdateUnsupported": "Ранние обновления доступны только в Android Early build.",
+  "earlyUpdateAutoCheckTitle": "Автоматически проверять обновления",
+  "earlyUpdateAutoCheckDesc": "Проверять при запуске не чаще одного раза в 12 часов.",
+  "earlyUpdateWifiOnlyTitle": "Скачивать только по Wi-Fi",
+  "earlyUpdateWifiOnlyDesc": "Пропускать загрузки обновлений при использовании мобильных данных.",
+  "earlyUpdateAutoInstallTitle": "Автоматически скачать и установить",
+  "earlyUpdateAutoInstallDesc": "Когда найдена новая сборка, скачать ее и автоматически открыть установщик Android.",
+  "earlyUpdateCheckNow": "Проверить сейчас",
+  "earlyUpdateChecking": "Проверка pre-release GitHub...",
+  "earlyUpdateSkippedMobile": "Пропущено, потому что включены загрузки только по Wi-Fi.",
+  "earlyUpdateNoUpdate": "У вас уже последняя Early build.",
+  "@earlyUpdateFound": {
+    "placeholders": {
+      "version": {},
+      "build": {}
+    }
+  },
+  "earlyUpdateFound": "Доступна Early build {version}+{build}.",
+  "earlyUpdateDownloadAndInstall": "Скачать и установить",
+  "earlyUpdateDownloadInProgress": "Загрузка обновления...",
+  "@earlyUpdateDownloadingPercent": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "earlyUpdateDownloadingPercent": "Загрузка обновления: {percent}%",
+  "earlyUpdateDownloadReadyToInstall": "Пакет обновления скачан. Готов к установке.",
+  "earlyUpdateInstallDownloadedPackage": "Установить скачанный пакет",
+  "earlyUpdateClearDownloadedPackage": "Очистить скачанный пакет",
+  "earlyUpdateClearDownloadedPackageSuccess": "Скачанный пакет обновления очищен.",
+  "earlyUpdateInstallStarted": "Установщик Android открыт.",
+  "earlyUpdateInstallPermissionRequired": "Разрешите Memex устанавливать неизвестные приложения, затем снова нажмите скачать и установить.",
+  "@earlyUpdateLastChecked": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "earlyUpdateLastChecked": "Последняя проверка: {time}",
+  "@earlyUpdateCheckFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "earlyUpdateCheckFailed": "Проверка обновления не удалась: {error}",
+  "earlyUpdateDialogTitle": "Доступно Early-обновление",
+  "earlyUpdateReleaseNotes": "Примечания к выпуску",
+  "dismissAllNotifications": "Очистить все",
+  "dismissByType": "Очистить по типу",
+  "dismissTypeSystemAction": "Напоминания и события",
+  "dismissTypeClarification": "Уточнения",
+  "dismissTypeCardUpdate": "Обновления карточек",
+  "dismissedCount": "Очищено: {count}",
+  "@dismissedCount": {
+    "placeholders": {
+      "count": {}
+    }
+  }
+}
