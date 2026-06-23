@@ -1,0 +1,1483 @@
+{
+  "@@locale": "zh_Hant",
+  "timesLabel": "次數",
+  "modelSetAsDefault": "已將 {modelId} 設為預設模型",
+  "@modelSetAsDefault": {
+    "placeholders": {
+      "modelId": {}
+    }
+  },
+  "retry": "重試",
+  "unknownModel": "未知模型",
+  "notSet": "未設定",
+  "confirmClear": "確認清除",
+  "confirmClearTokenMessage": "清除目前使用者？之後需要重新輸入使用者 ID。",
+  "cancel": "取消",
+  "confirm": "確認",
+  "tokenCleared": "已清除使用者",
+  "clearTokenFailed": "清除使用者失敗：{error}",
+  "@clearTokenFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "selectDateRangeOptional": "選擇日期範圍（選填）：",
+  "startDate": "開始日期",
+  "endDate": "結束日期",
+  "select": "選擇",
+  "processLimitOptional": "處理數量限制（選填）",
+  "leaveEmptyForAll": "留空表示處理全部",
+  "startProcessing": "開始處理",
+  "userIdNotFound": "找不到使用者 ID",
+  "createTaskFailed": "建立任務失敗：{error}",
+  "@createTaskFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "reprocessCards": "重新處理卡片",
+  "reprocessCardsTaskCreated": "已交給 超級智慧體 重新處理",
+  "reprocessCardsDownstreamMode": "處理範圍",
+  "reprocessCardsCardOnly": "只處理卡片",
+  "reprocessCardsCardOnlyDesc": "請 超級智慧體 檢查並重新產生選取的時間線卡片。",
+  "reprocessCardsRerunDownstream": "卡片與相關後續",
+  "reprocessCardsRerunDownstreamDesc": "請 超級智慧體 在需要時一併考慮相關的 PKM、日程與洞察更新。",
+  "reanalyzeMediaAssets": "重新讀取媒體附件",
+  "reanalyzeMediaAssetsDesc": "重新產生卡片時，請 超級智慧體 在需要時再次查看附件內容。",
+  "regenerateComments": "重新產生評論",
+  "regenerateCommentsTaskCreated": "重新產生評論任務已建立，正在背景處理",
+  "rebuildSearchIndex": "重建搜尋索引",
+  "rebuildSearchIndexSuccess": "搜尋索引已重建完成",
+  "rebuildSearchIndexFailed": "搜尋索引重建失敗",
+  "clearData": "清除資料",
+  "confirmClearDataMessage": "確定要清除資料嗎？",
+  "confirmClearDataDeletesWorkspaceMessage": "目前使用者的所有本機工作區資料都會被刪除，包括卡片、媒體、知識檔案、洞察、記憶、聊天記錄與系統狀態。\n\n此操作無法復原！",
+  "clearFailedAgentContexts": "清除失敗的對話上下文",
+  "confirmClearFailedAgentContextsMessage": "清除 Insight 與 日程智慧體 已儲存的對話上下文？這適用於切換模型後，先前的 智慧體 訊息不再相容的情況。Facts、卡片、知識庫、記憶與模型設定不會被刪除。",
+  "failedAgentContextsCleared": "已清除 {count} 個已儲存的對話上下文",
+  "@failedAgentContextsCleared": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "clearFailedAgentContextsFailed": "清除對話上下文失敗：{error}",
+  "@clearFailedAgentContextsFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "cloneToTestUser": "複製為測試使用者",
+  "confirmCloneToTestUserMessage": "將目前工作區複製到新的本機測試使用者並切換過去。不會複製 智慧體 執行狀態，目前使用者資料不會被修改。",
+  "testUserIdLabel": "測試使用者 ID",
+  "testUserIdHelper": "請使用英文字母、數字、連字號或底線。",
+  "testUserIdInvalid": "只能使用英文字母、數字、連字號或底線。",
+  "overwriteExistingTestUser": "覆蓋同名測試使用者",
+  "testUserCloneSuccess": "已切換到測試使用者 {userId}",
+  "@testUserCloneSuccess": {
+    "placeholders": {
+      "userId": {}
+    }
+  },
+  "testUserCloneFailed": "複製測試使用者失敗：{error}",
+  "@testUserCloneFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "dataClearedSuccess": "資料已成功清除",
+  "clearDataFailed": "清除資料失敗：{error}",
+  "@clearDataFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "personalCenter": "個人中心",
+  "viewLogs": "查看日誌",
+  "systemAuthorization": "系統授權",
+  "aiCharacterConfig": "AI 角色設定",
+  "modelConfig": "模型設定",
+  "agentConfig": "智慧體 設定",
+  "experimentalLab": "實驗室",
+  "experimentalLabDescription": "仍在實驗中的功能，之後可能調整或移動。",
+  "modelUsageStats": "模型使用統計",
+  "asyncTaskList": "非同步任務列表",
+  "clearLocalToken": "清除使用者",
+  "insightCardTemplates": "洞察卡片範本",
+  "timelineCardTemplates": "時間線 卡片範本",
+  "logViewer": "日誌檢視器",
+  "autoRefresh": "自動重新整理",
+  "lineCount": "行數：",
+  "all": "全部",
+  "schedule": "日程",
+  "statistics": "統計",
+  "appLockConfig": "應用程式鎖定設定",
+  "activityStats": "活動統計",
+  "activityStatsSummary": "這段時間你記錄了 {inputs} 次，產生了 {cards} 張卡片，完成了 {todos} 個待辦。",
+  "@activityStatsSummary": {
+    "placeholders": {
+      "inputs": {},
+      "cards": {},
+      "todos": {}
+    }
+  },
+  "last7Days": "7 天",
+  "last30Days": "30 天",
+  "last90Days": "90 天",
+  "records": "記錄",
+  "words": "字詞",
+  "cards": "卡片",
+  "knowledgeUnits": "知識單元",
+  "completedTodos": "完成待辦",
+  "activeDays": "活躍天數",
+  "streakDays": "連續記錄",
+  "dailyRhythm": "每日節奏",
+  "recordToOutput": "記錄到沉澱",
+  "sourceBreakdown": "來源分布",
+  "topThemes": "高頻主題",
+  "textInput": "文字",
+  "imageInput": "圖片",
+  "audioInput": "音訊",
+  "noStatsYet": "尚無活動統計",
+  "tapDayForDetails": "點選某一天查看詳情",
+  "dayDetails": "當天詳情",
+  "loadStatsFailed": "載入統計資料失敗：{error}",
+  "@loadStatsFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "overview": "概覽",
+  "daily": "每日",
+  "modelStatsByAgent": "按 智慧體 統計",
+  "detail": "詳情",
+  "date": "日期",
+  "agent": "智慧體",
+  "noData": "暫無資料",
+  "totalCalls": "總呼叫次數",
+  "calls": "呼叫",
+  "callsCount": "{count} 次呼叫",
+  "@callsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "selectDateRange": "選擇日期範圍",
+  "totalTokens": "總 權杖",
+  "cacheRate": "快取命中率",
+  "promptTokens": "提示詞 權杖",
+  "completionTokens": "補全 權杖",
+  "cachedTokens": "快取 權杖",
+  "thoughtTokens": "思考 權杖",
+  "prompt": "提示詞",
+  "completion": "補全",
+  "cached": "快取",
+  "thought": "思考",
+  "model": "模型",
+  "scene": "場景",
+  "sceneId": "場景 ID",
+  "tokenUsage": "權杖 用量",
+  "handler": "處理器",
+  "modelBreakdown": "模型拆分",
+  "callDetails": "呼叫詳情",
+  "recordDetailsTitle": "記錄詳情：{scene}",
+  "@recordDetailsTitle": {
+    "placeholders": {
+      "scene": {}
+    }
+  },
+  "saveLlmConfigFailed": "儲存 LLM 設定失敗：{error}",
+  "@saveLlmConfigFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "webHtmlPreviewUnavailable": "Web 端暫未支援 HTML 預覽，請在行動裝置查看。",
+  "saveUserInfoFailed": "儲存使用者資訊失敗：{error}",
+  "@saveUserInfoFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "totalEstimatedCost": "總預估費用",
+  "close": "關閉",
+  "totalTokenConsumption": "總 權杖 消耗",
+  "dataLoadFailedRetry": "資料載入失敗，請稍後重試。",
+  "timelineLoadFailedRetry": "時間線載入失敗，請稍後重試。",
+  "newPerspective": "新的視角",
+  "startPoint": "起點",
+  "endPoint": "終點",
+  "originalInput": "原始輸入",
+  "referenceContent": "引用內容",
+  "referenceWithTitle": "引用：{title}",
+  "@referenceWithTitle": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "actionCenterTitle": "待處理事項",
+  "noPendingActions": "目前沒有待處理的動作",
+  "clarificationNeeded": "Memex 想確認一下",
+  "clarificationTextHint": "輸入一個簡短回答",
+  "clarificationTextRequired": "請先補充一個簡短回答",
+  "clarificationAnswered": "已回答",
+  "clarificationAnswerPrefix": "已回答：{answer}",
+  "@clarificationAnswerPrefix": {
+    "placeholders": {
+      "answer": {}
+    }
+  },
+  "answerSaved": "回答已儲存",
+  "clarificationOtherAnswer": "手動輸入",
+  "clarificationNotSure": "不知道／不方便說",
+  "yes": "是",
+  "no": "否",
+  "footprintMap": "足跡地圖",
+  "waypointPlaces": "途經地點",
+  "unknownPlace": "未知地點",
+  "releaseToSend": "放開即可傳送",
+  "selectFromAlbum": "從相簿選擇",
+  "clipboardPreviewTitle": "新剪貼簿內容",
+  "clipboardPreviewImageTitle": "剪貼簿圖片",
+  "clipboardPreviewImageDescription": "可加入輸入框",
+  "clipboardPreviewUnprocessed": "尚未貼上",
+  "clipboardPreviewPasteToInput": "貼到輸入框",
+  "clipboardPreviewAddImageToInput": "加入圖片",
+  "clipboardPreviewImageFailed": "無法讀取剪貼簿圖片",
+  "tellAiWhatHappened": "告訴 AI 發生了什麼...",
+  "recordingWithDuration": "錄音中：{duration}",
+  "@recordingWithDuration": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "playing": "播放中...",
+  "sendLabel": "傳送",
+  "attachedImagesMessage": "已傳送 {count} 張圖片",
+  "@attachedImagesMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "noTaskData": "暫無任務資料",
+  "createdAtDate": "建立：{date}",
+  "@createdAtDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "updatedAtDate": "更新：{date}",
+  "@updatedAtDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "durationLabel": "耗時：{duration}",
+  "@durationLabel": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "retryCount": "重試：{count}",
+  "@retryCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "loadDetailFailedRetry": "載入詳情失敗，請稍後重試",
+  "loadFailed": "載入失敗",
+  "reload": "重新載入",
+  "aiInsightDetail": "洞察詳情",
+  "relatedRecordsCount": "關聯記錄（{count}）",
+  "@relatedRecordsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "noRelatedRecords": "暫無具體關聯記錄",
+  "useFingerprintToUnlock": "請使用指紋解鎖",
+  "locked": "已鎖定",
+  "wrongPassword": "密碼錯誤",
+  "enterPassword": "請輸入密碼",
+  "memexLocked": "Memex 已鎖定",
+  "calendarShortSun": "日",
+  "calendarShortMon": "一",
+  "calendarShortTue": "二",
+  "calendarShortWed": "三",
+  "calendarShortThu": "四",
+  "calendarShortFri": "五",
+  "calendarShortSat": "六",
+  "noRecordsOnDate": "{date} 無記錄",
+  "@noRecordsOnDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "footprintPath": "足跡路徑",
+  "lifeCompositionTable": "生活成分表",
+  "emotionReframe": "情緒重構",
+  "chronicleOfThings": "物的編年史",
+  "goalProgress": "目標進度",
+  "trendChart": "趨勢圖",
+  "comparisonChart": "對比圖",
+  "todayTimeFlow": "今日時間流",
+  "aiInputHint": "無論是回憶還是當下，我都準備好了...",
+  "refreshSuperAgentStateTooltip": "清空 Memex 智慧體 上下文",
+  "refreshSuperAgentStateTitle": "清空 Memex 智慧體 歷史 上下文？",
+  "refreshSuperAgentStateMessage": "可見聊天記錄會繼續保留，但 Memex 智慧體 的歷史執行 上下文 會被清空，之後會從新的 上下文 開始回覆。持久化記憶、知識庫檔案、卡片等已儲存資料不受影響。適用於 Memex 智慧體 持續運作異常等情況。確定繼續？",
+  "refreshSuperAgentStateActiveRunMessage": "目前 Memex 智慧體 訊息處理完後才能清空 上下文。",
+  "refreshSuperAgentStateSuccess": "Memex 智慧體 上下文 已清空",
+  "refreshSuperAgentStateFailed": "清空 Memex 智慧體 上下文 失敗：{error}",
+  "@refreshSuperAgentStateFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "nothingHere": "還沒有任何內容",
+  "nothingHereHint": "點選下方按鈕建立你的第一張卡片",
+  "agentProcessing": "AI 處理中...",
+  "keepAppOpen": "請不要關閉應用程式",
+  "activityDetail": "活動詳情",
+  "noAgentActivityYet": "暫無 智慧體 活動",
+  "processingEllipsis": "處理中...",
+  "agentBackgroundTitle": "Memex 智慧體",
+  "agentBackgroundPausedTitle": "Memex 智慧體 已暫停",
+  "agentBackgroundNeedsAttentionTitle": "Memex 智慧體 需要處理",
+  "agentBackgroundStageIdle": "閒置",
+  "agentBackgroundStageProcessing": "處理中",
+  "agentBackgroundStageQueued": "排隊中",
+  "agentBackgroundStageRetrying": "等待重試",
+  "agentBackgroundStagePaused": "已暫停",
+  "agentBackgroundStageCompleted": "已完成",
+  "agentBackgroundStageNeedsAttention": "需要處理",
+  "agentBackgroundStageAnalyzingMedia": "分析素材中",
+  "agentBackgroundStageGeneratingCard": "產生卡片中",
+  "agentBackgroundStageUpdatingKnowledge": "更新知識中",
+  "agentBackgroundStagePreparingComment": "準備評論中",
+  "agentBackgroundStageRoutingFollowUps": "分派後續任務中",
+  "agentBackgroundTaskSummary": "執行中 {running}，排隊中 {pending}，重試中 {retrying}",
+  "@agentBackgroundTaskSummary": {
+    "placeholders": {
+      "running": {},
+      "pending": {},
+      "retrying": {}
+    }
+  },
+  "agentBackgroundTaskDetail": "正在處理 {count} 個背景任務。",
+  "@agentBackgroundTaskDetail": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "agentBackgroundNoTasks": "暫無背景任務。",
+  "agentBackgroundStarting": "背景處理正在啟動。",
+  "agentBackgroundCompletedDetail": "所有背景任務已完成。",
+  "agentBackgroundFailedDetail": "背景處理遇到錯誤。",
+  "agentBackgroundPausedDetail": "背景處理已暫停，稍後會繼續。",
+  "agentBackgroundQueuedDetail": "正在等待下一個處理步驟。",
+  "agentBackgroundRetryingDetail": "目前步驟將自動重試。",
+  "agentBackgroundAnalyzeMediaDetail": "正在讀取附件和本機上下文。",
+  "agentBackgroundGeneratingCardDetail": "正在把記錄產生為時間線卡片。",
+  "agentBackgroundUpdatingKnowledgeDetail": "正在更新本機知識和記憶。",
+  "agentBackgroundPreparingCommentDetail": "正在準備助手跟進評論。",
+  "agentBackgroundRoutingFollowUpsDetail": "正在檢查這張卡片的後續動作。",
+  "agentBackgroundPausedStatus": "已暫停 - {summary}",
+  "@agentBackgroundPausedStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "agentBackgroundNeedsAttentionStatus": "需要處理 - {summary}",
+  "@agentBackgroundNeedsAttentionStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "settings": "設定",
+  "languageSettings": "語言",
+  "languageSettingsDesc": "更改應用程式顯示語言",
+  "noPendingActionsToast": "目前沒有待處理動作",
+  "knowledgeNewDiscovery": "知識庫新發現",
+  "discoveredNewInsightsCount": "發現了 {count} 個新洞察",
+  "@discoveredNewInsightsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "updatedExistingInsightsCount": "更新了 {count} 個現有洞察",
+  "@updatedExistingInsightsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "sectionNewInsights": "發現新洞察",
+  "sectionUpdatedInsights": "更新現有洞察",
+  "unnamedInsight": "未命名洞察",
+  "copiedToClipboard": "已複製到剪貼簿",
+  "copy": "複製",
+  "selectedLocation": "已選位置",
+  "confirmLocationName": "確認位置名稱",
+  "confirmLocationNameHint": "你可以修改位置名稱（經緯度保持不變）",
+  "nameLabel": "名稱",
+  "inputPlaceNameHint": "輸入地點名稱...",
+  "currentCoordinates": "目前座標：{lat}, {lng}",
+  "@currentCoordinates": {
+    "placeholders": {
+      "lat": {},
+      "lng": {}
+    }
+  },
+  "confirmLocation": "確認位置",
+  "welcomeToMemex": "歡迎來到 Memex",
+  "createUserIdToStart": "請建立你的專屬暱稱",
+  "userIdLabel": "你的名字／暱稱",
+  "userIdHint": "請輸入你的名字",
+  "pleaseEnterUserId": "名字不能為空",
+  "userIdMaxLength": "名字太長，不能超過 50 個字元",
+  "startUsing": "下一步",
+  "userIdTip": "開啟你的專屬記憶。",
+  "setupModelConfigTitle": "設定 AI 模型",
+  "setupModelConfigSubtitle": "Memex 需要一個前沿 AI 模型來整理記錄、分析圖片並產生洞察。選擇一種連線方式即可。",
+  "setupModelConfigComplete": "設定完成，開始旅程",
+  "aiService": "Memex 模型服務",
+  "aiModelHubTitle": "AI 模型與服務",
+  "aiModelHubSubtitle": "先選擇使用 MemeX 官方服務，或接入自己的服務商；需要時再進入進階模型分配。",
+  "aiSetupCurrentStatusTitle": "目前設定",
+  "aiSetupStatusNotConfiguredTitle": "尚未設定 AI 服務",
+  "aiSetupStatusNotConfiguredDescription": "選擇一種連線方式後，Memex 才能開始整理記錄、分析媒體並產生洞察。",
+  "aiSetupStatusMemexTitle": "正在使用 MemeX 官方服務",
+  "aiSetupStatusMemexDescription": "Memex 會使用 MemeX 帳號管理的官方連線和 API 憑證。",
+  "aiSetupStatusCustomTitle": "正在使用自訂服務商",
+  "aiSetupStatusCustomDescription": "Memex 會使用你設定的服務商憑證，以及文字／視覺模型用途選擇。",
+  "aiSetupChooseConnectionTitle": "選擇連線方式",
+  "aiSetupChooseConnectionDescription": "先選擇你希望 Memex 透過哪條路徑存取 AI 模型。",
+  "aiSetupOfficialRouteDescription": "登入 MemeX 後直接使用官方服務，不需要理解 provider、API 金鑰 或單一 智慧體 模型。",
+  "aiSetupCustomRouteDescription": "新增自己的服務商憑證，選擇 超級智慧體 使用的模型；需要時可進一步為單一 智慧體 覆蓋模型。",
+  "aiSetupCustomPageTitle": "自訂 AI 服務",
+  "aiSetupCustomPageSubtitle": "先設定服務商和 API 金鑰，再選擇 Memex 使用的模型。",
+  "aiSetupProviderCredentialsTitle": "服務商與 API 金鑰",
+  "aiSetupProviderCredentialsDescription": "新增或編輯 OpenAI、Anthropic、DeepSeek、Gemini、OpenRouter、Ollama 等相容服務商。",
+  "modelRolesTitle": "選擇主模型",
+  "modelRolesDescription": "超級智慧體 使用同一個模型處理文字和圖片輸入。需要時仍可在下方為單一 智慧體 進階覆蓋。",
+  "textModelRoleTitle": "主模型",
+  "textModelRoleDescription": "供 超級智慧體 處理文字、圖片、卡片、知識庫、洞察、聊天、評論、日程和記憶總結。",
+  "modelConnectionsTitle": "模型服務商與 API 金鑰",
+  "modelConnectionsDescription": "可以連接 Memex 官方服務，也可以新增你自己的服務商憑證。",
+  "relatedAiCapabilitiesTitle": "進階與相關能力",
+  "relatedAiCapabilitiesDescription": "調整單一 智慧體 的模型分配、位置服務商和語音辨識方式。",
+  "aiSetupServiceCapabilitiesTitle": "服務能力",
+  "aiSetupServiceCapabilitiesDescription": "設定語音辨識、逆地理編碼等相鄰 AI 能力使用的服務方式。",
+  "aiSetupAdvancedCustomizationTitle": "進階模型路由",
+  "aiSetupAdvancedCustomizationDescription": "適合希望不同 智慧體 使用不同服務商或模型設定的進階使用者。",
+  "locationProviderSettings": "位置服務商",
+  "speechProviderSettings": "語音辨識",
+  "advancedAgentModelAssignments": "智慧體 模型分配",
+  "openAdvancedAgentModelAssignments": "為單一 智慧體 覆蓋模型",
+  "noConfiguredModelOptions": "請先新增模型服務商或 API 金鑰，再選擇模型用途。",
+  "modelSlotUpdated": "模型用途已更新",
+  "aiServiceMemexRouteTitle": "透過 Memex 連線",
+  "aiServiceLongDescription": "Memex 利用多 智慧體 架構自動整理你的生活記錄、知識筆記與社交關係，深入挖掘洞察，並提供具有持久記憶的 AI 陪伴。所有資料均以純文字 Markdown 儲存，賦予你完整的資料自由與跨平台遷移能力。",
+  "aiServiceCustomApiRouteTitle": "我有 API 金鑰",
+  "aiServiceCustomModelDescription": "已有 OpenAI、Anthropic、DeepSeek、Gemini 等服務的 API 金鑰 時，優先選擇這項。",
+  "enableAiService": "使用 Memex 連線",
+  "aiServiceReadyToast": "AI 整理已開啟",
+  "aiServiceSettingsDescription": "沒有 API 金鑰 時，可使用 Memex 帳號代理連接主流模型服務。",
+  "advancedModelConfiguration": "設定 API 金鑰",
+  "skipForNow": "暫不設定，先逛逛",
+  "clearAuth": "清除授權",
+  "authorizing": "正在授權中...",
+  "authFailed": "授權失敗：{error}",
+  "@authFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "authorized": "已授權",
+  "config": "設定",
+  "calendar": "行事曆",
+  "reminders": "提醒事項",
+  "writeToSystemFailed": "寫入系統失敗",
+  "permissionRequired": "需要{name}權限",
+  "@permissionRequired": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "permissionRationale": "請在設定中允許 App 存取你的{name}，以便我們替你建立。",
+  "@permissionRationale": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "goToSettings": "前往設定",
+  "unknownAction": "未知操作",
+  "discoveredCalendarEvent": "發現行事曆日程",
+  "discoveredReminder": "發現提醒事項",
+  "addToCalendar": "加入行事曆",
+  "addToReminders": "加入提醒事項",
+  "addedToSuccess": "已成功加入至{target}",
+  "@addedToSuccess": {
+    "placeholders": {
+      "target": {}
+    }
+  },
+  "ignore": "忽略",
+  "confirmDelete": "確認刪除",
+  "confirmDeleteSessionMessage": "確定要刪除這段對話嗎？此操作無法復原。",
+  "delete": "刪除",
+  "deleteSuccess": "刪除成功",
+  "deleteFailed": "刪除失敗：{error}",
+  "@deleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "daysAgo": "{count} 天前",
+  "chatHistory": "對話記錄",
+  "enterFullScreenTooltip": "全螢幕查看",
+  "exitFullScreenTooltip": "退出全螢幕",
+  "noConversations": "暫無對話",
+  "loadSessionListFailed": "載入對話列表失敗：{error}",
+  "@loadSessionListFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "yesterdayAt": "昨天 {time}",
+  "@yesterdayAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "newChat": "新對話",
+  "messageCount": "{count} 則訊息",
+  "@messageCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "organize": "整理",
+  "pkmCategoryProject": "專案",
+  "pkmCategoryProjectSubtitle": "短期 · 目標 · 截止日",
+  "pkmCategoryArea": "領域",
+  "pkmCategoryAreaSubtitle": "長期 · 責任 · 標準",
+  "pkmCategoryResource": "資源",
+  "pkmCategoryResourceSubtitle": "興趣 · 靈感 · 儲備",
+  "pkmCategoryArchive": "封存",
+  "pkmCategoryArchiveSubtitle": "完成 · 沉寂 · 備查",
+  "recentChanges": "最近變動",
+  "noRecentChangesInThreeDays": "最近 3 天暫無變動",
+  "unpinned": "已取消固定",
+  "pinnedStyle": "已固定此整理樣式",
+  "operationFailed": "操作失敗：{error}",
+  "@operationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "refreshingInsightData": "正在重新整理洞察資料，可能需要一點時間...",
+  "refreshFailed": "重新整理失敗：{error}",
+  "@refreshFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sortUpdated": "排序已更新",
+  "sortSaveFailed": "排序儲存失敗：{error}",
+  "@sortSaveFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "insightCardDeleted": "已刪除洞察卡片",
+  "deleteFailedShort": "刪除失敗：{error}",
+  "@deleteFailedShort": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "knowledgeInsight": "知識洞察",
+  "completeSort": "完成排序",
+  "noKnowledgeInsight": "暫無知識洞察",
+  "insightProcessingBacklogMessage": "還有 {count} 個背景任務正在處理。",
+  "@insightProcessingBacklogMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "insightUnavailableMessage": "這個洞察仍在產生中，或已被更新。請重新整理洞察後稍後再試。",
+  "noScheduleAggregation": "暫無日程聚合",
+  "scheduleAggregationEmptyHint": "點選更新，從真實時間卡片中整理日程和待辦。",
+  "scheduleAggregationLoadFailed": "載入日程資料失敗",
+  "scheduleAggregationRefreshFailed": "重新整理日程資料失敗",
+  "scheduleTaskUpdateFailed": "更新待辦失敗",
+  "scheduleFeatured": "重點",
+  "scheduleThisWeek": "本週",
+  "scheduleDone": "已完成",
+  "scheduleTbd": "待定",
+  "scheduleWeekOverview": "本週概覽",
+  "scheduleImportant": "重要",
+  "scheduleBriefingTitle": "日程簡報",
+  "scheduleBriefingOpen": "查看",
+  "scheduleBriefingNoData": "暫無日程簡報",
+  "scheduleBriefingUpdated": "{time} 更新",
+  "@scheduleBriefingUpdated": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "scheduleBriefingDoneCount": "完成 {count}",
+  "@scheduleBriefingDoneCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "updating": "更新中...",
+  "update": "更新",
+  "enabled": "已啟用",
+  "disabled": "已停用",
+  "appLockOn": "應用程式鎖定已開啟",
+  "appLockOff": "應用程式鎖定已關閉",
+  "enableAppLockFirst": "請先啟用應用程式鎖定",
+  "enterFourDigitPassword": "請輸入 4 位數密碼",
+  "passwordSetAndLockOn": "密碼已設定並開啟應用程式鎖定",
+  "appLockSettings": "應用程式鎖定設定",
+  "enableAppLock": "啟用應用程式鎖定",
+  "enableAppLockSubtitle": "啟用後，啟動應用程式需要驗證密碼",
+  "enableBiometrics": "啟用生物辨識",
+  "biometricsSubtitle": "解鎖時可使用 Face ID 或 Touch ID",
+  "changePassword": "修改密碼",
+  "setFourDigitPassword": "設定 4 位數密碼",
+  "reenterPasswordToConfirm": "請再次輸入密碼以確認",
+  "passwordMismatch": "兩次輸入的密碼不一致，請重新輸入",
+  "confirmDeleteCharacter": "確定要刪除角色「{name}」嗎？此操作無法復原。",
+  "@confirmDeleteCharacter": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "configureAiCharacter": "設定 AI 角色",
+  "addCharacter": "新增角色",
+  "addCharacterSubtitle": "選擇你喜歡的 AI 角色加入洞察團隊。他們會從不同角度分析你的生活資料。",
+  "noCharacters": "暫無角色",
+  "loadCharacterFailed": "載入角色失敗：{error}",
+  "@loadCharacterFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "noTags": "無標籤",
+  "createSuccess": "建立成功",
+  "updateSuccess": "更新成功",
+  "saveFailed": "儲存失敗：{error}",
+  "@saveFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "newCharacter": "新增角色",
+  "editCharacter": "編輯角色",
+  "save": "儲存",
+  "characterName": "角色名稱",
+  "characterNameHint": "給角色取個好聽的名字",
+  "pleaseEnterCharacterName": "請輸入角色名稱",
+  "tagsLabel": "標籤",
+  "tagsHint": "例如：智慧, 認可, 宏觀\n用逗號分隔多個標籤",
+  "characterPersonaLabel": "角色完整設定",
+  "characterPersonaHint": "包含角色人設、風格指南、範例對話、知識篩選器等所有資訊。\n可以使用 ## 標題來分段組織內容。",
+  "pleaseEnterCharacterPersona": "請輸入角色完整設定",
+  "permissionRequestError": "權限請求異常：{error}",
+  "@permissionRequestError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "permissionRequiredTitle": "需要權限",
+  "permissionPermanentlyDeniedMessage": "由於你已永久拒絕該權限，或系統需要手動開啟，請前往系統設定中啟用。",
+  "getting": "取得中...",
+  "unauthorized": "未授權",
+  "authorizedGoToSettings": "已授權，如需修改請前往系統設定",
+  "location": "定位",
+  "locationPermissionReason": "用於記錄足跡和地理位置相關功能",
+  "photos": "相簿",
+  "photosPermissionReason": "用於選取照片、儲存產生的圖片等",
+  "camera": "相機",
+  "cameraPermissionReason": "用於拍攝照片與影片相關功能",
+  "microphone": "麥克風",
+  "microphonePermissionReason": "用於語音辨識、錄音等功能",
+  "calendarPermissionReason": "用於記錄日程、讀取行事曆事件等",
+  "remindersPermissionReason": "用於記錄和讀取你的待辦提醒",
+  "fitnessAndMotion": "健身與運動",
+  "fitnessPermissionReason": "用於記錄健康與運動資料",
+  "notification": "通知",
+  "notificationPermissionReason": "用於傳送日程提醒等重要通知",
+  "loadDetailFailedRetryShort": "載入詳情失敗，請稍後重試",
+  "total": "總計",
+  "estimatedCost": "預估費用",
+  "byAgent": "按 智慧體 統計",
+  "timeUpdated": "時間已更新",
+  "updateFailed": "更新失敗：{error}",
+  "@updateFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "locationUpdated": "地點已更新",
+  "confirmDeleteCardMessage": "確定要刪除這張卡片嗎？此操作無法復原。",
+  "cardDetailNotFound": "找不到卡片詳情",
+  "saySomething": "說點什麼...",
+  "relatedMemories": "相關回憶",
+  "viewMore": "查看更多",
+  "relatedRecords": "相關記錄",
+  "reply": "回覆",
+  "replySent": "回覆已傳送",
+  "insightTemplateGalleryTitle": "洞察卡片範本",
+  "timelineTemplateGalleryTitle": "時間線 卡片範本",
+  "categoryTextual": "文字（文字）",
+  "timelineFilterAll": "全部",
+  "insights": "洞察",
+  "memoryTitle": "記憶",
+  "longTermProfile": "長期記憶",
+  "recentBuffer": "近期記憶",
+  "errorLoadingMemory": "載入記憶失敗：{error}",
+  "@errorLoadingMemory": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "agentConfiguration": "智慧體 設定",
+  "resetToDefaults": "恢復預設",
+  "resetAllAgentConfigurationsTitle": "重設所有 智慧體 設定",
+  "resetAllAgentConfigurationsMessage": "確定要將所有 智慧體 設定恢復為預設值嗎？此操作無法復原。",
+  "resetButton": "重設",
+  "loadDataFailed": "載入失敗：{error}",
+  "@loadDataFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "saveConfigFailed": "儲存設定失敗：{error}",
+  "@saveConfigFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "selectLlmClient": "選擇 LLM 用戶端：",
+  "agentConfigurationsReset": "智慧體 設定已重設",
+  "resetFailed": "重設失敗：{error}",
+  "@resetFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "modelConfiguration": "模型設定",
+  "resetAllConfigurationsTitle": "重設所有設定",
+  "resetAllModelConfigurationsMessage": "確定要將所有模型設定恢復為預設值嗎？此操作無法復原。",
+  "modelConfigurationsReset": "模型設定已重設",
+  "cannotDeleteDefaultConfiguration": "無法刪除預設設定",
+  "cannotDeleteConfigurationTitle": "無法刪除設定",
+  "configUsedByAgentsMessage": "以下 智慧體 正在使用此設定：\n\n{agentList}\n\n請先為這些 智慧體 重新分配設定後再刪除。",
+  "@configUsedByAgentsMessage": {
+    "placeholders": {
+      "agentList": {}
+    }
+  },
+  "ok": "確定",
+  "deleteConfigurationTitle": "刪除設定",
+  "confirmDeleteConfigMessage": "確定要刪除「{key}」嗎？",
+  "@confirmDeleteConfigMessage": {
+    "placeholders": {
+      "key": {}
+    }
+  },
+  "defaultLabel": "預設",
+  "setAsDefault": "設為預設",
+  "invalidJsonInExtraField": "擴充欄位 JSON 格式無效",
+  "keyAlreadyExists": "此 Key 已存在",
+  "resetConfigurationTitle": "重設設定",
+  "resetConfigurationMessage": "將此設定恢復為初始預設值？目前修改將會遺失。",
+  "configurationResetPressSave": "設定已重設，請點選儲存以套用。",
+  "addConfiguration": "新增設定",
+  "editConfiguration": "編輯設定",
+  "duplicateConfiguration": "複製設定",
+  "duplicate": "複製",
+  "keyIdLabel": "設定 ID",
+  "keyIdHelper": "替這套設定命名，例如 deepseek 或 work-gpt。",
+  "required": "必填",
+  "clientLabel": "模型服務商",
+  "providerGroupOpenAi": "OpenAI",
+  "providerGroupAnthropic": "Anthropic",
+  "providerGroupGoogle": "Google",
+  "providerGroupOthers": "熱門",
+  "providerOpenAiApiKey": "API 金鑰",
+  "providerOpenAiResponses": "API 金鑰（Responses）",
+  "providerChatGptOauth": "ChatGPT Pro/Plus",
+  "providerClaudeApiKey": "API 金鑰",
+  "providerBedrockSecret": "Bedrock Secret",
+  "providerGemini": "Gemini",
+  "providerGeminiOauth": "Gemini（Google OAuth）",
+  "providerKimi": "Kimi（月之暗面）",
+  "providerQwen": "Aliyun（阿里雲）",
+  "providerSeed": "Volcengine（火山引擎）",
+  "providerZhipu": "Zhipu GLM（智譜）",
+  "providerDeepSeek": "DeepSeek（官方 API）",
+  "providerMinimax": "MiniMax",
+  "providerOpenRouter": "OpenRouter",
+  "providerOllama": "Ollama（本機）",
+  "providerMimo": "Xiaomi MIMO（小米）",
+  "providerMemex": "Memex 代理服務",
+  "memexSignIn": "登入",
+  "memexCreateAccount": "註冊",
+  "memexUsername": "使用者名稱",
+  "memexPassword": "密碼",
+  "memexCreateAccountLink": "註冊帳號",
+  "memexSignInLink": "已有帳號，前往登入",
+  "memexTopUp": "儲值後即可使用 Memex AI",
+  "memexTopUpSuccess": "儲值成功！",
+  "memexFillAllFields": "請填寫所有欄位",
+  "memexUsernameTooShort": "使用者名稱至少 6 個字元",
+  "memexAuthFailed": "驗證失敗",
+  "memexPaymentFailed": "建立付款失敗",
+  "memexLogout": "登出",
+  "memexTopUpButton": "儲值",
+  "memexTopUpChooseAmount": "選擇儲值額度",
+  "memexTopUpEstimatedRecords": "預計 {range} 筆記錄",
+  "@memexTopUpEstimatedRecords": {
+    "placeholders": {
+      "range": {}
+    }
+  },
+  "memexTopUpPlanStarter": "輕量嘗試",
+  "memexTopUpPlanEveryday": "日常整理",
+  "memexTopUpPlanHighVolume": "高頻使用",
+  "memexTopUpPlanCustom": "自訂額度",
+  "memexTopUpPlanStarterSubtitle": "適合先體驗 Memex AI",
+  "memexTopUpPlanEverydaySubtitle": "適合持續整理與分析",
+  "memexTopUpPlanHighVolumeSubtitle": "適合批次處理較多記錄",
+  "memexTopUpPlanCustomSubtitle": "輸入 1-10000 美元",
+  "memexTopUpCustomEstimate": "依輸入金額估算可處理量",
+  "memexCustomAmount": "自訂金額",
+  "memexViewHistory": "使用記錄",
+  "memexBalanceLabel": "餘額：{amount}",
+  "@memexBalanceLabel": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "memexConfirmPassword": "確認密碼",
+  "memexPasswordMismatch": "兩次密碼不一致",
+  "memexPayAmount": "儲值 {amount}",
+  "@memexPayAmount": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "modelIdLabel": "模型",
+  "modelIdHelper": "例如 gemini-3.1-pro-preview、gpt-4o",
+  "fetchingModels": "正在取得模型列表...",
+  "fetchModelsButton": "取得模型列表",
+  "enterApiKeyFirst": "請先填寫 API 金鑰 以取得模型列表",
+  "apiKeyLabel": "API 金鑰",
+  "baseUrlLabel": "API 位址",
+  "advancedSettings": "進階設定",
+  "testConnectionSuccess": "連線成功",
+  "testConnectionFailed": "連線失敗",
+  "testTypeText": "文字",
+  "testTypeVision": "視覺",
+  "testButton": "測試",
+  "testing": "測試中...",
+  "proxyUrlOptional": "代理 URL（選填）",
+  "proxyUrlHelper": "例如 http://127.0.0.1:7890",
+  "temperatureLabel": "Temperature",
+  "topPLabel": "Top P",
+  "maxTokensLabel": "Max 權杖",
+  "extraParamsJson": "擴充參數（JSON）",
+  "invalidJson": "JSON 格式無效",
+  "warning": "設定未完成",
+  "invalidConfigurationWarning": "目前設定尚未完成（例如缺少 API 金鑰 或 Model ID）。你可以先儲存，稍後再補全設定。是否繼續？",
+  "invalidModelConfigDetailed": "智慧體「{agentId}」需要有效的模型設定（Key：「{configKey}」）才能執行。請在設定中更新並補全對應參數。",
+  "discardChangesTitle": "離開此頁面？",
+  "discardChangesMessage": "如果你做了變更，請先儲存後再離開。",
+  "discardButton": "放棄",
+  "chooseLanguage": "選擇語言",
+  "chooseAvatar": "選擇頭像",
+  "configureNow": "立即設定",
+  "modelNotConfiguredBanner": "AI 模型尚未設定，請先設定以解鎖全部功能。",
+  "modelNotConfiguredSubmitHint": "請先設定 AI 模型再發布內容",
+  "processingStatus": "處理中",
+  "failedStatus": "處理失敗",
+  "failureReason": "失敗原因",
+  "unknownError": "發生未知錯誤",
+  "enableFitness": "開啟健身權限",
+  "fitnessBannerMessage": "允許存取健身資料，以記錄你的健康和運動資訊。",
+  "fitnessDismissTitle": "跳過健身權限？",
+  "fitnessDismissMessage": "如果跳過，應用程式將無法自動收集你的健康資料，用於洞察分析和自動記錄。",
+  "skipAnyway": "仍然跳過",
+  "proModelHint": "此模型需要 ChatGPT Pro/Plus 訂閱才能使用。",
+  "searchKnowledgeBase": "搜尋知識庫...",
+  "searchKnowledgeHint": "輸入關鍵字搜尋檔名或內容",
+  "noSearchResults": "找不到「{query}」相關結果",
+  "@noSearchResults": {
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "onlyMarkdownPreview": "僅支援 Markdown 檔案預覽",
+  "backupAndRestore": "備份與還原",
+  "createBackup": "建立備份",
+  "restoreBackup": "還原備份",
+  "backupDescription": "將所有資料（卡片、知識庫、洞察、設定）打包為 .memex 檔案。可透過分享儲存到 iCloud Drive、Google Drive 或任意位置。",
+  "restoreDescription": "選擇 .memex 備份檔還原所有資料。這會覆蓋目前資料。",
+  "selectBackupFile": "選擇備份檔",
+  "estimatedSize": "預估大小",
+  "backupComplete": "備份已建立",
+  "backupFailed": "備份失敗：{error}",
+  "@backupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "confirmRestore": "確認還原",
+  "confirmRestoreMessage": "還原會覆蓋目前所有資料，包括卡片、知識庫、洞察和設定。此操作無法復原，確定繼續？",
+  "restoreComplete": "還原完成",
+  "restoreRestartHint": "資料已還原，請重新啟動應用程式以套用所有變更。",
+  "restoreFailed": "還原失敗：{error}",
+  "@restoreFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "invalidBackupFile": "無效的備份檔，請選擇 .memex 檔案。",
+  "automaticBackup": "自動備份",
+  "autoBackupDescription": "開啟後，Memex 會在啟動或回到前景時檢查，每天最多建立一次本機時間點快照。",
+  "backupSensitiveSettingsHint": "備份包含設定和模型服務商金鑰，請只儲存到你信任的位置。",
+  "backupLocation": "位置",
+  "backupLocationDetails": "位置詳情",
+  "backupLocationSummary": "應用程式中顯示",
+  "backupLocationFullPath": "完整路徑",
+  "backupLocationUri": "資料夾授權 URI",
+  "copyBackupLocationPath": "複製路徑",
+  "backupLocationCopied": "備份位置已複製",
+  "androidBackupLocationSelected": "已選資料夾：{folderName}",
+  "@androidBackupLocationSelected": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "iosICloudBackupLocation": "iCloud 雲碟 > Memex > Backups",
+  "iosAppDocumentsBackupLocation": "檔案 > 我的 iPhone > Memex > Backups",
+  "autoBackupStatus": "狀態",
+  "noAutoBackupYet": "還沒有自動備份",
+  "lastBackupAt": "上次備份：{time}",
+  "@lastBackupAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "autoBackupRetention": "保留",
+  "autoBackupRetentionDays": "{days} 天",
+  "@autoBackupRetentionDays": {
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "autoBackupRetentionForever": "永久保留",
+  "autoBackupMaxSize": "空間上限",
+  "autoBackupRetentionLimitHint": "自動清理會讓自動快照總大小不超過 {size}。安全快照和手動匯出備份會另外保留。",
+  "@autoBackupRetentionLimitHint": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "createSnapshotNow": "立即備份",
+  "backupLocationMenu": "變更位置",
+  "defaultBackupLocation": "預設備份資料夾",
+  "defaultBackupLocationAndroidDesc": "使用 Memex 的應用程式專屬外部目錄，不需要儲存權限。",
+  "chooseBackupLocation": "選擇備份資料夾",
+  "chooseBackupLocationAndroidDesc": "使用 Android 系統選擇器選擇資料夾，並授予 Memex 持久存取權限。",
+  "storedBackups": "已儲存備份",
+  "noStoredBackups": "建立第一個自動快照後會顯示在這裡。",
+  "backupTypeAutoSnapshot": "自動快照",
+  "backupTypeSafetySnapshot": "安全快照",
+  "backupTypeManualBackup": "手動備份",
+  "refresh": "重新整理",
+  "restoreThisBackup": "還原此備份",
+  "deleteThisBackup": "刪除此備份",
+  "confirmDeleteBackup": "刪除備份？",
+  "confirmDeleteBackupMessage": "刪除 {fileName}？這會移除已儲存的備份檔，且無法復原。",
+  "@confirmDeleteBackupMessage": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupDeleted": "備份已刪除：{fileName}",
+  "@backupDeleted": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupDeleteFailed": "無法刪除備份：{error}",
+  "@backupDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "creatingSafetySnapshot": "正在建立安全快照...",
+  "autoBackupCreated": "快照已建立：{fileName}",
+  "@autoBackupCreated": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupLocationFailed": "無法更新備份位置：{error}",
+  "@backupLocationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "backupImportCreatedAt": "建立時間",
+  "backupImportSourceVersion": "來源版本",
+  "backupImportFlavor": "建置版本",
+  "backupLegacyFormat": "舊版備份（沒有 manifest）",
+  "restoreInProgress": "正在還原備份...",
+  "dataStorage": "資料儲存",
+  "dataStorageDescriptionAndroid": "選擇自訂資料夾來儲存你的工作區。重新安裝應用程式後，資料仍會保留。",
+  "dataStorageDescriptionIOS": "開啟 iCloud，在裝置之間同步工作區，並在重新安裝應用程式後保留資料。",
+  "storageLocationApp": "應用程式儲存空間",
+  "storageLocationAppDesc": "資料會儲存在應用程式內，解除安裝時會一併移除。",
+  "storageLocationCustom": "裝置儲存空間（自訂資料夾）",
+  "storageLocationCustomDesc": "將資料儲存在你選擇的資料夾中。只要資料夾仍存在，重新安裝後資料也會保留。",
+  "storageLocationICloud": "儲存到 iCloud",
+  "storageLocationICloudDesc": "在 Apple 裝置之間同步你的工作區。重新安裝後資料仍會保留。",
+  "storageLocationCurrent": "目前：{location}",
+  "@storageLocationCurrent": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "icloudRequiresCapability": "請登入 iCloud 並開啟 iCloud Drive，才能使用 iCloud 儲存空間。",
+  "loadingFromICloud": "正在從 iCloud 還原資料…",
+  "switchingToICloud": "正在切換到 iCloud 儲存空間…",
+  "switchingStorage": "正在切換儲存空間…",
+  "customFolderAccessDenied": "無法讀取或寫入此資料夾。請授予儲存權限，或選擇其他位置。",
+  "configured": "已設定",
+  "apiKeyNotSet": "尚未設定 API 金鑰 — 點選以設定",
+  "bottomNavTimeline": "時間軸",
+  "bottomNavLibrary": "知識庫",
+  "aiGeneratedLabel": "AI 生成",
+  "sourceTraceWithCount": "來源追蹤（{count}）",
+  "@sourceTraceWithCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "deleteAccount": "刪除帳戶",
+  "deleteAccountDesc": "永久刪除所有本機資料並重設應用程式。",
+  "deleteAccountConfirmTitle": "要刪除帳戶嗎？",
+  "deleteAccountConfirmMessage": "這會永久刪除你的所有資料，包括時間軸卡片、知識庫、錄音和設定。此動作無法復原。",
+  "deleteAccountTypeName": "輸入「{name}」以確認",
+  "@deleteAccountTypeName": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleteAccountTypeHint": "輸入你的使用者名稱以確認",
+  "llmConsentTitle": "資料分享同意",
+  "llmConsentMessage": "為了啟用 AI 功能，Memex 需要將你的資料傳送給 {provider} 進行處理。這包括：\n\n• 你輸入的文字（筆記、語音轉錄）\n• 照片中繼資料與擷取文字（OCR）\n• 健康與健身摘要\n• 時間軸卡片內容\n\n你的資料會直接從裝置傳送給 {provider}。Memex 不會透過任何其他伺服器儲存或轉送你的資料。\n\n請查看 {provider} 的隱私權政策，了解其資料處理方式。\n\n你是否同意將資料傳送給 {provider} 進行 AI 處理？",
+  "@llmConsentMessage": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "llmConsentAgree": "我同意",
+  "llmConsentDecline": "拒絕",
+  "customAgents": "自訂 智慧體",
+  "noCustomAgents": "尚未設定自訂 智慧體。",
+  "deleteAgent": "刪除 智慧體",
+  "deleteAgentConfirm": "要刪除自訂 智慧體「{name}」嗎？",
+  "@deleteAgentConfirm": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleted": "已刪除",
+  "saved": "已儲存",
+  "newAgent": "新增 智慧體",
+  "editAgent": "編輯 智慧體",
+  "agentName": "智慧體 名稱",
+  "agentNameHint": "my-custom-agent",
+  "agentNameRequired": "必填",
+  "agentNameInvalid": "僅可使用字母、數字和連字號",
+  "agentNameExists": "名稱已存在",
+  "hostAgentType": "宿主 智慧體 類型",
+  "skillDirectory": "技能 目錄",
+  "skillDirInvalid": "必須是相對路徑（不能以 / 開頭或包含 ..）",
+  "workingDirectory": "工作目錄（選填）",
+  "workingDirectoryHint": "留空則使用工作區預設值",
+  "llmConfig": "LLM 設定",
+  "eventType": "事件類型",
+  "executionMode": "執行模式",
+  "executionModeAsync": "非同步",
+  "executionModeSync": "同步",
+  "dependsOn": "依賴項目",
+  "dependsOnHint": "選擇依賴項目",
+  "priority": "優先順序",
+  "maxRetries": "最大重試次數",
+  "systemPromptLabel": "系統提示詞（選填）",
+  "systemPromptHint": "附加到宿主 智慧體 提示詞後方的額外指示",
+  "eventSerializer": "事件序列化器",
+  "eventSerializerDefault": "預設（XML）",
+  "enabledLabel": "啟用",
+  "skillsManagement": "技能 管理",
+  "skillsManagementEmpty": "尚無 技能",
+  "downloadSkill": "下載 技能",
+  "downloading": "下載中...",
+  "downloadSuccess": "技能 已成功下載",
+  "downloadFailed": "下載失敗：{error}",
+  "@downloadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "deleteConfirm": "確認刪除",
+  "deleteConfirmMessage": "確定要刪除「{name}」嗎？",
+  "@deleteConfirmMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidUrl": "請輸入有效的 URL",
+  "urlHint": "https://example.com/skill.zip",
+  "newFolder": "新增資料夾",
+  "newFile": "新增檔案",
+  "folderName": "資料夾名稱",
+  "fileName": "檔案名稱",
+  "nameRequired": "名稱為必填",
+  "nameInvalid": "名稱不能包含 / 或 ..",
+  "createFailed": "建立失敗：{error}",
+  "@createFailed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "fileContent": "檔案內容",
+  "saveSuccess": "儲存成功",
+  "downloadToCurrentDir": "zip 會解壓縮到目前目錄：{dir}",
+  "@downloadToCurrentDir": {
+    "placeholders": {
+      "dir": {
+        "type": "String"
+      }
+    }
+  },
+  "privacyPolicy": "隱私權政策",
+  "privacyPolicyDesc": "Memex 如何處理你的資料",
+  "llmAuthError": "API 驗證失敗。請在設定中檢查你的 LLM 設定。",
+  "llmBadRequestError": "LLM 服務商拒絕了請求。目前模型可能不支援此輸入格式。",
+  "llmRateLimitError": "API 呼叫頻率已超過限制。請稍後再試。",
+  "llmServerError": "LLM 服務暫時無法使用。請稍後再試。",
+  "llmNetworkError": "網路連線失敗。請檢查你的網際網路連線。",
+  "llmUnknownError": "處理你的內容時發生未預期的錯誤。",
+  "llmErrorDialogTitle": "處理失敗",
+  "goToModelConfig": "前往設定",
+  "speechModelDownloadTitle": "下載語音模型",
+  "speechModelDownloadDesc": "需要一次性下載模型（約 {sizeMB}MB）。\n\n下載完成後，轉錄會完全在裝置上執行。",
+  "@speechModelDownloadDesc": {
+    "placeholders": {
+      "sizeMB": {}
+    }
+  },
+  "speechModelStartDownload": "開始下載",
+  "speechModelChooseSource": "選擇下載來源：",
+  "speechModelChinaMirror": "🇨🇳 中國鏡像（中國大陸較快）",
+  "speechModelGithub": "🌐 GitHub（全球）",
+  "speechModelDownloading": "正在下載模型...",
+  "speechModelConnecting": "正在連線...",
+  "deleteSpeechModel": "刪除語音模型",
+  "confirmDeleteSpeechModelMessage": "要刪除已下載的本機語音辨識模型檔案嗎？下次使用本機語音轉文字時會重新下載。",
+  "speechModelDeletedSuccess": "語音模型檔案已刪除",
+  "speechModelNotDownloaded": "找不到已下載的語音模型檔案",
+  "speechModelDeleteFailed": "刪除語音模型檔案失敗：{error}",
+  "@speechModelDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "speechTranscribing": "正在辨識...",
+  "speechNoResult": "未偵測到語音",
+  "useLocalSpeechToTextTitle": "使用本機語音轉文字",
+  "useLocalSpeechToTextDesc": "開啟時，音訊會先在裝置上轉錄成文字再傳送，適合不支援音訊輸入的模型。關閉時，原始音訊會直接傳送給模型。",
+  "pendingAiProcessingHint": "設定 AI 模型以處理",
+  "demoWelcome": "歡迎來到 Memex！\n讓我們快速看看 AI 能為你的記錄做些什麼。",
+  "demoTapAdd": "點這裡建立你的第一筆記錄",
+  "demoTapSend": "點選送出你的第一筆記錄",
+  "demoTapCard": "點選查看 AI 如何整理你的記錄",
+  "demoTapInsight": "點選查看 AI 生成的洞察",
+  "demoTapInsightUpdate": "點選從你的記錄生成洞察",
+  "demoTapKnowledge": "查看自動整理的知識檔案",
+  "demoDone": "開始記錄你的生活。",
+  "demoStartTour": "開始導覽",
+  "demoGetStarted": "開始使用",
+  "demoSkip": "略過",
+  "demoPrefillText": "你好 Memex！這是我的第一筆記錄 🎉",
+  "visionBadge": "視覺",
+  "notMultimodalHint": "Memex 依賴多模態模型能力進行媒體分析。如果你的記錄包含圖片，請確認你設定的模型支援圖片輸入。",
+  "defaultModelPrefix": "預設",
+  "recommendedBadge": "推薦",
+  "readOnlyBadge": "CHAT",
+  "switchCompanion": "切換陪伴角色",
+  "personaChatInputHint": "輸入訊息...",
+  "today": "今天",
+  "tomorrow": "明天",
+  "yesterday": "昨天",
+  "showInsightTextTitle": "顯示 Memex 洞察評論",
+  "showInsightTextDesc": "是否在卡片詳情的評論區中，將 Memex 洞察顯示為置頂評論。",
+  "enableCharacterCommentTitle": "角色自動評論",
+  "enableCharacterCommentDesc": "角色會自動對新記錄發表評論。",
+  "maxCommentCharactersTitle": "最多評論角色數",
+  "maxCommentCharactersDesc": "每筆記錄可由幾個角色參與評論。",
+  "replyTo": "回覆 {name}",
+  "@replyTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "cdnSignalsComments": "收到新回覆",
+  "cdnSignalsInsight": "已生成新洞察",
+  "cdnSignalsBoth": "收到新回覆與新洞察",
+  "untitledCard": "未命名卡片",
+  "locationContextTitle": "位置上下文",
+  "locationContextDescription": "智慧體 對話目前所在城市與街區上下文",
+  "locationContextAttachTitle": "將目前位置附加到對話",
+  "locationContextAttachDesc": "使用裝置 GPS 與反向地理編碼，向 智慧體 提供城市、行政區和街區上下文。",
+  "reverseGeocodingProvider": "反向地理編碼服務商",
+  "amapProviderName": "高德地圖",
+  "amapApiKey": "高德地圖 API 金鑰",
+  "amapGcj02Note": "高德地圖使用 GCJ-02 座標。裝置 GPS 會先轉換，再進行反向地理編碼。",
+  "contextGranularity": "上下文精細度",
+  "granularityCity": "城市",
+  "granularityDistrict": "行政區",
+  "granularityNeighborhood": "街區",
+  "granularityStreet": "街道",
+  "granularityFullAddress": "完整地址候選",
+  "locationFreshness": "位置新鮮度",
+  "minutesShort": "{minutes} 分鐘",
+  "@minutesShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "oneHour": "1 小時",
+  "testCurrentLocation": "測試目前位置",
+  "locationTestFailed": "失敗：{error}",
+  "@locationTestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "locationDebugGps": "GPS",
+  "locationDebugReverseGeocode": "反向地理編碼",
+  "locationDebugProvider": "服務商",
+  "locationDebugAgentContext": "智慧體 上下文",
+  "locationDebugSource": "來源",
+  "locationDebugAddressSummary": "地址摘要",
+  "locationDebugFullAddress": "完整地址",
+  "locationDebugCoordinates": "座標",
+  "locationDebugAccuracy": "精確度",
+  "locationDebugReason": "原因",
+  "locationDebugOk": "正常",
+  "locationDebugUnavailable": "無法使用",
+  "locationDebugInjected": "已注入",
+  "locationDebugNotInjected": "未注入",
+  "locationStatusUpdatedAt": "已更新",
+  "locationStatusSuccessTitle": "目前位置已就緒",
+  "locationStatusSuccessBody": "當位置上下文與對話相關時，Memex 可以附加這段位置摘要。",
+  "locationStatusApproximateTitle": "僅有大致位置",
+  "locationStatusApproximateBody": "精確度看起來只到城市或區域層級。你可以繼續使用，或在系統設定中開啟精確位置，以取得更精準的上下文。",
+  "locationStatusServiceDisabledTitle": "系統定位已關閉",
+  "locationStatusServiceDisabledBody": "Memex 只使用裝置 GPS，不會從網路或 IP 推斷位置。Android 請開啟位置設定；iOS 請啟用「設定 > 隱私權與安全性 > 定位服務」。",
+  "locationStatusPermissionDeniedTitle": "需要位置權限",
+  "locationStatusPermissionDeniedBody": "請允許 Memex 在測試或需要位置上下文時使用位置。不會要求永遠存取。",
+  "locationStatusPermissionForeverTitle": "位置權限已被封鎖",
+  "locationStatusPermissionForeverBody": "請開啟應用程式設定並允許 Memex 使用位置。在 iOS 上，「使用 App 期間」就足夠。",
+  "locationStatusDisabledTitle": "位置上下文已關閉",
+  "locationStatusDisabledBody": "當你希望 Memex 將裝置位置附加到 智慧體 上下文時，請開啟上方開關並儲存。",
+  "locationStatusGeocodeUnavailableTitle": "GPS 可用，但地址查詢失敗",
+  "locationStatusGeocodeUnavailableBody": "Memex 有座標，但不會將只有 GPS 的上下文注入 智慧體。請檢查反向地理編碼服務商後再試。",
+  "locationStatusUnavailableTitle": "位置無法使用",
+  "locationStatusUnavailableBody": "請檢查系統定位服務與應用程式權限，然後再測試一次。",
+  "allowLocationPermissionButton": "允許位置權限",
+  "openAppSettingsButton": "開啟應用程式設定",
+  "openLocationSettingsButton": "開啟位置設定",
+  "locationSettingsOpenFailed": "無法開啟系統設定。",
+  "locationActionFailed": "位置操作失敗：{error}",
+  "@locationActionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSearchPlaceholder": "搜尋設定...",
+  "settingsSearchEmpty": "找不到相符的設定項目",
+  "importCharacterCard": "匯入角色卡",
+  "firstMessageLabel": "第一則訊息",
+  "firstMessageHint": "首次對話時送出的問候語（選填）",
+  "systemPromptOverrideLabel": "覆寫系統提示詞",
+  "systemPromptOverrideHint": "覆寫預設系統提示詞（進階，選填）",
+  "postHistoryInstructionsLabel": "歷史後指示",
+  "postHistoryInstructionsHint": "插入在聊天歷史之後、回覆之前的指示（選填）",
+  "mesExampleLabel": "訊息範例",
+  "mesExampleHint": "展示角色風格的範例對話（選填）",
+  "worldBookTitle": "世界書",
+  "worldBookSubtitle": "觸發關鍵字時注入的背景知識",
+  "characterMemoryTitle": "角色記憶",
+  "characterMemorySubtitle": "角色與使用者之間的關係動態和互動記憶",
+  "addTooltip": "新增",
+  "constantBadge": "常駐",
+  "worldEntryFallbackName": "項目 {index}",
+  "@worldEntryFallbackName": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "keywordsPrefix": "關鍵字：{keys}",
+  "@keywordsPrefix": {
+    "placeholders": {
+      "keys": {}
+    }
+  },
+  "memoryFallbackName": "記憶 {index}",
+  "@memoryFallbackName": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "addWorldEntry": "新增世界書項目",
+  "editWorldEntry": "編輯世界書項目",
+  "commentTitleLabel": "評論 / 標題",
+  "entryDescriptionHint": "項目描述（選填）",
+  "triggerKeywordsLabel": "觸發關鍵字",
+  "triggerKeywordsHint": "以逗號分隔，例如：魔法, 咒語",
+  "contentLabel": "內容",
+  "worldEntryContentHint": "關鍵字觸發時注入的背景知識",
+  "enabledCheckbox": "啟用",
+  "addMemory": "新增記憶",
+  "editMemory": "編輯記憶",
+  "memoryLabelField": "標籤",
+  "memoryLabelHint": "唯一識別碼，例如：稱呼偏好",
+  "memoryContentHint": "記憶內容",
+  "salienceLabel": "重要性：",
+  "labelCannotBeEmpty": "標籤不能為空",
+  "importSuccess": "{name} 匯入成功",
+  "@importSuccess": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "importFailed": "匯入失敗：{error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "supportedFormats": "支援格式",
+  "tavernImportDescription": "• SillyTavern V2 角色卡（.json）\n• 內嵌角色卡的 PNG 圖片（.png）\n\n角色設定、世界書等欄位會自動對應到 Memex 角色格式。",
+  "pickCharacterFile": "選擇角色檔案",
+  "repickFile": "選擇其他檔案",
+  "personaSettingSection": "角色設定",
+  "systemPromptSection": "系統提示詞",
+  "worldEntriesCount": "世界書：{count} 個項目",
+  "@worldEntriesCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "fileLabel": "檔案：{filename}",
+  "@fileLabel": {
+    "placeholders": {
+      "filename": {}
+    }
+  },
+  "conflictWarning": "已存在同名角色：{names}。匯入會建立新角色，不會覆寫既有角色。",
+  "@conflictWarning": {
+    "placeholders": {
+      "names": {}
+    }
+  },
+  "setPrimaryCompanionTitle": "設為主要陪伴角色",
+  "setPrimaryCompanionSubtitle": "匯入後自動設為你的主要陪伴角色",
+  "confirmImport": "確認匯入",
+  "chatBackground": "聊天背景",
+  "chooseChatBackgroundImage": "選擇背景圖片",
+  "earlyUpdateSettingsTitle": "Early 版更新",
+  "earlyUpdateSettingsDesc": "檢查 GitHub 預先發行版本中符合目前 Early APK 的版本，下載後交給 Android 安裝程式。",
+  "earlyUpdateUnsupported": "Early 更新僅適用於 Android Early 建置版本。",
+  "earlyUpdateAutoCheckTitle": "自動檢查更新",
+  "earlyUpdateAutoCheckDesc": "啟動時檢查，最多每 12 小時一次。",
+  "earlyUpdateWifiOnlyTitle": "僅透過 Wi-Fi 下載",
+  "earlyUpdateWifiOnlyDesc": "使用行動數據時略過更新下載。",
+  "earlyUpdateAutoInstallTitle": "自動下載並安裝",
+  "earlyUpdateAutoInstallDesc": "找到新建置版本時，自動下載並開啟 Android 安裝程式。",
+  "earlyUpdateCheckNow": "立即檢查",
+  "earlyUpdateChecking": "正在檢查 GitHub 預先發行版本...",
+  "earlyUpdateSkippedMobile": "已略過，因為已啟用僅限 Wi-Fi 下載。",
+  "earlyUpdateNoUpdate": "你已使用最新版 Early 建置版本。",
+  "earlyUpdateFound": "Early 建置版本 {version}+{build} 已可用。",
+  "@earlyUpdateFound": {
+    "placeholders": {
+      "version": {},
+      "build": {}
+    }
+  },
+  "earlyUpdateDownloadAndInstall": "下載並安裝",
+  "earlyUpdateDownloadInProgress": "正在下載更新...",
+  "earlyUpdateDownloadingPercent": "正在下載更新：{percent}%",
+  "@earlyUpdateDownloadingPercent": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "earlyUpdateDownloadReadyToInstall": "更新套件已下載。可準備安裝。",
+  "earlyUpdateInstallDownloadedPackage": "安裝已下載套件",
+  "earlyUpdateClearDownloadedPackage": "清除已下載套件",
+  "earlyUpdateClearDownloadedPackageSuccess": "已清除下載的更新套件。",
+  "earlyUpdateInstallStarted": "已開啟 Android 安裝程式。",
+  "earlyUpdateInstallPermissionRequired": "請允許 Memex 安裝未知應用程式，然後再次點選下載並安裝。",
+  "earlyUpdateLastChecked": "上次檢查：{time}",
+  "@earlyUpdateLastChecked": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "earlyUpdateCheckFailed": "更新檢查失敗：{error}",
+  "@earlyUpdateCheckFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "earlyUpdateDialogTitle": "有 Early 更新可用",
+  "earlyUpdateReleaseNotes": "版本說明",
+  "dismissAllNotifications": "全部清除",
+  "dismissByType": "依類型清除",
+  "dismissTypeSystemAction": "提醒與事件",
+  "dismissTypeClarification": "釐清事項",
+  "dismissTypeCardUpdate": "卡片更新",
+  "dismissedCount": "已清除 {count} 項",
+  "@dismissedCount": {
+    "placeholders": {
+      "count": {}
+    }
+  }
+}

@@ -1,0 +1,1483 @@
+{
+  "@@locale": "ar",
+  "timesLabel": "مرات",
+  "modelSetAsDefault": "تعيين {modelId} كنموذج افتراضي",
+  "@modelSetAsDefault": {
+    "placeholders": {
+      "modelId": {}
+    }
+  },
+  "retry": "إعادة المحاولة",
+  "unknownModel": "نموذج غير معروف",
+  "notSet": "غير محدد",
+  "confirmClear": "تأكيد المسح",
+  "confirmClearTokenMessage": "هل تريد مسح المستخدم الحالي؟ ستحتاج إلى إدخال معرف المستخدم مرة أخرى.",
+  "cancel": "إلغاء",
+  "confirm": "تأكيد",
+  "tokenCleared": "تم مسح المستخدم",
+  "clearTokenFailed": "فشل مسح المستخدم: {error}",
+  "@clearTokenFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "selectDateRangeOptional": "اختر نطاق التاريخ (اختياري):",
+  "startDate": "تاريخ البدء",
+  "endDate": "تاريخ الانتهاء",
+  "select": "اختيار",
+  "processLimitOptional": "حد المعالجة (اختياري)",
+  "leaveEmptyForAll": "اتركه فارغا لمعالجة الكل",
+  "startProcessing": "بدء المعالجة",
+  "userIdNotFound": "لم يتم العثور على معرف المستخدم",
+  "createTaskFailed": "فشل إنشاء المهمة: {error}",
+  "@createTaskFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "reprocessCards": "إعادة معالجة البطاقات",
+  "reprocessCardsTaskCreated": "تم وضع طلب إعادة المعالجة في قائمة الوكيل الفائق",
+  "reprocessCardsDownstreamMode": "النطاق",
+  "reprocessCardsCardOnly": "البطاقات فقط",
+  "reprocessCardsCardOnlyDesc": "اطلب من الوكيل الفائق مراجعة بطاقات الخط الزمني المحددة وإعادة إنشائها.",
+  "reprocessCardsRerunDownstream": "البطاقات والمتابعات المرتبطة",
+  "reprocessCardsRerunDownstreamDesc": "اطلب من الوكيل الفائق أن يأخذ تحديثات PKM والجدول والرؤى المرتبطة في الحسبان عند الحاجة.",
+  "reanalyzeMediaAssets": "إعادة قراءة مرفقات الوسائط",
+  "reanalyzeMediaAssetsDesc": "اطلب من الوكيل الفائق فحص الوسائط المرفقة مرة أخرى عند إعادة إنشاء البطاقات.",
+  "regenerateComments": "إعادة إنشاء التعليقات",
+  "regenerateCommentsTaskCreated": "تم إنشاء مهمة إعادة إنشاء التعليقات، وتعمل في الخلفية",
+  "rebuildSearchIndex": "إعادة بناء فهرس البحث",
+  "rebuildSearchIndexSuccess": "تمت إعادة بناء فهرس البحث بنجاح",
+  "rebuildSearchIndexFailed": "فشل إعادة بناء فهرس البحث",
+  "clearData": "مسح البيانات",
+  "confirmClearDataMessage": "مسح البيانات؟",
+  "confirmClearDataDeletesWorkspaceMessage": "سيتم حذف كل بيانات مساحة العمل المحلية للمستخدم الحالي، بما في ذلك البطاقات والوسائط وملفات المعرفة والرؤى والذاكرة وسجل الدردشة وحالة النظام.\n\nلا يمكن التراجع عن هذا الإجراء!",
+  "clearFailedAgentContexts": "مسح سياق المحادثة الفاشل",
+  "confirmClearFailedAgentContextsMessage": "هل تريد مسح سياق المحادثة المحفوظ لوكلاء الرؤى والجدولة؟ هذا مفيد بعد تغيير النماذج عندما لا تعود رسائل الوكيل السابقة متوافقة. لن يتم حذف الحقائق أو البطاقات أو المعرفة أو الذكريات أو إعدادات النموذج.",
+  "failedAgentContextsCleared": "تم مسح {count} سياق محادثة محفوظ",
+  "@failedAgentContextsCleared": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "clearFailedAgentContextsFailed": "فشل مسح سياق المحادثة: {error}",
+  "@clearFailedAgentContextsFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "cloneToTestUser": "نسخ إلى مستخدم اختبار",
+  "confirmCloneToTestUserMessage": "انسخ مساحة العمل الحالية إلى مستخدم اختبار محلي جديد ثم انتقل إليه. لن يتم نسخ حالة تشغيل الوكيل. لن يتم تعديل بيانات المستخدم الحالية.",
+  "testUserIdLabel": "معرف مستخدم الاختبار",
+  "testUserIdHelper": "استخدم أحرفا أو أرقاما أو شرطة أو شرطة سفلية.",
+  "testUserIdInvalid": "استخدم فقط أحرفا أو أرقاما أو شرطة أو شرطة سفلية.",
+  "overwriteExistingTestUser": "استبدال مستخدم الاختبار الموجود بنفس المعرف",
+  "testUserCloneSuccess": "تم الانتقال إلى مستخدم الاختبار {userId}",
+  "@testUserCloneSuccess": {
+    "placeholders": {
+      "userId": {}
+    }
+  },
+  "testUserCloneFailed": "فشل نسخ مستخدم الاختبار: {error}",
+  "@testUserCloneFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "dataClearedSuccess": "تم مسح البيانات بنجاح",
+  "clearDataFailed": "فشل مسح البيانات: {error}",
+  "@clearDataFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "personalCenter": "المركز الشخصي",
+  "viewLogs": "عرض السجلات",
+  "systemAuthorization": "تفويض النظام",
+  "aiCharacterConfig": "إعداد شخصية الذكاء الاصطناعي",
+  "modelConfig": "إعداد النموذج",
+  "agentConfig": "إعداد الوكيل",
+  "experimentalLab": "المختبر",
+  "experimentalLabDescription": "ميزات تجريبية قد تتغير أو تنتقل لاحقا.",
+  "modelUsageStats": "إحصاءات استخدام النموذج",
+  "asyncTaskList": "قائمة المهام غير المتزامنة",
+  "clearLocalToken": "مسح المستخدم",
+  "insightCardTemplates": "قوالب بطاقات الرؤى",
+  "timelineCardTemplates": "قوالب بطاقات الخط الزمني",
+  "logViewer": "عارض السجلات",
+  "autoRefresh": "تحديث تلقائي",
+  "lineCount": "عدد الأسطر: ",
+  "all": "الكل",
+  "schedule": "الجدول",
+  "statistics": "الإحصاءات",
+  "appLockConfig": "إعداد قفل التطبيق",
+  "activityStats": "إحصاءات النشاط",
+  "activityStatsSummary": "في هذه الفترة سجلت {inputs} مرة، وأنشأت {cards} بطاقة، وأكملت {todos} مهمة.",
+  "@activityStatsSummary": {
+    "placeholders": {
+      "inputs": {},
+      "cards": {},
+      "todos": {}
+    }
+  },
+  "last7Days": "7 أيام",
+  "last30Days": "30 يوما",
+  "last90Days": "90 يوما",
+  "records": "السجلات",
+  "words": "الكلمات",
+  "cards": "البطاقات",
+  "knowledgeUnits": "وحدات المعرفة",
+  "completedTodos": "المهام المكتملة",
+  "activeDays": "أيام نشطة",
+  "streakDays": "السلسلة",
+  "dailyRhythm": "الإيقاع اليومي",
+  "recordToOutput": "من السجل إلى الناتج",
+  "sourceBreakdown": "توزيع المصادر",
+  "topThemes": "أبرز المواضيع",
+  "textInput": "نص",
+  "imageInput": "صور",
+  "audioInput": "صوت",
+  "noStatsYet": "لا توجد إحصاءات نشاط بعد",
+  "tapDayForDetails": "اضغط على يوم لعرض التفاصيل",
+  "dayDetails": "تفاصيل اليوم",
+  "loadStatsFailed": "فشل تحميل الإحصاءات: {error}",
+  "@loadStatsFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "overview": "نظرة عامة",
+  "daily": "يومي",
+  "modelStatsByAgent": "حسب الوكيل",
+  "detail": "تفصيل",
+  "date": "التاريخ",
+  "agent": "الوكيل",
+  "noData": "لا توجد بيانات",
+  "totalCalls": "إجمالي الاستدعاءات",
+  "calls": "الاستدعاءات",
+  "callsCount": "{count} استدعاءات",
+  "@callsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "selectDateRange": "اختر نطاق التاريخ",
+  "totalTokens": "إجمالي الرموز",
+  "cacheRate": "معدل التخزين المؤقت",
+  "promptTokens": "الرموز الموجه",
+  "completionTokens": "الرموز الإكمال",
+  "cachedTokens": "الرموز من التخزين المؤقت",
+  "thoughtTokens": "الرموز التفكير",
+  "prompt": "الموجه",
+  "completion": "الإكمال",
+  "cached": "المخزن مؤقتا",
+  "thought": "التفكير",
+  "model": "النموذج",
+  "scene": "المشهد",
+  "sceneId": "معرف المشهد",
+  "tokenUsage": "استخدام الرموز",
+  "handler": "معالج",
+  "modelBreakdown": "توزيع النموذج",
+  "callDetails": "تفاصيل الاستدعاء",
+  "recordDetailsTitle": "تفاصيل السجل: {scene}",
+  "@recordDetailsTitle": {
+    "placeholders": {
+      "scene": {}
+    }
+  },
+  "saveLlmConfigFailed": "فشل حفظ إعداد نموذج اللغة الكبير: {error}",
+  "@saveLlmConfigFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "webHtmlPreviewUnavailable": "معاينة HTML غير متاحة على الويب. يرجى العرض على الهاتف.",
+  "saveUserInfoFailed": "فشل حفظ معلومات المستخدم: {error}",
+  "@saveUserInfoFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "totalEstimatedCost": "إجمالي التكلفة المقدرة",
+  "close": "إغلاق",
+  "totalTokenConsumption": "إجمالي استهلاك الرموز",
+  "dataLoadFailedRetry": "فشل تحميل البيانات، يرجى المحاولة لاحقا.",
+  "timelineLoadFailedRetry": "فشل تحميل الخط الزمني، يرجى المحاولة لاحقا.",
+  "newPerspective": "منظور جديد",
+  "startPoint": "البداية",
+  "endPoint": "النهاية",
+  "originalInput": "الإدخال الأصلي",
+  "referenceContent": "محتوى مرجعي",
+  "referenceWithTitle": "مرجع: {title}",
+  "@referenceWithTitle": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "actionCenterTitle": "إجراءات معلقة",
+  "noPendingActions": "لا توجد إجراءات معلقة",
+  "clarificationNeeded": "يريد Memex التأكيد",
+  "clarificationTextHint": "اكتب إجابة قصيرة",
+  "clarificationTextRequired": "أضف إجابة قصيرة أولا",
+  "clarificationAnswered": "تمت الإجابة",
+  "clarificationAnswerPrefix": "الإجابة: {answer}",
+  "@clarificationAnswerPrefix": {
+    "placeholders": {
+      "answer": {}
+    }
+  },
+  "answerSaved": "تم حفظ الإجابة",
+  "clarificationOtherAnswer": "إدخال يدوي",
+  "clarificationNotSure": "لست متأكدا / أفضل عدم القول",
+  "yes": "نعم",
+  "no": "لا",
+  "footprintMap": "خريطة الأثر",
+  "waypointPlaces": "أماكن نقاط الطريق",
+  "unknownPlace": "مكان غير معروف",
+  "releaseToSend": "أفلت للإرسال",
+  "selectFromAlbum": "اختر من الألبوم",
+  "clipboardPreviewTitle": "حافظة جديدة",
+  "clipboardPreviewImageTitle": "صورة من الحافظة",
+  "clipboardPreviewImageDescription": "الصورة جاهزة للإضافة",
+  "clipboardPreviewUnprocessed": "لم يتم اللصق بعد",
+  "clipboardPreviewPasteToInput": "لصق في الإدخال",
+  "clipboardPreviewAddImageToInput": "إضافة صورة",
+  "clipboardPreviewImageFailed": "تعذر قراءة صورة الحافظة",
+  "tellAiWhatHappened": "أخبر الذكاء الاصطناعي بما حدث...",
+  "recordingWithDuration": "التسجيل: {duration}",
+  "@recordingWithDuration": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "playing": "يتم التشغيل...",
+  "sendLabel": "إرسال",
+  "attachedImagesMessage": "تم إرسال {count} صورة",
+  "@attachedImagesMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "noTaskData": "لا توجد بيانات مهمة",
+  "createdAtDate": "تم الإنشاء: {date}",
+  "@createdAtDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "updatedAtDate": "تم التحديث: {date}",
+  "@updatedAtDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "durationLabel": "المدة: {duration}",
+  "@durationLabel": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "retryCount": "إعادة المحاولة: {count}",
+  "@retryCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "loadDetailFailedRetry": "فشل تحميل التفاصيل، يرجى المحاولة لاحقا.",
+  "loadFailed": "فشل التحميل",
+  "reload": "إعادة التحميل",
+  "aiInsightDetail": "تفاصيل الرؤية",
+  "relatedRecordsCount": "السجلات المرتبطة ({count})",
+  "@relatedRecordsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "noRelatedRecords": "لا توجد سجلات مرتبطة",
+  "useFingerprintToUnlock": "استخدم البصمة لإلغاء القفل",
+  "locked": "مقفل",
+  "wrongPassword": "كلمة المرور غير صحيحة",
+  "enterPassword": "أدخل كلمة المرور",
+  "memexLocked": "Memex مقفل",
+  "calendarShortSun": "الأحد",
+  "calendarShortMon": "الاثنين",
+  "calendarShortTue": "الثلاثاء",
+  "calendarShortWed": "الأربعاء",
+  "calendarShortThu": "الخميس",
+  "calendarShortFri": "الجمعة",
+  "calendarShortSat": "السبت",
+  "noRecordsOnDate": "لا توجد سجلات في {date}",
+  "@noRecordsOnDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "footprintPath": "مسار الأثر",
+  "lifeCompositionTable": "تركيب الحياة",
+  "emotionReframe": "إعادة صياغة الشعور",
+  "chronicleOfThings": "سجل الأشياء",
+  "goalProgress": "تقدم الهدف",
+  "trendChart": "مخطط الاتجاه",
+  "comparisonChart": "مخطط المقارنة",
+  "todayTimeFlow": "تدفق وقت اليوم",
+  "aiInputHint": "سواء كانت ذكريات أو الحاضر، أنا هنا...",
+  "refreshSuperAgentStateTooltip": "مسح سياق وكيل Memex",
+  "refreshSuperAgentStateTitle": "مسح سياق تاريخ وكيل Memex؟",
+  "refreshSuperAgentStateMessage": "سيبقى سجل الدردشة الظاهر، لكن سيتم مسح سياق التشغيل التاريخي لـ وكيل Memex وستبدأ الردود القادمة من سياق جديد. لن تتأثر الذاكرة الدائمة أو ملفات قاعدة المعرفة أو البطاقات أو البيانات المحفوظة الأخرى. استخدم هذا عندما يستمر وكيل Memex في سلوك غير طبيعي. متابعة؟",
+  "refreshSuperAgentStateActiveRunMessage": "انتظر حتى تنتهي رسالة وكيل Memex الحالية قبل مسح السياق.",
+  "refreshSuperAgentStateSuccess": "تم مسح سياق وكيل Memex",
+  "refreshSuperAgentStateFailed": "فشل مسح سياق وكيل Memex: {error}",
+  "@refreshSuperAgentStateFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "nothingHere": "لا شيء هنا بعد",
+  "nothingHereHint": "اضغط على الزر أدناه لإنشاء بطاقتك الأولى",
+  "agentProcessing": "الذكاء الاصطناعي يعالج...",
+  "keepAppOpen": "لا تغلق التطبيق",
+  "activityDetail": "تفاصيل النشاط",
+  "noAgentActivityYet": "لا يوجد نشاط وكيل بعد",
+  "processingEllipsis": "تتم المعالجة...",
+  "agentBackgroundTitle": "وكيل Memex",
+  "agentBackgroundPausedTitle": "وكيل Memex متوقف مؤقتا",
+  "agentBackgroundNeedsAttentionTitle": "وكيل Memex يحتاج إلى انتباه",
+  "agentBackgroundStageIdle": "خامل",
+  "agentBackgroundStageProcessing": "تتم المعالجة",
+  "agentBackgroundStageQueued": "في القائمة",
+  "agentBackgroundStageRetrying": "بانتظار إعادة المحاولة",
+  "agentBackgroundStagePaused": "متوقف مؤقتا",
+  "agentBackgroundStageCompleted": "مكتمل",
+  "agentBackgroundStageNeedsAttention": "يحتاج إلى انتباه",
+  "agentBackgroundStageAnalyzingMedia": "تحليل الوسائط",
+  "agentBackgroundStageGeneratingCard": "إنشاء بطاقة",
+  "agentBackgroundStageUpdatingKnowledge": "تحديث المعرفة",
+  "agentBackgroundStagePreparingComment": "تحضير تعليق",
+  "agentBackgroundStageRoutingFollowUps": "توجيه المتابعات",
+  "agentBackgroundTaskSummary": "قيد التشغيل {running}، معلق {pending}، إعادة محاولة {retrying}",
+  "@agentBackgroundTaskSummary": {
+    "placeholders": {
+      "running": {},
+      "pending": {},
+      "retrying": {}
+    }
+  },
+  "agentBackgroundTaskDetail": "تتم معالجة {count} مهمة في القائمة.",
+  "@agentBackgroundTaskDetail": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "agentBackgroundNoTasks": "لا توجد مهام في الخلفية.",
+  "agentBackgroundStarting": "بدأت المعالجة.",
+  "agentBackgroundCompletedDetail": "اكتملت كل مهام الخلفية.",
+  "agentBackgroundFailedDetail": "توقفت المعالجة بسبب خطأ.",
+  "agentBackgroundPausedDetail": "المعالجة متوقفة مؤقتا وستستمر لاحقا.",
+  "agentBackgroundQueuedDetail": "بانتظار خطوة المعالجة التالية.",
+  "agentBackgroundRetryingDetail": "ستتم إعادة محاولة الخطوة الحالية تلقائيا.",
+  "agentBackgroundAnalyzeMediaDetail": "قراءة المرفقات والسياق المحلي.",
+  "agentBackgroundGeneratingCardDetail": "تحويل السجل إلى بطاقة الخط الزمني.",
+  "agentBackgroundUpdatingKnowledgeDetail": "تحديث المعرفة والذاكرة المحلية.",
+  "agentBackgroundPreparingCommentDetail": "تحضير متابعة من المساعد.",
+  "agentBackgroundRoutingFollowUpsDetail": "فحص إجراءات المتابعة لهذه البطاقة.",
+  "agentBackgroundPausedStatus": "متوقف مؤقتا - {summary}",
+  "@agentBackgroundPausedStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "agentBackgroundNeedsAttentionStatus": "يحتاج إلى انتباه - {summary}",
+  "@agentBackgroundNeedsAttentionStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "settings": "الإعدادات",
+  "languageSettings": "اللغة",
+  "languageSettingsDesc": "تغيير لغة عرض التطبيق",
+  "noPendingActionsToast": "لا توجد إجراءات معلقة",
+  "knowledgeNewDiscovery": "اكتشاف معرفة جديد",
+  "discoveredNewInsightsCount": "تم اكتشاف {count} رؤى جديدة",
+  "@discoveredNewInsightsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "updatedExistingInsightsCount": "تم تحديث {count} رؤى موجودة",
+  "@updatedExistingInsightsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "sectionNewInsights": "رؤى جديدة",
+  "sectionUpdatedInsights": "رؤى محدثة",
+  "unnamedInsight": "رؤية بلا اسم",
+  "copiedToClipboard": "تم النسخ إلى الحافظة",
+  "copy": "نسخ",
+  "selectedLocation": "الموقع المحدد",
+  "confirmLocationName": "تأكيد اسم الموقع",
+  "confirmLocationNameHint": "يمكنك تعديل الاسم (ستبقى الإحداثيات كما هي)",
+  "nameLabel": "الاسم",
+  "inputPlaceNameHint": "أدخل اسم المكان...",
+  "currentCoordinates": "الإحداثيات: {lat}, {lng}",
+  "@currentCoordinates": {
+    "placeholders": {
+      "lat": {},
+      "lng": {}
+    }
+  },
+  "confirmLocation": "تأكيد الموقع",
+  "welcomeToMemex": "مرحبا بك في Memex",
+  "createUserIdToStart": "أنشئ ملفك الشخصي",
+  "userIdLabel": "اسمك / لقبك",
+  "userIdHint": "أدخل اسمك أو لقبك",
+  "pleaseEnterUserId": "يرجى إدخال اسمك",
+  "userIdMaxLength": "يجب ألا يتجاوز الاسم 50 حرفا",
+  "startUsing": "متابعة",
+  "userIdTip": "سيستخدم هذا لتخصيص تجربتك.",
+  "setupModelConfigTitle": "إعداد نموذج الذكاء الاصطناعي",
+  "setupModelConfigSubtitle": "يحتاج Memex إلى نموذج الذكاء الاصطناعي متقدم لتنظيم السجلات وتحليل الصور وتوليد الرؤى. اختر طريقة اتصال واحدة.",
+  "setupModelConfigComplete": "إكمال والانتقال",
+  "aiService": "خدمة نماذج Memex",
+  "aiModelHubTitle": "نماذج وخدمات الذكاء الاصطناعي",
+  "aiModelHubSubtitle": "اختر الخدمة الرسمية من Memex أو استخدم مزودك الخاص. يظل توجيه النماذج المتقدم متاحا عند الحاجة.",
+  "aiSetupCurrentStatusTitle": "الإعداد الحالي",
+  "aiSetupStatusNotConfiguredTitle": "خدمة الذكاء الاصطناعي غير مهيأة",
+  "aiSetupStatusNotConfiguredDescription": "اختر طريقة اتصال لتفعيل تنظيم الذكاء الاصطناعي للسجلات والوسائط والرؤى.",
+  "aiSetupStatusMemexTitle": "استخدام خدمة MemeX الرسمية",
+  "aiSetupStatusMemexDescription": "سيستخدم Memex الاتصال الرسمي وبيانات واجهة البرمجة التي يديرها حساب MemeX الخاص بك.",
+  "aiSetupStatusCustomTitle": "استخدام إعدادات مزود مخصص",
+  "aiSetupStatusCustomDescription": "سيستخدم Memex بيانات اعتماد المزود واختيارات أدوار النموذج التي قمت بتهيئتها.",
+  "aiSetupChooseConnectionTitle": "اختر طريقة الاتصال",
+  "aiSetupChooseConnectionDescription": "ابدأ بالطريق الذي يناسب الطريقة التي تريد أن يصل بها Memex إلى نماذج الذكاء الاصطناعي.",
+  "aiSetupOfficialRouteDescription": "سجل الدخول إلى MemeX واستخدم الخدمة الرسمية دون اختيار مزودين أو مفاتيح أو نماذج على مستوى الوكيل.",
+  "aiSetupCustomRouteDescription": "أضف بيانات مزودك، واختر النموذج الذي سيستخدمه الوكيل الفائق، ويمكنك اختياريا تجاوز النماذج لكل وكيل.",
+  "aiSetupCustomPageTitle": "خدمة الذكاء الاصطناعي مخصصة",
+  "aiSetupCustomPageSubtitle": "قم بتهيئة بيانات المزود أولا، ثم اختر النموذج الذي سيستخدمه Memex.",
+  "aiSetupProviderCredentialsTitle": "المزود ومفاتيح واجهة البرمجة",
+  "aiSetupProviderCredentialsDescription": "أضف أو عدل OpenAI أو Anthropic أو DeepSeek أو Gemini أو OpenRouter أو Ollama أو مزودا متوافقا آخر.",
+  "modelRolesTitle": "اختر النموذج الأساسي",
+  "modelRolesDescription": "يستخدم الوكيل الفائق نموذجا واحدا لإدخالات النص والصور. تبقى التجاوزات المتقدمة للوكلاء متاحة أدناه.",
+  "textModelRoleTitle": "النموذج الأساسي",
+  "textModelRoleDescription": "يستخدمه الوكيل الفائق للنصوص والصور والبطاقات والمعرفة والرؤى والدردشة والتعليقات والجدول والذاكرة.",
+  "modelConnectionsTitle": "مزودو النماذج ومفاتيح واجهة البرمجة",
+  "modelConnectionsDescription": "صل خدمة Memex الرسمية أو أضف بيانات مزودك الخاصة.",
+  "relatedAiCapabilitiesTitle": "قدرات متقدمة ومرتبطة",
+  "relatedAiCapabilitiesDescription": "اضبط تعيينات الوكلاء ومزود الموقع وسلوك تحويل الكلام إلى نص.",
+  "aiSetupServiceCapabilitiesTitle": "قدرات الخدمة",
+  "aiSetupServiceCapabilitiesDescription": "اختر المزودين الذين يستخدمهم Memex لقدرات الذكاء الاصطناعي المجاورة مثل الكلام والترميز الجغرافي العكسي.",
+  "aiSetupAdvancedCustomizationTitle": "توجيه نماذج متقدم",
+  "aiSetupAdvancedCustomizationDescription": "للمستخدمين المتقدمين الذين يريدون أن يستخدم وكلاء مختلفون مزودين أو إعدادات نماذج مختلفة.",
+  "locationProviderSettings": "إعداد مزود الموقع",
+  "speechProviderSettings": "إعداد الكلام التفريغ",
+  "advancedAgentModelAssignments": "تعيينات نماذج الوكلاء",
+  "openAdvancedAgentModelAssignments": "تجاوز وكلاء فرديين",
+  "noConfiguredModelOptions": "أضف مزودا أو مفتاح واجهة البرمجة قبل اختيار أدوار النموذج.",
+  "modelSlotUpdated": "تم تحديث دور النموذج",
+  "aiServiceMemexRouteTitle": "الاتصال عبر Memex",
+  "aiServiceLongDescription": "يستخدم Memex نظاما متعدد الوكلاء لتنظيم سجلات الحياة وملاحظات المعرفة والسياق الاجتماعي، واكتشاف رؤى أعمق، وتقديم رفقة الذكاء الاصطناعي بذاكرة مستمرة. يتم تخزين بياناتك كملفات Markdown نصية، مما يحافظ على حرية البيانات وقابليتها للنقل.",
+  "aiServiceCustomApiRouteTitle": "لدي مفتاح واجهة البرمجة",
+  "aiServiceCustomModelDescription": "اختر هذا أولا إذا كان لديك مفتاح واجهة البرمجة من OpenAI أو Anthropic أو DeepSeek أو Gemini أو مزود آخر.",
+  "enableAiService": "الاتصال بـ Memex",
+  "aiServiceReadyToast": "تنظيم الذكاء الاصطناعي مفعّل",
+  "aiServiceSettingsDescription": "إذا لم يكن لديك مفتاح واجهة البرمجة، فاستخدم حساب Memex للاتصال بخدمات النماذج الشائعة.",
+  "advancedModelConfiguration": "تهيئة مفتاح واجهة البرمجة",
+  "skipForNow": "تخطي الآن",
+  "clearAuth": "مسح التفويض",
+  "authorizing": "جار التفويض...",
+  "authFailed": "فشل التفويض: {error}",
+  "@authFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "authorized": "مفوّض",
+  "config": "الإعداد",
+  "calendar": "التقويم",
+  "reminders": "التذكيرات",
+  "writeToSystemFailed": "فشل الكتابة إلى النظام",
+  "permissionRequired": "إذن {name} مطلوب",
+  "@permissionRequired": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "permissionRationale": "يرجى السماح للتطبيق بالوصول إلى {name} من الإعدادات كي نتمكن من إنشائه لك.",
+  "@permissionRationale": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "goToSettings": "الانتقال إلى الإعدادات",
+  "unknownAction": "إجراء غير معروف",
+  "discoveredCalendarEvent": "تم العثور على حدث تقويم",
+  "discoveredReminder": "تم العثور على تذكير",
+  "addToCalendar": "إضافة إلى التقويم",
+  "addToReminders": "إضافة إلى التذكيرات",
+  "addedToSuccess": "تمت الإضافة إلى {target} بنجاح",
+  "@addedToSuccess": {
+    "placeholders": {
+      "target": {}
+    }
+  },
+  "ignore": "تجاهل",
+  "confirmDelete": "تأكيد الحذف",
+  "confirmDeleteSessionMessage": "حذف هذه المحادثة؟ لا يمكن التراجع عن ذلك.",
+  "delete": "حذف",
+  "deleteSuccess": "تم الحذف بنجاح",
+  "deleteFailed": "فشل الحذف: {error}",
+  "@deleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "daysAgo": "منذ {count} يوم",
+  "chatHistory": "سجل الدردشة",
+  "enterFullScreenTooltip": "دخول ملء الشاشة",
+  "exitFullScreenTooltip": "الخروج من ملء الشاشة",
+  "noConversations": "لا توجد محادثات",
+  "loadSessionListFailed": "فشل تحميل قائمة الجلسات: {error}",
+  "@loadSessionListFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "yesterdayAt": "أمس {time}",
+  "@yesterdayAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "newChat": "دردشة جديدة",
+  "messageCount": "{count} رسائل",
+  "@messageCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "organize": "تنظيم",
+  "pkmCategoryProject": "مشروع (مشروع)",
+  "pkmCategoryProjectSubtitle": "قصير المدى · أهداف · مواعيد نهائية",
+  "pkmCategoryArea": "مجال (مجال)",
+  "pkmCategoryAreaSubtitle": "طويل المدى · مسؤولية · معايير",
+  "pkmCategoryResource": "مورد (مورد)",
+  "pkmCategoryResourceSubtitle": "اهتمامات · إلهام · مخزون",
+  "pkmCategoryArchive": "أرشيف (أرشيف)",
+  "pkmCategoryArchiveSubtitle": "منجز · خامد · مرجع",
+  "recentChanges": "تغييرات حديثة",
+  "noRecentChangesInThreeDays": "لا توجد تغييرات خلال آخر 3 أيام",
+  "unpinned": "غير مثبت",
+  "pinnedStyle": "تم تثبيت النمط",
+  "operationFailed": "فشلت العملية: {error}",
+  "@operationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "refreshingInsightData": "يتم تحديث بيانات الرؤى، قد يستغرق ذلك لحظة...",
+  "refreshFailed": "فشل التحديث: {error}",
+  "@refreshFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sortUpdated": "تم تحديث ترتيب الفرز",
+  "sortSaveFailed": "فشل حفظ الفرز: {error}",
+  "@sortSaveFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "insightCardDeleted": "تم حذف بطاقة الرؤية",
+  "deleteFailedShort": "فشل الحذف: {error}",
+  "@deleteFailedShort": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "knowledgeInsight": "رؤية معرفية",
+  "completeSort": "إكمال الفرز",
+  "noKnowledgeInsight": "لا توجد رؤية معرفية",
+  "insightProcessingBacklogMessage": "ما زالت {count} مهام خلفية قيد المعالجة.",
+  "@insightProcessingBacklogMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "insightUnavailableMessage": "ما زالت هذه الرؤية قيد الإنشاء أو تم تحديثها. حدّث الرؤى وحاول لاحقا.",
+  "noScheduleAggregation": "لا يوجد تجميع جدول",
+  "scheduleAggregationEmptyHint": "اضغط تحديث لتنظيم الجداول والمهام من البطاقات الزمنية الحقيقية.",
+  "scheduleAggregationLoadFailed": "فشل تحميل بيانات الجدول",
+  "scheduleAggregationRefreshFailed": "فشل تحديث بيانات الجدول",
+  "scheduleTaskUpdateFailed": "فشل تحديث المهمة",
+  "scheduleFeatured": "مميز",
+  "scheduleThisWeek": "هذا الأسبوع",
+  "scheduleDone": "تم",
+  "scheduleTbd": "لم يحدد بعد",
+  "scheduleWeekOverview": "هذا الأسبوع",
+  "scheduleImportant": "مهم",
+  "scheduleBriefingTitle": "موجز الجدول",
+  "scheduleBriefingOpen": "فتح",
+  "scheduleBriefingNoData": "لا يوجد موجز جدول بعد",
+  "scheduleBriefingUpdated": "تم التحديث {time}",
+  "@scheduleBriefingUpdated": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "scheduleBriefingDoneCount": "{count} منجز",
+  "@scheduleBriefingDoneCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "updating": "جار التحديث...",
+  "update": "تحديث",
+  "enabled": "مفعّل",
+  "disabled": "معطّل",
+  "appLockOn": "قفل التطبيق مفعّل",
+  "appLockOff": "قفل التطبيق معطّل",
+  "enableAppLockFirst": "يرجى تفعيل قفل التطبيق أولا",
+  "enterFourDigitPassword": "أدخل كلمة مرور من 4 أرقام",
+  "passwordSetAndLockOn": "تم تعيين كلمة المرور وتفعيل قفل التطبيق",
+  "appLockSettings": "إعدادات قفل التطبيق",
+  "enableAppLock": "تفعيل قفل التطبيق",
+  "enableAppLockSubtitle": "كلمة المرور مطلوبة عند تشغيل التطبيق",
+  "enableBiometrics": "تفعيل القياسات الحيوية",
+  "biometricsSubtitle": "استخدم Face ID أو Touch ID لإلغاء القفل",
+  "changePassword": "تغيير كلمة المرور",
+  "setFourDigitPassword": "تعيين كلمة مرور من 4 أرقام",
+  "reenterPasswordToConfirm": "أعد إدخال كلمة المرور للتأكيد",
+  "passwordMismatch": "كلمتا المرور غير متطابقتين. حاول مرة أخرى.",
+  "confirmDeleteCharacter": "حذف الشخصية \"{name}\"؟ لا يمكن التراجع عن ذلك.",
+  "@confirmDeleteCharacter": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "configureAiCharacter": "إعداد شخصية الذكاء الاصطناعي",
+  "addCharacter": "إضافة شخصية",
+  "addCharacterSubtitle": "اختر شخصيات الذكاء الاصطناعي للانضمام إلى فريق الرؤى. ستحلل بيانات حياتك من زوايا مختلفة.",
+  "noCharacters": "لا توجد شخصيات",
+  "loadCharacterFailed": "فشل تحميل الشخصيات: {error}",
+  "@loadCharacterFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "noTags": "لا توجد وسوم",
+  "createSuccess": "تم الإنشاء بنجاح",
+  "updateSuccess": "تم التحديث بنجاح",
+  "saveFailed": "فشل الحفظ: {error}",
+  "@saveFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "newCharacter": "شخصية جديدة",
+  "editCharacter": "تعديل الشخصية",
+  "save": "حفظ",
+  "characterName": "اسم الشخصية",
+  "characterNameHint": "امنح شخصيتك اسما",
+  "pleaseEnterCharacterName": "يرجى إدخال اسم الشخصية",
+  "tagsLabel": "وسوم العلامات",
+  "tagsHint": "مثال: حكمة، إدراك، سياق واسع\nافصل عدة وسوم بفواصل",
+  "characterPersonaLabel": "الشخصية الشخصية",
+  "characterPersonaHint": "ضمّن الشخصية ودليل الأسلوب وحوارا مثاليا وفلاتر معرفة وغير ذلك.\nاستخدم ## لعناوين الأقسام.",
+  "pleaseEnterCharacterPersona": "يرجى إدخال الشخصية الشخصية",
+  "permissionRequestError": "خطأ طلب الإذن: {error}",
+  "@permissionRequestError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "permissionRequiredTitle": "الإذن مطلوب",
+  "permissionPermanentlyDeniedMessage": "لقد رفضت هذا الإذن نهائيا أو يطلبه النظام. يرجى تفعيله من إعدادات النظام.",
+  "getting": "جار الحصول...",
+  "unauthorized": "غير مفوّض",
+  "authorizedGoToSettings": "تم التفويض. انتقل إلى إعدادات النظام للتغيير.",
+  "location": "الموقع",
+  "locationPermissionReason": "لتسجيل الأماكن والميزات المرتبطة بالموقع",
+  "photos": "الصور",
+  "photosPermissionReason": "لاختيار الصور وحفظ الصور المولدة وغير ذلك",
+  "camera": "الكاميرا",
+  "cameraPermissionReason": "لالتقاط الصور والفيديوهات",
+  "microphone": "الميكروفون",
+  "microphonePermissionReason": "للتعرف على الصوت والتسجيل وغير ذلك",
+  "calendarPermissionReason": "لتسجيل الجداول وقراءة أحداث التقويم",
+  "remindersPermissionReason": "لتسجيل وقراءة تذكيراتك",
+  "fitnessAndMotion": "اللياقة والحركة",
+  "fitnessPermissionReason": "لتسجيل بيانات الصحة والحركة",
+  "notification": "الإشعارات",
+  "notificationPermissionReason": "لإرسال الجداول والتذكيرات المهمة",
+  "loadDetailFailedRetryShort": "فشل تحميل التفاصيل، يرجى المحاولة لاحقا.",
+  "total": "الإجمالي",
+  "estimatedCost": "التكلفة المقدرة",
+  "byAgent": "حسب الوكيل",
+  "timeUpdated": "تم تحديث الوقت",
+  "updateFailed": "فشل التحديث: {error}",
+  "@updateFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "locationUpdated": "تم تحديث الموقع",
+  "confirmDeleteCardMessage": "حذف هذه البطاقة؟ لا يمكن التراجع عن ذلك.",
+  "cardDetailNotFound": "لم يتم العثور على تفاصيل البطاقة",
+  "saySomething": "قل شيئا...",
+  "relatedMemories": "ذكريات مرتبطة",
+  "viewMore": "عرض المزيد",
+  "relatedRecords": "سجلات مرتبطة",
+  "reply": "رد",
+  "replySent": "تم إرسال الرد",
+  "insightTemplateGalleryTitle": "قوالب بطاقات الرؤى",
+  "timelineTemplateGalleryTitle": "قوالب بطاقات الخط الزمني",
+  "categoryTextual": "نصي",
+  "timelineFilterAll": "الكل",
+  "insights": "الرؤى",
+  "memoryTitle": "الذاكرة",
+  "longTermProfile": "الملف طويل المدى",
+  "recentBuffer": "المخزن الحديث",
+  "errorLoadingMemory": "خطأ في تحميل الذاكرة: {error}",
+  "@errorLoadingMemory": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "agentConfiguration": "إعداد الوكيل",
+  "resetToDefaults": "إعادة إلى الافتراضيات",
+  "resetAllAgentConfigurationsTitle": "إعادة كل إعدادات الوكلاء",
+  "resetAllAgentConfigurationsMessage": "هل تريد إعادة كل إعدادات الوكلاء إلى قيمها الافتراضية؟ لا يمكن التراجع عن هذا الإجراء.",
+  "resetButton": "إعادة",
+  "loadDataFailed": "فشل تحميل البيانات: {error}",
+  "@loadDataFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "saveConfigFailed": "فشل حفظ الإعداد: {error}",
+  "@saveConfigFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "selectLlmClient": "اختر نموذج اللغة الكبير عميل:",
+  "agentConfigurationsReset": "تمت إعادة إعدادات الوكلاء",
+  "resetFailed": "فشلت الإعادة: {error}",
+  "@resetFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "modelConfiguration": "إعداد النموذج",
+  "resetAllConfigurationsTitle": "إعادة كل الإعدادات",
+  "resetAllModelConfigurationsMessage": "هل تريد إعادة كل إعدادات النماذج إلى قيمها الافتراضية؟ لا يمكن التراجع عن هذا الإجراء.",
+  "modelConfigurationsReset": "تمت إعادة إعدادات النماذج",
+  "cannotDeleteDefaultConfiguration": "لا يمكن حذف الإعداد الافتراضي",
+  "cannotDeleteConfigurationTitle": "لا يمكن حذف الإعداد",
+  "configUsedByAgentsMessage": "هذا الإعداد مستخدم حاليا بواسطة الوكلاء التاليين:\n\n{agentList}\n\nيرجى إعادة تعيين هؤلاء الوكلاء قبل الحذف.",
+  "@configUsedByAgentsMessage": {
+    "placeholders": {
+      "agentList": {}
+    }
+  },
+  "ok": "OK",
+  "deleteConfigurationTitle": "حذف الإعداد",
+  "confirmDeleteConfigMessage": "هل تريد حذف \"{key}\"؟",
+  "@confirmDeleteConfigMessage": {
+    "placeholders": {
+      "key": {}
+    }
+  },
+  "defaultLabel": "افتراضي",
+  "setAsDefault": "تعيينه كافتراضي",
+  "invalidJsonInExtraField": "JSON غير صالح في الحقل الإضافي",
+  "keyAlreadyExists": "المفتاح موجود بالفعل",
+  "resetConfigurationTitle": "إعادة الإعداد",
+  "resetConfigurationMessage": "إعادة هذا الإعداد إلى قيمه الافتراضية الأولى؟ ستفقد التغييرات الحالية.",
+  "configurationResetPressSave": "تمت إعادة الإعداد. اضغط حفظ للتطبيق.",
+  "addConfiguration": "إضافة إعداد",
+  "editConfiguration": "تعديل الإعداد",
+  "duplicateConfiguration": "نسخ الإعداد",
+  "duplicate": "نسخ",
+  "keyIdLabel": "معرف الإعداد",
+  "keyIdHelper": "سم هذا الإعداد، مثل deepseek أو work-gpt.",
+  "required": "مطلوب",
+  "clientLabel": "مزود النموذج",
+  "providerGroupOpenAi": "OpenAI",
+  "providerGroupAnthropic": "Anthropic",
+  "providerGroupGoogle": "Google",
+  "providerGroupOthers": "شائع",
+  "providerOpenAiApiKey": "مفتاح واجهة البرمجة",
+  "providerOpenAiResponses": "مفتاح واجهة البرمجة (وضع Responses)",
+  "providerChatGptOauth": "حساب ChatGPT Pro/Plus",
+  "providerClaudeApiKey": "مفتاح واجهة البرمجة",
+  "providerBedrockSecret": "مفتاح Bedrock السري",
+  "providerGemini": "Gemini",
+  "providerGeminiOauth": "Gemini عبر Google OAuth",
+  "providerKimi": "Kimi من Moonshot",
+  "providerQwen": "مزود Aliyun",
+  "providerSeed": "مزود Volcengine",
+  "providerZhipu": "مزود Zhipu GLM",
+  "providerDeepSeek": "DeepSeek",
+  "providerMinimax": "MiniMax",
+  "providerOpenRouter": "OpenRouter",
+  "providerOllama": "Ollama المحلي",
+  "providerMimo": "Xiaomi MIMO المزود",
+  "providerMemex": "خدمة وكيل Memex",
+  "memexSignIn": "تسجيل الدخول",
+  "memexCreateAccount": "إنشاء حساب",
+  "memexUsername": "اسم المستخدم",
+  "memexPassword": "كلمة المرور",
+  "memexCreateAccountLink": "إنشاء حساب",
+  "memexSignInLink": "تسجيل الدخول بدلا من ذلك",
+  "memexTopUp": "اشحن الرصيد لبدء استخدام Memex الذكاء الاصطناعي",
+  "memexTopUpSuccess": "تم الشحن بنجاح!",
+  "memexFillAllFields": "يرجى ملء كل الحقول",
+  "memexUsernameTooShort": "يجب أن يكون اسم المستخدم 6 أحرف على الأقل",
+  "memexAuthFailed": "فشل التحقق",
+  "memexPaymentFailed": "فشل إنشاء الدفع",
+  "memexLogout": "تسجيل الخروج",
+  "memexTopUpButton": "شحن",
+  "memexTopUpChooseAmount": "اختر مبلغا",
+  "memexTopUpEstimatedRecords": "حوالي {range} سجلات",
+  "@memexTopUpEstimatedRecords": {
+    "placeholders": {
+      "range": {}
+    }
+  },
+  "memexTopUpPlanStarter": "خطة بداية",
+  "memexTopUpPlanEveryday": "خطة يومي",
+  "memexTopUpPlanHighVolume": "خطة مرتفع volume",
+  "memexTopUpPlanCustom": "رصيد مخصص",
+  "memexTopUpPlanStarterSubtitle": "مناسب لتجربة Memex الذكاء الاصطناعي",
+  "memexTopUpPlanEverydaySubtitle": "مناسب للتنظيم المنتظم",
+  "memexTopUpPlanHighVolumeSubtitle": "مناسب للدفعات الكبيرة",
+  "memexTopUpPlanCustomSubtitle": "أدخل USD 1-10,000",
+  "memexTopUpCustomEstimate": "التقدير مبني على المبلغ المدخل",
+  "memexCustomAmount": "مبلغ مخصص",
+  "memexViewHistory": "عرض سجل الاستخدام",
+  "memexBalanceLabel": "الرصيد: {amount}",
+  "@memexBalanceLabel": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "memexConfirmPassword": "تأكيد كلمة المرور",
+  "memexPasswordMismatch": "كلمتا المرور غير متطابقتين",
+  "memexPayAmount": "شحن {amount}",
+  "@memexPayAmount": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "modelIdLabel": "النموذج",
+  "modelIdHelper": "مثال gemini-3.1-pro-preview, gpt-4o",
+  "fetchingModels": "جار جلب النماذج...",
+  "fetchModelsButton": "جلب النماذج",
+  "enterApiKeyFirst": "أدخل مفتاح واجهة البرمجة أولا لجلب النماذج",
+  "apiKeyLabel": "مفتاح واجهة البرمجة",
+  "baseUrlLabel": "واجهة البرمجة نقطة النهاية الرابط",
+  "advancedSettings": "إعدادات متقدمة",
+  "testConnectionSuccess": "نجح الاتصال",
+  "testConnectionFailed": "فشل الاتصال",
+  "testTypeText": "نص",
+  "testTypeVision": "رؤية",
+  "testButton": "اختبار",
+  "testing": "جار الاختبار...",
+  "proxyUrlOptional": "رابط الوكيل (اختياري)",
+  "proxyUrlHelper": "مثال http://127.0.0.1:7890",
+  "temperatureLabel": "قيمة Temperature",
+  "topPLabel": "قيمة Top P",
+  "maxTokensLabel": "حد Max الرموز",
+  "extraParamsJson": "إضافي معلمات بصيغة JSON",
+  "invalidJson": "JSON غير صالح",
+  "warning": "إعداد غير مكتمل",
+  "invalidConfigurationWarning": "الإعداد غير مكتمل بعد (مثل غياب مفتاح واجهة البرمجة أو معرّف النموذج). يمكنك حفظه الآن وتهيئته لاحقا. متابعة؟",
+  "invalidModelConfigDetailed": "يحتاج وكيل الذكاء الاصطناعي \"{agentId}\" إلى إعداد نموذج صالح (مفتاح: \"{configKey}\") للعمل. يرجى فحص إعدادات النموذج.",
+  "discardChangesTitle": "مغادرة هذه الصفحة؟",
+  "discardChangesMessage": "إذا أجريت أي تغييرات، يرجى حفظها قبل المغادرة.",
+  "discardButton": "تجاهل",
+  "chooseLanguage": "اختر اللغة",
+  "chooseAvatar": "اختر الصورة الرمزية",
+  "configureNow": "تهيئة الآن",
+  "modelNotConfiguredBanner": "لم يتم إعداد نموذج الذكاء الاصطناعي بعد. قم بإعداده لفتح كل الميزات.",
+  "modelNotConfiguredSubmitHint": "يرجى إعداد نموذج الذكاء الاصطناعي قبل النشر",
+  "processingStatus": "قيد المعالجة",
+  "failedStatus": "فشل",
+  "failureReason": "سبب الفشل",
+  "unknownError": "حدث خطأ غير معروف",
+  "enableFitness": "تفعيل اللياقة",
+  "fitnessBannerMessage": "اسمح بالوصول إلى اللياقة لتتبع بيانات صحتك ونشاطك.",
+  "fitnessDismissTitle": "تخطي الوصول إلى اللياقة؟",
+  "fitnessDismissMessage": "بدون إذن اللياقة، لن يتمكن التطبيق من جمع بيانات صحتك تلقائيا للرؤى والتسجيل التلقائي.",
+  "skipAnyway": "تخطي رغم ذلك",
+  "proModelHint": "يتطلب هذا النموذج اشتراك ChatGPT Pro/Plus.",
+  "searchKnowledgeBase": "البحث في قاعدة المعرفة...",
+  "searchKnowledgeHint": "أدخل كلمة مفتاحية للبحث في أسماء الملفات أو المحتوى",
+  "noSearchResults": "لا توجد نتائج لـ \"{query}\"",
+  "@noSearchResults": {
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "onlyMarkdownPreview": "تدعم المعاينة Markdown فقط",
+  "backupAndRestore": "النسخ الاحتياطي والاستعادة",
+  "createBackup": "إنشاء نسخة احتياطية",
+  "restoreBackup": "استعادة نسخة احتياطية",
+  "backupDescription": "اجمع كل بياناتك (البطاقات، قاعدة المعرفة، الرؤى، الإعدادات) في ملف .memex. احفظه في iCloud Drive أو Google Drive أو أي مكان عبر قائمة المشاركة.",
+  "restoreDescription": "اختر ملف .memex نسخة احتياطية لاستعادة كل البيانات. سيستبدل هذا البيانات الحالية.",
+  "selectBackupFile": "اختر ملف النسخة الاحتياطية",
+  "estimatedSize": "الحجم المقدر",
+  "backupComplete": "تم إنشاء النسخة الاحتياطية",
+  "backupFailed": "فشل النسخ الاحتياطي: {error}",
+  "@backupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "confirmRestore": "تأكيد الاستعادة",
+  "confirmRestoreMessage": "ستستبدل الاستعادة كل البيانات الحالية بما فيها البطاقات وقاعدة المعرفة والرؤى والإعدادات. لا يمكن التراجع عن ذلك. متابعة؟",
+  "restoreComplete": "اكتملت الاستعادة",
+  "restoreRestartHint": "تمت استعادة البيانات. يرجى إعادة تشغيل التطبيق لتطبيق كل التغييرات.",
+  "restoreFailed": "فشلت الاستعادة: {error}",
+  "@restoreFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "invalidBackupFile": "ملف النسخة الاحتياطية غير صالح. يرجى اختيار ملف .memex.",
+  "automaticBackup": "نسخ احتياطي تلقائي",
+  "autoBackupDescription": "عند التفعيل، ينشئ Memex لقطة محلية واحدة على الأكثر يوميا بعد بدء التشغيل أو عند العودة إلى المقدمة.",
+  "backupSensitiveSettingsHint": "تتضمن النسخ الاحتياطية الإعدادات ومفاتيح مزودي النماذج. احتفظ بملفات النسخ في مكان تثق به.",
+  "backupLocation": "الموقع",
+  "backupLocationDetails": "تفاصيل الموقع",
+  "backupLocationSummary": "يظهر داخل التطبيق",
+  "backupLocationFullPath": "المسار الكامل",
+  "backupLocationUri": "URI للوصول إلى المجلد",
+  "copyBackupLocationPath": "نسخ المسار",
+  "backupLocationCopied": "تم نسخ موقع النسخة الاحتياطية",
+  "androidBackupLocationSelected": "المجلد المحدد: {folderName}",
+  "@androidBackupLocationSelected": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "iosICloudBackupLocation": "iCloud Drive > Memex > Backups",
+  "iosAppDocumentsBackupLocation": "ملفات > On My iPhone > Memex > Backups مجلد",
+  "autoBackupStatus": "الحالة",
+  "noAutoBackupYet": "لا توجد نسخة احتياطية تلقائية بعد",
+  "lastBackupAt": "آخر نسخة احتياطية: {time}",
+  "@lastBackupAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "autoBackupRetention": "الاحتفاظ",
+  "autoBackupRetentionDays": "{days} يوم",
+  "@autoBackupRetentionDays": {
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "autoBackupRetentionForever": "احتفظ بها دائما",
+  "autoBackupMaxSize": "حد التخزين",
+  "autoBackupRetentionLimitHint": "يحافظ التنظيف التلقائي على اللقطات التلقائية تحت {size}. يتم الاحتفاظ بلقطات الأمان والتصدير اليدوي بشكل منفصل.",
+  "@autoBackupRetentionLimitHint": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "createSnapshotNow": "نسخ احتياطي الآن",
+  "backupLocationMenu": "تغيير الموقع",
+  "defaultBackupLocation": "مجلد النسخ الافتراضي",
+  "defaultBackupLocationAndroidDesc": "استخدم مجلد الملفات الخارجية الخاص بتطبيق Memex. لا حاجة إلى إذن التخزين.",
+  "chooseBackupLocation": "اختر مجلد النسخ الاحتياطي",
+  "chooseBackupLocationAndroidDesc": "اختر مجلدا عبر منتقي Android وامنح Memex وصولا دائما.",
+  "storedBackups": "النسخ المحفوظة",
+  "noStoredBackups": "ستظهر النسخ التلقائية هنا بعد أول لقطة.",
+  "backupTypeAutoSnapshot": "لقطة تلقائية",
+  "backupTypeSafetySnapshot": "لقطة أمان",
+  "backupTypeManualBackup": "نسخ يدوي",
+  "refresh": "تحديث",
+  "restoreThisBackup": "استعادة هذه النسخة",
+  "deleteThisBackup": "حذف هذه النسخة",
+  "confirmDeleteBackup": "حذف النسخة الاحتياطية؟",
+  "confirmDeleteBackupMessage": "حذف {fileName}؟ سيؤدي ذلك إلى إزالة ملف النسخة المحفوظ ولا يمكن التراجع عنه.",
+  "@confirmDeleteBackupMessage": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupDeleted": "تم حذف النسخة: {fileName}",
+  "@backupDeleted": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupDeleteFailed": "تعذر حذف النسخة الاحتياطية: {error}",
+  "@backupDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "creatingSafetySnapshot": "إنشاء لقطة أمان...",
+  "autoBackupCreated": "تم إنشاء اللقطة: {fileName}",
+  "@autoBackupCreated": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupLocationFailed": "تعذر تحديث موقع النسخة الاحتياطية: {error}",
+  "@backupLocationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "backupImportCreatedAt": "تم الإنشاء",
+  "backupImportSourceVersion": "إصدار المصدر",
+  "backupImportFlavor": "البنية",
+  "backupLegacyFormat": "نسخة قديمة (بدون manifest)",
+  "restoreInProgress": "جار استعادة النسخة...",
+  "dataStorage": "تخزين البيانات",
+  "dataStorageDescriptionAndroid": "اختر مجلدا مخصصا لتخزين مساحة العمل. تبقى البيانات عند إعادة تثبيت التطبيق.",
+  "dataStorageDescriptionIOS": "فعّل iCloud لمزامنة مساحة العمل بين الأجهزة والحفاظ على البيانات بعد إعادة التثبيت.",
+  "storageLocationApp": "تخزين التطبيق",
+  "storageLocationAppDesc": "يتم تخزين البيانات داخل التطبيق وستحذف عند إلغاء التثبيت.",
+  "storageLocationCustom": "تخزين الجهاز (مجلد مخصص)",
+  "storageLocationCustomDesc": "خزن البيانات في مجلد تختاره. تبقى البيانات بعد إعادة التثبيت إذا بقي المجلد.",
+  "storageLocationICloud": "التخزين في iCloud",
+  "storageLocationICloudDesc": "زامن مساحة العمل بين أجهزة Apple. تبقى البيانات بعد إعادة التثبيت.",
+  "storageLocationCurrent": "الحالي: {location}",
+  "@storageLocationCurrent": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "icloudRequiresCapability": "سجل الدخول إلى iCloud وفعّل iCloud Drive لاستخدام تخزين iCloud.",
+  "loadingFromICloud": "استعادة البيانات من iCloud…",
+  "switchingToICloud": "الانتقال إلى تخزين iCloud…",
+  "switchingStorage": "تبديل التخزين…",
+  "customFolderAccessDenied": "لا يمكن قراءة هذا المجلد أو الكتابة إليه. يرجى منح إذن التخزين أو اختيار موقع آخر.",
+  "configured": "مهيأ",
+  "apiKeyNotSet": "لم يتم تعيين مفتاح واجهة البرمجة — اضغط للتهيئة",
+  "bottomNavTimeline": "تبويب الخط الزمني",
+  "bottomNavLibrary": "تبويب المكتبة",
+  "aiGeneratedLabel": "مولد بواسطة الذكاء الاصطناعي",
+  "sourceTraceWithCount": "تتبع المصدر ({count})",
+  "@sourceTraceWithCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "deleteAccount": "حذف الحساب",
+  "deleteAccountDesc": "حذف كل البيانات المحلية نهائيا وإعادة ضبط التطبيق.",
+  "deleteAccountConfirmTitle": "حذف الحساب؟",
+  "deleteAccountConfirmMessage": "سيؤدي ذلك إلى حذف كل بياناتك نهائيا بما في ذلك بطاقات الخط الزمني وقاعدة المعرفة والتسجيلات والإعدادات. لا يمكن التراجع عن هذا الإجراء.",
+  "deleteAccountTypeName": "اكتب \"{name}\" للتأكيد",
+  "@deleteAccountTypeName": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleteAccountTypeHint": "أدخل اسم المستخدم للتأكيد",
+  "llmConsentTitle": "الموافقة على مشاركة البيانات",
+  "llmConsentMessage": "لتفعيل ميزات الذكاء الاصطناعي، يحتاج Memex إلى إرسال بياناتك إلى {provider} للمعالجة. يشمل ذلك:\n\n• النص الذي تدخله (الملاحظات، تفريغ الصوت)\n• بيانات الصور والنص المستخرج (التعرف الضوئي على النصوص)\n• ملخصات الصحة واللياقة\n• محتوى بطاقات الخط الزمني\n\nيتم إرسال بياناتك مباشرة من جهازك إلى {provider}. لا يخزن Memex بياناتك ولا يمررها عبر أي خادم آخر.\n\nيرجى مراجعة سياسة خصوصية {provider} لمعرفة كيفية التعامل مع بياناتك.\n\nهل توافق على إرسال بياناتك إلى {provider} لمعالجة الذكاء الاصطناعي؟",
+  "@llmConsentMessage": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "llmConsentAgree": "أوافق",
+  "llmConsentDecline": "رفض",
+  "customAgents": "وكلاء مخصصون",
+  "noCustomAgents": "لا يوجد وكلاء مخصصون مهيؤون.",
+  "deleteAgent": "حذف الوكيل",
+  "deleteAgentConfirm": "حذف الوكيل المخصص \"{name}\"؟",
+  "@deleteAgentConfirm": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleted": "تم الحذف",
+  "saved": "تم الحفظ",
+  "newAgent": "وكيل جديد",
+  "editAgent": "تعديل الوكيل",
+  "agentName": "اسم الوكيل",
+  "agentNameHint": "my-custom-agent",
+  "agentNameRequired": "مطلوب",
+  "agentNameInvalid": "أحرف وأرقام وشرطات فقط",
+  "agentNameExists": "الاسم موجود بالفعل",
+  "hostAgentType": "نوع الوكيل المضيف",
+  "skillDirectory": "مجلد المهارة",
+  "skillDirInvalid": "يجب أن يكون مسارا نسبيا (بدون / في البداية أو ..)",
+  "workingDirectory": "مجلد العمل (اختياري)",
+  "workingDirectoryHint": "اتركه فارغا لاستخدام workspace الافتراضي",
+  "llmConfig": "إعداد نموذج اللغة الكبير",
+  "eventType": "نوع الحدث",
+  "executionMode": "وضع التنفيذ",
+  "executionModeAsync": "غير متزامن",
+  "executionModeSync": "متزامن",
+  "dependsOn": "يعتمد على",
+  "dependsOnHint": "اختر الاعتمادات",
+  "priority": "الأولوية",
+  "maxRetries": "أقصى محاولات",
+  "systemPromptLabel": "الموجه النظامي (اختياري)",
+  "systemPromptHint": "تعليمات إضافية تلحق بموجه الوكيل المضيف",
+  "eventSerializer": "مسلسل الحدث",
+  "eventSerializerDefault": "المسلسل الافتراضي (XML)",
+  "enabledLabel": "مفعّل",
+  "skillsManagement": "إدارة المهارات",
+  "skillsManagementEmpty": "لا توجد مهارات بعد",
+  "downloadSkill": "تحميل مهارة",
+  "downloading": "جار التحميل...",
+  "downloadSuccess": "تم تحميل المهارة بنجاح",
+  "downloadFailed": "فشل التحميل: {error}",
+  "@downloadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "deleteConfirm": "تأكيد الحذف",
+  "deleteConfirmMessage": "هل تريد حذف \"{name}\"؟",
+  "@deleteConfirmMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidUrl": "يرجى إدخال الرابط صالح",
+  "urlHint": "https://example.com/skill.zip",
+  "newFolder": "مجلد جديد",
+  "newFile": "ملف جديد",
+  "folderName": "اسم المجلد",
+  "fileName": "اسم الملف",
+  "nameRequired": "الاسم مطلوب",
+  "nameInvalid": "لا يمكن أن يحتوي الاسم على / أو ..",
+  "createFailed": "فشل الإنشاء: {error}",
+  "@createFailed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "fileContent": "محتوى الملف",
+  "saveSuccess": "تم الحفظ بنجاح",
+  "downloadToCurrentDir": "سيتم استخراج zip إلى المجلد الحالي: {dir}",
+  "@downloadToCurrentDir": {
+    "placeholders": {
+      "dir": {
+        "type": "String"
+      }
+    }
+  },
+  "privacyPolicy": "سياسة الخصوصية",
+  "privacyPolicyDesc": "كيف يتعامل Memex مع بياناتك",
+  "llmAuthError": "فشل التحقق من واجهة البرمجة. يرجى فحص إعداد نموذج اللغة الكبير في الإعدادات.",
+  "llmBadRequestError": "رفض مزود نموذج اللغة الكبير الطلب. قد لا يدعم النموذج الحالي صيغة الإدخال.",
+  "llmRateLimitError": "تم تجاوز حد واجهة البرمجة. يرجى المحاولة لاحقا.",
+  "llmServerError": "خدمة نموذج اللغة الكبير غير متاحة مؤقتا. يرجى المحاولة لاحقا.",
+  "llmNetworkError": "فشل الاتصال بالشبكة. يرجى فحص اتصال الإنترنت.",
+  "llmUnknownError": "حدث خطأ غير متوقع أثناء معالجة المحتوى.",
+  "llmErrorDialogTitle": "فشلت المعالجة",
+  "goToModelConfig": "الانتقال إلى الإعدادات",
+  "speechModelDownloadTitle": "تحميل نموذج الكلام",
+  "speechModelDownloadDesc": "يلزم تحميل النموذج مرة واحدة (~{sizeMB}MB).\n\nبعد التحميل، يعمل التفريغ بالكامل على الجهاز.",
+  "@speechModelDownloadDesc": {
+    "placeholders": {
+      "sizeMB": {}
+    }
+  },
+  "speechModelStartDownload": "بدء التحميل",
+  "speechModelChooseSource": "اختر مصدر التحميل:",
+  "speechModelChinaMirror": "🇨🇳 مرآة الصين (أسرع في CN)",
+  "speechModelGithub": "🌐 GitHub (المصدر العالمي)",
+  "speechModelDownloading": "جار تحميل النموذج...",
+  "speechModelConnecting": "جار الاتصال...",
+  "deleteSpeechModel": "حذف نموذج الكلام",
+  "confirmDeleteSpeechModelMessage": "حذف ملفات نموذج التعرف على الكلام المحلي المحملة؟ سيتم تحميلها مرة أخرى في المرة التالية التي تستخدم فيها محلي تحويل الكلام إلى نص.",
+  "speechModelDeletedSuccess": "تم حذف ملفات نموذج الكلام",
+  "speechModelNotDownloaded": "لم يتم العثور على ملفات نموذج الكلام محملة",
+  "speechModelDeleteFailed": "فشل حذف ملفات نموذج الكلام: {error}",
+  "@speechModelDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "speechTranscribing": "جار التعرف...",
+  "speechNoResult": "لم يتم اكتشاف كلام",
+  "useLocalSpeechToTextTitle": "استخدام تحويل الكلام إلى نص محليا",
+  "useLocalSpeechToTextDesc": "عند التفعيل، يتم تفريغ الصوت على الجهاز قبل الإرسال — مفيد للنماذج التي لا تدعم إدخال الصوت. عند التعطيل، يرسل الصوت الأصلي مباشرة إلى النموذج.",
+  "pendingAiProcessingHint": "قم بإعداد نموذج الذكاء الاصطناعي للمعالجة",
+  "demoWelcome": "مرحبا بك في Memex!\nلنأخذ جولة سريعة عما يستطيع الذكاء الاصطناعي فعله لسجلاتك.",
+  "demoTapAdd": "اضغط هنا لإنشاء أول سجل",
+  "demoTapSend": "اضغط لإرسال أول سجل",
+  "demoTapCard": "اضغط لترى كيف نظم الذكاء الاصطناعي سجلك",
+  "demoTapInsight": "اضغط لرؤية الرؤى المولدة بواسطة الذكاء الاصطناعي",
+  "demoTapInsightUpdate": "اضغط لتوليد رؤى من سجلاتك",
+  "demoTapKnowledge": "راجع ملفات المعرفة المنظمة تلقائيا",
+  "demoDone": "ابدأ تسجيل حياتك.",
+  "demoStartTour": "بدء الجولة",
+  "demoGetStarted": "ابدأ",
+  "demoSkip": "تخطي",
+  "demoPrefillText": "مرحبا Memex! هذا هو سجلي الأول 🎉",
+  "visionBadge": "رؤية",
+  "notMultimodalHint": "يعتمد Memex على قدرات النماذج متعددة الوسائط لتحليل الوسائط. إذا احتوت سجلاتك على صور، فتأكد من أن النموذج المهيأ يدعم إدخال الصور.",
+  "defaultModelPrefix": "افتراضي",
+  "recommendedBadge": "موصى به",
+  "readOnlyBadge": "CHAT",
+  "switchCompanion": "تبديل الرفيق",
+  "personaChatInputHint": "اكتب رسالة...",
+  "today": "اليوم",
+  "tomorrow": "غدا",
+  "yesterday": "أمس",
+  "showInsightTextTitle": "عرض تعليق رؤية Memex",
+  "showInsightTextDesc": "هل يتم عرض رؤية Memex كتعليق مثبت في قسم تعليقات تفاصيل البطاقة.",
+  "enableCharacterCommentTitle": "تعليق الشخصيات تلقائيا",
+  "enableCharacterCommentDesc": "تعلق الشخصيات تلقائيا على السجلات الجديدة.",
+  "maxCommentCharactersTitle": "أقصى عدد شخصيات معلقة",
+  "maxCommentCharactersDesc": "كم شخصية يمكنها التعليق على كل سجل.",
+  "replyTo": "رد على {name}",
+  "@replyTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "cdnSignalsComments": "تم تلقي رد جديد",
+  "cdnSignalsInsight": "تم توليد رؤية جديدة",
+  "cdnSignalsBoth": "رد جديد ورؤية جديدة",
+  "untitledCard": "بطاقة بلا عنوان",
+  "locationContextTitle": "سياق الموقع",
+  "locationContextDescription": "سياق المدينة والحي الحالي لدردشة الوكيل",
+  "locationContextAttachTitle": "إرفاق الموقع الحالي بالدردشة",
+  "locationContextAttachDesc": "يستخدم نظام تحديد المواقع للجهاز والترميز الجغرافي العكسي لتوفير سياق المدينة والمنطقة والحي للوكيل.",
+  "reverseGeocodingProvider": "مزود الترميز الجغرافي العكسي",
+  "amapProviderName": "Amap",
+  "amapApiKey": "Amap مفتاح واجهة البرمجة value",
+  "amapGcj02Note": "يستخدم Amap إحداثيات GCJ-02. يتم تحويل نظام تحديد المواقع الجهاز قبل الترميز الجغرافي العكسي.",
+  "contextGranularity": "دقة السياق",
+  "granularityCity": "مدينة",
+  "granularityDistrict": "منطقة",
+  "granularityNeighborhood": "حي",
+  "granularityStreet": "شارع",
+  "granularityFullAddress": "مرشح العنوان الكامل",
+  "locationFreshness": "حداثة الموقع",
+  "minutesShort": "{minutes} دقائق",
+  "@minutesShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "oneHour": "ساعة واحدة",
+  "testCurrentLocation": "اختبار الموقع الحالي",
+  "locationTestFailed": "فشل: {error}",
+  "@locationTestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "locationDebugGps": "نظام تحديد المواقع",
+  "locationDebugReverseGeocode": "خطوة الترميز الجغرافي العكسي",
+  "locationDebugProvider": "المزود",
+  "locationDebugAgentContext": "سياق الوكيل",
+  "locationDebugSource": "المصدر",
+  "locationDebugAddressSummary": "ملخص العنوان",
+  "locationDebugFullAddress": "العنوان الكامل",
+  "locationDebugCoordinates": "الإحداثيات",
+  "locationDebugAccuracy": "الدقة",
+  "locationDebugReason": "السبب",
+  "locationDebugOk": "OK",
+  "locationDebugUnavailable": "غير متاح",
+  "locationDebugInjected": "تم الحقن",
+  "locationDebugNotInjected": "لم يتم الحقن",
+  "locationStatusUpdatedAt": "تم التحديث",
+  "locationStatusSuccessTitle": "الموقع الحالي جاهز",
+  "locationStatusSuccessBody": "يمكن لـ Memex إرفاق ملخص الموقع هذا عندما يكون سياق الموقع مناسبا.",
+  "locationStatusApproximateTitle": "الموقع تقريبي فقط",
+  "locationStatusApproximateBody": "تبدو الدقة على مستوى المدينة أو المنطقة. يمكنك الاستمرار في استخدامه، أو تفعيل الموقع الدقيق في إعدادات النظام لسياق أدق.",
+  "locationStatusServiceDisabledTitle": "موقع النظام متوقف",
+  "locationStatusServiceDisabledBody": "يستخدم Memex نظام تحديد المواقع في الجهاز فقط، ولن يستنتج الموقع من الشبكة أو IP. على Android افتح إعدادات الموقع؛ وعلى iOS فعّل الإعدادات > الخصوصية والأمان > خدمات الموقع.",
+  "locationStatusPermissionDeniedTitle": "إذن الموقع مطلوب",
+  "locationStatusPermissionDeniedBody": "اسمح لـ Memex باستخدام الموقع أثناء الاختبار أو عندما يكون سياق الموقع مطلوبا. لا يتم طلب الوصول الدائم.",
+  "locationStatusPermissionForeverTitle": "إذن الموقع محظور",
+  "locationStatusPermissionForeverBody": "افتح إعدادات التطبيق واسمح بالموقع لـ Memex. على iOS يكفي أثناء استخدام التطبيق.",
+  "locationStatusDisabledTitle": "سياق الموقع متوقف",
+  "locationStatusDisabledBody": "فعّل المفتاح أعلاه واحفظ عندما تريد أن يرفق Memex موقع الجهاز بسياق الوكيل.",
+  "locationStatusGeocodeUnavailableTitle": "نظام تحديد المواقع يعمل، لكن بحث العنوان فشل",
+  "locationStatusGeocodeUnavailableBody": "لدى Memex إحداثيات لكنه لن يحقن سياق نظام تحديد المواقع-فقط في الوكيل. افحص مزود الترميز الجغرافي العكسي وحاول مرة أخرى.",
+  "locationStatusUnavailableTitle": "الموقع غير متاح",
+  "locationStatusUnavailableBody": "افحص خدمات موقع النظام وإذن التطبيق، ثم اختبر مرة أخرى.",
+  "allowLocationPermissionButton": "السماح بإذن الموقع",
+  "openAppSettingsButton": "فتح إعدادات التطبيق",
+  "openLocationSettingsButton": "فتح إعدادات الموقع",
+  "locationSettingsOpenFailed": "تعذر فتح إعدادات النظام.",
+  "locationActionFailed": "فشل إجراء الموقع: {error}",
+  "@locationActionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSearchPlaceholder": "البحث في الإعدادات...",
+  "settingsSearchEmpty": "لم يتم العثور على إعدادات مطابقة",
+  "importCharacterCard": "استيراد بطاقة شخصية",
+  "firstMessageLabel": "الرسالة الأولى",
+  "firstMessageHint": "التحية المرسلة في أول محادثة (اختياري)",
+  "systemPromptOverrideLabel": "تجاوز الموجه النظامي",
+  "systemPromptOverrideHint": "تجاوز الموجه النظامي الافتراضي (متقدم، اختياري)",
+  "postHistoryInstructionsLabel": "تعليمات بعد السجل",
+  "postHistoryInstructionsHint": "تعليمات تحقن بعد سجل الدردشة وقبل الرد (اختياري)",
+  "mesExampleLabel": "أمثلة الرسائل",
+  "mesExampleHint": "حوارات مثال تعرض أسلوب الشخصية (اختياري)",
+  "worldBookTitle": "كتاب العالم",
+  "worldBookSubtitle": "معرفة خلفية تحقن عند تشغيل الكلمات المفتاحية",
+  "characterMemoryTitle": "ذاكرة الشخصية",
+  "characterMemorySubtitle": "ديناميكيات العلاقة وذكريات التفاعل بين الشخصية والمستخدم",
+  "addTooltip": "إضافة",
+  "constantBadge": "ثابت",
+  "worldEntryFallbackName": "إدخال {index} اسم",
+  "@worldEntryFallbackName": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "keywordsPrefix": "الكلمات المفتاحية: {keys}",
+  "@keywordsPrefix": {
+    "placeholders": {
+      "keys": {}
+    }
+  },
+  "memoryFallbackName": "ذاكرة {index} اسم",
+  "@memoryFallbackName": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "addWorldEntry": "إضافة كتاب العالم إدخال",
+  "editWorldEntry": "تعديل كتاب العالم إدخال",
+  "commentTitleLabel": "تعليق / عنوان",
+  "entryDescriptionHint": "وصف إدخال (اختياري)",
+  "triggerKeywordsLabel": "كلمات تشغيل",
+  "triggerKeywordsHint": "مفصولة بفواصل، مثل: سحر، تعويذة",
+  "contentLabel": "المحتوى",
+  "worldEntryContentHint": "معرفة خلفية تحقن عندما تعمل الكلمات المفتاحية",
+  "enabledCheckbox": "مفعّل",
+  "addMemory": "إضافة ذاكرة",
+  "editMemory": "تعديل الذاكرة",
+  "memoryLabelField": "تسمية اسم",
+  "memoryLabelHint": "معرّف فريد، مثال: تفضيل الاسم",
+  "memoryContentHint": "محتوى الذاكرة",
+  "salienceLabel": "الأهمية: ",
+  "labelCannotBeEmpty": "لا يمكن أن يكون تسمية فارغا",
+  "importSuccess": "تم استيراد {name} بنجاح",
+  "@importSuccess": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "importFailed": "فشل الاستيراد: {error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "supportedFormats": "الصيغ المدعومة",
+  "tavernImportDescription": "• بطاقات شخصيات SillyTavern V2 (.json)\n• صور PNG تتضمن بطاقات مدمجة (.png)\n\nسيتم تعيين حقول مثل الشخصية وworld كتاب وغيرها تلقائيا إلى صيغة شخصية Memex.",
+  "pickCharacterFile": "اختر ملف الشخصية",
+  "repickFile": "اختر ملفا آخر",
+  "personaSettingSection": "الشخصية",
+  "systemPromptSection": "الموجه النظامي",
+  "worldEntriesCount": "كتاب العالم: {count} إدخالات إجمالا",
+  "@worldEntriesCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "fileLabel": "الملف: {filename}",
+  "@fileLabel": {
+    "placeholders": {
+      "filename": {}
+    }
+  },
+  "conflictWarning": "توجد شخصية بنفس الاسم بالفعل: {names}. سيؤدي الاستيراد إلى إنشاء شخصية جديدة دون الكتابة فوق الموجودة.",
+  "@conflictWarning": {
+    "placeholders": {
+      "names": {}
+    }
+  },
+  "setPrimaryCompanionTitle": "تعيين كرفيق أساسي",
+  "setPrimaryCompanionSubtitle": "تعيينه تلقائيا كرفيقك الأساسي بعد الاستيراد",
+  "confirmImport": "تأكيد الاستيراد",
+  "chatBackground": "خلفية الدردشة",
+  "chooseChatBackgroundImage": "اختر صورة خلفية",
+  "earlyUpdateSettingsTitle": "تحديثات الوصول المبكر",
+  "earlyUpdateSettingsDesc": "تحقق من إصدارات GitHub التمهيدية لملف الوصول المبكر APK المطابق، ثم حمله ومرره إلى مثبت Android.",
+  "earlyUpdateUnsupported": "تحديثات الوصول المبكر متاحة فقط في Android إصدار الوصول المبكر.",
+  "earlyUpdateAutoCheckTitle": "فحص التحديثات تلقائيا",
+  "earlyUpdateAutoCheckDesc": "افحص عند بدء التشغيل مرة واحدة على الأكثر كل 12 ساعة.",
+  "earlyUpdateWifiOnlyTitle": "التحميل عبر Wi-Fi فقط",
+  "earlyUpdateWifiOnlyDesc": "تخطي تحميل التحديثات أثناء استخدام بيانات الهاتف.",
+  "earlyUpdateAutoInstallTitle": "تحميل وتثبيت تلقائي",
+  "earlyUpdateAutoInstallDesc": "عند العثور على البنية جديد، حمله وافتح مثبت Android تلقائيا.",
+  "earlyUpdateCheckNow": "فحص الآن",
+  "earlyUpdateChecking": "جار فحص إصدارات GitHub التمهيدية...",
+  "earlyUpdateSkippedMobile": "تم التخطي لأن تحميلات Wi-Fi-فقط مفعلة.",
+  "earlyUpdateNoUpdate": "أنت على آخر إصدار الوصول المبكر بالفعل.",
+  "earlyUpdateFound": "إصدار الوصول المبكر {version}+{build} متاح.",
+  "@earlyUpdateFound": {
+    "placeholders": {
+      "version": {},
+      "build": {}
+    }
+  },
+  "earlyUpdateDownloadAndInstall": "تحميل وتثبيت",
+  "earlyUpdateDownloadInProgress": "جار تحميل التحديث...",
+  "earlyUpdateDownloadingPercent": "جار تحميل التحديث: {percent}%",
+  "@earlyUpdateDownloadingPercent": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "earlyUpdateDownloadReadyToInstall": "تم تحميل حزمة التحديث. جاهزة للتثبيت.",
+  "earlyUpdateInstallDownloadedPackage": "تثبيت الحزمة المحملة",
+  "earlyUpdateClearDownloadedPackage": "مسح الحزمة المحملة",
+  "earlyUpdateClearDownloadedPackageSuccess": "تم مسح حزمة التحديث المحملة.",
+  "earlyUpdateInstallStarted": "تم فتح مثبت Android.",
+  "earlyUpdateInstallPermissionRequired": "اسمح لـ Memex بتثبيت تطبيقات غير معروفة، ثم اضغط تنزيل و تثبيت مرة أخرى.",
+  "earlyUpdateLastChecked": "آخر فحص: {time}",
+  "@earlyUpdateLastChecked": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "earlyUpdateCheckFailed": "فشل فحص التحديث: {error}",
+  "@earlyUpdateCheckFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "earlyUpdateDialogTitle": "تحديث الوصول المبكر متاح",
+  "earlyUpdateReleaseNotes": "ملاحظات الإصدار",
+  "dismissAllNotifications": "مسح الكل",
+  "dismissByType": "مسح حسب النوع",
+  "dismissTypeSystemAction": "التذكيرات والأحداث",
+  "dismissTypeClarification": "التوضيحات",
+  "dismissTypeCardUpdate": "تحديثات البطاقات",
+  "dismissedCount": "تم مسح {count}",
+  "@dismissedCount": {
+    "placeholders": {
+      "count": {}
+    }
+  }
+}

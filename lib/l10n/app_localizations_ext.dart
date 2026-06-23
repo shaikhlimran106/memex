@@ -1,8 +1,19 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 import 'app_localizations.dart';
+import 'app_localizations_ext_ar.dart';
+import 'app_localizations_ext_de.dart';
 import 'app_localizations_ext_en.dart';
+import 'app_localizations_ext_es.dart';
+import 'app_localizations_ext_fr.dart';
+import 'app_localizations_ext_hi.dart';
+import 'app_localizations_ext_id.dart';
+import 'app_localizations_ext_ja.dart';
+import 'app_localizations_ext_ko.dart';
+import 'app_localizations_ext_pt.dart';
+import 'app_localizations_ext_ru.dart';
 import 'app_localizations_ext_zh.dart';
+import 'app_localizations_ext_zh_hant.dart';
 import 'package:flutter/material.dart';
 
 // ignore_for_file: type=lint
@@ -56,10 +67,40 @@ mixin AppLocalizationsExt on AppLocalizations {
 
 /// Standalone function to lookup AppLocalizationsExt instances by locale.
 AppLocalizationsExt lookupAppLocalizationsExt(Locale locale) {
+  // Lookup logic when language+script codes are specified.
+  if (locale.languageCode == 'zh' &&
+      (locale.scriptCode == 'Hant' ||
+          locale.countryCode == 'Hant' ||
+          locale.countryCode == 'TW' ||
+          locale.countryCode == 'HK' ||
+          locale.countryCode == 'MO')) {
+    return AppLocalizationsExtZhHant();
+  }
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
+    case 'ar':
+      return AppLocalizationsExtAr();
+    case 'de':
+      return AppLocalizationsExtDe();
     case 'en':
       return AppLocalizationsExtEn();
+    case 'es':
+      return AppLocalizationsExtEs();
+    case 'fr':
+      return AppLocalizationsExtFr();
+    case 'hi':
+      return AppLocalizationsExtHi();
+    case 'id':
+      return AppLocalizationsExtId();
+    case 'ja':
+      return AppLocalizationsExtJa();
+    case 'ko':
+      return AppLocalizationsExtKo();
+    case 'pt':
+      return AppLocalizationsExtPt();
+    case 'ru':
+      return AppLocalizationsExtRu();
     case 'zh':
       return AppLocalizationsExtZh();
   }

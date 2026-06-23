@@ -1,0 +1,1483 @@
+{
+  "@@locale": "hi",
+  "timesLabel": "बार",
+  "modelSetAsDefault": "{modelId} को डिफ़ॉल्ट मॉडल बनाएं",
+  "@modelSetAsDefault": {
+    "placeholders": {
+      "modelId": {}
+    }
+  },
+  "retry": "फिर कोशिश करें",
+  "unknownModel": "अज्ञात मॉडल",
+  "notSet": "सेट नहीं है",
+  "confirmClear": "साफ़ करने की पुष्टि करें",
+  "confirmClearTokenMessage": "मौजूदा यूज़र साफ़ करें? आपको यूज़र ID फिर से दर्ज करनी होगी।",
+  "cancel": "रद्द करें",
+  "confirm": "पुष्टि करें",
+  "tokenCleared": "यूज़र साफ़ किया गया",
+  "clearTokenFailed": "यूज़र साफ़ नहीं हो सका: {error}",
+  "@clearTokenFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "selectDateRangeOptional": "तारीख़ सीमा चुनें (वैकल्पिक):",
+  "startDate": "शुरू तारीख़",
+  "endDate": "समाप्ति तारीख़",
+  "select": "चुनें",
+  "processLimitOptional": "प्रोसेसिंग सीमा (वैकल्पिक)",
+  "leaveEmptyForAll": "सब प्रोसेस करने के लिए खाली छोड़ें",
+  "startProcessing": "प्रोसेसिंग शुरू करें",
+  "userIdNotFound": "यूज़र ID नहीं मिली",
+  "createTaskFailed": "टास्क नहीं बन सका: {error}",
+  "@createTaskFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "reprocessCards": "कार्ड फिर से प्रोसेस करें",
+  "reprocessCardsTaskCreated": "रीप्रोसेस अनुरोध सुपर एजेंट में कतारबद्ध हुआ",
+  "reprocessCardsDownstreamMode": "दायरा",
+  "reprocessCardsCardOnly": "सिर्फ़ कार्ड",
+  "reprocessCardsCardOnlyDesc": "सुपर एजेंट से चुने हुए टाइमलाइन कार्ड की समीक्षा और पुनर्जनन करवाएं।",
+  "reprocessCardsRerunDownstream": "कार्ड और संबंधित फ़ॉलो-अप",
+  "reprocessCardsRerunDownstreamDesc": "ज़रूरत होने पर सुपर एजेंट से संबंधित PKM, अनुसूची और अंतर्दृष्टि अपडेट भी विचार करने को कहें।",
+  "reanalyzeMediaAssets": "मीडिया संलग्नक फिर से पढ़ें",
+  "reanalyzeMediaAssetsDesc": "कार्ड फिर से बनाते समय सुपर एजेंट से संलग्न मीडिया फिर से जँचवाएं।",
+  "regenerateComments": "कमेंट फिर से बनाएं",
+  "regenerateCommentsTaskCreated": "टिप्पणी फिर से बनाएँ करने का कार्य बना, पृष्ठभूमि में चल रहा है",
+  "rebuildSearchIndex": "खोज सूचकांक फिर से बनाएं",
+  "rebuildSearchIndexSuccess": "खोज सूचकांक सफलतापूर्वक फिर से बना",
+  "rebuildSearchIndexFailed": "खोज सूचकांक फिर से नहीं बन सका",
+  "clearData": "डेटा साफ़ करें",
+  "confirmClearDataMessage": "डेटा साफ़ करें?",
+  "confirmClearDataDeletesWorkspaceMessage": "मौजूदा यूज़र का पूरा स्थानीय वर्कस्पेस डेटा हट जाएगा, जिसमें कार्ड, मीडिया, ज्ञान फ़ाइलें, अंतर्दृष्टियाँ, स्मृति, चैट इतिहास और सिस्टम स्थिति शामिल हैं।\n\nयह कार्रवाई वापस नहीं की जा सकती!",
+  "clearFailedAgentContexts": "असफल बातचीत संदर्भ साफ़ करें",
+  "confirmClearFailedAgentContextsMessage": "अंतर्दृष्टि और अनुसूची एजेंटों के सहेजे गए बातचीत संदर्भ साफ़ करें? मॉडल बदलने के बाद पुराने एजेंट संदेश असंगत हो जाएँ तो यह उपयोगी है। तथ्य, कार्ड, ज्ञान, स्मृतियाँ और मॉडल सेटिंग्स नहीं हटेंगी।",
+  "failedAgentContextsCleared": "{count} सहेजा गया बातचीत संदर्भ साफ़ किए गए",
+  "@failedAgentContextsCleared": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "clearFailedAgentContextsFailed": "बातचीत संदर्भ साफ़ नहीं हो सका: {error}",
+  "@clearFailedAgentContextsFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "cloneToTestUser": "परीक्षण उपयोगकर्ता में प्रतिलिपि बनाएं",
+  "confirmCloneToTestUserMessage": "मौजूदा वर्कस्पेस को नए स्थानीय परीक्षण उपयोगकर्ता में कॉपी करके उसी पर स्विच करें। एजेंट रनटाइम स्थिति कॉपी नहीं होगी। आपका मौजूदा उपयोगकर्ता डेटा बदला नहीं जाएगा।",
+  "testUserIdLabel": "परीक्षण उपयोगकर्ता की ID",
+  "testUserIdHelper": "अक्षर, अंक, हाइफ़न या अंडरस्कोर उपयोग करें।",
+  "testUserIdInvalid": "सिर्फ़ अक्षर, अंक, हाइफ़न या अंडरस्कोर उपयोग करें।",
+  "overwriteExistingTestUser": "उसी ID वाले मौजूदा परीक्षण उपयोगकर्ता को बदलें",
+  "testUserCloneSuccess": "परीक्षण उपयोगकर्ता {userId} पर स्विच किया गया",
+  "@testUserCloneSuccess": {
+    "placeholders": {
+      "userId": {}
+    }
+  },
+  "testUserCloneFailed": "परीक्षण उपयोगकर्ता की प्रतिलिपि नहीं बन सकी: {error}",
+  "@testUserCloneFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "dataClearedSuccess": "डेटा सफलतापूर्वक साफ़ किया गया",
+  "clearDataFailed": "डेटा साफ़ नहीं हो सका: {error}",
+  "@clearDataFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "personalCenter": "व्यक्तिगत केंद्र",
+  "viewLogs": "लॉग देखें",
+  "systemAuthorization": "सिस्टम अनुमति सेटिंग",
+  "aiCharacterConfig": "एआई चरित्र कॉन्फ़िगरेशन",
+  "modelConfig": "मॉडल कॉन्फ़िगरेशन",
+  "agentConfig": "एजेंट कॉन्फ़िगरेशन",
+  "experimentalLab": "प्रयोगशाला",
+  "experimentalLabDescription": "प्रयोगात्मक सुविधाएँ जो बाद में बदल या हट सकती हैं।",
+  "modelUsageStats": "मॉडल उपयोग आँकड़े",
+  "asyncTaskList": "असिंक्रोनस कार्य सूची",
+  "clearLocalToken": "यूज़र साफ़ करें",
+  "insightCardTemplates": "अंतर्दृष्टि कार्ड टेम्पलेट्स",
+  "timelineCardTemplates": "टाइमलाइन कार्ड टेम्पलेट्स",
+  "logViewer": "लॉग देखें",
+  "autoRefresh": "स्वतः रीफ़्रेश",
+  "lineCount": "लाइन संख्या: ",
+  "all": "सभी",
+  "schedule": "शेड्यूल",
+  "statistics": "आँकड़े",
+  "appLockConfig": "ऐप लॉक कॉन्फ़िगरेशन",
+  "activityStats": "गतिविधि आँकड़े",
+  "activityStatsSummary": "इस अवधि में आपने {inputs} बार रिकॉर्ड किया, {cards} कार्ड बनाए, और {todos} टू-डू पूरे किए।",
+  "@activityStatsSummary": {
+    "placeholders": {
+      "inputs": {},
+      "cards": {},
+      "todos": {}
+    }
+  },
+  "last7Days": "7 दिन",
+  "last30Days": "30 दिन",
+  "last90Days": "90 दिन",
+  "records": "रिकॉर्ड्स",
+  "words": "शब्द",
+  "cards": "कार्ड्स",
+  "knowledgeUnits": "ज्ञान इकाइयाँ",
+  "completedTodos": "पूरे टू-डू",
+  "activeDays": "सक्रिय दिन",
+  "streakDays": "लगातार दिन",
+  "dailyRhythm": "दैनिक लय",
+  "recordToOutput": "रिकॉर्ड से परिणाम",
+  "sourceBreakdown": "स्रोत विभाजन",
+  "topThemes": "मुख्य विषय",
+  "textInput": "पाठ",
+  "imageInput": "छवियाँ",
+  "audioInput": "ऑडियो",
+  "noStatsYet": "अभी गतिविधि आँकड़े नहीं हैं",
+  "tapDayForDetails": "विवरण देखने के लिए किसी दिन पर टैप करें",
+  "dayDetails": "दिन का विवरण",
+  "loadStatsFailed": "आँकड़े लोड नहीं हो सके: {error}",
+  "@loadStatsFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "overview": "सारांश",
+  "daily": "दैनिक",
+  "modelStatsByAgent": "एजेंट के अनुसार",
+  "detail": "विवरण",
+  "date": "तारीख़",
+  "agent": "एजेंट",
+  "noData": "कोई डेटा नहीं",
+  "totalCalls": "कुल कॉल",
+  "calls": "कॉल",
+  "callsCount": "{count} कॉल",
+  "@callsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "selectDateRange": "तारीख़ सीमा चुनें",
+  "totalTokens": "कुल टोकन",
+  "cacheRate": "कैश दर",
+  "promptTokens": "प्रॉम्प्ट टोकन",
+  "completionTokens": "उत्तर टोकन",
+  "cachedTokens": "कैश टोकन",
+  "thoughtTokens": "सोच टोकन",
+  "prompt": "प्रॉम्प्ट",
+  "completion": "उत्तर",
+  "cached": "कैश",
+  "thought": "विचार",
+  "model": "मॉडल",
+  "scene": "दृश्य",
+  "sceneId": "दृश्य ID",
+  "tokenUsage": "टोकन उपयोग",
+  "handler": "हैंडलर",
+  "modelBreakdown": "मॉडल विभाजन",
+  "callDetails": "कॉल विवरण",
+  "recordDetailsTitle": "रिकॉर्ड विवरण: {scene}",
+  "@recordDetailsTitle": {
+    "placeholders": {
+      "scene": {}
+    }
+  },
+  "saveLlmConfigFailed": "एलएलएम कॉन्फ़िगरेशन सहेजें नहीं हो सका: {error}",
+  "@saveLlmConfigFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "webHtmlPreviewUnavailable": "Web पर एचटीएमएल पूर्वावलोकन उपलब्ध नहीं है। कृपया मोबाइल पर देखें।",
+  "saveUserInfoFailed": "उपयोगकर्ता जानकारी सहेजें नहीं हो सकी: {error}",
+  "@saveUserInfoFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "totalEstimatedCost": "कुल अनुमानित लागत",
+  "close": "बंद करें",
+  "totalTokenConsumption": "कुल टोकन खपत",
+  "dataLoadFailedRetry": "डेटा लोड नहीं हो सका, कृपया बाद में फिर कोशिश करें।",
+  "timelineLoadFailedRetry": "टाइमलाइन लोड नहीं हो सकी, कृपया बाद में फिर कोशिश करें।",
+  "newPerspective": "नया दृष्टिकोण",
+  "startPoint": "शुरुआत",
+  "endPoint": "अंत",
+  "originalInput": "मूल इनपुट",
+  "referenceContent": "संदर्भ सामग्री",
+  "referenceWithTitle": "संदर्भ: {title}",
+  "@referenceWithTitle": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "actionCenterTitle": "लंबित कार्रवाइयाँ",
+  "noPendingActions": "कोई लंबित कार्रवाई नहीं",
+  "clarificationNeeded": "Memex पुष्टि करना चाहता है",
+  "clarificationTextHint": "छोटा जवाब लिखें",
+  "clarificationTextRequired": "पहले छोटा जवाब जोड़ें",
+  "clarificationAnswered": "जवाब दिया गया",
+  "clarificationAnswerPrefix": "जवाब: {answer}",
+  "@clarificationAnswerPrefix": {
+    "placeholders": {
+      "answer": {}
+    }
+  },
+  "answerSaved": "जवाब सहेजें हुआ",
+  "clarificationOtherAnswer": "मैनुअल इनपुट",
+  "clarificationNotSure": "पक्का नहीं / कहना नहीं चाहते",
+  "yes": "हाँ",
+  "no": "नहीं",
+  "footprintMap": "पदचिह्न मैप",
+  "waypointPlaces": "मार्ग-बिंदु स्थान",
+  "unknownPlace": "अज्ञात स्थान",
+  "releaseToSend": "भेजने के लिए छोड़ें",
+  "selectFromAlbum": "एल्बम से चुनें",
+  "clipboardPreviewTitle": "नया क्लिपबोर्ड",
+  "clipboardPreviewImageTitle": "क्लिपबोर्ड छवि",
+  "clipboardPreviewImageDescription": "छवि जोड़ने के लिए तैयार",
+  "clipboardPreviewUnprocessed": "अभी पेस्ट नहीं हुआ",
+  "clipboardPreviewPasteToInput": "इनपुट में पेस्ट करें",
+  "clipboardPreviewAddImageToInput": "छवि जोड़ें",
+  "clipboardPreviewImageFailed": "क्लिपबोर्ड छवि पढ़ी नहीं जा सकी",
+  "tellAiWhatHappened": "एआई को बताएं क्या हुआ...",
+  "recordingWithDuration": "रिकॉर्डिंग: {duration}",
+  "@recordingWithDuration": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "playing": "चल रहा है...",
+  "sendLabel": "भेजें",
+  "attachedImagesMessage": "{count} छवि भेजी गईं",
+  "@attachedImagesMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "noTaskData": "कोई कार्य डेटा नहीं",
+  "createdAtDate": "बनाया गया: {date}",
+  "@createdAtDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "updatedAtDate": "अपडेट: {date}",
+  "@updatedAtDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "durationLabel": "अवधि: {duration}",
+  "@durationLabel": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "retryCount": "पुनः प्रयास संख्या: {count}",
+  "@retryCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "loadDetailFailedRetry": "विवरण लोड नहीं हो सका, कृपया बाद में फिर कोशिश करें।",
+  "loadFailed": "लोड विफल",
+  "reload": "फिर लोड करें",
+  "aiInsightDetail": "अंतर्दृष्टि विवरण",
+  "relatedRecordsCount": "संबंधित रिकॉर्ड ({count})",
+  "@relatedRecordsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "noRelatedRecords": "कोई संबंधित रिकॉर्ड नहीं",
+  "useFingerprintToUnlock": "अनलॉक करने के लिए फ़िंगरप्रिंट उपयोग करें",
+  "locked": "लॉक है",
+  "wrongPassword": "गलत पासवर्ड",
+  "enterPassword": "पासवर्ड दर्ज करें",
+  "memexLocked": "Memex लॉक है",
+  "calendarShortSun": "रवि",
+  "calendarShortMon": "सोम",
+  "calendarShortTue": "मंगल",
+  "calendarShortWed": "बुध",
+  "calendarShortThu": "गुरु",
+  "calendarShortFri": "शुक्र",
+  "calendarShortSat": "शनि",
+  "noRecordsOnDate": "{date} पर कोई रिकॉर्ड नहीं",
+  "@noRecordsOnDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "footprintPath": "पदचिह्न पथ",
+  "lifeCompositionTable": "जीवन संरचना",
+  "emotionReframe": "भावना पुनर्परिभाषा",
+  "chronicleOfThings": "चीज़ों का वृत्तांत",
+  "goalProgress": "लक्ष्य प्रगति",
+  "trendChart": "रुझान चार्ट",
+  "comparisonChart": "तुलना चार्ट",
+  "todayTimeFlow": "आज का समय प्रवाह",
+  "aiInputHint": "यादें हों या वर्तमान, मैं यहाँ हूँ...",
+  "refreshSuperAgentStateTooltip": "Memex एजेंट संदर्भ साफ़ करें",
+  "refreshSuperAgentStateTitle": "Memex एजेंट इतिहास संदर्भ साफ़ करें?",
+  "refreshSuperAgentStateMessage": "दिखने वाली चैट इतिहास रहेगी, लेकिन Memex एजेंट का ऐतिहासिक रनटाइम संदर्भ साफ़ हो जाएगा और आगे के जवाब नए संदर्भ से शुरू होंगे। स्थायी स्मृति, ज्ञान आधार फ़ाइलें, कार्ड और अन्य सहेजा गया डेटा प्रभावित नहीं होंगे। जब Memex एजेंट असामान्य व्यवहार करता रहे तब इसका उपयोग करें। जारी रखें?",
+  "refreshSuperAgentStateActiveRunMessage": "संदर्भ साफ़ करने से पहले मौजूदा Memex एजेंट संदेश पूरा होने दें।",
+  "refreshSuperAgentStateSuccess": "Memex एजेंट संदर्भ साफ़ किया गया",
+  "refreshSuperAgentStateFailed": "Memex एजेंट संदर्भ साफ़ नहीं हो सका: {error}",
+  "@refreshSuperAgentStateFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "nothingHere": "अभी यहाँ कुछ नहीं",
+  "nothingHereHint": "अपना पहला कार्ड बनाने के लिए नीचे बटन टैप करें",
+  "agentProcessing": "एआई प्रोसेस कर रहा है...",
+  "keepAppOpen": "ऐप बंद न करें",
+  "activityDetail": "गतिविधि विवरण",
+  "noAgentActivityYet": "अभी कोई एजेंट गतिविधि नहीं",
+  "processingEllipsis": "प्रोसेसिंग हो रहा है...",
+  "agentBackgroundTitle": "Memex एजेंट",
+  "agentBackgroundPausedTitle": "Memex एजेंट रुका हुआ है",
+  "agentBackgroundNeedsAttentionTitle": "Memex एजेंट को ध्यान चाहिए",
+  "agentBackgroundStageIdle": "निष्क्रिय",
+  "agentBackgroundStageProcessing": "प्रोसेसिंग में",
+  "agentBackgroundStageQueued": "कतार में",
+  "agentBackgroundStageRetrying": "पुनः प्रयास का इंतज़ार",
+  "agentBackgroundStagePaused": "रुका हुआ",
+  "agentBackgroundStageCompleted": "पूरा",
+  "agentBackgroundStageNeedsAttention": "ध्यान चाहिए",
+  "agentBackgroundStageAnalyzingMedia": "मीडिया विश्लेषण हो रहा है",
+  "agentBackgroundStageGeneratingCard": "कार्ड बनाएँ हो रहा है",
+  "agentBackgroundStageUpdatingKnowledge": "ज्ञान अपडेट हो रहा है",
+  "agentBackgroundStagePreparingComment": "टिप्पणी तैयार हो रहा है",
+  "agentBackgroundStageRoutingFollowUps": "फ़ॉलो-अप रूट हो रहे हैं",
+  "agentBackgroundTaskSummary": "चल रहे {running}, लंबित {pending}, पुनः प्रयास {retrying}",
+  "@agentBackgroundTaskSummary": {
+    "placeholders": {
+      "running": {},
+      "pending": {},
+      "retrying": {}
+    }
+  },
+  "agentBackgroundTaskDetail": "{count} कतारबद्ध कार्य प्रोसेस हो रहे हैं।",
+  "@agentBackgroundTaskDetail": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "agentBackgroundNoTasks": "कोई पृष्ठभूमि कार्य नहीं।",
+  "agentBackgroundStarting": "प्रोसेसिंग शुरू हो रही है।",
+  "agentBackgroundCompletedDetail": "सभी पृष्ठभूमि कार्य पूरे हुए।",
+  "agentBackgroundFailedDetail": "प्रोसेसिंग त्रुटि के साथ रुक गई।",
+  "agentBackgroundPausedDetail": "प्रोसेसिंग रुका हुआ है और बाद में जारी रहेगी।",
+  "agentBackgroundQueuedDetail": "अगले प्रोसेसिंग चरण का इंतज़ार है।",
+  "agentBackgroundRetryingDetail": "मौजूदा चरण अपने आप पुनः प्रयास होगा।",
+  "agentBackgroundAnalyzeMediaDetail": "संलग्नक और स्थानीय संदर्भ पढ़े जा रहे हैं।",
+  "agentBackgroundGeneratingCardDetail": "रिकॉर्ड को टाइमलाइन कार्ड में बदला जा रहा है।",
+  "agentBackgroundUpdatingKnowledgeDetail": "स्थानीय ज्ञान और स्मृति अपडेट हो रही है।",
+  "agentBackgroundPreparingCommentDetail": "सहायक फ़ॉलो-अप तैयार हो रहा है।",
+  "agentBackgroundRoutingFollowUpsDetail": "इस कार्ड के फ़ॉलो-अप कार्रवाइयाँ जाँचे जा रहे हैं।",
+  "agentBackgroundPausedStatus": "रुका हुआ - {summary}",
+  "@agentBackgroundPausedStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "agentBackgroundNeedsAttentionStatus": "ध्यान चाहिए - {summary}",
+  "@agentBackgroundNeedsAttentionStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "settings": "सेटिंग्स",
+  "languageSettings": "भाषा",
+  "languageSettingsDesc": "ऐप प्रदर्शन भाषा बदलें",
+  "noPendingActionsToast": "कोई लंबित कार्रवाई नहीं",
+  "knowledgeNewDiscovery": "ज्ञान खोज",
+  "discoveredNewInsightsCount": "{count} नए अंतर्दृष्टि मिले",
+  "@discoveredNewInsightsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "updatedExistingInsightsCount": "{count} मौजूदा अंतर्दृष्टियाँ अपडेट हुईं",
+  "@updatedExistingInsightsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "sectionNewInsights": "नए अंतर्दृष्टियाँ",
+  "sectionUpdatedInsights": "अपडेट हुए अंतर्दृष्टियाँ",
+  "unnamedInsight": "बेनाम अंतर्दृष्टि",
+  "copiedToClipboard": "क्लिपबोर्ड में कॉपी किया गया",
+  "copy": "कॉपी करें",
+  "selectedLocation": "चुना गया स्थान",
+  "confirmLocationName": "स्थान नाम पुष्टि करें",
+  "confirmLocationNameHint": "आप नाम संपादित कर सकते हैं (निर्देशांक वही रहेंगे)",
+  "nameLabel": "नाम",
+  "inputPlaceNameHint": "स्थान नाम दर्ज करें...",
+  "currentCoordinates": "निर्देशांक: {lat}, {lng}",
+  "@currentCoordinates": {
+    "placeholders": {
+      "lat": {},
+      "lng": {}
+    }
+  },
+  "confirmLocation": "स्थान पुष्टि करें",
+  "welcomeToMemex": "Memex में आपका स्वागत है",
+  "createUserIdToStart": "अपनी प्रोफ़ाइल बनाएं",
+  "userIdLabel": "आपका नाम / उपनाम",
+  "userIdHint": "अपना नाम या उपनाम दर्ज करें",
+  "pleaseEnterUserId": "कृपया अपना नाम दर्ज करें",
+  "userIdMaxLength": "नाम 50 चरित्र से अधिक नहीं होना चाहिए",
+  "startUsing": "जारी रखें",
+  "userIdTip": "यह आपके अनुभव को वैयक्तिकृत करने के लिए उपयोग होगा।",
+  "setupModelConfigTitle": "एआई मॉडल सेटअप करें",
+  "setupModelConfigSubtitle": "रिकॉर्ड व्यवस्थित करने, छवियाँ विश्लेषण करने और अंतर्दृष्टियाँ बनाएँ करने के लिए Memex को अग्रणी एआई मॉडल चाहिए। एक कनेक्शन विधि चुनें।",
+  "setupModelConfigComplete": "पूरा करें और आगे बढ़ें",
+  "aiService": "Memex मॉडल सेवा",
+  "aiModelHubTitle": "एआई मॉडल और सेवाएँ",
+  "aiModelHubSubtitle": "Memex की आधिकारिक सेवा चुनें या अपना प्रदाता लाएं। ज़रूरत होने पर उन्नत मॉडल रूटिंग उपलब्ध रहता है।",
+  "aiSetupCurrentStatusTitle": "मौजूदा सेटअप",
+  "aiSetupStatusNotConfiguredTitle": "एआई सेवा कॉन्फ़िगर नहीं है",
+  "aiSetupStatusNotConfiguredDescription": "रिकॉर्ड, मीडिया और अंतर्दृष्टियाँ के लिए एआई संगठन चालू करने हेतु एक कनेक्शन विधि चुनें।",
+  "aiSetupStatusMemexTitle": "MemeX आधिकारिक सेवा उपयोग में",
+  "aiSetupStatusMemexDescription": "Memex आपके MemeX खाता द्वारा प्रबंधित आधिकारिक कनेक्शन और एपीआई क्रेडेंशियल उपयोग करेगा।",
+  "aiSetupStatusCustomTitle": "कस्टम प्रदाता सेटिंग्स उपयोग में",
+  "aiSetupStatusCustomDescription": "Memex आपके कॉन्फ़िगर प्रदाता क्रेडेंशियल और मॉडल भूमिका चयन उपयोग करेगा।",
+  "aiSetupChooseConnectionTitle": "कनेक्शन विधि चुनें",
+  "aiSetupChooseConnectionDescription": "जिस तरह आप Memex को एआई मॉडल पहुँच कराना चाहते हैं, उससे मेल खाता पथ चुनें।",
+  "aiSetupOfficialRouteDescription": "MemeX में साइन इन करें और प्रदाता, कुंजियाँ या एजेंट-स्तर मॉडल चुने बिना आधिकारिक सेवा उपयोग करें।",
+  "aiSetupCustomRouteDescription": "अपने प्रदाता क्रेडेंशियल जोड़ें, सुपर एजेंट के लिए मॉडल चुनें, और चाहें तो प्रति-एजेंट मॉडल ओवरराइड करें।",
+  "aiSetupCustomPageTitle": "कस्टम एआई सेवा",
+  "aiSetupCustomPageSubtitle": "पहले प्रदाता क्रेडेंशियल कॉन्फ़िगर करें, फिर Memex को उपयोग करने वाला मॉडल चुनें।",
+  "aiSetupProviderCredentialsTitle": "प्रदाता और एपीआई कुंजीs",
+  "aiSetupProviderCredentialsDescription": "OpenAI, Anthropic, DeepSeek, Gemini, OpenRouter, Ollama या किसी संगत प्रदाता को जोड़ें/संपादित करें।",
+  "modelRolesTitle": "मुख्य मॉडल चुनें",
+  "modelRolesDescription": "सुपर एजेंट पाठ और छवि इनपुट के लिए एक मॉडल उपयोग करता है। उन्नत एजेंट ओवरराइड नीचे उपलब्ध रहते हैं।",
+  "textModelRoleTitle": "मुख्य मॉडल",
+  "textModelRoleDescription": "सुपर एजेंट इसे पाठ, छवियाँ, कार्ड, ज्ञान, अंतर्दृष्टियाँ, चैट, टिप्पणियाँ, अनुसूची और स्मृति के लिए उपयोग करता है।",
+  "modelConnectionsTitle": "मॉडल प्रदाता और एपीआई कुंजीs",
+  "modelConnectionsDescription": "Memex की आधिकारिक सेवा कनेक्ट करें या अपने प्रदाता क्रेडेंशियल जोड़ें।",
+  "relatedAiCapabilitiesTitle": "उन्नत और संबंधित क्षमताएँ",
+  "relatedAiCapabilitiesDescription": "एजेंट असाइनमेंट, स्थान प्रदाता और वाणी लिप्यंतरण व्यवहार को बारीकी से समायोजित करें।",
+  "aiSetupServiceCapabilitiesTitle": "सेवा क्षमताएँ",
+  "aiSetupServiceCapabilitiesDescription": "वाणी और रिवर्स जियोकोडिंग जैसी निकटवर्ती एआई-संचालित क्षमताओं के लिए Memex कौन से प्रदाता उपयोग करे, चुनें।",
+  "aiSetupAdvancedCustomizationTitle": "उन्नत मॉडल रूटिंग",
+  "aiSetupAdvancedCustomizationDescription": "उन्नत उपयोगकर्ता के लिए, जो अलग-अलग एजेंट को अलग प्रदाता या मॉडल कॉन्फ़िगरेशन देना चाहते हैं।",
+  "locationProviderSettings": "स्थान प्रदाता सेटिंग",
+  "speechProviderSettings": "वाणी लिप्यंतरण सेटिंग",
+  "advancedAgentModelAssignments": "एजेंट मॉडल असाइनमेंट सेटिंग",
+  "openAdvancedAgentModelAssignments": "व्यक्तिगत एजेंट ओवरराइड करें",
+  "noConfiguredModelOptions": "मॉडल भूमिकाएँ चुनने से पहले प्रदाता या एपीआई कुंजी जोड़ें।",
+  "modelSlotUpdated": "मॉडल भूमिका अपडेट हुआ",
+  "aiServiceMemexRouteTitle": "Memex के ज़रिए कनेक्ट करें",
+  "aiServiceLongDescription": "Memex जीवन रिकॉर्ड, ज्ञान नोट्स और सामाजिक संदर्भ को व्यवस्थित करने, गहरी अंतर्दृष्टियाँ खोजने, और स्थायी स्मृति के साथ एआई साथ देने के लिए मल्टी-एजेंट सिस्टम उपयोग करता है। आपका डेटा सादे पाठ Markdown के रूप में संग्रहीत रहता है, जिससे डेटा स्वतंत्रता और पोर्टेबिलिटी बनी रहती है।",
+  "aiServiceCustomApiRouteTitle": "मेरे पास एपीआई कुंजी है",
+  "aiServiceCustomModelDescription": "अगर आपके पास OpenAI, Anthropic, DeepSeek, Gemini या किसी दूसरे प्रदाता की एपीआई कुंजी पहले से है तो पहले इसे चुनें।",
+  "enableAiService": "Memex से कनेक्ट करें",
+  "aiServiceReadyToast": "एआई संगठन चालू है",
+  "aiServiceSettingsDescription": "अगर आपके पास एपीआई कुंजी नहीं है, तो मुख्यधारा मॉडल सेवाओं से कनेक्ट करने के लिए Memex खाता उपयोग करें।",
+  "advancedModelConfiguration": "एपीआई कुंजी कॉन्फ़िगर करें",
+  "skipForNow": "अभी छोड़ें",
+  "clearAuth": "प्रमाणीकरण साफ़ करें",
+  "authorizing": "प्राधिकरण हो रहा है...",
+  "authFailed": "प्राधिकरण विफल: {error}",
+  "@authFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "authorized": "अधिकृत",
+  "config": "कॉन्फ़िग",
+  "calendar": "कैलेंडर",
+  "reminders": "रिमाइंडर",
+  "writeToSystemFailed": "सिस्टम में लिखना विफल",
+  "permissionRequired": "{name} अनुमति आवश्यक",
+  "@permissionRequired": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "permissionRationale": "कृपया सेटिंग्स में ऐप को आपके {name} तक पहुँच दें ताकि हम इसे आपके लिए बना सकें।",
+  "@permissionRationale": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "goToSettings": "सेटिंग्स पर जाएँ",
+  "unknownAction": "अज्ञात कार्रवाई",
+  "discoveredCalendarEvent": "कैलेंडर ईवेंट मिला",
+  "discoveredReminder": "रिमाइंडर मिला",
+  "addToCalendar": "कैलेंडर में जोड़ें",
+  "addToReminders": "रिमाइंडर में जोड़ें",
+  "addedToSuccess": "{target} में सफलतापूर्वक जोड़ा गया",
+  "@addedToSuccess": {
+    "placeholders": {
+      "target": {}
+    }
+  },
+  "ignore": "नज़रअंदाज़ करें",
+  "confirmDelete": "हटाएँ पुष्टि करें",
+  "confirmDeleteSessionMessage": "यह बातचीत हटाएँ? यह वापस नहीं किया जा सकता।",
+  "delete": "हटाएँ",
+  "deleteSuccess": "सफलतापूर्वक हटाया गया",
+  "deleteFailed": "हटाएँ विफल: {error}",
+  "@deleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "daysAgo": "{count} दिन पहले",
+  "chatHistory": "चैट इतिहास",
+  "enterFullScreenTooltip": "पूर्ण स्क्रीन में जाएँ",
+  "exitFullScreenTooltip": "पूर्ण स्क्रीन से बाहर निकलें",
+  "noConversations": "कोई बातचीत नहीं",
+  "loadSessionListFailed": "सत्र सूची लोड नहीं हो सकी: {error}",
+  "@loadSessionListFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "yesterdayAt": "कल {time}",
+  "@yesterdayAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "newChat": "नया चैट",
+  "messageCount": "{count} संदेश",
+  "@messageCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "organize": "व्यवस्थित करें",
+  "pkmCategoryProject": "परियोजना",
+  "pkmCategoryProjectSubtitle": "अल्पकालिक · लक्ष्य · समयसीमाएँ",
+  "pkmCategoryArea": "क्षेत्र",
+  "pkmCategoryAreaSubtitle": "दीर्घकालिक · ज़िम्मेदारी · मानक",
+  "pkmCategoryResource": "संसाधन",
+  "pkmCategoryResourceSubtitle": "रुचियाँ · प्रेरणा · संग्रह",
+  "pkmCategoryArchive": "संग्रह",
+  "pkmCategoryArchiveSubtitle": "पूर्ण · निष्क्रिय · संदर्भ",
+  "recentChanges": "हाल के बदलाव",
+  "noRecentChangesInThreeDays": "पिछले 3 दिनों में कोई बदलाव नहीं",
+  "unpinned": "पिन नहीं किया गया",
+  "pinnedStyle": "शैली पिन किया गया",
+  "operationFailed": "कार्रवाई विफल: {error}",
+  "@operationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "refreshingInsightData": "अंतर्दृष्टि डेटा रीफ़्रेश हो रहा है, इसमें थोड़ा समय लग सकता है...",
+  "refreshFailed": "रीफ़्रेश विफल: {error}",
+  "@refreshFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sortUpdated": "क्रम अपडेट हुआ",
+  "sortSaveFailed": "क्रम सहेजा नहीं जा सका: {error}",
+  "@sortSaveFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "insightCardDeleted": "अंतर्दृष्टि कार्ड हटाया गया",
+  "deleteFailedShort": "हटाएँ विफल: {error}",
+  "@deleteFailedShort": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "knowledgeInsight": "ज्ञान अंतर्दृष्टि",
+  "completeSort": "क्रम पूरा करें",
+  "noKnowledgeInsight": "कोई ज्ञान अंतर्दृष्टि नहीं",
+  "insightProcessingBacklogMessage": "{count} पृष्ठभूमि कार्य अभी भी प्रोसेस हो रहे हैं।",
+  "@insightProcessingBacklogMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "insightUnavailableMessage": "यह अंतर्दृष्टि अभी बनाएँ हो रहा है या अपडेट हुआ है। अंतर्दृष्टियाँ रीफ़्रेश करें और बाद में फिर कोशिश करें।",
+  "noScheduleAggregation": "कोई अनुसूची समेकन नहीं",
+  "scheduleAggregationEmptyHint": "वास्तविक समय-आधारित कार्ड से अनुसूचियाँ और टू-डू व्यवस्थित करने के लिए अपडेट टैप करें।",
+  "scheduleAggregationLoadFailed": "अनुसूची डेटा लोड नहीं हो सका",
+  "scheduleAggregationRefreshFailed": "अनुसूची डेटा रीफ़्रेश नहीं हो सका",
+  "scheduleTaskUpdateFailed": "कार्य अपडेट नहीं हो सका",
+  "scheduleFeatured": "चयनित",
+  "scheduleThisWeek": "इस सप्ताह",
+  "scheduleDone": "पूरा",
+  "scheduleTbd": "TBD (बाद में तय)",
+  "scheduleWeekOverview": "इस सप्ताह",
+  "scheduleImportant": "महत्वपूर्ण",
+  "scheduleBriefingTitle": "अनुसूची सारांश",
+  "scheduleBriefingOpen": "खोलें",
+  "scheduleBriefingNoData": "अभी कोई अनुसूची सारांश नहीं",
+  "scheduleBriefingUpdated": "{time} अपडेट",
+  "@scheduleBriefingUpdated": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "scheduleBriefingDoneCount": "{count} पूरे",
+  "@scheduleBriefingDoneCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "updating": "अपडेट हो रहा है...",
+  "update": "अपडेट करें",
+  "enabled": "चालू",
+  "disabled": "बंद",
+  "appLockOn": "ऐप लॉक चालू है",
+  "appLockOff": "ऐप लॉक बंद है",
+  "enableAppLockFirst": "कृपया पहले ऐप लॉक चालू करें",
+  "enterFourDigitPassword": "4 अंकों का पासवर्ड दर्ज करें",
+  "passwordSetAndLockOn": "पासवर्ड सेट और ऐप लॉक चालू",
+  "appLockSettings": "ऐप लॉक सेटिंग्स",
+  "enableAppLock": "ऐप लॉक चालू करें करें",
+  "enableAppLockSubtitle": "ऐप शुरू करते समय पासवर्ड आवश्यक",
+  "enableBiometrics": "बायोमेट्रिक्स चालू करें",
+  "biometricsSubtitle": "अनलॉक करने के लिए Face ID या Touch ID उपयोग करें",
+  "changePassword": "पासवर्ड बदलें",
+  "setFourDigitPassword": "4 अंकों का पासवर्ड सेट करें",
+  "reenterPasswordToConfirm": "पुष्टि करें करने के लिए पासवर्ड फिर दर्ज करें",
+  "passwordMismatch": "पासवर्ड मेल नहीं खाते। कृपया फिर कोशिश करें।",
+  "confirmDeleteCharacter": "चरित्र \"{name}\" हटाएँ? यह वापस नहीं किया जा सकता।",
+  "@confirmDeleteCharacter": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "configureAiCharacter": "एआई चरित्र कॉन्फ़िगर करें",
+  "addCharacter": "चरित्र जोड़ें",
+  "addCharacterSubtitle": "अपनी अंतर्दृष्टि टीम में एआई चरित्र जोड़ें। वे आपके जीवन डेटा को अलग-अलग कोणों से विश्लेषित करेंगे।",
+  "noCharacters": "कोई चरित्र नहीं",
+  "loadCharacterFailed": "चरित्र लोड नहीं हो सके: {error}",
+  "@loadCharacterFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "noTags": "कोई टैग नहीं",
+  "createSuccess": "सफलतापूर्वक बनाया गया",
+  "updateSuccess": "सफलतापूर्वक अपडेट हुआ",
+  "saveFailed": "सहेजें विफल: {error}",
+  "@saveFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "newCharacter": "नया चरित्र",
+  "editCharacter": "चरित्र संपादित करें",
+  "save": "सहेजें करें",
+  "characterName": "चरित्र नाम",
+  "characterNameHint": "अपने चरित्र को नाम दें",
+  "pleaseEnterCharacterName": "कृपया चरित्र नाम दर्ज करें",
+  "tagsLabel": "टैग सूची",
+  "tagsHint": "जैसे: बुद्धि, पहचान, व्यापकता\nकई टैग को अल्पविराम से अलग करें",
+  "characterPersonaLabel": "चरित्र व्यक्तित्व विवरण",
+  "characterPersonaHint": "व्यक्तित्व, शैली मार्गदर्शिका, उदाहरण संवाद, ज्ञान फ़िल्टर आदि शामिल करें।\nसेक्शन शीर्षकों के लिए ## उपयोग करें।",
+  "pleaseEnterCharacterPersona": "कृपया चरित्र व्यक्तित्व दर्ज करें",
+  "permissionRequestError": "अनुमति अनुरोध त्रुटि: {error}",
+  "@permissionRequestError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "permissionRequiredTitle": "अनुमति आवश्यक",
+  "permissionPermanentlyDeniedMessage": "आपने इस अनुमति को स्थायी रूप से अस्वीकार किया है या सिस्टम इसे मांगता है। कृपया सिस्टम सेटिंग्स में चालू करें करें।",
+  "getting": "लिया जा रहा है...",
+  "unauthorized": "अनधिकृत",
+  "authorizedGoToSettings": "अनुमति मिल गई। बदलने के लिए सिस्टम सेटिंग्स पर जाएँ।",
+  "location": "स्थान",
+  "locationPermissionReason": "Places और स्थान-संबंधित सुविधाएँ रिकॉर्ड करने के लिए",
+  "photos": "फ़ोटो",
+  "photosPermissionReason": "फ़ोटो चुनने, बनाया गया छवियाँ सहेजें करने आदि के लिए",
+  "camera": "कैमरा",
+  "cameraPermissionReason": "फ़ोटो और वीडियो लेने के लिए",
+  "microphone": "माइक्रोफ़ोन",
+  "microphonePermissionReason": "वाणी पहचान, रिकॉर्डिंग आदि के लिए",
+  "calendarPermissionReason": "अनुसूची रिकॉर्ड करने और कैलेंडर ईवेंट पढ़ने के लिए",
+  "remindersPermissionReason": "आपके रिमाइंडर रिकॉर्ड और पढ़ने करने के लिए",
+  "fitnessAndMotion": "फ़िटनेस और गतिविधि",
+  "fitnessPermissionReason": "स्वास्थ्य और गतिविधि डेटा रिकॉर्ड करने के लिए",
+  "notification": "सूचना",
+  "notificationPermissionReason": "अनुसूची और महत्वपूर्ण रिमाइंडर भेजने के लिए",
+  "loadDetailFailedRetryShort": "विवरण लोड नहीं हो सका, कृपया बाद में फिर कोशिश करें।",
+  "total": "कुल",
+  "estimatedCost": "अनुमानित लागत",
+  "byAgent": "एजेंट के अनुसार",
+  "timeUpdated": "समय अपडेट हुआ",
+  "updateFailed": "अपडेट विफल: {error}",
+  "@updateFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "locationUpdated": "स्थान अपडेट हुई",
+  "confirmDeleteCardMessage": "यह कार्ड हटाएँ? यह वापस नहीं किया जा सकता।",
+  "cardDetailNotFound": "कार्ड विवरण नहीं मिला",
+  "saySomething": "कुछ कहें...",
+  "relatedMemories": "संबंधित स्मृतियाँ",
+  "viewMore": "और देखें",
+  "relatedRecords": "संबंधित रिकॉर्ड",
+  "reply": "जवाब करें",
+  "replySent": "जवाब भेजा गया",
+  "insightTemplateGalleryTitle": "अंतर्दृष्टि कार्ड टेम्पलेट्स",
+  "timelineTemplateGalleryTitle": "टाइमलाइन कार्ड टेम्पलेट्स",
+  "categoryTextual": "पाठ्य श्रेणी",
+  "timelineFilterAll": "सभी रिकॉर्ड",
+  "insights": "अंतर्दृष्टियाँ सूची",
+  "memoryTitle": "स्मृति खंड",
+  "longTermProfile": "दीर्घकालिक प्रोफ़ाइल",
+  "recentBuffer": "हालिया बफ़र",
+  "errorLoadingMemory": "स्मृति लोड करते समय त्रुटि: {error}",
+  "@errorLoadingMemory": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "agentConfiguration": "एजेंट कॉन्फ़िगरेशन",
+  "resetToDefaults": "डिफ़ॉल्ट पर रीसेट करें",
+  "resetAllAgentConfigurationsTitle": "सभी एजेंट कॉन्फ़िगरेशन रीसेट करें",
+  "resetAllAgentConfigurationsMessage": "क्या आप सभी एजेंट कॉन्फ़िगरेशन को उनके डिफ़ॉल्ट मान पर रीसेट करना चाहते हैं? यह कार्रवाई वापस नहीं की जा सकती।",
+  "resetButton": "रीसेट करें",
+  "loadDataFailed": "डेटा लोड नहीं हो सका: {error}",
+  "@loadDataFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "saveConfigFailed": "कॉन्फ़िगरेशन सहेजा नहीं जा सका: {error}",
+  "@saveConfigFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "selectLlmClient": "एलएलएम क्लाइंट चुनें:",
+  "agentConfigurationsReset": "एजेंट कॉन्फ़िगरेशन रीसेट हुए",
+  "resetFailed": "रीसेट विफल: {error}",
+  "@resetFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "modelConfiguration": "मॉडल कॉन्फ़िगरेशन",
+  "resetAllConfigurationsTitle": "सभी कॉन्फ़िगरेशन रीसेट करें",
+  "resetAllModelConfigurationsMessage": "क्या आप सभी मॉडल कॉन्फ़िगरेशन को उनके डिफ़ॉल्ट मान पर रीसेट करना चाहते हैं? यह कार्रवाई वापस नहीं की जा सकती।",
+  "modelConfigurationsReset": "मॉडल कॉन्फ़िगरेशन रीसेट हुए",
+  "cannotDeleteDefaultConfiguration": "डिफ़ॉल्ट कॉन्फ़िगरेशन हटाएँ नहीं कर सकते",
+  "cannotDeleteConfigurationTitle": "कॉन्फ़िगरेशन हटाएँ नहीं कर सकते",
+  "configUsedByAgentsMessage": "यह कॉन्फ़िगरेशन अभी इन एजेंटों द्वारा उपयोग हो रही है:\n\n{agentList}\n\nहटाने से पहले इन एजेंटों को फिर से असाइन करें।",
+  "@configUsedByAgentsMessage": {
+    "placeholders": {
+      "agentList": {}
+    }
+  },
+  "ok": "OK",
+  "deleteConfigurationTitle": "कॉन्फ़िगरेशन हटाएँ करें",
+  "confirmDeleteConfigMessage": "क्या आप \"{key}\" हटाना चाहते हैं?",
+  "@confirmDeleteConfigMessage": {
+    "placeholders": {
+      "key": {}
+    }
+  },
+  "defaultLabel": "डिफ़ॉल्ट",
+  "setAsDefault": "डिफ़ॉल्ट के रूप में सेट करें",
+  "invalidJsonInExtraField": "अतिरिक्त फ़ील्ड में अमान्य JSON",
+  "keyAlreadyExists": "कुंजी पहले से मौजूद है",
+  "resetConfigurationTitle": "कॉन्फ़िगरेशन रीसेट करें",
+  "resetConfigurationMessage": "इस कॉन्फ़िगरेशन को शुरुआती डिफ़ॉल्ट मान पर रीसेट करें? मौजूदा बदलाव खो जाएँगे।",
+  "configurationResetPressSave": "कॉन्फ़िगरेशन रीसेट हो गई। लागू करें करने के लिए सहेजें दबाएँ।",
+  "addConfiguration": "कॉन्फ़िगरेशन जोड़ें",
+  "editConfiguration": "कॉन्फ़िगरेशन संपादित करें",
+  "duplicateConfiguration": "कॉन्फ़िगरेशन डुप्लिकेट करें",
+  "duplicate": "डुप्लिकेट करें",
+  "keyIdLabel": "कॉन्फ़िगरेशन आईडी",
+  "keyIdHelper": "इस सेटअप को नाम दें, जैसे deepseek या work-gpt।",
+  "required": "आवश्यक",
+  "clientLabel": "मॉडल प्रदाता चुनें",
+  "providerGroupOpenAi": "OpenAI",
+  "providerGroupAnthropic": "Anthropic",
+  "providerGroupGoogle": "Google",
+  "providerGroupOthers": "लोकप्रिय प्रदाता",
+  "providerOpenAiApiKey": "एपीआई कुंजी",
+  "providerOpenAiResponses": "एपीआई कुंजी (Responses मोड)",
+  "providerChatGptOauth": "ChatGPT Pro/Plus खाता",
+  "providerClaudeApiKey": "एपीआई कुंजी",
+  "providerBedrockSecret": "Bedrock गुप्त कुंजी",
+  "providerGemini": "Gemini",
+  "providerGeminiOauth": "Google OAuth से Gemini लॉगिन",
+  "providerKimi": "Kimi (Moonshot प्रदाता)",
+  "providerQwen": "Aliyun प्रदाता",
+  "providerSeed": "Volcengine प्रदाता",
+  "providerZhipu": "Zhipu GLM प्रदाता",
+  "providerDeepSeek": "DeepSeek",
+  "providerMinimax": "MiniMax",
+  "providerOpenRouter": "OpenRouter",
+  "providerOllama": "Ollama (स्थानीय प्रदाता)",
+  "providerMimo": "Xiaomi MIMO प्रदाता",
+  "providerMemex": "Memex प्रॉक्सी सेवा",
+  "memexSignIn": "साइन इन करें",
+  "memexCreateAccount": "खाता बनाएं",
+  "memexUsername": "उपयोगकर्ता नाम दर्ज करें",
+  "memexPassword": "पासवर्ड दर्ज करें",
+  "memexCreateAccountLink": "खाता बनाएं",
+  "memexSignInLink": "इसके बजाय साइन इन करें",
+  "memexTopUp": "Memex एआई उपयोग शुरू करने के लिए रिचार्ज करें",
+  "memexTopUpSuccess": "शीर्ष up सफल!",
+  "memexFillAllFields": "कृपया सभी फ़ील्ड भरें",
+  "memexUsernameTooShort": "उपयोगकर्ता नाम कम से कम 6 चरित्र का होना चाहिए",
+  "memexAuthFailed": "प्रमाणीकरण विफल",
+  "memexPaymentFailed": "भुगतान नहीं बन सका",
+  "memexLogout": "लॉग आउट करें",
+  "memexTopUpButton": "शीर्ष up करें",
+  "memexTopUpChooseAmount": "राशि चुनें",
+  "memexTopUpEstimatedRecords": "लगभग {range} रिकॉर्ड",
+  "@memexTopUpEstimatedRecords": {
+    "placeholders": {
+      "range": {}
+    }
+  },
+  "memexTopUpPlanStarter": "शुरुआती प्लान",
+  "memexTopUpPlanEveryday": "रोज़मर्रा प्लान",
+  "memexTopUpPlanHighVolume": "उच्च उपयोग प्लान",
+  "memexTopUpPlanCustom": "कस्टम क्रेडिट प्लान",
+  "memexTopUpPlanStarterSubtitle": "Memex एआई आज़माने के लिए अच्छा",
+  "memexTopUpPlanEverydaySubtitle": "नियमित आयोजन के लिए अच्छा",
+  "memexTopUpPlanHighVolumeSubtitle": "बड़े बैच के लिए अच्छा",
+  "memexTopUpPlanCustomSubtitle": "USD 1-10,000 दर्ज करें",
+  "memexTopUpCustomEstimate": "अनुमान दर्ज राशि पर आधारित है",
+  "memexCustomAmount": "कस्टम राशि",
+  "memexViewHistory": "उपयोग इतिहास देखें",
+  "memexBalanceLabel": "शेष राशि: {amount}",
+  "@memexBalanceLabel": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "memexConfirmPassword": "पासवर्ड पुष्टि करें",
+  "memexPasswordMismatch": "पासवर्ड मेल नहीं खाते",
+  "memexPayAmount": "{amount} रिचार्ज करें",
+  "@memexPayAmount": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "modelIdLabel": "मॉडल",
+  "modelIdHelper": "जैसे gemini-3.1-pro-preview, gpt-4o",
+  "fetchingModels": "मॉडल लाएँ हो रहे हैं...",
+  "fetchModelsButton": "मॉडल लाएँ करें",
+  "enterApiKeyFirst": "मॉडल लाएँ करने के लिए पहले एपीआई कुंजी दर्ज करें",
+  "apiKeyLabel": "एपीआई कुंजी",
+  "baseUrlLabel": "एपीआई एंडपॉइंट यूआरएल",
+  "advancedSettings": "उन्नत सेटिंग्स",
+  "testConnectionSuccess": "कनेक्शन सफल",
+  "testConnectionFailed": "कनेक्शन विफल",
+  "testTypeText": "पाठ",
+  "testTypeVision": "विज़न",
+  "testButton": "परीक्षण करें",
+  "testing": "परीक्षण हो रहा है...",
+  "proxyUrlOptional": "प्रॉक्सी यूआरएल (वैकल्पिक)",
+  "proxyUrlHelper": "जैसे http://127.0.0.1:7890",
+  "temperatureLabel": "तापमान मान",
+  "topPLabel": "शीर्ष P मान",
+  "maxTokensLabel": "अधिकतम टोकन",
+  "extraParamsJson": "अतिरिक्त पैरामीटर (JSON)",
+  "invalidJson": "अमान्य JSON फ़ॉर्मैट",
+  "warning": "अधूरा सेटअप",
+  "invalidConfigurationWarning": "कॉन्फ़िगरेशन अभी पूरी नहीं है (जैसे एपीआई कुंजी या मॉडल आईडी मौजूद नहीं है)। आप फिर भी इसे सहेजें कर सकते हैं और बाद में कॉन्फ़िगर कर सकते हैं। जारी रखें?",
+  "invalidModelConfigDetailed": "एआई एजेंट \"{agentId}\" को चलने के लिए वैध मॉडल कॉन्फ़िगरेशन (कुंजी: \"{configKey}\") चाहिए। कृपया मॉडल सेटिंग्स जाँचें।",
+  "discardChangesTitle": "यह पेज छोड़ें?",
+  "discardChangesMessage": "अगर आपने बदलाव किए हैं, तो जाने से पहले उन्हें सहेजें करें।",
+  "discardButton": "छोड़ें",
+  "chooseLanguage": "भाषा चुनें",
+  "chooseAvatar": "अवतार चुनें",
+  "configureNow": "अभी कॉन्फ़िगर करें",
+  "modelNotConfiguredBanner": "एआई मॉडल अभी कॉन्फ़िगर नहीं है। सभी सुविधाएँ अनलॉक करने के लिए सेटअप करें।",
+  "modelNotConfiguredSubmitHint": "प्रकाशित करने से पहले कृपया एआई मॉडल कॉन्फ़िगर करें",
+  "processingStatus": "प्रोसेसिंग में",
+  "failedStatus": "विफल स्थिति",
+  "failureReason": "विफलता कारण",
+  "unknownError": "अज्ञात त्रुटि हुई",
+  "enableFitness": "फ़िटनेस चालू करें करें",
+  "fitnessBannerMessage": "स्वास्थ्य और गतिविधि डेटा ट्रैक करने के लिए फ़िटनेस पहुँच दें।",
+  "fitnessDismissTitle": "फ़िटनेस पहुँच छोड़ें?",
+  "fitnessDismissMessage": "फ़िटनेस अनुमति के बिना ऐप अंतर्दृष्टियों और स्वचालित रिकॉर्डिंग के लिए आपका स्वास्थ्य डेटा अपने आप एकत्र नहीं कर पाएगा।",
+  "skipAnyway": "फिर भी छोड़ें",
+  "proModelHint": "इस मॉडल के लिए ChatGPT Pro/Plus सदस्यता चाहिए।",
+  "searchKnowledgeBase": "ज्ञान आधार में खोजें...",
+  "searchKnowledgeHint": "फ़ाइल नाम या सामग्री खोजने के लिए कीवर्ड दर्ज करें",
+  "noSearchResults": "\"{query}\" के लिए कोई नतीजा नहीं मिला",
+  "@noSearchResults": {
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "onlyMarkdownPreview": "सिर्फ़ Markdown पूर्वावलोकन समर्थित है",
+  "backupAndRestore": "बैकअप और बहाल",
+  "createBackup": "बैकअप बनाएं",
+  "restoreBackup": "बैकअप बहाल करें",
+  "backupDescription": "अपना पूरा डेटा (कार्ड, ज्ञान आधार, अंतर्दृष्टियाँ, सेटिंग्स) .memex फ़ाइल में पैक करें। इसे शेयर शीट से iCloud ड्राइव, Google ड्राइव या किसी भी जगह सहेजें।",
+  "restoreDescription": "पूरा डेटा बहाल करने के लिए .memex बैकअप फ़ाइल चुनें। इससे मौजूदा डेटा ओवरराइट होगा।",
+  "selectBackupFile": "बैकअप फ़ाइल चुनें",
+  "estimatedSize": "अनुमानित आकार",
+  "backupComplete": "बैकअप बनाया गया",
+  "backupFailed": "बैकअप विफल: {error}",
+  "@backupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "confirmRestore": "बहाल पुष्टि करें",
+  "confirmRestoreMessage": "बहाल करने से कार्ड, ज्ञान आधार, अंतर्दृष्टियाँ और सेटिंग्स सहित सारा मौजूदा डेटा ओवरराइट होगा। यह वापस नहीं किया जा सकता। जारी रखें?",
+  "restoreComplete": "बहाल पूरा",
+  "restoreRestartHint": "डेटा बहाल हो गया है। सभी बदलाव लागू करने के लिए ऐप रीस्टार्ट करें।",
+  "restoreFailed": "बहाल विफल: {error}",
+  "@restoreFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "invalidBackupFile": "अमान्य बैकअप फ़ाइल। कृपया .memex फ़ाइल चुनें।",
+  "automaticBackup": "स्वचालित बैकअप",
+  "autoBackupDescription": "चालू होने पर Memex स्टार्टअप के बाद या अग्रभूमि में लौटते समय हर दिन अधिकतम एक स्थानीय स्नैपशॉट बनाता है।",
+  "backupSensitiveSettingsHint": "बैकअप में सेटिंग्स और मॉडल प्रदाता कुंजियाँ शामिल होती हैं। बैकअप फ़ाइलें भरोसेमंद जगह रखें।",
+  "backupLocation": "बैकअप स्थान",
+  "backupLocationDetails": "स्थान विवरण देखें",
+  "backupLocationSummary": "ऐप में दिखाया गया",
+  "backupLocationFullPath": "पूरा पथ",
+  "backupLocationUri": "फ़ोल्डर पहुँच URI मान",
+  "copyBackupLocationPath": "पथ कॉपी करें",
+  "backupLocationCopied": "बैकअप स्थान कॉपी की गई",
+  "androidBackupLocationSelected": "चुना गया फ़ोल्डर: {folderName}",
+  "@androidBackupLocationSelected": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "iosICloudBackupLocation": "iCloud ड्राइव > Memex > बैकअप",
+  "iosAppDocumentsBackupLocation": "फ़ाइलें > मेरे iPhone पर > Memex > बैकअप फ़ोल्डर",
+  "autoBackupStatus": "स्थिति",
+  "noAutoBackupYet": "अभी कोई स्वचालित बैकअप नहीं",
+  "lastBackupAt": "पिछला बैकअप समय: {time}",
+  "@lastBackupAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "autoBackupRetention": "रिटेंशन अवधि",
+  "autoBackupRetentionDays": "{days} दिन",
+  "@autoBackupRetentionDays": {
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "autoBackupRetentionForever": "हमेशा रखें",
+  "autoBackupMaxSize": "स्टोरेज सीमा",
+  "autoBackupRetentionLimitHint": "स्वचालित सफ़ाई स्वचालित स्नैपशॉट को {size} से नीचे रखती है। सुरक्षा स्नैपशॉट और मैनुअल निर्यात अलग रखे जाते हैं।",
+  "@autoBackupRetentionLimitHint": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "createSnapshotNow": "अभी बैकअप करें",
+  "backupLocationMenu": "स्थान बदलें",
+  "defaultBackupLocation": "डिफ़ॉल्ट बैकअप फ़ोल्डर पथ",
+  "defaultBackupLocationAndroidDesc": "Memex का ऐप-विशिष्ट बाहरी फ़ाइल फ़ोल्डर उपयोग करें। स्टोरेज अनुमति की ज़रूरत नहीं।",
+  "chooseBackupLocation": "बैकअप फ़ोल्डर चुनें",
+  "chooseBackupLocationAndroidDesc": "Android सिस्टम चयनकर्ता से फ़ोल्डर चुनें और Memex को स्थायी पहुँच दें।",
+  "storedBackups": "संग्रहीत बैकअप",
+  "noStoredBackups": "पहले स्नैपशॉट के बाद स्वचालित बैकअप यहाँ दिखेंगे।",
+  "backupTypeAutoSnapshot": "स्वचालित स्नैपशॉट प्रकार",
+  "backupTypeSafetySnapshot": "सुरक्षा स्नैपशॉट प्रकार",
+  "backupTypeManualBackup": "मैनुअल बैकअप प्रकार",
+  "refresh": "रीफ़्रेश करें",
+  "restoreThisBackup": "यह बैकअप बहाल करें",
+  "deleteThisBackup": "यह बैकअप हटाएँ करें",
+  "confirmDeleteBackup": "बैकअप हटाएँ करें?",
+  "confirmDeleteBackupMessage": "{fileName} हटाएँ? इससे संग्रहीत बैकअप फ़ाइल हट जाएगी और वापस नहीं आ सकेगी।",
+  "@confirmDeleteBackupMessage": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupDeleted": "बैकअप हटाएँ हुआ: {fileName}",
+  "@backupDeleted": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupDeleteFailed": "बैकअप हटाएँ नहीं हो सका: {error}",
+  "@backupDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "creatingSafetySnapshot": "सुरक्षा स्नैपशॉट बन रहा है...",
+  "autoBackupCreated": "स्नैपशॉट बना: {fileName}",
+  "@autoBackupCreated": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupLocationFailed": "बैकअप स्थान अपडेट नहीं हो सकी: {error}",
+  "@backupLocationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "backupImportCreatedAt": "बनने का समय",
+  "backupImportSourceVersion": "स्रोत संस्करण जानकारी",
+  "backupImportFlavor": "बिल्ड",
+  "backupLegacyFormat": "पुराना बैकअप (मैनिफ़ेस्ट नहीं)",
+  "restoreInProgress": "बैकअप बहाल हो रहा है...",
+  "dataStorage": "डेटा स्टोरेज",
+  "dataStorageDescriptionAndroid": "वर्कस्पेस सहेजें करने के लिए कस्टम फ़ोल्डर चुनें। ऐप दोबारा इंस्टॉल करने पर डेटा बना रहता है।",
+  "dataStorageDescriptionIOS": "डिवाइसों के बीच वर्कस्पेस सिंक करने और दोबारा इंस्टॉल करने के बाद डेटा रखने के लिए iCloud चालू करें।",
+  "storageLocationApp": "ऐप स्टोरेज स्थान",
+  "storageLocationAppDesc": "डेटा ऐप के भीतर संग्रहीत रहता है और अनइंस्टॉल करने पर हट जाएगा।",
+  "storageLocationCustom": "डिवाइस स्टोरेज (कस्टम फ़ोल्डर चुनें)",
+  "storageLocationCustomDesc": "डेटा आपके चुने फ़ोल्डर में सहेजें करें। फ़ोल्डर रहने पर दोबारा इंस्टॉल करने के बाद डेटा बना रहता है।",
+  "storageLocationICloud": "iCloud में सहेजें करें",
+  "storageLocationICloudDesc": "Apple डिवाइस के बीच वर्कस्पेस सिंक करें। दोबारा इंस्टॉल करने के बाद डेटा रहता है।",
+  "storageLocationCurrent": "मौजूदा: {location}",
+  "@storageLocationCurrent": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "icloudRequiresCapability": "iCloud स्टोरेज उपयोग करने के लिए iCloud में साइन इन करें और iCloud ड्राइव चालू करें।",
+  "loadingFromICloud": "iCloud से डेटा बहाल हो रहा है…",
+  "switchingToICloud": "iCloud स्टोरेज पर स्विच हो रहा है…",
+  "switchingStorage": "स्टोरेज स्विच हो रहा है…",
+  "customFolderAccessDenied": "इस फ़ोल्डर को पढ़ या लिख नहीं कर सकते। कृपया स्टोरेज अनुमति दें या दूसरा स्थान चुनें।",
+  "configured": "कॉन्फ़िगर है",
+  "apiKeyNotSet": "एपीआई कुंजी सेट नहीं है — कॉन्फ़िगर करने के लिए टैप करें",
+  "bottomNavTimeline": "टाइमलाइन टैब",
+  "bottomNavLibrary": "लाइब्रेरी टैब",
+  "aiGeneratedLabel": "एआई बनाया गया",
+  "sourceTraceWithCount": "स्रोत ट्रेस ({count})",
+  "@sourceTraceWithCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "deleteAccount": "खाता हटाएँ करें",
+  "deleteAccountDesc": "सारा स्थानीय डेटा स्थायी रूप से हटाएँ करें और ऐप रीसेट करें।",
+  "deleteAccountConfirmTitle": "खाता हटाएँ करें?",
+  "deleteAccountConfirmMessage": "इससे टाइमलाइन कार्ड, ज्ञान आधार, रिकॉर्डिंग और सेटिंग्स सहित आपका सारा डेटा स्थायी रूप से हटाएँ हो जाएगा। यह कार्रवाई वापस नहीं की जा सकती।",
+  "deleteAccountTypeName": "पुष्टि करने के लिए \"{name}\" दर्ज करें",
+  "@deleteAccountTypeName": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleteAccountTypeHint": "पुष्टि करें करने के लिए अपना उपयोगकर्ता नाम दर्ज करें",
+  "llmConsentTitle": "डेटा साझाकरण सहमति",
+  "llmConsentMessage": "एआई सुविधाएँ चालू करने के लिए Memex को आपका डेटा प्रोसेसिंग के लिए {provider} को भेजना होगा। इसमें शामिल है:\n\n• आपके द्वारा दर्ज पाठ (नोट्स, वाणी लिप्यंतरण)\n• फोटो मेटाडेटा और निकाला गया पाठ (ओसीआर)\n• स्वास्थ्य और फ़िटनेस सारांश\n• टाइमलाइन कार्ड सामग्री\n\nआपका डेटा आपके डिवाइस से सीधे {provider} को भेजा जाता है। Memex आपका डेटा किसी दूसरे सर्वर पर संग्रहीत या रिले नहीं करता।\n\nकृपया देखें कि {provider} आपकी डेटा गोपनीयता कैसे संभालता है।\n\nक्या आप एआई प्रोसेसिंग के लिए अपना डेटा {provider} को भेजने से सहमत हैं?",
+  "@llmConsentMessage": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "llmConsentAgree": "मैं सहमत हूँ",
+  "llmConsentDecline": "अस्वीकार करें",
+  "customAgents": "कस्टम एजेंट",
+  "noCustomAgents": "कोई कस्टम एजेंट कॉन्फ़िगर नहीं है।",
+  "deleteAgent": "एजेंट हटाएँ करें",
+  "deleteAgentConfirm": "कस्टम एजेंट \"{name}\" हटाएँ?",
+  "@deleteAgentConfirm": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleted": "हटाया गया",
+  "saved": "सहेजा गया",
+  "newAgent": "नया एजेंट",
+  "editAgent": "संपादित एजेंट",
+  "agentName": "एजेंट नाम",
+  "agentNameHint": "my-custom-agent",
+  "agentNameRequired": "आवश्यक",
+  "agentNameInvalid": "सिर्फ़ अक्षर, अंक और हाइफ़न",
+  "agentNameExists": "नाम पहले से मौजूद है",
+  "hostAgentType": "होस्ट एजेंट प्रकार",
+  "skillDirectory": "कौशल निर्देशिका",
+  "skillDirInvalid": "सापेक्ष पथ होना चाहिए (शुरुआती / या .. नहीं)",
+  "workingDirectory": "कार्य निर्देशिका (वैकल्पिक)",
+  "workingDirectoryHint": "वर्कस्पेस डिफ़ॉल्ट के लिए खाली छोड़ें",
+  "llmConfig": "एलएलएम कॉन्फ़िगरेशन",
+  "eventType": "ईवेंट प्रकार",
+  "executionMode": "निष्पादन मोड",
+  "executionModeAsync": "असिंक्रोनस मोड",
+  "executionModeSync": "सिंक्रोनस मोड",
+  "dependsOn": "निर्भर करता है",
+  "dependsOnHint": "निर्भरताएँ चुनें",
+  "priority": "प्राथमिकता स्तर",
+  "maxRetries": "अधिकतम पुनः प्रयास",
+  "systemPromptLabel": "सिस्टम प्रॉम्प्ट (वैकल्पिक)",
+  "systemPromptHint": "होस्ट एजेंट प्रॉम्प्ट में जोड़े जाने वाले अतिरिक्त निर्देश",
+  "eventSerializer": "ईवेंट सीरियलाइज़र",
+  "eventSerializerDefault": "डिफ़ॉल्ट सीरियलाइज़र (XML)",
+  "enabledLabel": "चालू",
+  "skillsManagement": "कौशल प्रबंधन",
+  "skillsManagementEmpty": "अभी कोई कौशल नहीं",
+  "downloadSkill": "कौशल डाउनलोड करें",
+  "downloading": "डाउनलोड हो रहा है...",
+  "downloadSuccess": "कौशल सफलतापूर्वक डाउनलोड हुई",
+  "downloadFailed": "डाउनलोड विफल: {error}",
+  "@downloadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "deleteConfirm": "हटाएँ पुष्टि करें",
+  "deleteConfirmMessage": "क्या आप \"{name}\" हटाना चाहते हैं?",
+  "@deleteConfirmMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidUrl": "कृपया मान्य यूआरएल दर्ज करें",
+  "urlHint": "https://example.com/skill.zip",
+  "newFolder": "नया फ़ोल्डर",
+  "newFile": "नई फ़ाइल",
+  "folderName": "फ़ोल्डर नाम",
+  "fileName": "फ़ाइल नाम",
+  "nameRequired": "नाम आवश्यक है",
+  "nameInvalid": "नाम में / या .. नहीं हो सकता",
+  "createFailed": "बनाना विफल: {error}",
+  "@createFailed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "fileContent": "फ़ाइल सामग्री",
+  "saveSuccess": "सफलतापूर्वक सहेजें हुआ",
+  "downloadToCurrentDir": "ज़िप मौजूदा निर्देशिका में निकलेगा: {dir}",
+  "@downloadToCurrentDir": {
+    "placeholders": {
+      "dir": {
+        "type": "String"
+      }
+    }
+  },
+  "privacyPolicy": "गोपनीयता नीति",
+  "privacyPolicyDesc": "Memex आपका डेटा कैसे संभालता है",
+  "llmAuthError": "एपीआई प्रमाणीकरण विफल। कृपया सेटिंग्स में अपना एलएलएम कॉन्फ़िगरेशन जाँचें।",
+  "llmBadRequestError": "अनुरोध एलएलएम प्रदाता ने अस्वीकार कर दिया। इनपुट फ़ॉर्मैट मौजूदा मॉडल से समर्थित नहीं हो सकता।",
+  "llmRateLimitError": "एपीआई दर सीमा पार हो गई। कृपया बाद में फिर कोशिश करें।",
+  "llmServerError": "एलएलएम सेवा अस्थायी रूप से अनुपलब्ध है। कृपया बाद में फिर कोशिश करें।",
+  "llmNetworkError": "नेटवर्क कनेक्शन विफल। कृपया अपना इंटरनेट कनेक्शन जाँचें।",
+  "llmUnknownError": "आपकी सामग्री प्रोसेस करते समय अप्रत्याशित त्रुटि हुई।",
+  "llmErrorDialogTitle": "प्रोसेसिंग विफल",
+  "goToModelConfig": "सेटिंग्स पर जाएँ",
+  "speechModelDownloadTitle": "वाणी मॉडल डाउनलोड करें",
+  "speechModelDownloadDesc": "एक बार मॉडल डाउनलोड (~{sizeMB}MB) करना आवश्यक है।\n\nडाउनलोड के बाद लिप्यंतरण पूरी तरह डिवाइस पर चलेगा।",
+  "@speechModelDownloadDesc": {
+    "placeholders": {
+      "sizeMB": {}
+    }
+  },
+  "speechModelStartDownload": "डाउनलोड शुरू करें",
+  "speechModelChooseSource": "डाउनलोड स्रोत चुनें:",
+  "speechModelChinaMirror": "🇨🇳 चीन मिरर (CN में तेज़)",
+  "speechModelGithub": "🌐 GitHub (वैश्विक स्रोत)",
+  "speechModelDownloading": "मॉडल डाउनलोड हो रहा है...",
+  "speechModelConnecting": "कनेक्ट हो रहा है...",
+  "deleteSpeechModel": "वाणी मॉडल हटाएँ करें",
+  "confirmDeleteSpeechModelMessage": "डाउनलोड की गई स्थानीय वाणी पहचान मॉडल फ़ाइलें हटाएँ? अगली बार स्थानीय वाणी-से-पाठ उपयोग होने पर ये फिर डाउनलोड होंगी।",
+  "speechModelDeletedSuccess": "वाणी मॉडल फ़ाइलें हटाएँ हुईं",
+  "speechModelNotDownloaded": "कोई डाउनलोड की गई वाणी मॉडल फ़ाइलें नहीं मिलीं",
+  "speechModelDeleteFailed": "वाणी मॉडल फ़ाइलें हटाएँ नहीं हो सकीं: {error}",
+  "@speechModelDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "speechTranscribing": "वाणी पहचानी जा रही है...",
+  "speechNoResult": "कोई वाणी पहचानी नहीं हुई",
+  "useLocalSpeechToTextTitle": "स्थानीय वाणी to पाठ उपयोग करें",
+  "useLocalSpeechToTextDesc": "चालू होने पर ऑडियो भेजने से पहले डिवाइस पर लिप्यंतरण होता है — उन मॉडल के लिए उपयोगी जो ऑडियो इनपुट का समर्थन नहीं करते। बंद होने पर मूल ऑडियो सीधे मॉडल को भेजा जाता है।",
+  "pendingAiProcessingHint": "प्रोसेस करने के लिए एआई मॉडल सेटअप करें",
+  "demoWelcome": "Memex में आपका स्वागत है!\nआइए जल्दी से देखें कि एआई आपके रिकॉर्ड के लिए क्या कर सकता है।",
+  "demoTapAdd": "अपना पहला रिकॉर्ड बनाने के लिए यहाँ टैप करें",
+  "demoTapSend": "अपना पहला रिकॉर्ड भेजने के लिए टैप करें",
+  "demoTapCard": "एआई ने आपके रिकॉर्ड को कैसे व्यवस्थित किया, देखने के लिए टैप करें",
+  "demoTapInsight": "एआई-जनित अंतर्दृष्टियाँ देखने के लिए टैप करें",
+  "demoTapInsightUpdate": "अपने रिकॉर्ड से अंतर्दृष्टियाँ बनाएँ करने के लिए टैप करें",
+  "demoTapKnowledge": "स्वचालित रूप से व्यवस्थित ज्ञान फ़ाइलें देखें",
+  "demoDone": "अपना जीवन रिकॉर्ड करना शुरू करें।",
+  "demoStartTour": "टूर शुरू करें",
+  "demoGetStarted": "शुरू करें",
+  "demoSkip": "छोड़ें",
+  "demoPrefillText": "नमस्ते Memex! यह मेरा पहला रिकॉर्ड है 🎉",
+  "visionBadge": "विज़न",
+  "notMultimodalHint": "मीडिया विश्लेषण के लिए Memex मल्टीमॉडल मॉडल क्षमताएँ पर निर्भर करता है। अगर आपके रिकॉर्ड में छवियाँ हैं, तो सुनिश्चित करें कि कॉन्फ़िगर मॉडल छवि इनपुट समर्थन करता है।",
+  "defaultModelPrefix": "डिफ़ॉल्ट",
+  "recommendedBadge": "अनुशंसित विकल्प",
+  "readOnlyBadge": "CHAT",
+  "switchCompanion": "साथी बदलें",
+  "personaChatInputHint": "संदेश प्रकार करें...",
+  "today": "आज",
+  "tomorrow": "कल",
+  "yesterday": "कल",
+  "showInsightTextTitle": "Memex अंतर्दृष्टि टिप्पणी दिखाएँ",
+  "showInsightTextDesc": "कार्ड विवरण टिप्पणी सेक्शन में Memex अंतर्दृष्टि को पिन की गई टिप्पणी के रूप में दिखाना है या नहीं।",
+  "enableCharacterCommentTitle": "चरित्र स्वचालित टिप्पणी चालू करें",
+  "enableCharacterCommentDesc": "चरित्र नए रिकॉर्ड पर अपने आप टिप्पणी करते हैं।",
+  "maxCommentCharactersTitle": "अधिकतम टिप्पणी करने वाले चरित्र सीमा",
+  "maxCommentCharactersDesc": "हर रिकॉर्ड पर कितने चरित्र टिप्पणी कर सकते हैं।",
+  "replyTo": "{name} को जवाब करें",
+  "@replyTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "cdnSignalsComments": "नया जवाब मिला",
+  "cdnSignalsInsight": "नया अंतर्दृष्टि बनाएँ हुआ",
+  "cdnSignalsBoth": "नया जवाब और अंतर्दृष्टि",
+  "untitledCard": "शीर्षक रहित कार्ड शीर्षक",
+  "locationContextTitle": "स्थान संदर्भ",
+  "locationContextDescription": "एजेंट चैट के लिए मौजूदा शहर और इलाका संदर्भ",
+  "locationContextAttachTitle": "मौजूदा स्थान चैट में जोड़ें करें",
+  "locationContextAttachDesc": "एजेंट को शहर, ज़िला और इलाका संदर्भ देने के लिए डिवाइस जीपीएस और रिवर्स जियोकोडिंग उपयोग करता है।",
+  "reverseGeocodingProvider": "रिवर्स जियोकोडिंग प्रदाता सेटिंग",
+  "amapProviderName": "Amap",
+  "amapApiKey": "Amap एपीआई कुंजी",
+  "amapGcj02Note": "Amap GCJ-02 निर्देशांक उपयोग करता है। रिवर्स जियोकोडिंग से पहले डिवाइस जीपीएस बदला जाता है।",
+  "contextGranularity": "संदर्भ सूक्ष्मता स्तर",
+  "granularityCity": "शहर स्तर",
+  "granularityDistrict": "ज़िला स्तर",
+  "granularityNeighborhood": "इलाका स्तर",
+  "granularityStreet": "सड़क स्तर",
+  "granularityFullAddress": "पूर्ण पता उम्मीदवार स्तर",
+  "locationFreshness": "स्थान ताज़गी सीमा",
+  "minutesShort": "{minutes} मिनट",
+  "@minutesShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "oneHour": "1 घंटा",
+  "testCurrentLocation": "मौजूदा स्थान परीक्षण करें",
+  "locationTestFailed": "विफल हुआ: {error}",
+  "@locationTestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "locationDebugGps": "जीपीएस",
+  "locationDebugReverseGeocode": "रिवर्स जियोकोड चरण",
+  "locationDebugProvider": "प्रदाता नाम",
+  "locationDebugAgentContext": "एजेंट संदर्भ डेटा",
+  "locationDebugSource": "स्रोत नाम",
+  "locationDebugAddressSummary": "पता सारांश विवरण",
+  "locationDebugFullAddress": "पूर्ण पता विवरण",
+  "locationDebugCoordinates": "निर्देशांक मान",
+  "locationDebugAccuracy": "सटीकता मान",
+  "locationDebugReason": "कारण विवरण",
+  "locationDebugOk": "OK",
+  "locationDebugUnavailable": "उपलब्ध नहीं",
+  "locationDebugInjected": "जोड़ें किया गया",
+  "locationDebugNotInjected": "जोड़ें नहीं किया गया",
+  "locationStatusUpdatedAt": "अपडेट समय",
+  "locationStatusSuccessTitle": "मौजूदा स्थान तैयार है",
+  "locationStatusSuccessBody": "स्थान संदर्भ प्रासंगिक होने पर Memex यह स्थान सारांश जोड़ें कर सकता है।",
+  "locationStatusApproximateTitle": "सिर्फ़ अनुमानित स्थान",
+  "locationStatusApproximateBody": "सटीकता शहर या क्षेत्र स्तर की लगती है। आप इसे उपयोग कर सकते हैं, या सख़्त संदर्भ के लिए सिस्टम सेटिंग्स में सटीक स्थान चालू करें।",
+  "locationStatusServiceDisabledTitle": "सिस्टम स्थान बंद है",
+  "locationStatusServiceDisabledBody": "Memex सिर्फ़ डिवाइस जीपीएस उपयोग करता है और नेटवर्क या IP से स्थान अनुमान नहीं करेगा। Android पर स्थान सेटिंग्स खोलें; iOS पर सेटिंग्स > गोपनीयता और सुरक्षा > स्थान सेवाएँ चालू करें।",
+  "locationStatusPermissionDeniedTitle": "स्थान अनुमति चाहिए",
+  "locationStatusPermissionDeniedBody": "परीक्षण करते समय या स्थान संदर्भ ज़रूरी होने पर Memex को स्थान उपयोग करने दें। हमेशा पहुँच अनुरोध नहीं किया जाता।",
+  "locationStatusPermissionForeverTitle": "स्थान अनुमति bलॉक है",
+  "locationStatusPermissionForeverBody": "ऐप सेटिंग्स खोलकर Memex के लिए स्थान अनुमति दें। iOS पर ऐप उपयोग के दौरान पर्याप्त है।",
+  "locationStatusDisabledTitle": "स्थान संदर्भ बंद है",
+  "locationStatusDisabledBody": "जब आप चाहें कि Memex डिवाइस स्थान को एजेंट संदर्भ में जोड़े, ऊपर स्विच चालू करके सहेजें।",
+  "locationStatusGeocodeUnavailableTitle": "जीपीएस काम कर रहा है, पता खोज विफल",
+  "locationStatusGeocodeUnavailableBody": "Memex के पास निर्देशांक हैं लेकिन वह सिर्फ़ जीपीएस संदर्भ एजेंट में नहीं जोड़ेगा। रिवर्स जियोकोडिंग प्रदाता जाँचें और फिर कोशिश करें।",
+  "locationStatusUnavailableTitle": "स्थान उपलब्ध नहीं है",
+  "locationStatusUnavailableBody": "सिस्टम स्थान सेवाएँ और ऐप अनुमति जाँचें, फिर परीक्षण करें।",
+  "allowLocationPermissionButton": "स्थान अनुमति दें",
+  "openAppSettingsButton": "ऐप सेटिंग्स खोलें",
+  "openLocationSettingsButton": "स्थान सेटिंग्स खोलें",
+  "locationSettingsOpenFailed": "सिस्टम सेटिंग्स खुल नहीं सकीं।",
+  "locationActionFailed": "स्थान कार्रवाई विफल: {error}",
+  "@locationActionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSearchPlaceholder": "सेटिंग्स खोजें...",
+  "settingsSearchEmpty": "कोई मिलती-जुलती सेटिंग नहीं मिली",
+  "importCharacterCard": "चरित्र कार्ड आयात करें",
+  "firstMessageLabel": "पहला संदेश",
+  "firstMessageHint": "पहली बातचीत पर भेजा जाने वाला अभिवादन (वैकल्पिक)",
+  "systemPromptOverrideLabel": "सिस्टम प्रॉम्प्ट ओवरराइड",
+  "systemPromptOverrideHint": "डिफ़ॉल्ट सिस्टम प्रॉम्प्ट ओवरराइड करें (उन्नत, वैकल्पिक)",
+  "postHistoryInstructionsLabel": "इतिहास के बाद निर्देश",
+  "postHistoryInstructionsHint": "चैट इतिहास के बाद, जवाब से पहले जोड़े जाने वाले निर्देश (वैकल्पिक)",
+  "mesExampleLabel": "संदेश उदाहरण",
+  "mesExampleHint": "चरित्र शैली दिखाने वाले उदाहरण संवाद (वैकल्पिक)",
+  "worldBookTitle": "विश्व पुस्तक",
+  "worldBookSubtitle": "कीवर्ड ट्रिगर होने पर जोड़ा जाने वाला पृष्ठभूमि ज्ञान",
+  "characterMemoryTitle": "चरित्र स्मृति",
+  "characterMemorySubtitle": "चरित्र और उपयोगकर्ता के बीच रिश्ता गतिशीलता और इंटरैक्शन स्मृतियाँ",
+  "addTooltip": "जोड़ें",
+  "constantBadge": "स्थिर बैज",
+  "worldEntryFallbackName": "प्रविष्टि {index} नाम",
+  "@worldEntryFallbackName": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "keywordsPrefix": "कीवर्ड सूची: {keys}",
+  "@keywordsPrefix": {
+    "placeholders": {
+      "keys": {}
+    }
+  },
+  "memoryFallbackName": "स्मृति {index} नाम",
+  "@memoryFallbackName": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "addWorldEntry": "विश्व पुस्तक प्रविष्टि जोड़ें",
+  "editWorldEntry": "विश्व पुस्तक प्रविष्टि संपादित करें",
+  "commentTitleLabel": "टिप्पणी / शीर्षक",
+  "entryDescriptionHint": "प्रविष्टि विवरण (वैकल्पिक पाठ)",
+  "triggerKeywordsLabel": "ट्रिगर कीवर्ड",
+  "triggerKeywordsHint": "अल्पविराम से अलग, जैसे: जादू, मंत्र",
+  "contentLabel": "सामग्री पाठ",
+  "worldEntryContentHint": "कीवर्ड ट्रिगर होने पर जोड़ा जाने वाला पृष्ठभूमि ज्ञान",
+  "enabledCheckbox": "चालू",
+  "addMemory": "स्मृति जोड़ें",
+  "editMemory": "स्मृति संपादित करें",
+  "memoryLabelField": "लेबल नाम",
+  "memoryLabelHint": "विशिष्ट पहचानकर्ता, जैसे: नाम पसंद",
+  "memoryContentHint": "स्मृति सामग्री पाठ",
+  "salienceLabel": "महत्त्व मान: ",
+  "labelCannotBeEmpty": "लेबल खाली नहीं हो सकता",
+  "importSuccess": "{name} सफलतापूर्वक आयात हुआ",
+  "@importSuccess": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "importFailed": "आयात विफल: {error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "supportedFormats": "समर्थित फ़ॉर्मैट",
+  "tavernImportDescription": "• SillyTavern V2 चरित्र कार्ड (.json)\n• एम्बेडेड कार्ड वाली PNG छवियाँ (.png)\n\nव्यक्तित्व, विश्व पुस्तक आदि फ़ील्ड अपने आप Memex चरित्र फ़ॉर्मैट में मैप हो जाएँगे।",
+  "pickCharacterFile": "चरित्र फ़ाइल चुनें",
+  "repickFile": "दूसरी फ़ाइल चुनें",
+  "personaSettingSection": "व्यक्तित्व",
+  "systemPromptSection": "सिस्टम प्रॉम्प्ट",
+  "worldEntriesCount": "विश्व पुस्तक: {count} प्रविष्टियाँ कुल",
+  "@worldEntriesCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "fileLabel": "फ़ाइल नाम: {filename}",
+  "@fileLabel": {
+    "placeholders": {
+      "filename": {}
+    }
+  },
+  "conflictWarning": "इसी नाम वाला चरित्र पहले से मौजूद है: {names}। आयात करने पर मौजूदा चरित्रों को ओवरराइट किए बिना नया चरित्र बनेगा।",
+  "@conflictWarning": {
+    "placeholders": {
+      "names": {}
+    }
+  },
+  "setPrimaryCompanionTitle": "मुख्य साथी के रूप में सेट करें",
+  "setPrimaryCompanionSubtitle": "आयात के बाद अपने आप आपका मुख्य साथी सेट करें",
+  "confirmImport": "आयात पुष्टि करें",
+  "chatBackground": "चैट पृष्ठभूमि",
+  "chooseChatBackgroundImage": "पृष्ठभूमि छवि चुनें",
+  "earlyUpdateSettingsTitle": "अर्ली एक्सेस अपडेट सेटिंग",
+  "earlyUpdateSettingsDesc": "मिलती अर्ली APK के लिए GitHub प्री-रिलीज़ जाँच करें, डाउनलोड करें, और Android इंस्टॉलर को दें।",
+  "earlyUpdateUnsupported": "अर्ली अपडेट सिर्फ़ Android अर्ली बिल्ड में उपलब्ध हैं।",
+  "earlyUpdateAutoCheckTitle": "अपडेट के लिए स्वचालित जाँच",
+  "earlyUpdateAutoCheckDesc": "स्टार्टअप पर हर 12 घंटे में अधिकतम एक बार जाँच करें।",
+  "earlyUpdateWifiOnlyTitle": "सिर्फ़ Wi-Fi पर डाउनलोड",
+  "earlyUpdateWifiOnlyDesc": "मोबाइल डेटा उपयोग करते समय अपडेट डाउनलोड छोड़ें।",
+  "earlyUpdateAutoInstallTitle": "स्वचालित डाउनलोड और इंस्टॉल",
+  "earlyUpdateAutoInstallDesc": "नई बिल्ड मिलने पर उसे डाउनलोड करके Android इंस्टॉलर अपने आप खोलें।",
+  "earlyUpdateCheckNow": "अभी जाँच करें",
+  "earlyUpdateChecking": "GitHub प्री-रिलीज़ जाँच हो रहे हैं...",
+  "earlyUpdateSkippedMobile": "सिर्फ़ Wi-Fi डाउनलोड चालू हैं, इसलिए छोड़ा गया।",
+  "earlyUpdateNoUpdate": "आप नवीनतम अर्ली बिल्ड पर हैं।",
+  "earlyUpdateFound": "अर्ली बिल्ड {version}+{build} उपलब्ध है।",
+  "@earlyUpdateFound": {
+    "placeholders": {
+      "version": {},
+      "build": {}
+    }
+  },
+  "earlyUpdateDownloadAndInstall": "डाउनलोड और इंस्टॉल",
+  "earlyUpdateDownloadInProgress": "अपडेट डाउनलोड हो रहा है...",
+  "earlyUpdateDownloadingPercent": "अपडेट डाउनलोड हो रहा है: {percent}%",
+  "@earlyUpdateDownloadingPercent": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "earlyUpdateDownloadReadyToInstall": "अपडेट पैकेज डाउनलोड हो गया। इंस्टॉल के लिए तैयार।",
+  "earlyUpdateInstallDownloadedPackage": "डाउनलोड किया गया पैकेज इंस्टॉल करें",
+  "earlyUpdateClearDownloadedPackage": "डाउनलोड किया गया पैकेज साफ़ करें",
+  "earlyUpdateClearDownloadedPackageSuccess": "डाउनलोड किया गया अपडेट पैकेज साफ़ किया गया।",
+  "earlyUpdateInstallStarted": "Android इंस्टॉलर खुला।",
+  "earlyUpdateInstallPermissionRequired": "Memex को अज्ञात ऐप इंस्टॉल करने दें, फिर डाउनलोड और इंस्टॉल दोबारा टैप करें।",
+  "earlyUpdateLastChecked": "पिछली जाँच: {time}",
+  "@earlyUpdateLastChecked": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "earlyUpdateCheckFailed": "अपडेट जाँच विफल: {error}",
+  "@earlyUpdateCheckFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "earlyUpdateDialogTitle": "अर्ली अपडेट उपलब्ध है",
+  "earlyUpdateReleaseNotes": "रिलीज़ नोट्स देखें",
+  "dismissAllNotifications": "सभी साफ़ करें",
+  "dismissByType": "प्रकार के अनुसार साफ़ करें",
+  "dismissTypeSystemAction": "रिमाइंडर और ईवेंट",
+  "dismissTypeClarification": "स्पष्टीकरण साफ़ करें",
+  "dismissTypeCardUpdate": "कार्ड अपडेट साफ़ करें",
+  "dismissedCount": "{count} साफ़ किए गए",
+  "@dismissedCount": {
+    "placeholders": {
+      "count": {}
+    }
+  }
+}

@@ -1,0 +1,1483 @@
+{
+  "@@locale": "ja",
+  "timesLabel": "回数",
+  "modelSetAsDefault": "{modelId} をデフォルトモデルに設定",
+  "@modelSetAsDefault": {
+    "placeholders": {
+      "modelId": {}
+    }
+  },
+  "retry": "再試行",
+  "unknownModel": "不明なモデル",
+  "notSet": "未設定",
+  "confirmClear": "クリアの確認",
+  "confirmClearTokenMessage": "現在のユーザーをクリアしますか？ユーザー ID を再入力する必要があります。",
+  "cancel": "キャンセル",
+  "confirm": "確認",
+  "tokenCleared": "ユーザーをクリアしました",
+  "clearTokenFailed": "ユーザーのクリアに失敗しました: {error}",
+  "@clearTokenFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "selectDateRangeOptional": "日付範囲を選択（任意）:",
+  "startDate": "開始日",
+  "endDate": "終了日",
+  "select": "選択",
+  "processLimitOptional": "処理件数の上限（任意）",
+  "leaveEmptyForAll": "すべて処理する場合は空欄のままにしてください",
+  "startProcessing": "処理を開始",
+  "userIdNotFound": "ユーザー ID が見つかりません",
+  "createTaskFailed": "タスクの作成に失敗しました: {error}",
+  "@createTaskFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "reprocessCards": "カードを再処理",
+  "reprocessCardsTaskCreated": "再処理リクエストを スーパーエージェントのキューに追加しました",
+  "reprocessCardsDownstreamMode": "範囲",
+  "reprocessCardsCardOnly": "カードのみ",
+  "reprocessCardsCardOnlyDesc": "選択したタイムラインカードの確認と再生成を スーパーエージェントに依頼します。",
+  "reprocessCardsRerunDownstream": "カードと関連する後続処理",
+  "reprocessCardsRerunDownstreamDesc": "必要に応じて、関連する PKM、予定、インサイト更新も スーパーエージェントに考慮させます。",
+  "reanalyzeMediaAssets": "メディア添付を再読み取り",
+  "reanalyzeMediaAssetsDesc": "カード再生成時に、添付メディアをもう一度確認するよう スーパーエージェントに依頼します。",
+  "regenerateComments": "コメントを再生成",
+  "regenerateCommentsTaskCreated": "コメント再生成タスクを作成しました。バックグラウンドで実行しています",
+  "rebuildSearchIndex": "検索インデックスを再構築",
+  "rebuildSearchIndexSuccess": "検索インデックスを正常に再構築しました",
+  "rebuildSearchIndexFailed": "検索インデックスの再構築に失敗しました",
+  "clearData": "データをクリア",
+  "confirmClearDataMessage": "データをクリアしますか？",
+  "confirmClearDataDeletesWorkspaceMessage": "現在のユーザーのすべてのローカルワークスペースデータが削除されます。カード、メディア、ナレッジファイル、インサイト、メモリ、チャット履歴、システム状態が含まれます。\n\nこの操作は元に戻せません！",
+  "clearFailedAgentContexts": "失敗した会話コンテキストをクリア",
+  "confirmClearFailedAgentContextsMessage": "インサイトエージェント と スケジュールエージェントの保存済み会話コンテキストをクリアしますか？以前の エージェントメッセージがモデル変更後に互換性を失った場合に役立ちます。ファクト、カード、ナレッジ、メモリ、モデル設定は削除されません。",
+  "failedAgentContextsCleared": "保存済み会話コンテキストを {count} 件クリアしました",
+  "@failedAgentContextsCleared": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "clearFailedAgentContextsFailed": "会話コンテキストのクリアに失敗しました: {error}",
+  "@clearFailedAgentContextsFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "cloneToTestUser": "テストユーザーへ複製",
+  "confirmCloneToTestUserMessage": "現在のワークスペースを新しいローカルテストユーザーにコピーし、そのユーザーへ切り替えます。エージェントの実行状態はコピーされません。現在のユーザーデータは変更されません。",
+  "testUserIdLabel": "テストユーザー ID",
+  "testUserIdHelper": "英字、数字、ハイフン、アンダースコアを使用してください。",
+  "testUserIdInvalid": "英字、数字、ハイフン、アンダースコアのみ使用できます。",
+  "overwriteExistingTestUser": "同じ ID の既存テストユーザーを置き換える",
+  "testUserCloneSuccess": "テストユーザー {userId} に切り替えました",
+  "@testUserCloneSuccess": {
+    "placeholders": {
+      "userId": {}
+    }
+  },
+  "testUserCloneFailed": "テストユーザーの複製に失敗しました: {error}",
+  "@testUserCloneFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "dataClearedSuccess": "データを正常にクリアしました",
+  "clearDataFailed": "データのクリアに失敗しました: {error}",
+  "@clearDataFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "personalCenter": "パーソナルセンター",
+  "viewLogs": "ログを表示",
+  "systemAuthorization": "システム認可",
+  "aiCharacterConfig": "AI キャラクター設定",
+  "modelConfig": "モデル設定",
+  "agentConfig": "エージェント設定",
+  "experimentalLab": "ラボ",
+  "experimentalLabDescription": "今後変更または移動される可能性がある実験的機能です。",
+  "modelUsageStats": "モデル使用統計",
+  "asyncTaskList": "非同期タスクリスト",
+  "clearLocalToken": "ユーザーをクリア",
+  "insightCardTemplates": "インサイトカードテンプレート",
+  "timelineCardTemplates": "タイムラインカードテンプレート",
+  "logViewer": "ログビューア",
+  "autoRefresh": "自動更新",
+  "lineCount": "行数: ",
+  "all": "すべて",
+  "schedule": "予定",
+  "statistics": "統計",
+  "appLockConfig": "アプリロック設定",
+  "activityStats": "アクティビティ統計",
+  "activityStatsSummary": "この期間に {inputs} 回記録し、{cards} 枚のカードを生成し、{todos} 件の ToDo を完了しました。",
+  "@activityStatsSummary": {
+    "placeholders": {
+      "inputs": {},
+      "cards": {},
+      "todos": {}
+    }
+  },
+  "last7Days": "7 日間",
+  "last30Days": "30 日間",
+  "last90Days": "90 日間",
+  "records": "記録",
+  "words": "単語",
+  "cards": "カード",
+  "knowledgeUnits": "ナレッジ単位",
+  "completedTodos": "完了した ToDo",
+  "activeDays": "アクティブ日数",
+  "streakDays": "連続日数",
+  "dailyRhythm": "日次リズム",
+  "recordToOutput": "記録から出力へ",
+  "sourceBreakdown": "ソース内訳",
+  "topThemes": "主なテーマ",
+  "textInput": "テキスト",
+  "imageInput": "画像",
+  "audioInput": "音声",
+  "noStatsYet": "まだアクティビティ統計はありません",
+  "tapDayForDetails": "日付をタップして詳細を表示",
+  "dayDetails": "日別詳細",
+  "loadStatsFailed": "統計の読み込みに失敗しました: {error}",
+  "@loadStatsFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "overview": "概要",
+  "daily": "日別",
+  "modelStatsByAgent": "エージェント別",
+  "detail": "詳細",
+  "date": "日付",
+  "agent": "エージェント",
+  "noData": "データなし",
+  "totalCalls": "合計呼び出し",
+  "calls": "呼び出し",
+  "callsCount": "{count} 回の呼び出し",
+  "@callsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "selectDateRange": "日付範囲を選択",
+  "totalTokens": "合計トークン",
+  "cacheRate": "キャッシュ率",
+  "promptTokens": "プロンプトトークン",
+  "completionTokens": "補完トークン",
+  "cachedTokens": "キャッシュ済みトークン",
+  "thoughtTokens": "思考トークン",
+  "prompt": "プロンプト",
+  "completion": "補完",
+  "cached": "キャッシュ済み",
+  "thought": "思考",
+  "model": "モデル",
+  "scene": "シーン",
+  "sceneId": "シーン ID",
+  "tokenUsage": "トークン使用量",
+  "handler": "ハンドラー",
+  "modelBreakdown": "モデル内訳",
+  "callDetails": "呼び出し詳細",
+  "recordDetailsTitle": "記録の詳細: {scene}",
+  "@recordDetailsTitle": {
+    "placeholders": {
+      "scene": {}
+    }
+  },
+  "saveLlmConfigFailed": "LLM 設定の保存に失敗しました: {error}",
+  "@saveLlmConfigFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "webHtmlPreviewUnavailable": "Web では HTML プレビューを利用できません。モバイルで表示してください。",
+  "saveUserInfoFailed": "ユーザー情報の保存に失敗しました: {error}",
+  "@saveUserInfoFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "totalEstimatedCost": "推定総コスト",
+  "close": "閉じる",
+  "totalTokenConsumption": "総トークン消費量",
+  "dataLoadFailedRetry": "データの読み込みに失敗しました。後でもう一度お試しください。",
+  "timelineLoadFailedRetry": "タイムラインの読み込みに失敗しました。後でもう一度お試しください。",
+  "newPerspective": "新しい視点",
+  "startPoint": "開始",
+  "endPoint": "終了",
+  "originalInput": "元の入力",
+  "referenceContent": "参照内容",
+  "referenceWithTitle": "参照: {title}",
+  "@referenceWithTitle": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "actionCenterTitle": "保留中のアクション",
+  "noPendingActions": "保留中のアクションはありません",
+  "clarificationNeeded": "Memex が確認したがっています",
+  "clarificationTextHint": "短い回答を入力",
+  "clarificationTextRequired": "まず短い回答を追加してください",
+  "clarificationAnswered": "回答済み",
+  "clarificationAnswerPrefix": "回答: {answer}",
+  "@clarificationAnswerPrefix": {
+    "placeholders": {
+      "answer": {}
+    }
+  },
+  "answerSaved": "回答を保存しました",
+  "clarificationOtherAnswer": "手入力",
+  "clarificationNotSure": "わからない / 回答したくない",
+  "yes": "はい",
+  "no": "いいえ",
+  "footprintMap": "足跡マップ",
+  "waypointPlaces": "経由地点",
+  "unknownPlace": "不明な場所",
+  "releaseToSend": "離すと送信",
+  "selectFromAlbum": "アルバムから選択",
+  "clipboardPreviewTitle": "新しいクリップボード",
+  "clipboardPreviewImageTitle": "クリップボード画像",
+  "clipboardPreviewImageDescription": "追加できる画像があります",
+  "clipboardPreviewUnprocessed": "まだ貼り付けていません",
+  "clipboardPreviewPasteToInput": "入力欄に貼り付け",
+  "clipboardPreviewAddImageToInput": "画像を追加",
+  "clipboardPreviewImageFailed": "クリップボード画像を読み取れませんでした",
+  "tellAiWhatHappened": "何があったか AI に伝えてください...",
+  "recordingWithDuration": "録音中: {duration}",
+  "@recordingWithDuration": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "playing": "再生中...",
+  "sendLabel": "送信",
+  "attachedImagesMessage": "{count} 枚の画像を送信しました",
+  "@attachedImagesMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "noTaskData": "タスクデータがありません",
+  "createdAtDate": "作成: {date}",
+  "@createdAtDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "updatedAtDate": "更新: {date}",
+  "@updatedAtDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "durationLabel": "所要時間: {duration}",
+  "@durationLabel": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "retryCount": "再試行: {count}",
+  "@retryCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "loadDetailFailedRetry": "詳細の読み込みに失敗しました。後でもう一度お試しください。",
+  "loadFailed": "読み込みに失敗しました",
+  "reload": "再読み込み",
+  "aiInsightDetail": "インサイト詳細",
+  "relatedRecordsCount": "関連記録（{count}）",
+  "@relatedRecordsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "noRelatedRecords": "関連記録はありません",
+  "useFingerprintToUnlock": "指紋でロック解除",
+  "locked": "ロック中",
+  "wrongPassword": "パスワードが違います",
+  "enterPassword": "パスワードを入力",
+  "memexLocked": "Memex はロックされています",
+  "calendarShortSun": "日",
+  "calendarShortMon": "月",
+  "calendarShortTue": "火",
+  "calendarShortWed": "水",
+  "calendarShortThu": "木",
+  "calendarShortFri": "金",
+  "calendarShortSat": "土",
+  "noRecordsOnDate": "{date} の記録はありません",
+  "@noRecordsOnDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "footprintPath": "足跡の経路",
+  "lifeCompositionTable": "生活構成",
+  "emotionReframe": "感情の捉え直し",
+  "chronicleOfThings": "ものごとの記録",
+  "goalProgress": "目標の進捗",
+  "trendChart": "トレンドチャート",
+  "comparisonChart": "比較チャート",
+  "todayTimeFlow": "今日の時間の流れ",
+  "aiInputHint": "思い出でも今のことでも、ここにいます...",
+  "refreshSuperAgentStateTooltip": "Memex エージェントのコンテキストをクリア",
+  "refreshSuperAgentStateTitle": "Memex エージェントの履歴コンテキストをクリアしますか？",
+  "refreshSuperAgentStateMessage": "表示されているチャット履歴は残りますが、Memex エージェントの過去の実行コンテキストはクリアされ、今後の返信は新しいコンテキストから始まります。永続メモリ、ナレッジベースファイル、カード、その他の保存済みデータには影響しません。Memex エージェントの動作が異常なままのときに使用してください。続行しますか？",
+  "refreshSuperAgentStateActiveRunMessage": "現在の Memex エージェントメッセージが完了してからコンテキストをクリアしてください。",
+  "refreshSuperAgentStateSuccess": "Memex エージェントのコンテキストをクリアしました",
+  "refreshSuperAgentStateFailed": "Memex エージェントのコンテキストのクリアに失敗しました: {error}",
+  "@refreshSuperAgentStateFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "nothingHere": "まだ何もありません",
+  "nothingHereHint": "下のボタンをタップして最初のカードを作成",
+  "agentProcessing": "AI が処理中です...",
+  "keepAppOpen": "アプリを閉じないでください",
+  "activityDetail": "アクティビティ詳細",
+  "noAgentActivityYet": "エージェントアクティビティはまだありません",
+  "processingEllipsis": "処理中...",
+  "agentBackgroundTitle": "Memex エージェント",
+  "agentBackgroundPausedTitle": "Memex エージェント は一時停止中",
+  "agentBackgroundNeedsAttentionTitle": "Memex エージェントに対応が必要です",
+  "agentBackgroundStageIdle": "待機中",
+  "agentBackgroundStageProcessing": "処理中",
+  "agentBackgroundStageQueued": "キュー待ち",
+  "agentBackgroundStageRetrying": "再試行待ち",
+  "agentBackgroundStagePaused": "一時停止中",
+  "agentBackgroundStageCompleted": "完了",
+  "agentBackgroundStageNeedsAttention": "対応が必要",
+  "agentBackgroundStageAnalyzingMedia": "メディアを分析中",
+  "agentBackgroundStageGeneratingCard": "カードを生成中",
+  "agentBackgroundStageUpdatingKnowledge": "ナレッジを更新中",
+  "agentBackgroundStagePreparingComment": "コメントを準備中",
+  "agentBackgroundStageRoutingFollowUps": "後続処理を振り分け中",
+  "agentBackgroundTaskSummary": "実行中 {running}、保留中 {pending}、再試行 {retrying}",
+  "@agentBackgroundTaskSummary": {
+    "placeholders": {
+      "running": {},
+      "pending": {},
+      "retrying": {}
+    }
+  },
+  "agentBackgroundTaskDetail": "{count} 件のキュー済みタスクを処理しています。",
+  "@agentBackgroundTaskDetail": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "agentBackgroundNoTasks": "バックグラウンドタスクはありません。",
+  "agentBackgroundStarting": "処理を開始しています。",
+  "agentBackgroundCompletedDetail": "すべてのバックグラウンドタスクが完了しました。",
+  "agentBackgroundFailedDetail": "エラーにより処理が停止しました。",
+  "agentBackgroundPausedDetail": "処理は一時停止中で、後で続行されます。",
+  "agentBackgroundQueuedDetail": "次の処理ステップを待っています。",
+  "agentBackgroundRetryingDetail": "現在のステップは自動的に再試行されます。",
+  "agentBackgroundAnalyzeMediaDetail": "添付ファイルとローカルコンテキストを読み取っています。",
+  "agentBackgroundGeneratingCardDetail": "記録をタイムラインカードに変換しています。",
+  "agentBackgroundUpdatingKnowledgeDetail": "ローカルナレッジとメモリを更新しています。",
+  "agentBackgroundPreparingCommentDetail": "アシスタントのフォローアップを準備しています。",
+  "agentBackgroundRoutingFollowUpsDetail": "このカードの後続アクションを確認しています。",
+  "agentBackgroundPausedStatus": "一時停止中 - {summary}",
+  "@agentBackgroundPausedStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "agentBackgroundNeedsAttentionStatus": "対応が必要 - {summary}",
+  "@agentBackgroundNeedsAttentionStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "settings": "設定",
+  "languageSettings": "言語",
+  "languageSettingsDesc": "アプリの表示言語を変更",
+  "noPendingActionsToast": "保留中のアクションはありません",
+  "knowledgeNewDiscovery": "ナレッジの新しい発見",
+  "discoveredNewInsightsCount": "{count} 件の新しいインサイトを発見しました",
+  "@discoveredNewInsightsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "updatedExistingInsightsCount": "{count} 件の既存インサイトを更新しました",
+  "@updatedExistingInsightsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "sectionNewInsights": "新しいインサイト",
+  "sectionUpdatedInsights": "更新されたインサイト",
+  "unnamedInsight": "名前のないインサイト",
+  "copiedToClipboard": "クリップボードにコピーしました",
+  "copy": "コピー",
+  "selectedLocation": "選択した場所",
+  "confirmLocationName": "場所名を確認",
+  "confirmLocationNameHint": "名前を編集できます（座標は変わりません）",
+  "nameLabel": "名前",
+  "inputPlaceNameHint": "場所名を入力...",
+  "currentCoordinates": "座標: {lat}, {lng}",
+  "@currentCoordinates": {
+    "placeholders": {
+      "lat": {},
+      "lng": {}
+    }
+  },
+  "confirmLocation": "場所を確認",
+  "welcomeToMemex": "Memex へようこそ",
+  "createUserIdToStart": "プロフィールを作成",
+  "userIdLabel": "あなたの名前 / ニックネーム",
+  "userIdHint": "名前またはニックネームを入力",
+  "pleaseEnterUserId": "名前を入力してください",
+  "userIdMaxLength": "名前は 50 文字以内にしてください",
+  "startUsing": "続行",
+  "userIdTip": "体験をパーソナライズするために使用されます。",
+  "setupModelConfigTitle": "AI モデルを設定",
+  "setupModelConfigSubtitle": "Memex が記録を整理し、画像を分析し、インサイトを生成するには最先端の AI モデルが必要です。接続方法を選択してください。",
+  "setupModelConfigComplete": "完了して進む",
+  "aiService": "Memex モデルサービス",
+  "aiModelHubTitle": "AI モデルとサービス",
+  "aiModelHubSubtitle": "Memex 公式サービスを選ぶか、自分のプロバイダーを接続します。必要なときは高度なモデルルーティングも利用できます。",
+  "aiSetupCurrentStatusTitle": "現在の設定",
+  "aiSetupStatusNotConfiguredTitle": "AI サービスが設定されていません",
+  "aiSetupStatusNotConfiguredDescription": "記録、メディア、インサイトの AI 整理を有効にするには、接続方法を選択してください。",
+  "aiSetupStatusMemexTitle": "MemeX 公式サービスを使用中",
+  "aiSetupStatusMemexDescription": "Memex は、MemeX アカウントで管理される公式接続と API 認証情報を使用します。",
+  "aiSetupStatusCustomTitle": "カスタムプロバイダー設定を使用中",
+  "aiSetupStatusCustomDescription": "Memex は、設定済みのプロバイダー認証情報とモデルロール選択を使用します。",
+  "aiSetupChooseConnectionTitle": "接続方法を選択",
+  "aiSetupChooseConnectionDescription": "Memex に AI モデルへアクセスさせる方法に合った経路から始めてください。",
+  "aiSetupOfficialRouteDescription": "MemeX にサインインし、プロバイダー、キー、エージェント単位のモデルを選ばずに公式サービスを使用します。",
+  "aiSetupCustomRouteDescription": "自分のプロバイダー認証情報を追加し、スーパーエージェントが使用するモデルを選び、必要に応じて エージェントごとのモデルを上書きします。",
+  "aiSetupCustomPageTitle": "カスタム AI サービス",
+  "aiSetupCustomPageSubtitle": "まずプロバイダー認証情報を設定し、その後 Memex が使用するモデルを選択します。",
+  "aiSetupProviderCredentialsTitle": "プロバイダーと API キー",
+  "aiSetupProviderCredentialsDescription": "OpenAI、Anthropic、DeepSeek、Gemini、OpenRouter、Ollama、または他の互換プロバイダーを追加・編集します。",
+  "modelRolesTitle": "主要モデルを選択",
+  "modelRolesDescription": "スーパーエージェント はテキストと画像入力に 1 つのモデルを使用します。高度な エージェント 上書きは下で引き続き利用できます。",
+  "textModelRoleTitle": "主要モデル",
+  "textModelRoleDescription": "スーパーエージェントがテキスト、画像、カード、ナレッジ、インサイト、チャット、コメント、予定、メモリに使用します。",
+  "modelConnectionsTitle": "モデルプロバイダーと API キー",
+  "modelConnectionsDescription": "Memex 公式サービスを接続するか、自分のプロバイダー認証情報を追加します。",
+  "relatedAiCapabilitiesTitle": "高度な関連機能",
+  "relatedAiCapabilitiesDescription": "エージェントの割り当て、位置情報プロバイダー、音声文字起こしの動作を細かく調整します。",
+  "aiSetupServiceCapabilitiesTitle": "サービス機能",
+  "aiSetupServiceCapabilitiesDescription": "音声や逆ジオコーディングなど、隣接する AI 搭載機能に Memex が使用するプロバイダーを選択します。",
+  "aiSetupAdvancedCustomizationTitle": "高度なモデルルーティング",
+  "aiSetupAdvancedCustomizationDescription": "個別のエージェントに別のプロバイダーやモデル設定を使わせたい上級ユーザー向けです。",
+  "locationProviderSettings": "位置情報プロバイダー",
+  "speechProviderSettings": "音声文字起こし",
+  "advancedAgentModelAssignments": "エージェントモデル割り当て",
+  "openAdvancedAgentModelAssignments": "個別エージェントを上書き",
+  "noConfiguredModelOptions": "モデルロールを選択する前に、プロバイダーまたは API キーを追加してください。",
+  "modelSlotUpdated": "モデルロールを更新しました",
+  "aiServiceMemexRouteTitle": "Memex 経由で接続",
+  "aiServiceLongDescription": "Memex はマルチエージェントシステムを使って生活記録、ナレッジノート、社会的コンテキストを整理し、より深いインサイトを発見し、永続メモリを備えた AI 伴走を提供します。あなたのデータはプレーンテキストの Markdown として保存され、データの自由と可搬性を保ちます。",
+  "aiServiceCustomApiRouteTitle": "API キーを持っています",
+  "aiServiceCustomModelDescription": "OpenAI、Anthropic、DeepSeek、Gemini、または他のプロバイダーの API キーをすでに持っている場合は、まずこちらを選択してください。",
+  "enableAiService": "Memex と接続",
+  "aiServiceReadyToast": "AI 整理が有効になりました",
+  "aiServiceSettingsDescription": "API キーを持っていない場合は、Memex アカウントを使って主要なモデルサービスへ接続してください。",
+  "advancedModelConfiguration": "API キーを設定",
+  "skipForNow": "今はスキップ",
+  "clearAuth": "認証をクリア",
+  "authorizing": "認証中...",
+  "authFailed": "認証に失敗しました: {error}",
+  "@authFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "authorized": "認証済み",
+  "config": "設定",
+  "calendar": "カレンダー",
+  "reminders": "リマインダー",
+  "writeToSystemFailed": "システムへの書き込みに失敗しました",
+  "permissionRequired": "{name} の権限が必要です",
+  "@permissionRequired": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "permissionRationale": "作成できるように、設定でアプリに {name} へのアクセスを許可してください。",
+  "@permissionRationale": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "goToSettings": "設定へ移動",
+  "unknownAction": "不明なアクション",
+  "discoveredCalendarEvent": "カレンダーイベントが見つかりました",
+  "discoveredReminder": "リマインダーが見つかりました",
+  "addToCalendar": "カレンダーに追加",
+  "addToReminders": "リマインダーに追加",
+  "addedToSuccess": "{target} に正常に追加しました",
+  "@addedToSuccess": {
+    "placeholders": {
+      "target": {}
+    }
+  },
+  "ignore": "無視",
+  "confirmDelete": "削除の確認",
+  "confirmDeleteSessionMessage": "この会話を削除しますか？この操作は元に戻せません。",
+  "delete": "削除",
+  "deleteSuccess": "正常に削除しました",
+  "deleteFailed": "削除に失敗しました: {error}",
+  "@deleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "daysAgo": "{count} 日前",
+  "chatHistory": "チャット履歴",
+  "enterFullScreenTooltip": "全画面表示にする",
+  "exitFullScreenTooltip": "全画面表示を終了",
+  "noConversations": "会話はありません",
+  "loadSessionListFailed": "会話リストの読み込みに失敗しました: {error}",
+  "@loadSessionListFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "yesterdayAt": "昨日 {time}",
+  "@yesterdayAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "newChat": "新しいチャット",
+  "messageCount": "{count} 件のメッセージ",
+  "@messageCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "organize": "整理",
+  "pkmCategoryProject": "プロジェクト",
+  "pkmCategoryProjectSubtitle": "短期・目標・締切",
+  "pkmCategoryArea": "エリア",
+  "pkmCategoryAreaSubtitle": "長期・責任・基準",
+  "pkmCategoryResource": "リソース",
+  "pkmCategoryResourceSubtitle": "関心・着想・蓄積",
+  "pkmCategoryArchive": "アーカイブ",
+  "pkmCategoryArchiveSubtitle": "完了・休止・参照",
+  "recentChanges": "最近の変更",
+  "noRecentChangesInThreeDays": "直近 3 日間に変更はありません",
+  "unpinned": "固定解除済み",
+  "pinnedStyle": "スタイル固定済み",
+  "operationFailed": "操作に失敗しました: {error}",
+  "@operationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "refreshingInsightData": "インサイトデータを更新しています。少し時間がかかる場合があります...",
+  "refreshFailed": "更新に失敗しました: {error}",
+  "@refreshFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sortUpdated": "並び順を更新しました",
+  "sortSaveFailed": "並び順の保存に失敗しました: {error}",
+  "@sortSaveFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "insightCardDeleted": "インサイトカードを削除しました",
+  "deleteFailedShort": "削除に失敗しました: {error}",
+  "@deleteFailedShort": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "knowledgeInsight": "ナレッジインサイト",
+  "completeSort": "並び替えを完了",
+  "noKnowledgeInsight": "ナレッジインサイトはありません",
+  "insightProcessingBacklogMessage": "{count} 件のバックグラウンドタスクがまだ処理中です。",
+  "@insightProcessingBacklogMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "insightUnavailableMessage": "このインサイトはまだ生成中、または更新されたばかりです。インサイトを更新してから後でもう一度お試しください。",
+  "noScheduleAggregation": "予定の集約はありません",
+  "scheduleAggregationEmptyHint": "更新をタップして、実際の時系列カードから予定と ToDo を整理します。",
+  "scheduleAggregationLoadFailed": "予定データの読み込みに失敗しました",
+  "scheduleAggregationRefreshFailed": "予定データの更新に失敗しました",
+  "scheduleTaskUpdateFailed": "タスクの更新に失敗しました",
+  "scheduleFeatured": "注目",
+  "scheduleThisWeek": "今週",
+  "scheduleDone": "完了",
+  "scheduleTbd": "未定",
+  "scheduleWeekOverview": "今週",
+  "scheduleImportant": "重要",
+  "scheduleBriefingTitle": "予定ブリーフィング",
+  "scheduleBriefingOpen": "開く",
+  "scheduleBriefingNoData": "予定ブリーフィングはまだありません",
+  "scheduleBriefingUpdated": "{time} に更新",
+  "@scheduleBriefingUpdated": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "scheduleBriefingDoneCount": "{count} 件完了",
+  "@scheduleBriefingDoneCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "updating": "更新中...",
+  "update": "更新",
+  "enabled": "有効",
+  "disabled": "無効",
+  "appLockOn": "アプリロックが有効です",
+  "appLockOff": "アプリロックが無効です",
+  "enableAppLockFirst": "先にアプリロックを有効にしてください",
+  "enterFourDigitPassword": "4 桁のパスワードを入力",
+  "passwordSetAndLockOn": "パスワードを設定し、アプリロックを有効にしました",
+  "appLockSettings": "アプリロック設定",
+  "enableAppLock": "アプリロックを有効にする",
+  "enableAppLockSubtitle": "アプリ起動時にパスワードを要求",
+  "enableBiometrics": "生体認証を有効にする",
+  "biometricsSubtitle": "Face ID または Touch ID でロック解除",
+  "changePassword": "パスワードを変更",
+  "setFourDigitPassword": "4 桁のパスワードを設定",
+  "reenterPasswordToConfirm": "確認のためパスワードを再入力",
+  "passwordMismatch": "パスワードが一致しません。もう一度お試しください。",
+  "confirmDeleteCharacter": "キャラクター「{name}」を削除しますか？この操作は元に戻せません。",
+  "@confirmDeleteCharacter": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "configureAiCharacter": "AI キャラクターを設定",
+  "addCharacter": "キャラクターを追加",
+  "addCharacterSubtitle": "インサイトチームに参加する AI キャラクターを選択します。彼らは異なる角度からあなたの生活データを分析します。",
+  "noCharacters": "キャラクターはいません",
+  "loadCharacterFailed": "キャラクターの読み込みに失敗しました: {error}",
+  "@loadCharacterFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "noTags": "タグなし",
+  "createSuccess": "正常に作成しました",
+  "updateSuccess": "正常に更新しました",
+  "saveFailed": "保存に失敗しました: {error}",
+  "@saveFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "newCharacter": "新しいキャラクター",
+  "editCharacter": "キャラクターを編集",
+  "save": "保存",
+  "characterName": "キャラクター名",
+  "characterNameHint": "キャラクターに名前を付けてください",
+  "pleaseEnterCharacterName": "キャラクター名を入力してください",
+  "tagsLabel": "タグ",
+  "tagsHint": "例: 知恵, 承認, マクロ\n複数のタグはカンマで区切ってください",
+  "characterPersonaLabel": "キャラクターペルソナ",
+  "characterPersonaHint": "ペルソナ、スタイルガイド、会話例、ナレッジフィルターなどを含めてください。\nセクション見出しには ## を使用してください。",
+  "pleaseEnterCharacterPersona": "キャラクターペルソナを入力してください",
+  "permissionRequestError": "権限リクエストエラー: {error}",
+  "@permissionRequestError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "permissionRequiredTitle": "権限が必要です",
+  "permissionPermanentlyDeniedMessage": "この権限を恒久的に拒否したか、システム側で要求されています。システム設定で有効にしてください。",
+  "getting": "取得中...",
+  "unauthorized": "未認証",
+  "authorizedGoToSettings": "認証済みです。変更するにはシステム設定へ移動してください。",
+  "location": "位置情報",
+  "locationPermissionReason": "場所の記録と位置関連機能のため",
+  "photos": "写真",
+  "photosPermissionReason": "写真の選択、生成画像の保存などのため",
+  "camera": "カメラ",
+  "cameraPermissionReason": "写真や動画の撮影のため",
+  "microphone": "マイク",
+  "microphonePermissionReason": "音声認識、録音などのため",
+  "calendarPermissionReason": "予定の記録とカレンダーイベントの読み取りのため",
+  "remindersPermissionReason": "リマインダーの記録と読み取りのため",
+  "fitnessAndMotion": "フィットネスとモーション",
+  "fitnessPermissionReason": "健康データとモーションデータの記録のため",
+  "notification": "通知",
+  "notificationPermissionReason": "予定や重要なリマインダーを送信するため",
+  "loadDetailFailedRetryShort": "詳細の読み込みに失敗しました。後でもう一度お試しください。",
+  "total": "合計",
+  "estimatedCost": "推定コスト",
+  "byAgent": "エージェント別",
+  "timeUpdated": "更新時刻",
+  "updateFailed": "更新に失敗しました: {error}",
+  "@updateFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "locationUpdated": "位置情報を更新しました",
+  "confirmDeleteCardMessage": "このカードを削除しますか？この操作は元に戻せません。",
+  "cardDetailNotFound": "カード詳細が見つかりません",
+  "saySomething": "何か入力してください...",
+  "relatedMemories": "関連メモリ",
+  "viewMore": "さらに表示",
+  "relatedRecords": "関連記録",
+  "reply": "返信",
+  "replySent": "返信を送信しました",
+  "insightTemplateGalleryTitle": "インサイトカードテンプレート",
+  "timelineTemplateGalleryTitle": "タイムラインカードテンプレート",
+  "categoryTextual": "テキスト",
+  "timelineFilterAll": "すべて",
+  "insights": "インサイト",
+  "memoryTitle": "メモリ",
+  "longTermProfile": "長期プロフィール",
+  "recentBuffer": "最近のバッファ",
+  "errorLoadingMemory": "メモリの読み込みエラー: {error}",
+  "@errorLoadingMemory": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "agentConfiguration": "エージェント設定",
+  "resetToDefaults": "デフォルトにリセット",
+  "resetAllAgentConfigurationsTitle": "すべてのエージェント設定をリセット",
+  "resetAllAgentConfigurationsMessage": "すべてのエージェント設定をデフォルト値にリセットしますか？この操作は元に戻せません。",
+  "resetButton": "リセット",
+  "loadDataFailed": "データの読み込みに失敗しました: {error}",
+  "@loadDataFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "saveConfigFailed": "設定の保存に失敗しました: {error}",
+  "@saveConfigFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "selectLlmClient": "LLM クライアントを選択:",
+  "agentConfigurationsReset": "エージェント設定をリセットしました",
+  "resetFailed": "リセットに失敗しました: {error}",
+  "@resetFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "modelConfiguration": "モデル設定",
+  "resetAllConfigurationsTitle": "すべての設定をリセット",
+  "resetAllModelConfigurationsMessage": "すべてのモデル設定をデフォルト値にリセットしますか？この操作は元に戻せません。",
+  "modelConfigurationsReset": "モデル設定をリセットしました",
+  "cannotDeleteDefaultConfiguration": "デフォルト設定は削除できません",
+  "cannotDeleteConfigurationTitle": "設定を削除できません",
+  "configUsedByAgentsMessage": "この設定は現在、次の エージェントに使用されています:\n\n{agentList}\n\n削除する前に、これらの エージェントを再割り当てしてください。",
+  "@configUsedByAgentsMessage": {
+    "placeholders": {
+      "agentList": {}
+    }
+  },
+  "ok": "OK",
+  "deleteConfigurationTitle": "設定を削除",
+  "confirmDeleteConfigMessage": "「{key}」を削除してもよろしいですか？",
+  "@confirmDeleteConfigMessage": {
+    "placeholders": {
+      "key": {}
+    }
+  },
+  "defaultLabel": "デフォルト",
+  "setAsDefault": "デフォルトに設定",
+  "invalidJsonInExtraField": "Extra フィールドの JSON が無効です",
+  "keyAlreadyExists": "キーはすでに存在します",
+  "resetConfigurationTitle": "設定をリセット",
+  "resetConfigurationMessage": "この設定を初期デフォルト値にリセットしますか？現在の変更は失われます。",
+  "configurationResetPressSave": "設定をリセットしました。適用するには保存を押してください。",
+  "addConfiguration": "設定を追加",
+  "editConfiguration": "設定を編集",
+  "duplicateConfiguration": "設定を複製",
+  "duplicate": "複製",
+  "keyIdLabel": "設定 ID",
+  "keyIdHelper": "deepseek や work-gpt など、この設定に名前を付けてください。",
+  "required": "必須",
+  "clientLabel": "モデルプロバイダー",
+  "providerGroupOpenAi": "OpenAI",
+  "providerGroupAnthropic": "Anthropic",
+  "providerGroupGoogle": "Google",
+  "providerGroupOthers": "人気",
+  "providerOpenAiApiKey": "API キー",
+  "providerOpenAiResponses": "API キー（Responses）",
+  "providerChatGptOauth": "ChatGPT Pro/Plus",
+  "providerClaudeApiKey": "API キー",
+  "providerBedrockSecret": "Bedrock Secret",
+  "providerGemini": "Gemini",
+  "providerGeminiOauth": "Gemini（Google OAuth）",
+  "providerKimi": "Kimi（Moonshot）",
+  "providerQwen": "Aliyun",
+  "providerSeed": "Volcengine",
+  "providerZhipu": "Zhipu GLM",
+  "providerDeepSeek": "DeepSeek",
+  "providerMinimax": "MiniMax",
+  "providerOpenRouter": "OpenRouter",
+  "providerOllama": "Ollama（ローカル）",
+  "providerMimo": "Xiaomi MIMO",
+  "providerMemex": "Memex プロキシサービス",
+  "memexSignIn": "サインイン",
+  "memexCreateAccount": "アカウント作成",
+  "memexUsername": "ユーザー名",
+  "memexPassword": "パスワード",
+  "memexCreateAccountLink": "アカウントを作成",
+  "memexSignInLink": "代わりにサインイン",
+  "memexTopUp": "Memex AI を使い始めるためにチャージ",
+  "memexTopUpSuccess": "チャージが完了しました！",
+  "memexFillAllFields": "すべての項目を入力してください",
+  "memexUsernameTooShort": "ユーザー名は 6 文字以上にしてください",
+  "memexAuthFailed": "認証に失敗しました",
+  "memexPaymentFailed": "支払いの作成に失敗しました",
+  "memexLogout": "ログアウト",
+  "memexTopUpButton": "チャージ",
+  "memexTopUpChooseAmount": "金額を選択",
+  "memexTopUpEstimatedRecords": "約 {range} 件の記録",
+  "@memexTopUpEstimatedRecords": {
+    "placeholders": {
+      "range": {}
+    }
+  },
+  "memexTopUpPlanStarter": "スターター",
+  "memexTopUpPlanEveryday": "日常利用",
+  "memexTopUpPlanHighVolume": "大容量",
+  "memexTopUpPlanCustom": "カスタムクレジット",
+  "memexTopUpPlanStarterSubtitle": "Memex AI を試すのに適しています",
+  "memexTopUpPlanEverydaySubtitle": "普段の整理に適しています",
+  "memexTopUpPlanHighVolumeSubtitle": "大量処理に適しています",
+  "memexTopUpPlanCustomSubtitle": "USD 1-10,000 を入力",
+  "memexTopUpCustomEstimate": "見積もりは入力した金額に基づきます",
+  "memexCustomAmount": "カスタム金額",
+  "memexViewHistory": "使用履歴",
+  "memexBalanceLabel": "残高: {amount}",
+  "@memexBalanceLabel": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "memexConfirmPassword": "パスワードを確認",
+  "memexPasswordMismatch": "パスワードが一致しません",
+  "memexPayAmount": "{amount} をチャージ",
+  "@memexPayAmount": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "modelIdLabel": "モデル",
+  "modelIdHelper": "例: gemini-3.1-pro-preview、gpt-4o",
+  "fetchingModels": "モデルを取得中...",
+  "fetchModelsButton": "モデルを取得",
+  "enterApiKeyFirst": "モデルを取得するには、まず API キーを入力してください",
+  "apiKeyLabel": "API キー",
+  "baseUrlLabel": "API エンドポイント",
+  "advancedSettings": "詳細設定",
+  "testConnectionSuccess": "接続に成功しました",
+  "testConnectionFailed": "接続に失敗しました",
+  "testTypeText": "テキスト",
+  "testTypeVision": "ビジョン",
+  "testButton": "テスト",
+  "testing": "テスト中...",
+  "proxyUrlOptional": "プロキシ URL（任意）",
+  "proxyUrlHelper": "例: http://127.0.0.1:7890",
+  "temperatureLabel": "Temperature",
+  "topPLabel": "Top P",
+  "maxTokensLabel": "Max Tokens",
+  "extraParamsJson": "追加パラメータ（JSON）",
+  "invalidJson": "無効な JSON",
+  "warning": "設定が未完了です",
+  "invalidConfigurationWarning": "この設定はまだ完全ではありません（例: API キーまたはモデル ID が未入力）。保存して後から設定することもできます。続行しますか？",
+  "invalidModelConfigDetailed": "AI エージェント「{agentId}」を動作させるには、有効なモデル設定（キー:「{configKey}」）が必要です。モデル設定を確認してください。",
+  "discardChangesTitle": "このページを離れますか？",
+  "discardChangesMessage": "変更を加えた場合は、離れる前に保存してください。",
+  "discardButton": "破棄",
+  "chooseLanguage": "言語を選択",
+  "chooseAvatar": "アバターを選択",
+  "configureNow": "今すぐ設定",
+  "modelNotConfiguredBanner": "AI モデルがまだ設定されていません。設定するとすべての機能を利用できます。",
+  "modelNotConfiguredSubmitHint": "公開する前に AI モデルを設定してください",
+  "processingStatus": "処理中",
+  "failedStatus": "失敗",
+  "failureReason": "失敗理由",
+  "unknownError": "不明なエラーが発生しました",
+  "enableFitness": "フィットネスを有効にする",
+  "fitnessBannerMessage": "健康とアクティビティデータを追跡するため、フィットネスアクセスを許可してください。",
+  "fitnessDismissTitle": "フィットネスアクセスをスキップしますか？",
+  "fitnessDismissMessage": "フィットネス権限がないと、インサイトや自動記録のために健康データを自動収集できません。",
+  "skipAnyway": "それでもスキップ",
+  "proModelHint": "このモデルを使用するには ChatGPT Pro/Plus サブスクリプションが必要です。",
+  "searchKnowledgeBase": "ナレッジベースを検索...",
+  "searchKnowledgeHint": "ファイル名または内容を検索するキーワードを入力",
+  "noSearchResults": "「{query}」の結果は見つかりませんでした",
+  "@noSearchResults": {
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "onlyMarkdownPreview": "Markdown プレビューのみ対応しています",
+  "backupAndRestore": "バックアップと復元",
+  "createBackup": "バックアップを作成",
+  "restoreBackup": "バックアップを復元",
+  "backupDescription": "すべてのデータ（カード、ナレッジベース、インサイト、設定）を .memex ファイルにまとめます。共有シートから iCloud Drive、Google Drive、または任意の場所に保存できます。",
+  "restoreDescription": ".memex バックアップファイルを選択してすべてのデータを復元します。現在のデータは上書きされます。",
+  "selectBackupFile": "バックアップファイルを選択",
+  "estimatedSize": "推定サイズ",
+  "backupComplete": "バックアップを作成しました",
+  "backupFailed": "バックアップに失敗しました: {error}",
+  "@backupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "confirmRestore": "復元の確認",
+  "confirmRestoreMessage": "復元すると、カード、ナレッジベース、インサイト、設定を含む現在のすべてのデータが上書きされます。この操作は元に戻せません。続行しますか？",
+  "restoreComplete": "復元が完了しました",
+  "restoreRestartHint": "データを復元しました。すべての変更を反映するにはアプリを再起動してください。",
+  "restoreFailed": "復元に失敗しました: {error}",
+  "@restoreFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "invalidBackupFile": "無効なバックアップファイルです。.memex ファイルを選択してください。",
+  "automaticBackup": "自動バックアップ",
+  "autoBackupDescription": "有効にすると、Memex は起動後またはフォアグラウンドに戻ったときに、1 日最大 1 回ローカルスナップショットを作成します。",
+  "backupSensitiveSettingsHint": "バックアップには設定とモデルプロバイダーのキーが含まれます。信頼できる場所に保管してください。",
+  "backupLocation": "場所",
+  "backupLocationDetails": "場所の詳細",
+  "backupLocationSummary": "アプリ内に表示",
+  "backupLocationFullPath": "完全パス",
+  "backupLocationUri": "フォルダーアクセス URI",
+  "copyBackupLocationPath": "パスをコピー",
+  "backupLocationCopied": "バックアップ場所をコピーしました",
+  "androidBackupLocationSelected": "選択したフォルダー: {folderName}",
+  "@androidBackupLocationSelected": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "iosICloudBackupLocation": "iCloud Drive > Memex > Backups",
+  "iosAppDocumentsBackupLocation": "ファイル > この iPhone 内 > Memex > Backups",
+  "autoBackupStatus": "状態",
+  "noAutoBackupYet": "自動バックアップはまだありません",
+  "lastBackupAt": "前回のバックアップ: {time}",
+  "@lastBackupAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "autoBackupRetention": "保持期間",
+  "autoBackupRetentionDays": "{days} 日",
+  "@autoBackupRetentionDays": {
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "autoBackupRetentionForever": "無期限に保持",
+  "autoBackupMaxSize": "保存容量上限",
+  "autoBackupRetentionLimitHint": "自動クリーンアップにより、自動スナップショットは {size} 未満に保たれます。安全スナップショットと手動エクスポートは別途保持されます。",
+  "@autoBackupRetentionLimitHint": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "createSnapshotNow": "今すぐバックアップ",
+  "backupLocationMenu": "場所を変更",
+  "defaultBackupLocation": "デフォルトのバックアップフォルダー",
+  "defaultBackupLocationAndroidDesc": "Memex のアプリ専用外部ファイルフォルダーを使用します。ストレージ権限は不要です。",
+  "chooseBackupLocation": "バックアップフォルダーを選択",
+  "chooseBackupLocationAndroidDesc": "Android のシステムピッカーでフォルダーを選び、Memex に永続アクセスを許可します。",
+  "storedBackups": "保存済みバックアップ",
+  "noStoredBackups": "最初のスナップショット後に自動バックアップがここに表示されます。",
+  "backupTypeAutoSnapshot": "自動スナップショット",
+  "backupTypeSafetySnapshot": "安全スナップショット",
+  "backupTypeManualBackup": "手動バックアップ",
+  "refresh": "更新",
+  "restoreThisBackup": "このバックアップを復元",
+  "deleteThisBackup": "このバックアップを削除",
+  "confirmDeleteBackup": "バックアップを削除しますか？",
+  "confirmDeleteBackupMessage": "{fileName} を削除しますか？保存済みバックアップファイルが削除され、元に戻せません。",
+  "@confirmDeleteBackupMessage": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupDeleted": "バックアップを削除しました: {fileName}",
+  "@backupDeleted": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupDeleteFailed": "バックアップを削除できませんでした: {error}",
+  "@backupDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "creatingSafetySnapshot": "安全スナップショットを作成中...",
+  "autoBackupCreated": "スナップショットを作成しました: {fileName}",
+  "@autoBackupCreated": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupLocationFailed": "バックアップ場所を更新できませんでした: {error}",
+  "@backupLocationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "backupImportCreatedAt": "作成日時",
+  "backupImportSourceVersion": "ソースバージョン",
+  "backupImportFlavor": "ビルド",
+  "backupLegacyFormat": "レガシーバックアップ（manifest なし）",
+  "restoreInProgress": "バックアップを復元中...",
+  "dataStorage": "データ保存先",
+  "dataStorageDescriptionAndroid": "ワークスペースを保存するカスタムフォルダーを選択します。アプリを再インストールしてもデータは保持されます。",
+  "dataStorageDescriptionIOS": "iCloud をオンにすると、ワークスペースをデバイス間で同期し、アプリ再インストール後もデータを保持できます。",
+  "storageLocationApp": "アプリ内ストレージ",
+  "storageLocationAppDesc": "データはアプリ内に保存され、アンインストール時に削除されます。",
+  "storageLocationCustom": "デバイスストレージ（カスタムフォルダー）",
+  "storageLocationCustomDesc": "選択したフォルダーにデータを保存します。フォルダーが残っていれば再インストール後もデータは保持されます。",
+  "storageLocationICloud": "iCloud に保存",
+  "storageLocationICloudDesc": "Apple デバイス間でワークスペースを同期します。再インストール後もデータは残ります。",
+  "storageLocationCurrent": "現在: {location}",
+  "@storageLocationCurrent": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "icloudRequiresCapability": "iCloud ストレージを使用するには、iCloud にサインインして iCloud Drive をオンにしてください。",
+  "loadingFromICloud": "iCloud からデータを復元中…",
+  "switchingToICloud": "iCloud ストレージに切り替え中…",
+  "switchingStorage": "ストレージを切り替え中…",
+  "customFolderAccessDenied": "このフォルダーを読み書きできません。ストレージ権限を許可するか、別の場所を選択してください。",
+  "configured": "設定済み",
+  "apiKeyNotSet": "API キーが未設定です — タップして設定",
+  "bottomNavTimeline": "タイムライン",
+  "bottomNavLibrary": "ライブラリ",
+  "aiGeneratedLabel": "AI 生成",
+  "sourceTraceWithCount": "ソース追跡（{count}）",
+  "@sourceTraceWithCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "deleteAccount": "アカウントを削除",
+  "deleteAccountDesc": "すべてのローカルデータを完全に削除し、アプリをリセットします。",
+  "deleteAccountConfirmTitle": "アカウントを削除しますか？",
+  "deleteAccountConfirmMessage": "タイムラインカード、ナレッジベース、録音、設定を含むすべてのデータが完全に削除されます。この操作は元に戻せません。",
+  "deleteAccountTypeName": "確認するには「{name}」と入力してください",
+  "@deleteAccountTypeName": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleteAccountTypeHint": "確認のためユーザー名を入力",
+  "llmConsentTitle": "データ共有への同意",
+  "llmConsentMessage": "AI 機能を有効にするため、Memex は処理のためにあなたのデータを {provider} へ送信する必要があります。これには次が含まれます:\n\n• 入力したテキスト（メモ、音声文字起こし）\n• 写真のメタデータと抽出されたテキスト（OCR）\n• 健康とフィットネスの要約\n• タイムラインカードの内容\n\nデータはあなたのデバイスから {provider} へ直接送信されます。Memex が他のサーバーでデータを保存または中継することはありません。\n\n{provider} がデータをどのように扱うかについては、同社のプライバシーポリシーを確認してください。\n\nAI 処理のためにデータを {provider} へ送信することに同意しますか？",
+  "@llmConsentMessage": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "llmConsentAgree": "同意する",
+  "llmConsentDecline": "拒否",
+  "customAgents": "カスタムエージェント",
+  "noCustomAgents": "カスタムエージェント は設定されていません。",
+  "deleteAgent": "エージェントを削除",
+  "deleteAgentConfirm": "カスタムエージェント「{name}」を削除しますか？",
+  "@deleteAgentConfirm": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleted": "削除しました",
+  "saved": "保存しました",
+  "newAgent": "新しいエージェント",
+  "editAgent": "エージェントを編集",
+  "agentName": "エージェント名",
+  "agentNameHint": "my-custom-agent",
+  "agentNameRequired": "必須",
+  "agentNameInvalid": "英字、数字、ハイフンのみ使用できます",
+  "agentNameExists": "名前はすでに存在します",
+  "hostAgentType": "ホストエージェントタイプ",
+  "skillDirectory": "スキル ディレクトリ",
+  "skillDirInvalid": "相対パスである必要があります（先頭の / や .. は不可）",
+  "workingDirectory": "作業ディレクトリ（任意）",
+  "workingDirectoryHint": "空欄の場合はワークスペースのデフォルトを使用",
+  "llmConfig": "LLM 設定",
+  "eventType": "イベントタイプ",
+  "executionMode": "実行モード",
+  "executionModeAsync": "非同期",
+  "executionModeSync": "同期",
+  "dependsOn": "依存先",
+  "dependsOnHint": "依存項目を選択",
+  "priority": "優先度",
+  "maxRetries": "最大再試行回数",
+  "systemPromptLabel": "システムプロンプト（任意）",
+  "systemPromptHint": "ホストエージェントのプロンプトに追加される指示",
+  "eventSerializer": "イベントシリアライザー",
+  "eventSerializerDefault": "デフォルト（XML）",
+  "enabledLabel": "有効",
+  "skillsManagement": "スキル 管理",
+  "skillsManagementEmpty": "スキル はまだありません",
+  "downloadSkill": "スキル をダウンロード",
+  "downloading": "ダウンロード中...",
+  "downloadSuccess": "スキル を正常にダウンロードしました",
+  "downloadFailed": "ダウンロードに失敗しました: {error}",
+  "@downloadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "deleteConfirm": "削除の確認",
+  "deleteConfirmMessage": "「{name}」を削除してもよろしいですか？",
+  "@deleteConfirmMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidUrl": "有効な URL を入力してください",
+  "urlHint": "https://example.com/skill.zip",
+  "newFolder": "新しいフォルダー",
+  "newFile": "新しいファイル",
+  "folderName": "フォルダー名",
+  "fileName": "ファイル名",
+  "nameRequired": "名前は必須です",
+  "nameInvalid": "名前に / または .. を含めることはできません",
+  "createFailed": "作成に失敗しました: {error}",
+  "@createFailed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "fileContent": "ファイル内容",
+  "saveSuccess": "正常に保存しました",
+  "downloadToCurrentDir": "zip は現在のディレクトリに展開されます: {dir}",
+  "@downloadToCurrentDir": {
+    "placeholders": {
+      "dir": {
+        "type": "String"
+      }
+    }
+  },
+  "privacyPolicy": "プライバシーポリシー",
+  "privacyPolicyDesc": "Memex がデータをどのように扱うか",
+  "llmAuthError": "API 認証に失敗しました。設定で LLM 設定を確認してください。",
+  "llmBadRequestError": "リクエストは LLM プロバイダーに拒否されました。入力形式が現在のモデルでサポートされていない可能性があります。",
+  "llmRateLimitError": "API レート制限を超えました。後でもう一度お試しください。",
+  "llmServerError": "LLM サービスは一時的に利用できません。後でもう一度お試しください。",
+  "llmNetworkError": "ネットワーク接続に失敗しました。インターネット接続を確認してください。",
+  "llmUnknownError": "コンテンツの処理中に予期しないエラーが発生しました。",
+  "llmErrorDialogTitle": "処理に失敗しました",
+  "goToModelConfig": "設定へ移動",
+  "speechModelDownloadTitle": "音声モデルをダウンロード",
+  "speechModelDownloadDesc": "一度だけモデルのダウンロード（約 {sizeMB}MB）が必要です。\n\nダウンロード後、文字起こしは完全にデバイス上で実行されます。",
+  "@speechModelDownloadDesc": {
+    "placeholders": {
+      "sizeMB": {}
+    }
+  },
+  "speechModelStartDownload": "ダウンロード開始",
+  "speechModelChooseSource": "ダウンロード元を選択:",
+  "speechModelChinaMirror": "🇨🇳 中国ミラー（中国国内で高速）",
+  "speechModelGithub": "🌐 GitHub（グローバル）",
+  "speechModelDownloading": "モデルをダウンロード中...",
+  "speechModelConnecting": "接続中...",
+  "deleteSpeechModel": "音声モデルを削除",
+  "confirmDeleteSpeechModelMessage": "ダウンロード済みのローカル音声認識モデルファイルを削除しますか？次にローカル音声文字起こしを使うときに再度ダウンロードされます。",
+  "speechModelDeletedSuccess": "音声モデルファイルを削除しました",
+  "speechModelNotDownloaded": "ダウンロード済み音声モデルファイルが見つかりません",
+  "speechModelDeleteFailed": "音声モデルファイルの削除に失敗しました: {error}",
+  "@speechModelDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "speechTranscribing": "認識中...",
+  "speechNoResult": "音声が検出されませんでした",
+  "useLocalSpeechToTextTitle": "ローカル音声文字起こしを使用",
+  "useLocalSpeechToTextDesc": "有効にすると、音声は送信前にデバイス上で文字起こしされます。音声入力に対応していないモデルに便利です。無効にすると、元の音声が直接モデルへ送信されます。",
+  "pendingAiProcessingHint": "処理する AI モデルを設定",
+  "demoWelcome": "Memex へようこそ！\nAI があなたの記録に何ができるか、簡単に見てみましょう。",
+  "demoTapAdd": "ここをタップして最初の記録を作成",
+  "demoTapSend": "タップして最初の記録を送信",
+  "demoTapCard": "AI が記録をどう整理したかを見るにはタップ",
+  "demoTapInsight": "AI 生成インサイトを見るにはタップ",
+  "demoTapInsightUpdate": "記録からインサイトを生成するにはタップ",
+  "demoTapKnowledge": "自動整理されたナレッジファイルを確認",
+  "demoDone": "生活の記録を始めましょう。",
+  "demoStartTour": "ツアーを開始",
+  "demoGetStarted": "始める",
+  "demoSkip": "スキップ",
+  "demoPrefillText": "こんにちは Memex！これは私の最初の記録です 🎉",
+  "visionBadge": "ビジョン",
+  "notMultimodalHint": "Memex はメディア分析にマルチモーダルモデルの能力を利用します。記録に画像が含まれる場合は、設定したモデルが画像入力に対応していることを確認してください。",
+  "defaultModelPrefix": "デフォルト",
+  "recommendedBadge": "おすすめ",
+  "readOnlyBadge": "CHAT",
+  "switchCompanion": "コンパニオンを切り替え",
+  "personaChatInputHint": "メッセージを入力...",
+  "today": "今日",
+  "tomorrow": "明日",
+  "yesterday": "昨日",
+  "showInsightTextTitle": "Memex インサイトコメントを表示",
+  "showInsightTextDesc": "カード詳細のコメント欄で、Memex インサイトを固定コメントとして表示するかどうか。",
+  "enableCharacterCommentTitle": "キャラクター自動コメント",
+  "enableCharacterCommentDesc": "キャラクターが新しい記録に自動でコメントします。",
+  "maxCommentCharactersTitle": "コメントする最大キャラクター数",
+  "maxCommentCharactersDesc": "各記録にコメントできるキャラクター数。",
+  "replyTo": "{name} に返信",
+  "@replyTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "cdnSignalsComments": "新しい返信を受信しました",
+  "cdnSignalsInsight": "新しいインサイトが生成されました",
+  "cdnSignalsBoth": "新しい返信とインサイトがあります",
+  "untitledCard": "無題のカード",
+  "locationContextTitle": "位置コンテキスト",
+  "locationContextDescription": "エージェントチャット用の現在の都市と近隣コンテキスト",
+  "locationContextAttachTitle": "現在地をチャットに添付",
+  "locationContextAttachDesc": "デバイス GPS と逆ジオコーディングを使って、都市、地区、近隣のコンテキストを エージェントに提供します。",
+  "reverseGeocodingProvider": "逆ジオコーディングプロバイダー",
+  "amapProviderName": "Amap",
+  "amapApiKey": "Amap API キー",
+  "amapGcj02Note": "Amap は GCJ-02 座標を使用します。デバイス GPS は逆ジオコーディング前に変換されます。",
+  "contextGranularity": "コンテキストの粒度",
+  "granularityCity": "都市",
+  "granularityDistrict": "地区",
+  "granularityNeighborhood": "近隣",
+  "granularityStreet": "通り",
+  "granularityFullAddress": "完全住所候補",
+  "locationFreshness": "位置情報の鮮度",
+  "minutesShort": "{minutes} 分",
+  "@minutesShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "oneHour": "1 時間",
+  "testCurrentLocation": "現在地をテスト",
+  "locationTestFailed": "失敗: {error}",
+  "@locationTestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "locationDebugGps": "GPS",
+  "locationDebugReverseGeocode": "逆ジオコーディング",
+  "locationDebugProvider": "プロバイダー",
+  "locationDebugAgentContext": "エージェントコンテキスト",
+  "locationDebugSource": "ソース",
+  "locationDebugAddressSummary": "住所サマリー",
+  "locationDebugFullAddress": "完全住所",
+  "locationDebugCoordinates": "座標",
+  "locationDebugAccuracy": "精度",
+  "locationDebugReason": "理由",
+  "locationDebugOk": "OK",
+  "locationDebugUnavailable": "利用不可",
+  "locationDebugInjected": "注入済み",
+  "locationDebugNotInjected": "未注入",
+  "locationStatusUpdatedAt": "更新済み",
+  "locationStatusSuccessTitle": "現在地の準備ができました",
+  "locationStatusSuccessBody": "位置コンテキストが関連する場合、Memex はこの位置サマリーを添付できます。",
+  "locationStatusApproximateTitle": "おおよその位置のみ",
+  "locationStatusApproximateBody": "精度は都市またはエリア程度に見えます。このまま使用するか、より細かいコンテキストのためにシステム設定で正確な位置情報を有効にしてください。",
+  "locationStatusServiceDisabledTitle": "システムの位置情報がオフです",
+  "locationStatusServiceDisabledBody": "Memex はデバイス GPS のみを使用し、ネットワークや IP から位置を推測しません。Android では位置情報設定を開き、iOS では「設定 > プライバシーとセキュリティ > 位置情報サービス」を有効にしてください。",
+  "locationStatusPermissionDeniedTitle": "位置情報の権限が必要です",
+  "locationStatusPermissionDeniedBody": "テスト時または位置コンテキストが必要なときに、Memex に位置情報の使用を許可してください。常時アクセスは要求されません。",
+  "locationStatusPermissionForeverTitle": "位置情報の権限がブロックされています",
+  "locationStatusPermissionForeverBody": "アプリ設定を開き、Memex の位置情報を許可してください。iOS では「アプリの使用中」で十分です。",
+  "locationStatusDisabledTitle": "位置コンテキストはオフです",
+  "locationStatusDisabledBody": "Memex にデバイス位置を エージェントコンテキストへ添付させたい場合は、上のスイッチをオンにして保存してください。",
+  "locationStatusGeocodeUnavailableTitle": "GPS は動作していますが、住所検索に失敗しました",
+  "locationStatusGeocodeUnavailableBody": "Memex は座標を取得していますが、GPS のみのコンテキストは エージェントに注入しません。逆ジオコーディングプロバイダーを確認して再試行してください。",
+  "locationStatusUnavailableTitle": "位置情報を利用できません",
+  "locationStatusUnavailableBody": "システムの位置情報サービスとアプリ権限を確認してから、もう一度テストしてください。",
+  "allowLocationPermissionButton": "位置情報の権限を許可",
+  "openAppSettingsButton": "アプリ設定を開く",
+  "openLocationSettingsButton": "位置情報設定を開く",
+  "locationSettingsOpenFailed": "システム設定を開けませんでした。",
+  "locationActionFailed": "位置情報操作に失敗しました: {error}",
+  "@locationActionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSearchPlaceholder": "設定を検索...",
+  "settingsSearchEmpty": "一致する設定は見つかりませんでした",
+  "importCharacterCard": "キャラクターカードをインポート",
+  "firstMessageLabel": "最初のメッセージ",
+  "firstMessageHint": "初回会話で送信される挨拶（任意）",
+  "systemPromptOverrideLabel": "システムプロンプトの上書き",
+  "systemPromptOverrideHint": "デフォルトのシステムプロンプトを上書き（上級、任意）",
+  "postHistoryInstructionsLabel": "履歴後の指示",
+  "postHistoryInstructionsHint": "チャット履歴の後、返信前に注入される指示（任意）",
+  "mesExampleLabel": "メッセージ例",
+  "mesExampleHint": "キャラクターの話し方を示す会話例（任意）",
+  "worldBookTitle": "ワールドブック",
+  "worldBookSubtitle": "キーワードがトリガーされたときに注入される背景知識",
+  "characterMemoryTitle": "キャラクターメモリ",
+  "characterMemorySubtitle": "キャラクターとユーザーの関係性ややり取りの記憶",
+  "addTooltip": "追加",
+  "constantBadge": "常時",
+  "worldEntryFallbackName": "エントリ {index}",
+  "@worldEntryFallbackName": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "keywordsPrefix": "キーワード: {keys}",
+  "@keywordsPrefix": {
+    "placeholders": {
+      "keys": {}
+    }
+  },
+  "memoryFallbackName": "メモリ {index}",
+  "@memoryFallbackName": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "addWorldEntry": "ワールドブックエントリを追加",
+  "editWorldEntry": "ワールドブックエントリを編集",
+  "commentTitleLabel": "コメント / タイトル",
+  "entryDescriptionHint": "エントリの説明（任意）",
+  "triggerKeywordsLabel": "トリガーキーワード",
+  "triggerKeywordsHint": "カンマ区切り、例: magic, spell",
+  "contentLabel": "内容",
+  "worldEntryContentHint": "キーワードがトリガーされたときに注入される背景知識",
+  "enabledCheckbox": "有効",
+  "addMemory": "メモリを追加",
+  "editMemory": "メモリを編集",
+  "memoryLabelField": "ラベル",
+  "memoryLabelHint": "一意の識別子、例: 呼び名の好み",
+  "memoryContentHint": "メモリ内容",
+  "salienceLabel": "重要度: ",
+  "labelCannotBeEmpty": "ラベルは空にできません",
+  "importSuccess": "{name} を正常にインポートしました",
+  "@importSuccess": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "importFailed": "インポートに失敗しました: {error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "supportedFormats": "対応形式",
+  "tavernImportDescription": "• SillyTavern V2 キャラクターカード（.json）\n• 埋め込みカード付き PNG 画像（.png）\n\nペルソナ、ワールドブックなどのフィールドは Memex のキャラクター形式に自動的にマッピングされます。",
+  "pickCharacterFile": "キャラクターファイルを選択",
+  "repickFile": "別のファイルを選択",
+  "personaSettingSection": "ペルソナ",
+  "systemPromptSection": "システムプロンプト",
+  "worldEntriesCount": "ワールドブック: {count} 件のエントリ",
+  "@worldEntriesCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "fileLabel": "ファイル: {filename}",
+  "@fileLabel": {
+    "placeholders": {
+      "filename": {}
+    }
+  },
+  "conflictWarning": "同じ名前のキャラクターがすでに存在します: {names}。インポートすると既存キャラクターを上書きせず、新しいキャラクターを作成します。",
+  "@conflictWarning": {
+    "placeholders": {
+      "names": {}
+    }
+  },
+  "setPrimaryCompanionTitle": "メインコンパニオンに設定",
+  "setPrimaryCompanionSubtitle": "インポート後、自動的にメインコンパニオンに設定します",
+  "confirmImport": "インポートを確認",
+  "chatBackground": "チャット背景",
+  "chooseChatBackgroundImage": "背景画像を選択",
+  "earlyUpdateSettingsTitle": "Early アクセス更新",
+  "earlyUpdateSettingsDesc": "一致する Early APK の GitHub プレリリースを確認し、ダウンロードして Android のインストーラーへ渡します。",
+  "earlyUpdateUnsupported": "Early 更新は Android Early ビルドでのみ利用できます。",
+  "earlyUpdateAutoCheckTitle": "更新を自動確認",
+  "earlyUpdateAutoCheckDesc": "起動時に最大 12 時間に 1 回確認します。",
+  "earlyUpdateWifiOnlyTitle": "Wi-Fi のみでダウンロード",
+  "earlyUpdateWifiOnlyDesc": "モバイルデータ使用中は更新ダウンロードをスキップします。",
+  "earlyUpdateAutoInstallTitle": "自動でダウンロードしてインストール",
+  "earlyUpdateAutoInstallDesc": "新しいビルドが見つかったら、ダウンロードして Android インストーラーを自動的に開きます。",
+  "earlyUpdateCheckNow": "今すぐ確認",
+  "earlyUpdateChecking": "GitHub プレリリースを確認中...",
+  "earlyUpdateSkippedMobile": "Wi-Fi のみのダウンロードが有効なためスキップしました。",
+  "earlyUpdateNoUpdate": "すでに最新の Early ビルドです。",
+  "earlyUpdateFound": "Early ビルド {version}+{build} が利用可能です。",
+  "@earlyUpdateFound": {
+    "placeholders": {
+      "version": {},
+      "build": {}
+    }
+  },
+  "earlyUpdateDownloadAndInstall": "ダウンロードしてインストール",
+  "earlyUpdateDownloadInProgress": "更新をダウンロード中...",
+  "earlyUpdateDownloadingPercent": "更新をダウンロード中: {percent}%",
+  "@earlyUpdateDownloadingPercent": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "earlyUpdateDownloadReadyToInstall": "更新パッケージをダウンロードしました。インストールできます。",
+  "earlyUpdateInstallDownloadedPackage": "ダウンロード済みパッケージをインストール",
+  "earlyUpdateClearDownloadedPackage": "ダウンロード済みパッケージをクリア",
+  "earlyUpdateClearDownloadedPackageSuccess": "ダウンロード済み更新パッケージをクリアしました。",
+  "earlyUpdateInstallStarted": "Android インストーラーを開きました。",
+  "earlyUpdateInstallPermissionRequired": "Memex に不明なアプリのインストールを許可し、もう一度ダウンロードしてインストールをタップしてください。",
+  "earlyUpdateLastChecked": "前回確認: {time}",
+  "@earlyUpdateLastChecked": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "earlyUpdateCheckFailed": "更新確認に失敗しました: {error}",
+  "@earlyUpdateCheckFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "earlyUpdateDialogTitle": "Early 更新があります",
+  "earlyUpdateReleaseNotes": "リリースノート",
+  "dismissAllNotifications": "すべてクリア",
+  "dismissByType": "種類別にクリア",
+  "dismissTypeSystemAction": "リマインダーとイベント",
+  "dismissTypeClarification": "確認事項",
+  "dismissTypeCardUpdate": "カード更新",
+  "dismissedCount": "{count} 件をクリアしました",
+  "@dismissedCount": {
+    "placeholders": {
+      "count": {}
+    }
+  }
+}
