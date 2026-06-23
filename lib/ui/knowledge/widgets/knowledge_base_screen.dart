@@ -115,7 +115,7 @@ class KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
       crossAxisCount: 2,
       mainAxisSpacing: 16,
       crossAxisSpacing: 16,
-      childAspectRatio: 0.85,
+      childAspectRatio: 0.8,
       children: [
         _buildParaCard(
           title: UserStorage.l10n.pkmCategoryProject,
@@ -199,28 +199,41 @@ class KnowledgeBaseScreenState extends State<KnowledgeBaseScreen> {
                       child: Icon(icon, color: Colors.white, size: 24),
                     ),
                     const Spacer(),
-                    Text(engTitle,
-                        style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white.withValues(alpha: 0.6),
-                            letterSpacing: 1.5)),
+                    Text(
+                      engTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white.withValues(alpha: 0.6),
+                        letterSpacing: 1.5,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text(title,
-                        style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white)),
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                            child: Text(desc,
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.white.withValues(alpha: 0.9)),
-                                overflow: TextOverflow.ellipsis)),
+                            child: Text(
+                          desc,
+                          maxLines: 1,
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.white.withValues(alpha: 0.9)),
+                          overflow: TextOverflow.ellipsis,
+                        )),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),

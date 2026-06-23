@@ -236,4 +236,148 @@ class AppLocalizationsExtDe extends AppLocalizationsDe
 
   @override
   String get shareShowBranding => 'Mit Marke';
+
+  @override
+  MemexDemoCopy get demoCopy => const MemexDemoCopy(
+        introText:
+            'Willkommen bei Memex - deinem KI-gestützten persönlichen Gedächtnisassistenten.',
+        introTitle: 'Memex - Dein KI-Lebensjournal',
+        introInsight:
+            'Memex ist dein KI-Gedächtnisassistent. Erfasse Text, Fotos und Sprache; KI organisiert sie als strukturierte Karten, Wissen und eintragsübergreifende Insights.',
+        introInsightSummary: 'Funktionsüberblick zu Memex',
+        introComment:
+            'Willkommen. Erstelle deinen ersten Eintrag und sieh, wie KI ihn organisiert.',
+        kbFileName: 'Memex Anleitung.md',
+        firstRecordTitle: 'Mein erster Eintrag',
+        firstRecordInsight:
+            'Dein erster Eintrag ist da. Ab jetzt kann Memex deine Notizen ordnen, kategorisieren und miteinander verbinden.',
+        firstRecordSummary: 'Erster Eintrag',
+        firstRecordComment: 'Erster Eintrag gespeichert. Mach weiter.',
+        firstRecordKbTitle: 'Erster Eintrag des Nutzers',
+        introHeroCaption: 'Dein KI-Lebensjournal',
+        introSnippetText:
+            'Notiere einen Gedanken, mache ein Foto oder sprich etwas ein. Memex verwandelt es automatisch in eine strukturierte Karte. KI extrahiert außerdem Wissen, ordnet Notizen und findet Muster, die du vielleicht übersehen hast.\n\nAlles bleibt auf deinem Gerät.',
+        smartCardTypesTitle: '22 Smart-Card-Typen',
+        productivityTitle: 'Produktivität',
+        productivityLabel: 'Aufgabe · Routine · Ereignis · Dauer · Fortschritt',
+        knowledgeTitle: 'Wissen',
+        knowledgeLabel:
+            'Artikel · Ausschnitt · Zitat · Link · Gespräch · Ablauf',
+        dataTitle: 'Daten',
+        dataLabel: 'Metrik · Bewertung · Transaktion · Spezifikation',
+        peoplePlacesTitle: 'Personen & Orte',
+        peoplePlacesLabel: 'Person · Ort · Stimmung · Kompakt',
+        visualTitle: 'Visuell',
+        visualLabel: 'Schnappschuss · Galerie · Video',
+        insightTypesSubject: '12 eintragsübergreifende Insight-Typen',
+        insightTypesComment:
+            'Diagramme · Erzählungen · Karten · Zeitachsen - KI entdeckt Muster in deinen Einträgen',
+        gettingStartedTitle: 'Erste Schritte',
+        configureModelTask: 'KI-Modell konfigurieren (Avatar -> Modellkonfig.)',
+        postFirstRecordTask: 'Deinen ersten Eintrag erstellen',
+        viewGeneratedTask: 'KI-generierte Karten und Wissensdateien ansehen',
+        sloganContent:
+            'Jeder Eintrag von heute wird zu einem nützlichen Faden für dein zukünftiges Ich.',
+        kbContent: '''# Memex Anleitung
+
+Memex ist eine lokale, KI-native App zum persönlichen Lebensprotokoll.
+
+## Was du tun kannst
+
+- Text, Fotos und Sprache in einem Ablauf erfassen.
+- KI Einträge in Timeline-Karten und Wissensnotizen organisieren lassen.
+- Muster über mehrere Einträge hinweg durch Insight-Karten entdecken.
+- Daten auf deinem Gerät behalten und als Markdown exportieren.
+
+## Erste Schritte
+
+1. Konfiguriere ein KI-Modell.
+2. Erstelle deinen ersten Eintrag.
+3. Öffne die generierten Karten, Insights und Wissensdateien.
+''',
+      );
+
+  @override
+  String timelineWeekdayLabel(String shortWeekday) => shortWeekday;
+
+  @override
+  AvatarPickerCopy get avatarPicker => const AvatarPickerCopy(
+        currentAvatar: 'Aktuell',
+        shuffle: 'Mischen',
+      );
+
+  @override
+  AgentChatCopy get agentChat => AgentChatCopy(
+        findingRecentPhotos: 'Suche aktuelle Fotos...',
+        runModeAuto: 'Auto',
+        runModeAskFirst: 'Erst fragen',
+        runModeReadOnly: 'Nur lesen',
+        runModeAutoDescription:
+            'Einträge, Karten und Dokumente werden direkt aktualisiert.',
+        runModeConfirmDescription:
+            'Jede Änderung wartet vor der Ausführung auf deine Freigabe.',
+        runModeReadOnlyDescription:
+            'Beantwortet nur Fragen und ändert keine Daten.',
+        runModeTitle: 'Ausführungsmodus',
+        approved: 'Genehmigt',
+        denied: 'Abgelehnt',
+        deny: 'Ablehnen',
+        allow: 'Erlauben',
+        recordSaved: 'Eintrag gespeichert',
+        cardUpdated: 'Karte aktualisiert',
+        cardCreated: 'Karte erstellt',
+        cardSaved: 'Karte gespeichert',
+        documentUpdated: 'Dokument aktualisiert',
+        documentCreated: 'Dokument erstellt',
+        calendarEventCreated: 'Kalenderereignis erstellt',
+        reminderCreated: 'Erinnerung erstellt',
+        insightSaved: 'Insight gespeichert',
+        done: 'Fertig',
+        issue: 'Problem',
+        running: 'Läuft',
+        reasoningComplete: 'Überlegung abgeschlossen',
+        thinkingThroughRequest: 'Anfrage wird durchdacht',
+        actionNeedsAttention: 'Aktion benötigt Aufmerksamkeit',
+        internalReasoningFinished: 'Interne Überlegung abgeschlossen',
+        planningNextStep: 'Nächster Schritt wird geplant',
+        toolActivity: 'Tool-Aktivität',
+        toolSearch: 'Suchen',
+        toolFindFiles: 'Dateien finden',
+        toolRead: 'Lesen',
+        toolReadBatch: 'Stapel lesen',
+        toolWrite: 'Schreiben',
+        toolEdit: 'Bearbeiten',
+        toolList: 'Auflisten',
+        toolMove: 'Verschieben',
+        toolDelete: 'Löschen',
+        toolDelegateTask: 'Aufgabe delegieren',
+        toolCreateUi: 'UI erstellen',
+        toolUpdateUi: 'UI aktualisieren',
+        toolFindStyles: 'Stile finden',
+        toolReadStyle: 'Stil lesen',
+        toolStyleLibrary: 'Stilbibliothek',
+        toolSaveCard: 'Karte speichern',
+        toolCreateEvent: 'Ereignis erstellen',
+        toolCreateReminder: 'Erinnerung erstellen',
+        toolCancelReminderEvent: 'Erinnerung/Ereignis abbrechen',
+        toolSearchCards: 'Karten suchen',
+        toolInspectCard: 'Karte prüfen',
+        toolUpdateInsight: 'Insight aktualisieren',
+        toolSaveInsights: 'Insights speichern',
+        toolDeleteInsightCard: 'Insight-Karte löschen',
+        toolDeleteInsightTags: 'Insight-Tags löschen',
+        failed: 'Fehlgeschlagen',
+        noOp: 'Keine Aktion',
+        needsInput: 'Eingabe nötig',
+        worker: 'Unteraufgabe',
+        thinking: 'Denkt...',
+        workerToolCalls: 'Tool-Aufrufe der Unteraufgabe',
+        workerResult: 'Ergebnis der Unteraufgabe',
+        arguments: 'Argumente',
+        result: 'Ergebnis',
+        approvalPrompt: (toolName) => '$toolName ausführen?',
+        toolCallCount: (count) => '$count Tool-Aufrufe',
+        workingThroughActions: (count) => '$count Aktionen werden ausgeführt',
+        completedActions: (count) => '$count Aktionen abgeschlossen',
+      );
 }
