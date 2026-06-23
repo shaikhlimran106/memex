@@ -2567,6 +2567,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get demoTapCard => '点击查看 AI 如何整理你的记录';
 
   @override
+  String get demoDetailHint => '这里是 AI 整理后的记录详情。可以自由浏览，看完后返回继续导览。';
+
+  @override
   String get demoTapInsight => '点击查看 AI 生成的洞察';
 
   @override
@@ -5684,6 +5687,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get demoTapCard => '點選查看 AI 如何整理你的記錄';
+
+  @override
+  String get demoDetailHint => '這裡是 AI 整理後的記錄詳情。可以自由瀏覽，看完後返回繼續導覽。';
 
   @override
   String get demoTapInsight => '點選查看 AI 生成的洞察';

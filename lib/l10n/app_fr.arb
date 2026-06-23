@@ -1217,6 +1217,7 @@
   "demoTapAdd": "Touchez ici pour créer votre premier enregistrement",
   "demoTapSend": "Touchez pour envoyer votre premier enregistrement",
   "demoTapCard": "Touchez pour voir comment AI a organisé votre enregistrement",
+  "demoDetailHint": "Voici le détail de votre enregistrement organisé par l'AI. Parcourez-le, puis revenez pour continuer la visite.",
   "demoTapInsight": "Touchez pour voir les insights générés par AI",
   "demoTapInsightUpdate": "Touchez pour générer des insights depuis vos enregistrements",
   "demoTapKnowledge": "Consultez vos fichiers de connaissance organisés automatiquement",

@@ -1217,6 +1217,7 @@
   "demoTapAdd": "여기를 눌러 첫 기록을 만드세요",
   "demoTapSend": "첫 기록을 보내려면 탭하세요",
   "demoTapCard": "AI가 기록을 어떻게 정리했는지 보려면 탭하세요",
+  "demoDetailHint": "AI가 정리한 기록 상세 화면입니다. 자유롭게 살펴본 뒤 돌아가 투어를 계속하세요.",
   "demoTapInsight": "AI 생성 인사이트를 보려면 탭하세요",
   "demoTapInsightUpdate": "기록에서 인사이트를 생성하려면 탭하세요",
   "demoTapKnowledge": "자동 정리된 지식 파일 확인",

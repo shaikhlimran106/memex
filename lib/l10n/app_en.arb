@@ -1182,6 +1182,7 @@
   "demoTapAdd": "Tap here to create your first record",
   "demoTapSend": "Tap to send your first record",
   "demoTapCard": "Tap to see how AI organized your record",
+  "demoDetailHint": "This is your AI-organized record detail. Scroll around, then go back to continue the tour.",
   "demoTapInsight": "Tap to see AI-generated insights",
   "demoTapInsightUpdate": "Tap to generate insights from your records",
   "demoTapKnowledge": "Check your auto-organized knowledge files",

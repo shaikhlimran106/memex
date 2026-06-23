@@ -1217,6 +1217,7 @@
   "demoTapAdd": "Ketuk di sini untuk membuat catatan pertama Anda",
   "demoTapSend": "Ketuk untuk mengirim catatan pertama Anda",
   "demoTapCard": "Ketuk untuk melihat bagaimana AI mengatur catatan Anda",
+  "demoDetailHint": "Ini detail catatan yang diorganisasi AI. Jelajahi, lalu kembali untuk melanjutkan tur.",
   "demoTapInsight": "Ketuk untuk melihat insight yang dihasilkan AI",
   "demoTapInsightUpdate": "Ketuk untuk menghasilkan insight dari catatan Anda",
   "demoTapKnowledge": "Periksa file pengetahuan yang diatur otomatis",

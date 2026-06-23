@@ -2594,6 +2594,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get demoTapCard => 'AI が記録をどう整理したかを見るにはタップ';
 
   @override
+  String get demoDetailHint => 'これは AI が整理した記録の詳細です。自由に確認してから戻り、ツアーを続けてください。';
+
+  @override
   String get demoTapInsight => 'AI 生成インサイトを見るにはタップ';
 
   @override

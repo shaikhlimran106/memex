@@ -2669,6 +2669,10 @@ class AppLocalizationsId extends AppLocalizations {
       'Ketuk untuk melihat bagaimana AI mengatur catatan Anda';
 
   @override
+  String get demoDetailHint =>
+      'Ini detail catatan yang diorganisasi AI. Jelajahi, lalu kembali untuk melanjutkan tur.';
+
+  @override
   String get demoTapInsight => 'Ketuk untuk melihat insight yang dihasilkan AI';
 
   @override

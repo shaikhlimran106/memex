@@ -4824,6 +4824,12 @@ abstract class AppLocalizations {
   /// **'Tap to see how AI organized your record'**
   String get demoTapCard;
 
+  /// No description provided for @demoDetailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This is your AI-organized record detail. Scroll around, then go back to continue the tour.'**
+  String get demoDetailHint;
+
   /// No description provided for @demoTapInsight.
   ///
   /// In en, this message translates to:

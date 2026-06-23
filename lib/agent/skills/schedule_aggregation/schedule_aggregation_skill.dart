@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:memex/agent/prompts.dart';
+import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/schedule_state_service.dart';
 import 'package:memex/domain/models/schedule_state.dart';
 
@@ -183,6 +184,7 @@ Tool buildAddPendingItemTool() {
         sourceFactId: sourceFactId,
         title: title,
       );
+      _emitScheduleAggregationUpdated();
       return jsonEncode({
         'status': 'ok',
         'item_id': item?.id,
@@ -279,6 +281,7 @@ Tool buildUpdatePendingItemTool() {
         clearLocation: clearLocation == true,
         clearPriority: clearPriority == true,
       );
+      _emitScheduleAggregationUpdated();
       return 'Pending item updated. pending=${state.pending.length}';
     },
   );
@@ -305,6 +308,7 @@ Tool buildCompletePendingItemTool() {
         closedByFactId: closedByFactId,
         closedAt: _parseScheduleDateTime(closedAt),
       );
+      _emitScheduleAggregationUpdated();
       return 'Pending item completed. completed=${state.completed.length}';
     },
   );
@@ -340,6 +344,7 @@ Tool buildCompleteSubtaskTool() {
         closedByFactId: closedByFactId,
         closedAt: _parseScheduleDateTime(closedAt),
       );
+      _emitScheduleAggregationUpdated();
       return 'Subtask completed. pending=${state.pending.length}';
     },
   );
@@ -388,6 +393,7 @@ Tool buildSetPresentationTool({bool stopAfterSetPresentation = false}) {
         userId: userId,
         presentation: presentation,
       );
+      _emitScheduleAggregationUpdated();
       return AgentToolResult(
         content: TextPart(
           'Presentation updated. pending=${updated.pending.length}',
@@ -395,6 +401,12 @@ Tool buildSetPresentationTool({bool stopAfterSetPresentation = false}) {
         stopFlag: stopAfterSetPresentation,
       );
     },
+  );
+}
+
+void _emitScheduleAggregationUpdated() {
+  EventBusService.instance.emitEvent(
+    ScheduleAggregationUpdatedMessage(aggregationId: 'schedule_state'),
   );
 }
 

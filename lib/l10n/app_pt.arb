@@ -1217,6 +1217,7 @@
   "demoTapAdd": "Toque aqui para criar seu primeiro registro",
   "demoTapSend": "Toque para enviar seu primeiro registro",
   "demoTapCard": "Toque para ver como AI organizou seu registro",
+  "demoDetailHint": "Este é o detalhe do seu registro organizado pela AI. Explore e depois volte para continuar a tour.",
   "demoTapInsight": "Toque para ver insights gerados por AI",
   "demoTapInsightUpdate": "Toque para gerar insights a partir dos seus registros",
   "demoTapKnowledge": "Veja seus arquivos de conhecimento organizados automaticamente",

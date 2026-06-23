@@ -41,6 +41,7 @@ const Set<String> _nativeCardTemplates = {
   'article',
   'conversation',
   'quote',
+  'insight_summary',
   // Visual
   'snapshot',
   'gallery',

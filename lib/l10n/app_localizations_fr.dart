@@ -2693,6 +2693,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Touchez pour voir comment AI a organisé votre enregistrement';
 
   @override
+  String get demoDetailHint =>
+      'Voici le détail de votre enregistrement organisé par l\'AI. Parcourez-le, puis revenez pour continuer la visite.';
+
+  @override
   String get demoTapInsight => 'Touchez pour voir les insights générés par AI';
 
   @override
