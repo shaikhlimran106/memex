@@ -106,7 +106,7 @@ class AppLocalizationsExtDe extends AppLocalizationsDe
   String get pkmPARAStructureExample =>
       '''## P.A.R.A. Wissensdatenbank Strukturbeispiel (Flexibel organisiert nach tatsächlichen Nutzereingaben):
 │
-├── Projects (Projekte)
+├── Projects
 │   ├── 2025 Sanya Frühlingsfest Reise/      <-- Beinhaltet Reiseplan, Flüge, Hotels, nutze einen Ordner
 │   │   ├── Reiseplan und Zeitplan.md
 │   │   └── Flug- und Hotelbestätigungen.md
@@ -116,7 +116,7 @@ class AppLocalizationsExtDe extends AppLocalizationsDe
 │   ├── Führerschein Klasse B machen.md      <-- Einzelnes Ziel, eine Datei reicht
 │   └── Dezember Arbeitsbericht Vorbereitung.md
 │
-├── Areas (Verantwortungsbereiche)
+├── Areas
 │   ├── Gesundheit und Medizin/
 │   │   ├── Familien Check-up Berichte.md
 │   │   └── Fitness Logbuch und Gewichtsaufzeichnungen.md  <-- Gut zum Anfügen
@@ -128,7 +128,7 @@ class AppLocalizationsExtDe extends AppLocalizationsDe
 │   └── Karriereentwicklung/
 │       └── Pflege des Lebenslaufs.md      <-- Wird über die Zeit kontinuierlich aktualisiert
 │
-├── Resources (Ressourcen)
+├── Resources
 │   ├── Kochen und Essen/
 │   │   ├── Diät-Rezepte.md
 │   │   └── Anleitungen für Haushaltsgeräte.md
@@ -140,7 +140,7 @@ class AppLocalizationsExtDe extends AppLocalizationsDe
 │   └── Tipps zur Hausorganisation/
 │       └── Aufräum- und Aufbewahrungsnotizen.md
 │
-└── Archives (Archive)
+└── Archives
     ├── [Abgeschlossen] Erstes Auto kaufen.md
     └── [Abgelaufen] Alte Mietvertragsdaten/
            ├── Mietvertrag.md
