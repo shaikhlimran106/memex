@@ -2673,6 +2673,10 @@ class AppLocalizationsRu extends AppLocalizations {
       'Нажмите, чтобы увидеть, как AI организовал вашу запись';
 
   @override
+  String get demoDetailHint =>
+      'Это детали записи, организованные AI. Просмотрите их, затем вернитесь, чтобы продолжить тур.';
+
+  @override
   String get demoTapInsight => 'Нажмите, чтобы увидеть AI-инсайты';
 
   @override

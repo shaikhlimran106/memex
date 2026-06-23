@@ -1217,6 +1217,7 @@
   "demoTapAdd": "點這裡建立你的第一筆記錄",
   "demoTapSend": "點選送出你的第一筆記錄",
   "demoTapCard": "點選查看 AI 如何整理你的記錄",
+  "demoDetailHint": "這裡是 AI 整理後的記錄詳情。可以自由瀏覽，看完後返回繼續導覽。",
   "demoTapInsight": "點選查看 AI 生成的洞察",
   "demoTapInsightUpdate": "點選從你的記錄生成洞察",
   "demoTapKnowledge": "查看自動整理的知識檔案",

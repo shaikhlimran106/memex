@@ -532,8 +532,11 @@ class TimelineScreenState extends State<TimelineScreen> {
                     vm.setViewMode(action['tag'] == 'insight'
                         ? TimelineViewMode.insight
                         : TimelineViewMode.timeline);
+                    final toastContext = context;
                     vm.loadCards(refresh: true).catchError((e) {
-                      if (mounted) ToastHelper.showError(context, e);
+                      if (toastContext.mounted) {
+                        ToastHelper.showError(toastContext, e);
+                      }
                     });
                     // Also sync PageView
                     final pageIdx = _filterToPageIndex(vm);
@@ -841,8 +844,7 @@ class TimelineScreenState extends State<TimelineScreen> {
 
           final entry = entries[index];
           final card = entry.card;
-          final cardIndex = entry.cardIndex;
-          final isDemoTarget = _isDemoTargetCard(vm.cards, cardIndex);
+          final isDemoTarget = DemoService.instance.isDemoTargetCardId(card.id);
           return TimelineEntryItem(
             key: ValueKey(card.id),
             card: card,
@@ -855,18 +857,41 @@ class TimelineScreenState extends State<TimelineScreen> {
                 vm.setActiveFilter('schedule');
                 return;
               }
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TimelineCardDetailScreen(cardId: card.id),
-                ),
-              );
-              if (!mounted) return;
+              final isDemoTapCardStep = isDemoTarget &&
+                  DemoService.instance.currentStep == DemoStep.tapCard;
+              if (isDemoTapCardStep) {
+                DemoService.instance.suspendOverlay();
+              }
+              final Object? result;
+              var shouldAdvanceDemo = false;
+              try {
+                result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TimelineCardDetailScreen(
+                      cardId: card.id,
+                      showDemoHint: isDemoTapCardStep,
+                    ),
+                  ),
+                );
+                shouldAdvanceDemo = isDemoTapCardStep;
+              } finally {
+                if (isDemoTapCardStep && !shouldAdvanceDemo) {
+                  DemoService.instance.resumeOverlay();
+                }
+              }
+              if (!mounted) {
+                if (isDemoTapCardStep) {
+                  DemoService.instance.resumeOverlay();
+                }
+                return;
+              }
 
               // Advance demo AFTER returning from detail screen so the
               // knowledgeTab spotlight measures the correct position.
-              if (isDemoTarget) {
+              if (shouldAdvanceDemo) {
                 DemoService.instance.tryAdvance(DemoStep.tapCard);
+                DemoService.instance.resumeOverlay();
               }
 
               if (result == true) {
@@ -889,7 +914,7 @@ class TimelineScreenState extends State<TimelineScreen> {
   ) {
     final entries = <_TimelineFeedEntry>[
       for (var i = 0; i < vm.cards.length; i++)
-        _TimelineFeedEntry(card: vm.cards[i], cardIndex: i),
+        _TimelineFeedEntry(card: vm.cards[i]),
     ];
     return entries;
   }
@@ -898,11 +923,9 @@ class TimelineScreenState extends State<TimelineScreen> {
 class _TimelineFeedEntry {
   const _TimelineFeedEntry({
     required this.card,
-    required this.cardIndex,
   });
 
   final TimelineCardModel card;
-  final int cardIndex;
 }
 
 bool _isScheduleBriefingCard(TimelineCardModel card) {
@@ -910,14 +933,6 @@ bool _isScheduleBriefingCard(TimelineCardModel card) {
       card.uiConfigs.any(
         (config) => config.templateId == scheduleBriefingTemplateId,
       );
-}
-
-bool _isDemoTargetCard(List<TimelineCardModel> cards, int index) {
-  if (index < 0 || index >= cards.length) return false;
-  if (_isScheduleBriefingCard(cards[index])) return false;
-  final firstUserCardIndex =
-      cards.indexWhere((card) => !_isScheduleBriefingCard(card));
-  return index == firstUserCardIndex;
 }
 
 class _DeferredActivePage extends StatefulWidget {
@@ -1154,7 +1169,7 @@ class _TimelineEntryItemState extends State<TimelineEntryItem> {
                   padding: EdgeInsets.only(bottom: isLast ? 0 : 8.0),
                   child: (widget.isDemoTarget &&
                           index == 0 &&
-                          DemoService.instance.isActive)
+                          DemoService.instance.currentStep == DemoStep.tapCard)
                       ? Container(
                           key: DemoService.instance.firstCardKey,
                           child: cardWidget,

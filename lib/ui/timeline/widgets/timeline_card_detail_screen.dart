@@ -23,6 +23,7 @@ import 'package:memex/ui/core/widgets/local_image.dart';
 
 import 'package:memex/ui/chat/widgets/open_super_agent_dialog.dart';
 import 'package:memex/ui/chat/widgets/reference_asset_formatter.dart';
+import 'package:memex/data/services/demo_service.dart';
 import 'package:memex/data/services/event_bus_service.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
@@ -37,8 +38,13 @@ import 'package:memex/ui/core/cards/native_card_factory.dart';
 /// Timeline card detail screen - plays full card detail
 class TimelineCardDetailScreen extends StatefulWidget {
   final String cardId;
+  final bool showDemoHint;
 
-  const TimelineCardDetailScreen({super.key, required this.cardId});
+  const TimelineCardDetailScreen({
+    super.key,
+    required this.cardId,
+    this.showDemoHint = false,
+  });
 
   @override
   State<TimelineCardDetailScreen> createState() =>
@@ -56,10 +62,13 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
   bool _showInsightText = true;
   String? _replyToCommentId;
   String? _replyToCommentName;
+  late bool _showDemoHint;
 
   @override
   void initState() {
     super.initState();
+    _showDemoHint = widget.showDemoHint &&
+        DemoService.instance.currentStep == DemoStep.tapCard;
     _memexRouter = MemexRouter();
     _memexRouter.registerCardDetailForeground(widget.cardId);
     _fetchDetail();
@@ -1201,10 +1210,82 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
                   ],
                 ),
                 _buildBottomBar(detail),
+                if (_showDemoHint)
+                  Positioned(
+                    bottom: 88,
+                    left: 16,
+                    right: 16,
+                    child: _buildDemoHintBanner(),
+                  ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDemoHintBanner() {
+    return Material(
+      key: const ValueKey('demo_detail_hint'),
+      color: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.96),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE0E7FF)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.auto_awesome,
+                size: 16,
+                color: Color(0xFF6366F1),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                UserStorage.l10n.demoDetailHint,
+                style: const TextStyle(
+                  color: Color(0xFF334155),
+                  fontSize: 14,
+                  height: 1.35,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () => setState(() => _showDemoHint = false),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(
+                  Icons.close,
+                  size: 18,
+                  color: Colors.grey[500],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

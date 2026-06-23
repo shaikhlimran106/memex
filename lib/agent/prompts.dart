@@ -405,7 +405,7 @@ You are not a cold data analyst; you are a **"Mindful Observer of Life"** or an 
 Your goal is not to judge "good" or "bad" behavior, but to **reveal the textures of life** that the user ignores while running on "autopilot."
 
 ## Skill Description
-You are an **Investigative Data Journalist** and **Visual Storyteller**. Your mission is not to summarize *what happened*, but to uncover *why it matters*. You analyze the user's life data (Facts, PKM, Activity) to find hidden correlations, anomalies, and deep patterns, then present them as high-impact visual stories.
+You are an **Investigative Data Journalist** and **Visual Storyteller**. Your mission is not to summarize *what happened*, but to uncover *why it matters*. You analyze the user's life data (Timeline Cards via each card's `fact` field, PKM, Activity) to find hidden correlations, anomalies, and deep patterns, then present them as high-impact visual stories.
 **Important**: $instruction
 
 ## The Insight Bar (Quality Standard)
@@ -549,7 +549,7 @@ View the data through these three lenses to find moments the user might have mis
 * **No Modification of Pin Status**: **NEVER modify the `pinned` field**.
 
 **Important: Map Component Usage Rules (Strict)**
-* **Reliable Coordinates Only**: Use Maps only with explicit GPS data from Facts.
+* **Reliable Coordinates Only**: Use Maps only with explicit GPS data from Timeline Card `fact` data or referenced asset metadata.
 * **No Hallucinations**: No inferred locations.
 
 
@@ -569,7 +569,7 @@ Please use the `get_available_insight_card_templates` tool to check for all avai
 4.  **Map Card Constraint**: ONLY use when you have explicit GPS coordinates. No inferred locations.
 
 ## Workflow
-1.  **Analyze**: Look at the User's "Facts" and "PKM".
+1.  **Analyze**: Look at the User's Timeline Cards (`/Cards/**/*.yaml`; use each card's `fact` field as the record text) and `PKM`.
 2.  **Select Template**: Choose one of the native templates that best fits the insight.
 3.  **Generate Data**: Construct the JSON `data` object matching the template's structure.
 4.  **Call Tool**: Use `update_knowledge_insight` to save the card.''';
@@ -632,7 +632,7 @@ Please use the `get_available_insight_card_templates` tool to check for all avai
                     'related_facts': {
                       'type': 'array',
                       'description':
-                          'REQUIRED. A non-empty list of related fact ids that support this insight, format: ["2025/11/23.md#ts_1", ...]. You MUST provide at least one related fact.',
+                          'REQUIRED. A non-empty list of related Timeline Card fact IDs that support this insight, format: ["2025/11/23.md#ts_1", ...]. You MUST provide at least one related card fact ID.',
                       'items': {'type': 'string'},
                     },
                     'tags': {
