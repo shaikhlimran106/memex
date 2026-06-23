@@ -3118,3 +3118,3122 @@ class AppLocalizationsZh extends AppLocalizations {
     return '已清除 $count 条';
   }
 }
+
+/// The translations for Chinese, using the Han script (`zh_Hant`).
+class AppLocalizationsZhHant extends AppLocalizationsZh {
+  AppLocalizationsZhHant() : super('zh_Hant');
+
+  @override
+  String get timesLabel => '次數';
+
+  @override
+  String modelSetAsDefault(Object modelId) {
+    return '已將 $modelId 設為預設模型';
+  }
+
+  @override
+  String get retry => '重試';
+
+  @override
+  String get unknownModel => '未知模型';
+
+  @override
+  String get notSet => '未設定';
+
+  @override
+  String get confirmClear => '確認清除';
+
+  @override
+  String get confirmClearTokenMessage => '清除目前使用者？之後需要重新輸入使用者 ID。';
+
+  @override
+  String get cancel => '取消';
+
+  @override
+  String get confirm => '確認';
+
+  @override
+  String get tokenCleared => '已清除使用者';
+
+  @override
+  String clearTokenFailed(Object error) {
+    return '清除使用者失敗：$error';
+  }
+
+  @override
+  String get selectDateRangeOptional => '選擇日期範圍（選填）：';
+
+  @override
+  String get startDate => '開始日期';
+
+  @override
+  String get endDate => '結束日期';
+
+  @override
+  String get select => '選擇';
+
+  @override
+  String get processLimitOptional => '處理數量限制（選填）';
+
+  @override
+  String get leaveEmptyForAll => '留空表示處理全部';
+
+  @override
+  String get startProcessing => '開始處理';
+
+  @override
+  String get userIdNotFound => '找不到使用者 ID';
+
+  @override
+  String createTaskFailed(Object error) {
+    return '建立任務失敗：$error';
+  }
+
+  @override
+  String get reprocessCards => '重新處理卡片';
+
+  @override
+  String get reprocessCardsTaskCreated => '已交給 超級智慧體 重新處理';
+
+  @override
+  String get reprocessCardsDownstreamMode => '處理範圍';
+
+  @override
+  String get reprocessCardsCardOnly => '只處理卡片';
+
+  @override
+  String get reprocessCardsCardOnlyDesc => '請 超級智慧體 檢查並重新產生選取的時間線卡片。';
+
+  @override
+  String get reprocessCardsRerunDownstream => '卡片與相關後續';
+
+  @override
+  String get reprocessCardsRerunDownstreamDesc =>
+      '請 超級智慧體 在需要時一併考慮相關的 PKM、日程與洞察更新。';
+
+  @override
+  String get reanalyzeMediaAssets => '重新讀取媒體附件';
+
+  @override
+  String get reanalyzeMediaAssetsDesc => '重新產生卡片時，請 超級智慧體 在需要時再次查看附件內容。';
+
+  @override
+  String get regenerateComments => '重新產生評論';
+
+  @override
+  String get regenerateCommentsTaskCreated => '重新產生評論任務已建立，正在背景處理';
+
+  @override
+  String get rebuildSearchIndex => '重建搜尋索引';
+
+  @override
+  String get rebuildSearchIndexSuccess => '搜尋索引已重建完成';
+
+  @override
+  String get rebuildSearchIndexFailed => '搜尋索引重建失敗';
+
+  @override
+  String get clearData => '清除資料';
+
+  @override
+  String get confirmClearDataMessage => '確定要清除資料嗎？';
+
+  @override
+  String get confirmClearDataDeletesWorkspaceMessage =>
+      '目前使用者的所有本機工作區資料都會被刪除，包括卡片、媒體、知識檔案、洞察、記憶、聊天記錄與系統狀態。\n\n此操作無法復原！';
+
+  @override
+  String get clearFailedAgentContexts => '清除失敗的對話上下文';
+
+  @override
+  String get confirmClearFailedAgentContextsMessage =>
+      '清除 Insight 與 日程智慧體 已儲存的對話上下文？這適用於切換模型後，先前的 智慧體 訊息不再相容的情況。Facts、卡片、知識庫、記憶與模型設定不會被刪除。';
+
+  @override
+  String failedAgentContextsCleared(Object count) {
+    return '已清除 $count 個已儲存的對話上下文';
+  }
+
+  @override
+  String clearFailedAgentContextsFailed(Object error) {
+    return '清除對話上下文失敗：$error';
+  }
+
+  @override
+  String get cloneToTestUser => '複製為測試使用者';
+
+  @override
+  String get confirmCloneToTestUserMessage =>
+      '將目前工作區複製到新的本機測試使用者並切換過去。不會複製 智慧體 執行狀態，目前使用者資料不會被修改。';
+
+  @override
+  String get testUserIdLabel => '測試使用者 ID';
+
+  @override
+  String get testUserIdHelper => '請使用英文字母、數字、連字號或底線。';
+
+  @override
+  String get testUserIdInvalid => '只能使用英文字母、數字、連字號或底線。';
+
+  @override
+  String get overwriteExistingTestUser => '覆蓋同名測試使用者';
+
+  @override
+  String testUserCloneSuccess(Object userId) {
+    return '已切換到測試使用者 $userId';
+  }
+
+  @override
+  String testUserCloneFailed(Object error) {
+    return '複製測試使用者失敗：$error';
+  }
+
+  @override
+  String get dataClearedSuccess => '資料已成功清除';
+
+  @override
+  String clearDataFailed(Object error) {
+    return '清除資料失敗：$error';
+  }
+
+  @override
+  String get personalCenter => '個人中心';
+
+  @override
+  String get viewLogs => '查看日誌';
+
+  @override
+  String get systemAuthorization => '系統授權';
+
+  @override
+  String get aiCharacterConfig => 'AI 角色設定';
+
+  @override
+  String get modelConfig => '模型設定';
+
+  @override
+  String get agentConfig => '智慧體 設定';
+
+  @override
+  String get experimentalLab => '實驗室';
+
+  @override
+  String get experimentalLabDescription => '仍在實驗中的功能，之後可能調整或移動。';
+
+  @override
+  String get modelUsageStats => '模型使用統計';
+
+  @override
+  String get asyncTaskList => '非同步任務列表';
+
+  @override
+  String get clearLocalToken => '清除使用者';
+
+  @override
+  String get insightCardTemplates => '洞察卡片範本';
+
+  @override
+  String get timelineCardTemplates => '時間線 卡片範本';
+
+  @override
+  String get logViewer => '日誌檢視器';
+
+  @override
+  String get autoRefresh => '自動重新整理';
+
+  @override
+  String get lineCount => '行數：';
+
+  @override
+  String get all => '全部';
+
+  @override
+  String get schedule => '日程';
+
+  @override
+  String get statistics => '統計';
+
+  @override
+  String get appLockConfig => '應用程式鎖定設定';
+
+  @override
+  String get activityStats => '活動統計';
+
+  @override
+  String activityStatsSummary(Object inputs, Object cards, Object todos) {
+    return '這段時間你記錄了 $inputs 次，產生了 $cards 張卡片，完成了 $todos 個待辦。';
+  }
+
+  @override
+  String get last7Days => '7 天';
+
+  @override
+  String get last30Days => '30 天';
+
+  @override
+  String get last90Days => '90 天';
+
+  @override
+  String get records => '記錄';
+
+  @override
+  String get words => '字詞';
+
+  @override
+  String get cards => '卡片';
+
+  @override
+  String get knowledgeUnits => '知識單元';
+
+  @override
+  String get completedTodos => '完成待辦';
+
+  @override
+  String get activeDays => '活躍天數';
+
+  @override
+  String get streakDays => '連續記錄';
+
+  @override
+  String get dailyRhythm => '每日節奏';
+
+  @override
+  String get recordToOutput => '記錄到沉澱';
+
+  @override
+  String get sourceBreakdown => '來源分布';
+
+  @override
+  String get topThemes => '高頻主題';
+
+  @override
+  String get textInput => '文字';
+
+  @override
+  String get imageInput => '圖片';
+
+  @override
+  String get audioInput => '音訊';
+
+  @override
+  String get noStatsYet => '尚無活動統計';
+
+  @override
+  String get tapDayForDetails => '點選某一天查看詳情';
+
+  @override
+  String get dayDetails => '當天詳情';
+
+  @override
+  String loadStatsFailed(Object error) {
+    return '載入統計資料失敗：$error';
+  }
+
+  @override
+  String get overview => '概覽';
+
+  @override
+  String get daily => '每日';
+
+  @override
+  String get modelStatsByAgent => '按 智慧體 統計';
+
+  @override
+  String get detail => '詳情';
+
+  @override
+  String get date => '日期';
+
+  @override
+  String get agent => '智慧體';
+
+  @override
+  String get noData => '暫無資料';
+
+  @override
+  String get totalCalls => '總呼叫次數';
+
+  @override
+  String get calls => '呼叫';
+
+  @override
+  String callsCount(Object count) {
+    return '$count 次呼叫';
+  }
+
+  @override
+  String get selectDateRange => '選擇日期範圍';
+
+  @override
+  String get totalTokens => '總 權杖';
+
+  @override
+  String get cacheRate => '快取命中率';
+
+  @override
+  String get promptTokens => '提示詞 權杖';
+
+  @override
+  String get completionTokens => '補全 權杖';
+
+  @override
+  String get cachedTokens => '快取 權杖';
+
+  @override
+  String get thoughtTokens => '思考 權杖';
+
+  @override
+  String get prompt => '提示詞';
+
+  @override
+  String get completion => '補全';
+
+  @override
+  String get cached => '快取';
+
+  @override
+  String get thought => '思考';
+
+  @override
+  String get model => '模型';
+
+  @override
+  String get scene => '場景';
+
+  @override
+  String get sceneId => '場景 ID';
+
+  @override
+  String get tokenUsage => '權杖 用量';
+
+  @override
+  String get handler => '處理器';
+
+  @override
+  String get modelBreakdown => '模型拆分';
+
+  @override
+  String get callDetails => '呼叫詳情';
+
+  @override
+  String recordDetailsTitle(Object scene) {
+    return '記錄詳情：$scene';
+  }
+
+  @override
+  String saveLlmConfigFailed(Object error) {
+    return '儲存 LLM 設定失敗：$error';
+  }
+
+  @override
+  String get webHtmlPreviewUnavailable => 'Web 端暫未支援 HTML 預覽，請在行動裝置查看。';
+
+  @override
+  String saveUserInfoFailed(Object error) {
+    return '儲存使用者資訊失敗：$error';
+  }
+
+  @override
+  String get totalEstimatedCost => '總預估費用';
+
+  @override
+  String get close => '關閉';
+
+  @override
+  String get totalTokenConsumption => '總 權杖 消耗';
+
+  @override
+  String get dataLoadFailedRetry => '資料載入失敗，請稍後重試。';
+
+  @override
+  String get timelineLoadFailedRetry => '時間線載入失敗，請稍後重試。';
+
+  @override
+  String get newPerspective => '新的視角';
+
+  @override
+  String get startPoint => '起點';
+
+  @override
+  String get endPoint => '終點';
+
+  @override
+  String get originalInput => '原始輸入';
+
+  @override
+  String get referenceContent => '引用內容';
+
+  @override
+  String referenceWithTitle(Object title) {
+    return '引用：$title';
+  }
+
+  @override
+  String get actionCenterTitle => '待處理事項';
+
+  @override
+  String get noPendingActions => '目前沒有待處理的動作';
+
+  @override
+  String get clarificationNeeded => 'Memex 想確認一下';
+
+  @override
+  String get clarificationTextHint => '輸入一個簡短回答';
+
+  @override
+  String get clarificationTextRequired => '請先補充一個簡短回答';
+
+  @override
+  String get clarificationAnswered => '已回答';
+
+  @override
+  String clarificationAnswerPrefix(Object answer) {
+    return '已回答：$answer';
+  }
+
+  @override
+  String get answerSaved => '回答已儲存';
+
+  @override
+  String get clarificationOtherAnswer => '手動輸入';
+
+  @override
+  String get clarificationNotSure => '不知道／不方便說';
+
+  @override
+  String get yes => '是';
+
+  @override
+  String get no => '否';
+
+  @override
+  String get footprintMap => '足跡地圖';
+
+  @override
+  String get waypointPlaces => '途經地點';
+
+  @override
+  String get unknownPlace => '未知地點';
+
+  @override
+  String get releaseToSend => '放開即可傳送';
+
+  @override
+  String get selectFromAlbum => '從相簿選擇';
+
+  @override
+  String get clipboardPreviewTitle => '新剪貼簿內容';
+
+  @override
+  String get clipboardPreviewImageTitle => '剪貼簿圖片';
+
+  @override
+  String get clipboardPreviewImageDescription => '可加入輸入框';
+
+  @override
+  String get clipboardPreviewUnprocessed => '尚未貼上';
+
+  @override
+  String get clipboardPreviewPasteToInput => '貼到輸入框';
+
+  @override
+  String get clipboardPreviewAddImageToInput => '加入圖片';
+
+  @override
+  String get clipboardPreviewImageFailed => '無法讀取剪貼簿圖片';
+
+  @override
+  String get tellAiWhatHappened => '告訴 AI 發生了什麼...';
+
+  @override
+  String recordingWithDuration(Object duration) {
+    return '錄音中：$duration';
+  }
+
+  @override
+  String get playing => '播放中...';
+
+  @override
+  String get sendLabel => '傳送';
+
+  @override
+  String attachedImagesMessage(Object count) {
+    return '已傳送 $count 張圖片';
+  }
+
+  @override
+  String get noTaskData => '暫無任務資料';
+
+  @override
+  String createdAtDate(Object date) {
+    return '建立：$date';
+  }
+
+  @override
+  String updatedAtDate(Object date) {
+    return '更新：$date';
+  }
+
+  @override
+  String durationLabel(Object duration) {
+    return '耗時：$duration';
+  }
+
+  @override
+  String retryCount(Object count) {
+    return '重試：$count';
+  }
+
+  @override
+  String get loadDetailFailedRetry => '載入詳情失敗，請稍後重試';
+
+  @override
+  String get loadFailed => '載入失敗';
+
+  @override
+  String get reload => '重新載入';
+
+  @override
+  String get aiInsightDetail => '洞察詳情';
+
+  @override
+  String relatedRecordsCount(Object count) {
+    return '關聯記錄（$count）';
+  }
+
+  @override
+  String get noRelatedRecords => '暫無具體關聯記錄';
+
+  @override
+  String get useFingerprintToUnlock => '請使用指紋解鎖';
+
+  @override
+  String get locked => '已鎖定';
+
+  @override
+  String get wrongPassword => '密碼錯誤';
+
+  @override
+  String get enterPassword => '請輸入密碼';
+
+  @override
+  String get memexLocked => 'Memex 已鎖定';
+
+  @override
+  String get calendarShortSun => '日';
+
+  @override
+  String get calendarShortMon => '一';
+
+  @override
+  String get calendarShortTue => '二';
+
+  @override
+  String get calendarShortWed => '三';
+
+  @override
+  String get calendarShortThu => '四';
+
+  @override
+  String get calendarShortFri => '五';
+
+  @override
+  String get calendarShortSat => '六';
+
+  @override
+  String noRecordsOnDate(Object date) {
+    return '$date 無記錄';
+  }
+
+  @override
+  String get footprintPath => '足跡路徑';
+
+  @override
+  String get lifeCompositionTable => '生活成分表';
+
+  @override
+  String get emotionReframe => '情緒重構';
+
+  @override
+  String get chronicleOfThings => '物的編年史';
+
+  @override
+  String get goalProgress => '目標進度';
+
+  @override
+  String get trendChart => '趨勢圖';
+
+  @override
+  String get comparisonChart => '對比圖';
+
+  @override
+  String get todayTimeFlow => '今日時間流';
+
+  @override
+  String get aiInputHint => '無論是回憶還是當下，我都準備好了...';
+
+  @override
+  String get refreshSuperAgentStateTooltip => '清空 Memex 智慧體 上下文';
+
+  @override
+  String get refreshSuperAgentStateTitle => '清空 Memex 智慧體 歷史 上下文？';
+
+  @override
+  String get refreshSuperAgentStateMessage =>
+      '可見聊天記錄會繼續保留，但 Memex 智慧體 的歷史執行 上下文 會被清空，之後會從新的 上下文 開始回覆。持久化記憶、知識庫檔案、卡片等已儲存資料不受影響。適用於 Memex 智慧體 持續運作異常等情況。確定繼續？';
+
+  @override
+  String get refreshSuperAgentStateActiveRunMessage =>
+      '目前 Memex 智慧體 訊息處理完後才能清空 上下文。';
+
+  @override
+  String get refreshSuperAgentStateSuccess => 'Memex 智慧體 上下文 已清空';
+
+  @override
+  String refreshSuperAgentStateFailed(Object error) {
+    return '清空 Memex 智慧體 上下文 失敗：$error';
+  }
+
+  @override
+  String get nothingHere => '還沒有任何內容';
+
+  @override
+  String get nothingHereHint => '點選下方按鈕建立你的第一張卡片';
+
+  @override
+  String get agentProcessing => 'AI 處理中...';
+
+  @override
+  String get keepAppOpen => '請不要關閉應用程式';
+
+  @override
+  String get activityDetail => '活動詳情';
+
+  @override
+  String get noAgentActivityYet => '暫無 智慧體 活動';
+
+  @override
+  String get processingEllipsis => '處理中...';
+
+  @override
+  String get agentBackgroundTitle => 'Memex 智慧體';
+
+  @override
+  String get agentBackgroundPausedTitle => 'Memex 智慧體 已暫停';
+
+  @override
+  String get agentBackgroundNeedsAttentionTitle => 'Memex 智慧體 需要處理';
+
+  @override
+  String get agentBackgroundStageIdle => '閒置';
+
+  @override
+  String get agentBackgroundStageProcessing => '處理中';
+
+  @override
+  String get agentBackgroundStageQueued => '排隊中';
+
+  @override
+  String get agentBackgroundStageRetrying => '等待重試';
+
+  @override
+  String get agentBackgroundStagePaused => '已暫停';
+
+  @override
+  String get agentBackgroundStageCompleted => '已完成';
+
+  @override
+  String get agentBackgroundStageNeedsAttention => '需要處理';
+
+  @override
+  String get agentBackgroundStageAnalyzingMedia => '分析素材中';
+
+  @override
+  String get agentBackgroundStageGeneratingCard => '產生卡片中';
+
+  @override
+  String get agentBackgroundStageUpdatingKnowledge => '更新知識中';
+
+  @override
+  String get agentBackgroundStagePreparingComment => '準備評論中';
+
+  @override
+  String get agentBackgroundStageRoutingFollowUps => '分派後續任務中';
+
+  @override
+  String agentBackgroundTaskSummary(
+      Object running, Object pending, Object retrying) {
+    return '執行中 $running，排隊中 $pending，重試中 $retrying';
+  }
+
+  @override
+  String agentBackgroundTaskDetail(Object count) {
+    return '正在處理 $count 個背景任務。';
+  }
+
+  @override
+  String get agentBackgroundNoTasks => '暫無背景任務。';
+
+  @override
+  String get agentBackgroundStarting => '背景處理正在啟動。';
+
+  @override
+  String get agentBackgroundCompletedDetail => '所有背景任務已完成。';
+
+  @override
+  String get agentBackgroundFailedDetail => '背景處理遇到錯誤。';
+
+  @override
+  String get agentBackgroundPausedDetail => '背景處理已暫停，稍後會繼續。';
+
+  @override
+  String get agentBackgroundQueuedDetail => '正在等待下一個處理步驟。';
+
+  @override
+  String get agentBackgroundRetryingDetail => '目前步驟將自動重試。';
+
+  @override
+  String get agentBackgroundAnalyzeMediaDetail => '正在讀取附件和本機上下文。';
+
+  @override
+  String get agentBackgroundGeneratingCardDetail => '正在把記錄產生為時間線卡片。';
+
+  @override
+  String get agentBackgroundUpdatingKnowledgeDetail => '正在更新本機知識和記憶。';
+
+  @override
+  String get agentBackgroundPreparingCommentDetail => '正在準備助手跟進評論。';
+
+  @override
+  String get agentBackgroundRoutingFollowUpsDetail => '正在檢查這張卡片的後續動作。';
+
+  @override
+  String agentBackgroundPausedStatus(Object summary) {
+    return '已暫停 - $summary';
+  }
+
+  @override
+  String agentBackgroundNeedsAttentionStatus(Object summary) {
+    return '需要處理 - $summary';
+  }
+
+  @override
+  String get settings => '設定';
+
+  @override
+  String get languageSettings => '語言';
+
+  @override
+  String get languageSettingsDesc => '更改應用程式顯示語言';
+
+  @override
+  String get noPendingActionsToast => '目前沒有待處理動作';
+
+  @override
+  String get knowledgeNewDiscovery => '知識庫新發現';
+
+  @override
+  String discoveredNewInsightsCount(Object count) {
+    return '發現了 $count 個新洞察';
+  }
+
+  @override
+  String updatedExistingInsightsCount(Object count) {
+    return '更新了 $count 個現有洞察';
+  }
+
+  @override
+  String get sectionNewInsights => '發現新洞察';
+
+  @override
+  String get sectionUpdatedInsights => '更新現有洞察';
+
+  @override
+  String get unnamedInsight => '未命名洞察';
+
+  @override
+  String get copiedToClipboard => '已複製到剪貼簿';
+
+  @override
+  String get copy => '複製';
+
+  @override
+  String get selectedLocation => '已選位置';
+
+  @override
+  String get confirmLocationName => '確認位置名稱';
+
+  @override
+  String get confirmLocationNameHint => '你可以修改位置名稱（經緯度保持不變）';
+
+  @override
+  String get nameLabel => '名稱';
+
+  @override
+  String get inputPlaceNameHint => '輸入地點名稱...';
+
+  @override
+  String currentCoordinates(Object lat, Object lng) {
+    return '目前座標：$lat, $lng';
+  }
+
+  @override
+  String get confirmLocation => '確認位置';
+
+  @override
+  String get welcomeToMemex => '歡迎來到 Memex';
+
+  @override
+  String get createUserIdToStart => '請建立你的專屬暱稱';
+
+  @override
+  String get userIdLabel => '你的名字／暱稱';
+
+  @override
+  String get userIdHint => '請輸入你的名字';
+
+  @override
+  String get pleaseEnterUserId => '名字不能為空';
+
+  @override
+  String get userIdMaxLength => '名字太長，不能超過 50 個字元';
+
+  @override
+  String get startUsing => '下一步';
+
+  @override
+  String get userIdTip => '開啟你的專屬記憶。';
+
+  @override
+  String get setupModelConfigTitle => '設定 AI 模型';
+
+  @override
+  String get setupModelConfigSubtitle =>
+      'Memex 需要一個前沿 AI 模型來整理記錄、分析圖片並產生洞察。選擇一種連線方式即可。';
+
+  @override
+  String get setupModelConfigComplete => '設定完成，開始旅程';
+
+  @override
+  String get aiService => 'Memex 模型服務';
+
+  @override
+  String get aiModelHubTitle => 'AI 模型與服務';
+
+  @override
+  String get aiModelHubSubtitle => '先選擇使用 MemeX 官方服務，或接入自己的服務商；需要時再進入進階模型分配。';
+
+  @override
+  String get aiSetupCurrentStatusTitle => '目前設定';
+
+  @override
+  String get aiSetupStatusNotConfiguredTitle => '尚未設定 AI 服務';
+
+  @override
+  String get aiSetupStatusNotConfiguredDescription =>
+      '選擇一種連線方式後，Memex 才能開始整理記錄、分析媒體並產生洞察。';
+
+  @override
+  String get aiSetupStatusMemexTitle => '正在使用 MemeX 官方服務';
+
+  @override
+  String get aiSetupStatusMemexDescription =>
+      'Memex 會使用 MemeX 帳號管理的官方連線和 API 憑證。';
+
+  @override
+  String get aiSetupStatusCustomTitle => '正在使用自訂服務商';
+
+  @override
+  String get aiSetupStatusCustomDescription =>
+      'Memex 會使用你設定的服務商憑證，以及文字／視覺模型用途選擇。';
+
+  @override
+  String get aiSetupChooseConnectionTitle => '選擇連線方式';
+
+  @override
+  String get aiSetupChooseConnectionDescription =>
+      '先選擇你希望 Memex 透過哪條路徑存取 AI 模型。';
+
+  @override
+  String get aiSetupOfficialRouteDescription =>
+      '登入 MemeX 後直接使用官方服務，不需要理解 provider、API 金鑰 或單一 智慧體 模型。';
+
+  @override
+  String get aiSetupCustomRouteDescription =>
+      '新增自己的服務商憑證，選擇 超級智慧體 使用的模型；需要時可進一步為單一 智慧體 覆蓋模型。';
+
+  @override
+  String get aiSetupCustomPageTitle => '自訂 AI 服務';
+
+  @override
+  String get aiSetupCustomPageSubtitle => '先設定服務商和 API 金鑰，再選擇 Memex 使用的模型。';
+
+  @override
+  String get aiSetupProviderCredentialsTitle => '服務商與 API 金鑰';
+
+  @override
+  String get aiSetupProviderCredentialsDescription =>
+      '新增或編輯 OpenAI、Anthropic、DeepSeek、Gemini、OpenRouter、Ollama 等相容服務商。';
+
+  @override
+  String get modelRolesTitle => '選擇主模型';
+
+  @override
+  String get modelRolesDescription =>
+      '超級智慧體 使用同一個模型處理文字和圖片輸入。需要時仍可在下方為單一 智慧體 進階覆蓋。';
+
+  @override
+  String get textModelRoleTitle => '主模型';
+
+  @override
+  String get textModelRoleDescription =>
+      '供 超級智慧體 處理文字、圖片、卡片、知識庫、洞察、聊天、評論、日程和記憶總結。';
+
+  @override
+  String get modelConnectionsTitle => '模型服務商與 API 金鑰';
+
+  @override
+  String get modelConnectionsDescription => '可以連接 Memex 官方服務，也可以新增你自己的服務商憑證。';
+
+  @override
+  String get relatedAiCapabilitiesTitle => '進階與相關能力';
+
+  @override
+  String get relatedAiCapabilitiesDescription => '調整單一 智慧體 的模型分配、位置服務商和語音辨識方式。';
+
+  @override
+  String get aiSetupServiceCapabilitiesTitle => '服務能力';
+
+  @override
+  String get aiSetupServiceCapabilitiesDescription =>
+      '設定語音辨識、逆地理編碼等相鄰 AI 能力使用的服務方式。';
+
+  @override
+  String get aiSetupAdvancedCustomizationTitle => '進階模型路由';
+
+  @override
+  String get aiSetupAdvancedCustomizationDescription =>
+      '適合希望不同 智慧體 使用不同服務商或模型設定的進階使用者。';
+
+  @override
+  String get locationProviderSettings => '位置服務商';
+
+  @override
+  String get speechProviderSettings => '語音辨識';
+
+  @override
+  String get advancedAgentModelAssignments => '智慧體 模型分配';
+
+  @override
+  String get openAdvancedAgentModelAssignments => '為單一 智慧體 覆蓋模型';
+
+  @override
+  String get noConfiguredModelOptions => '請先新增模型服務商或 API 金鑰，再選擇模型用途。';
+
+  @override
+  String get modelSlotUpdated => '模型用途已更新';
+
+  @override
+  String get aiServiceMemexRouteTitle => '透過 Memex 連線';
+
+  @override
+  String get aiServiceLongDescription =>
+      'Memex 利用多 智慧體 架構自動整理你的生活記錄、知識筆記與社交關係，深入挖掘洞察，並提供具有持久記憶的 AI 陪伴。所有資料均以純文字 Markdown 儲存，賦予你完整的資料自由與跨平台遷移能力。';
+
+  @override
+  String get aiServiceCustomApiRouteTitle => '我有 API 金鑰';
+
+  @override
+  String get aiServiceCustomModelDescription =>
+      '已有 OpenAI、Anthropic、DeepSeek、Gemini 等服務的 API 金鑰 時，優先選擇這項。';
+
+  @override
+  String get enableAiService => '使用 Memex 連線';
+
+  @override
+  String get aiServiceReadyToast => 'AI 整理已開啟';
+
+  @override
+  String get aiServiceSettingsDescription =>
+      '沒有 API 金鑰 時，可使用 Memex 帳號代理連接主流模型服務。';
+
+  @override
+  String get advancedModelConfiguration => '設定 API 金鑰';
+
+  @override
+  String get skipForNow => '暫不設定，先逛逛';
+
+  @override
+  String get clearAuth => '清除授權';
+
+  @override
+  String get authorizing => '正在授權中...';
+
+  @override
+  String authFailed(Object error) {
+    return '授權失敗：$error';
+  }
+
+  @override
+  String get authorized => '已授權';
+
+  @override
+  String get config => '設定';
+
+  @override
+  String get calendar => '行事曆';
+
+  @override
+  String get reminders => '提醒事項';
+
+  @override
+  String get writeToSystemFailed => '寫入系統失敗';
+
+  @override
+  String permissionRequired(Object name) {
+    return '需要$name權限';
+  }
+
+  @override
+  String permissionRationale(Object name) {
+    return '請在設定中允許 App 存取你的$name，以便我們替你建立。';
+  }
+
+  @override
+  String get goToSettings => '前往設定';
+
+  @override
+  String get unknownAction => '未知操作';
+
+  @override
+  String get discoveredCalendarEvent => '發現行事曆日程';
+
+  @override
+  String get discoveredReminder => '發現提醒事項';
+
+  @override
+  String get addToCalendar => '加入行事曆';
+
+  @override
+  String get addToReminders => '加入提醒事項';
+
+  @override
+  String addedToSuccess(Object target) {
+    return '已成功加入至$target';
+  }
+
+  @override
+  String get ignore => '忽略';
+
+  @override
+  String get confirmDelete => '確認刪除';
+
+  @override
+  String get confirmDeleteSessionMessage => '確定要刪除這段對話嗎？此操作無法復原。';
+
+  @override
+  String get delete => '刪除';
+
+  @override
+  String get deleteSuccess => '刪除成功';
+
+  @override
+  String deleteFailed(Object error) {
+    return '刪除失敗：$error';
+  }
+
+  @override
+  String daysAgo(Object count) {
+    return '$count 天前';
+  }
+
+  @override
+  String get chatHistory => '對話記錄';
+
+  @override
+  String get enterFullScreenTooltip => '全螢幕查看';
+
+  @override
+  String get exitFullScreenTooltip => '退出全螢幕';
+
+  @override
+  String get noConversations => '暫無對話';
+
+  @override
+  String loadSessionListFailed(Object error) {
+    return '載入對話列表失敗：$error';
+  }
+
+  @override
+  String yesterdayAt(Object time) {
+    return '昨天 $time';
+  }
+
+  @override
+  String get newChat => '新對話';
+
+  @override
+  String messageCount(Object count) {
+    return '$count 則訊息';
+  }
+
+  @override
+  String get organize => '整理';
+
+  @override
+  String get pkmCategoryProject => '專案';
+
+  @override
+  String get pkmCategoryProjectSubtitle => '短期 · 目標 · 截止日';
+
+  @override
+  String get pkmCategoryArea => '領域';
+
+  @override
+  String get pkmCategoryAreaSubtitle => '長期 · 責任 · 標準';
+
+  @override
+  String get pkmCategoryResource => '資源';
+
+  @override
+  String get pkmCategoryResourceSubtitle => '興趣 · 靈感 · 儲備';
+
+  @override
+  String get pkmCategoryArchive => '封存';
+
+  @override
+  String get pkmCategoryArchiveSubtitle => '完成 · 沉寂 · 備查';
+
+  @override
+  String get recentChanges => '最近變動';
+
+  @override
+  String get noRecentChangesInThreeDays => '最近 3 天暫無變動';
+
+  @override
+  String get unpinned => '已取消固定';
+
+  @override
+  String get pinnedStyle => '已固定此整理樣式';
+
+  @override
+  String operationFailed(Object error) {
+    return '操作失敗：$error';
+  }
+
+  @override
+  String get refreshingInsightData => '正在重新整理洞察資料，可能需要一點時間...';
+
+  @override
+  String refreshFailed(Object error) {
+    return '重新整理失敗：$error';
+  }
+
+  @override
+  String get sortUpdated => '排序已更新';
+
+  @override
+  String sortSaveFailed(Object error) {
+    return '排序儲存失敗：$error';
+  }
+
+  @override
+  String get insightCardDeleted => '已刪除洞察卡片';
+
+  @override
+  String deleteFailedShort(Object error) {
+    return '刪除失敗：$error';
+  }
+
+  @override
+  String get knowledgeInsight => '知識洞察';
+
+  @override
+  String get completeSort => '完成排序';
+
+  @override
+  String get noKnowledgeInsight => '暫無知識洞察';
+
+  @override
+  String insightProcessingBacklogMessage(Object count) {
+    return '還有 $count 個背景任務正在處理。';
+  }
+
+  @override
+  String get insightUnavailableMessage => '這個洞察仍在產生中，或已被更新。請重新整理洞察後稍後再試。';
+
+  @override
+  String get noScheduleAggregation => '暫無日程聚合';
+
+  @override
+  String get scheduleAggregationEmptyHint => '點選更新，從真實時間卡片中整理日程和待辦。';
+
+  @override
+  String get scheduleAggregationLoadFailed => '載入日程資料失敗';
+
+  @override
+  String get scheduleAggregationRefreshFailed => '重新整理日程資料失敗';
+
+  @override
+  String get scheduleTaskUpdateFailed => '更新待辦失敗';
+
+  @override
+  String get scheduleFeatured => '重點';
+
+  @override
+  String get scheduleThisWeek => '本週';
+
+  @override
+  String get scheduleDone => '已完成';
+
+  @override
+  String get scheduleTbd => '待定';
+
+  @override
+  String get scheduleWeekOverview => '本週概覽';
+
+  @override
+  String get scheduleImportant => '重要';
+
+  @override
+  String get scheduleBriefingTitle => '日程簡報';
+
+  @override
+  String get scheduleBriefingOpen => '查看';
+
+  @override
+  String get scheduleBriefingNoData => '暫無日程簡報';
+
+  @override
+  String scheduleBriefingUpdated(Object time) {
+    return '$time 更新';
+  }
+
+  @override
+  String scheduleBriefingDoneCount(Object count) {
+    return '完成 $count';
+  }
+
+  @override
+  String get updating => '更新中...';
+
+  @override
+  String get update => '更新';
+
+  @override
+  String get enabled => '已啟用';
+
+  @override
+  String get disabled => '已停用';
+
+  @override
+  String get appLockOn => '應用程式鎖定已開啟';
+
+  @override
+  String get appLockOff => '應用程式鎖定已關閉';
+
+  @override
+  String get enableAppLockFirst => '請先啟用應用程式鎖定';
+
+  @override
+  String get enterFourDigitPassword => '請輸入 4 位數密碼';
+
+  @override
+  String get passwordSetAndLockOn => '密碼已設定並開啟應用程式鎖定';
+
+  @override
+  String get appLockSettings => '應用程式鎖定設定';
+
+  @override
+  String get enableAppLock => '啟用應用程式鎖定';
+
+  @override
+  String get enableAppLockSubtitle => '啟用後，啟動應用程式需要驗證密碼';
+
+  @override
+  String get enableBiometrics => '啟用生物辨識';
+
+  @override
+  String get biometricsSubtitle => '解鎖時可使用 Face ID 或 Touch ID';
+
+  @override
+  String get changePassword => '修改密碼';
+
+  @override
+  String get setFourDigitPassword => '設定 4 位數密碼';
+
+  @override
+  String get reenterPasswordToConfirm => '請再次輸入密碼以確認';
+
+  @override
+  String get passwordMismatch => '兩次輸入的密碼不一致，請重新輸入';
+
+  @override
+  String confirmDeleteCharacter(Object name) {
+    return '確定要刪除角色「$name」嗎？此操作無法復原。';
+  }
+
+  @override
+  String get configureAiCharacter => '設定 AI 角色';
+
+  @override
+  String get addCharacter => '新增角色';
+
+  @override
+  String get addCharacterSubtitle => '選擇你喜歡的 AI 角色加入洞察團隊。他們會從不同角度分析你的生活資料。';
+
+  @override
+  String get noCharacters => '暫無角色';
+
+  @override
+  String loadCharacterFailed(Object error) {
+    return '載入角色失敗：$error';
+  }
+
+  @override
+  String get noTags => '無標籤';
+
+  @override
+  String get createSuccess => '建立成功';
+
+  @override
+  String get updateSuccess => '更新成功';
+
+  @override
+  String saveFailed(Object error) {
+    return '儲存失敗：$error';
+  }
+
+  @override
+  String get newCharacter => '新增角色';
+
+  @override
+  String get editCharacter => '編輯角色';
+
+  @override
+  String get save => '儲存';
+
+  @override
+  String get characterName => '角色名稱';
+
+  @override
+  String get characterNameHint => '給角色取個好聽的名字';
+
+  @override
+  String get pleaseEnterCharacterName => '請輸入角色名稱';
+
+  @override
+  String get tagsLabel => '標籤';
+
+  @override
+  String get tagsHint => '例如：智慧, 認可, 宏觀\n用逗號分隔多個標籤';
+
+  @override
+  String get characterPersonaLabel => '角色完整設定';
+
+  @override
+  String get characterPersonaHint =>
+      '包含角色人設、風格指南、範例對話、知識篩選器等所有資訊。\n可以使用 ## 標題來分段組織內容。';
+
+  @override
+  String get pleaseEnterCharacterPersona => '請輸入角色完整設定';
+
+  @override
+  String permissionRequestError(Object error) {
+    return '權限請求異常：$error';
+  }
+
+  @override
+  String get permissionRequiredTitle => '需要權限';
+
+  @override
+  String get permissionPermanentlyDeniedMessage =>
+      '由於你已永久拒絕該權限，或系統需要手動開啟，請前往系統設定中啟用。';
+
+  @override
+  String get getting => '取得中...';
+
+  @override
+  String get unauthorized => '未授權';
+
+  @override
+  String get authorizedGoToSettings => '已授權，如需修改請前往系統設定';
+
+  @override
+  String get location => '定位';
+
+  @override
+  String get locationPermissionReason => '用於記錄足跡和地理位置相關功能';
+
+  @override
+  String get photos => '相簿';
+
+  @override
+  String get photosPermissionReason => '用於選取照片、儲存產生的圖片等';
+
+  @override
+  String get camera => '相機';
+
+  @override
+  String get cameraPermissionReason => '用於拍攝照片與影片相關功能';
+
+  @override
+  String get microphone => '麥克風';
+
+  @override
+  String get microphonePermissionReason => '用於語音辨識、錄音等功能';
+
+  @override
+  String get calendarPermissionReason => '用於記錄日程、讀取行事曆事件等';
+
+  @override
+  String get remindersPermissionReason => '用於記錄和讀取你的待辦提醒';
+
+  @override
+  String get fitnessAndMotion => '健身與運動';
+
+  @override
+  String get fitnessPermissionReason => '用於記錄健康與運動資料';
+
+  @override
+  String get notification => '通知';
+
+  @override
+  String get notificationPermissionReason => '用於傳送日程提醒等重要通知';
+
+  @override
+  String get loadDetailFailedRetryShort => '載入詳情失敗，請稍後重試';
+
+  @override
+  String get total => '總計';
+
+  @override
+  String get estimatedCost => '預估費用';
+
+  @override
+  String get byAgent => '按 智慧體 統計';
+
+  @override
+  String get timeUpdated => '時間已更新';
+
+  @override
+  String updateFailed(Object error) {
+    return '更新失敗：$error';
+  }
+
+  @override
+  String get locationUpdated => '地點已更新';
+
+  @override
+  String get confirmDeleteCardMessage => '確定要刪除這張卡片嗎？此操作無法復原。';
+
+  @override
+  String get cardDetailNotFound => '找不到卡片詳情';
+
+  @override
+  String get saySomething => '說點什麼...';
+
+  @override
+  String get relatedMemories => '相關回憶';
+
+  @override
+  String get viewMore => '查看更多';
+
+  @override
+  String get relatedRecords => '相關記錄';
+
+  @override
+  String get reply => '回覆';
+
+  @override
+  String get replySent => '回覆已傳送';
+
+  @override
+  String get insightTemplateGalleryTitle => '洞察卡片範本';
+
+  @override
+  String get timelineTemplateGalleryTitle => '時間線 卡片範本';
+
+  @override
+  String get categoryTextual => '文字（文字）';
+
+  @override
+  String get timelineFilterAll => '全部';
+
+  @override
+  String get insights => '洞察';
+
+  @override
+  String get memoryTitle => '記憶';
+
+  @override
+  String get longTermProfile => '長期記憶';
+
+  @override
+  String get recentBuffer => '近期記憶';
+
+  @override
+  String errorLoadingMemory(Object error) {
+    return '載入記憶失敗：$error';
+  }
+
+  @override
+  String get agentConfiguration => '智慧體 設定';
+
+  @override
+  String get resetToDefaults => '恢復預設';
+
+  @override
+  String get resetAllAgentConfigurationsTitle => '重設所有 智慧體 設定';
+
+  @override
+  String get resetAllAgentConfigurationsMessage =>
+      '確定要將所有 智慧體 設定恢復為預設值嗎？此操作無法復原。';
+
+  @override
+  String get resetButton => '重設';
+
+  @override
+  String loadDataFailed(Object error) {
+    return '載入失敗：$error';
+  }
+
+  @override
+  String saveConfigFailed(Object error) {
+    return '儲存設定失敗：$error';
+  }
+
+  @override
+  String get selectLlmClient => '選擇 LLM 用戶端：';
+
+  @override
+  String get agentConfigurationsReset => '智慧體 設定已重設';
+
+  @override
+  String resetFailed(Object error) {
+    return '重設失敗：$error';
+  }
+
+  @override
+  String get modelConfiguration => '模型設定';
+
+  @override
+  String get resetAllConfigurationsTitle => '重設所有設定';
+
+  @override
+  String get resetAllModelConfigurationsMessage => '確定要將所有模型設定恢復為預設值嗎？此操作無法復原。';
+
+  @override
+  String get modelConfigurationsReset => '模型設定已重設';
+
+  @override
+  String get cannotDeleteDefaultConfiguration => '無法刪除預設設定';
+
+  @override
+  String get cannotDeleteConfigurationTitle => '無法刪除設定';
+
+  @override
+  String configUsedByAgentsMessage(Object agentList) {
+    return '以下 智慧體 正在使用此設定：\n\n$agentList\n\n請先為這些 智慧體 重新分配設定後再刪除。';
+  }
+
+  @override
+  String get ok => '確定';
+
+  @override
+  String get deleteConfigurationTitle => '刪除設定';
+
+  @override
+  String confirmDeleteConfigMessage(Object key) {
+    return '確定要刪除「$key」嗎？';
+  }
+
+  @override
+  String get defaultLabel => '預設';
+
+  @override
+  String get setAsDefault => '設為預設';
+
+  @override
+  String get invalidJsonInExtraField => '擴充欄位 JSON 格式無效';
+
+  @override
+  String get keyAlreadyExists => '此 Key 已存在';
+
+  @override
+  String get resetConfigurationTitle => '重設設定';
+
+  @override
+  String get resetConfigurationMessage => '將此設定恢復為初始預設值？目前修改將會遺失。';
+
+  @override
+  String get configurationResetPressSave => '設定已重設，請點選儲存以套用。';
+
+  @override
+  String get addConfiguration => '新增設定';
+
+  @override
+  String get editConfiguration => '編輯設定';
+
+  @override
+  String get duplicateConfiguration => '複製設定';
+
+  @override
+  String get duplicate => '複製';
+
+  @override
+  String get keyIdLabel => '設定 ID';
+
+  @override
+  String get keyIdHelper => '替這套設定命名，例如 deepseek 或 work-gpt。';
+
+  @override
+  String get required => '必填';
+
+  @override
+  String get clientLabel => '模型服務商';
+
+  @override
+  String get providerGroupOpenAi => 'OpenAI';
+
+  @override
+  String get providerGroupAnthropic => 'Anthropic';
+
+  @override
+  String get providerGroupGoogle => 'Google';
+
+  @override
+  String get providerGroupOthers => '熱門';
+
+  @override
+  String get providerOpenAiApiKey => 'API 金鑰';
+
+  @override
+  String get providerOpenAiResponses => 'API 金鑰（Responses）';
+
+  @override
+  String get providerChatGptOauth => 'ChatGPT Pro/Plus';
+
+  @override
+  String get providerClaudeApiKey => 'API 金鑰';
+
+  @override
+  String get providerBedrockSecret => 'Bedrock Secret';
+
+  @override
+  String get providerGemini => 'Gemini';
+
+  @override
+  String get providerGeminiOauth => 'Gemini（Google OAuth）';
+
+  @override
+  String get providerKimi => 'Kimi（月之暗面）';
+
+  @override
+  String get providerQwen => 'Aliyun（阿里雲）';
+
+  @override
+  String get providerSeed => 'Volcengine（火山引擎）';
+
+  @override
+  String get providerZhipu => 'Zhipu GLM（智譜）';
+
+  @override
+  String get providerDeepSeek => 'DeepSeek（官方 API）';
+
+  @override
+  String get providerMinimax => 'MiniMax';
+
+  @override
+  String get providerOpenRouter => 'OpenRouter';
+
+  @override
+  String get providerOllama => 'Ollama（本機）';
+
+  @override
+  String get providerMimo => 'Xiaomi MIMO（小米）';
+
+  @override
+  String get providerMemex => 'Memex 代理服務';
+
+  @override
+  String get memexSignIn => '登入';
+
+  @override
+  String get memexCreateAccount => '註冊';
+
+  @override
+  String get memexUsername => '使用者名稱';
+
+  @override
+  String get memexPassword => '密碼';
+
+  @override
+  String get memexCreateAccountLink => '註冊帳號';
+
+  @override
+  String get memexSignInLink => '已有帳號，前往登入';
+
+  @override
+  String get memexTopUp => '儲值後即可使用 Memex AI';
+
+  @override
+  String get memexTopUpSuccess => '儲值成功！';
+
+  @override
+  String get memexFillAllFields => '請填寫所有欄位';
+
+  @override
+  String get memexUsernameTooShort => '使用者名稱至少 6 個字元';
+
+  @override
+  String get memexAuthFailed => '驗證失敗';
+
+  @override
+  String get memexPaymentFailed => '建立付款失敗';
+
+  @override
+  String get memexLogout => '登出';
+
+  @override
+  String get memexTopUpButton => '儲值';
+
+  @override
+  String get memexTopUpChooseAmount => '選擇儲值額度';
+
+  @override
+  String memexTopUpEstimatedRecords(Object range) {
+    return '預計 $range 筆記錄';
+  }
+
+  @override
+  String get memexTopUpPlanStarter => '輕量嘗試';
+
+  @override
+  String get memexTopUpPlanEveryday => '日常整理';
+
+  @override
+  String get memexTopUpPlanHighVolume => '高頻使用';
+
+  @override
+  String get memexTopUpPlanCustom => '自訂額度';
+
+  @override
+  String get memexTopUpPlanStarterSubtitle => '適合先體驗 Memex AI';
+
+  @override
+  String get memexTopUpPlanEverydaySubtitle => '適合持續整理與分析';
+
+  @override
+  String get memexTopUpPlanHighVolumeSubtitle => '適合批次處理較多記錄';
+
+  @override
+  String get memexTopUpPlanCustomSubtitle => '輸入 1-10000 美元';
+
+  @override
+  String get memexTopUpCustomEstimate => '依輸入金額估算可處理量';
+
+  @override
+  String get memexCustomAmount => '自訂金額';
+
+  @override
+  String get memexViewHistory => '使用記錄';
+
+  @override
+  String memexBalanceLabel(Object amount) {
+    return '餘額：$amount';
+  }
+
+  @override
+  String get memexConfirmPassword => '確認密碼';
+
+  @override
+  String get memexPasswordMismatch => '兩次密碼不一致';
+
+  @override
+  String memexPayAmount(Object amount) {
+    return '儲值 $amount';
+  }
+
+  @override
+  String get modelIdLabel => '模型';
+
+  @override
+  String get modelIdHelper => '例如 gemini-3.1-pro-preview、gpt-4o';
+
+  @override
+  String get fetchingModels => '正在取得模型列表...';
+
+  @override
+  String get fetchModelsButton => '取得模型列表';
+
+  @override
+  String get enterApiKeyFirst => '請先填寫 API 金鑰 以取得模型列表';
+
+  @override
+  String get apiKeyLabel => 'API 金鑰';
+
+  @override
+  String get baseUrlLabel => 'API 位址';
+
+  @override
+  String get advancedSettings => '進階設定';
+
+  @override
+  String get testConnectionSuccess => '連線成功';
+
+  @override
+  String get testConnectionFailed => '連線失敗';
+
+  @override
+  String get testTypeText => '文字';
+
+  @override
+  String get testTypeVision => '視覺';
+
+  @override
+  String get testButton => '測試';
+
+  @override
+  String get testing => '測試中...';
+
+  @override
+  String get proxyUrlOptional => '代理 URL（選填）';
+
+  @override
+  String get proxyUrlHelper => '例如 http://127.0.0.1:7890';
+
+  @override
+  String get temperatureLabel => 'Temperature';
+
+  @override
+  String get topPLabel => 'Top P';
+
+  @override
+  String get maxTokensLabel => 'Max 權杖';
+
+  @override
+  String get extraParamsJson => '擴充參數（JSON）';
+
+  @override
+  String get invalidJson => 'JSON 格式無效';
+
+  @override
+  String get warning => '設定未完成';
+
+  @override
+  String get invalidConfigurationWarning =>
+      '目前設定尚未完成（例如缺少 API 金鑰 或 Model ID）。你可以先儲存，稍後再補全設定。是否繼續？';
+
+  @override
+  String invalidModelConfigDetailed(Object agentId, Object configKey) {
+    return '智慧體「$agentId」需要有效的模型設定（Key：「$configKey」）才能執行。請在設定中更新並補全對應參數。';
+  }
+
+  @override
+  String get discardChangesTitle => '離開此頁面？';
+
+  @override
+  String get discardChangesMessage => '如果你做了變更，請先儲存後再離開。';
+
+  @override
+  String get discardButton => '放棄';
+
+  @override
+  String get chooseLanguage => '選擇語言';
+
+  @override
+  String get chooseAvatar => '選擇頭像';
+
+  @override
+  String get configureNow => '立即設定';
+
+  @override
+  String get modelNotConfiguredBanner => 'AI 模型尚未設定，請先設定以解鎖全部功能。';
+
+  @override
+  String get modelNotConfiguredSubmitHint => '請先設定 AI 模型再發布內容';
+
+  @override
+  String get processingStatus => '處理中';
+
+  @override
+  String get failedStatus => '處理失敗';
+
+  @override
+  String get failureReason => '失敗原因';
+
+  @override
+  String get unknownError => '發生未知錯誤';
+
+  @override
+  String get enableFitness => '開啟健身權限';
+
+  @override
+  String get fitnessBannerMessage => '允許存取健身資料，以記錄你的健康和運動資訊。';
+
+  @override
+  String get fitnessDismissTitle => '跳過健身權限？';
+
+  @override
+  String get fitnessDismissMessage => '如果跳過，應用程式將無法自動收集你的健康資料，用於洞察分析和自動記錄。';
+
+  @override
+  String get skipAnyway => '仍然跳過';
+
+  @override
+  String get proModelHint => '此模型需要 ChatGPT Pro/Plus 訂閱才能使用。';
+
+  @override
+  String get searchKnowledgeBase => '搜尋知識庫...';
+
+  @override
+  String get searchKnowledgeHint => '輸入關鍵字搜尋檔名或內容';
+
+  @override
+  String noSearchResults(Object query) {
+    return '找不到「$query」相關結果';
+  }
+
+  @override
+  String get onlyMarkdownPreview => '僅支援 Markdown 檔案預覽';
+
+  @override
+  String get backupAndRestore => '備份與還原';
+
+  @override
+  String get createBackup => '建立備份';
+
+  @override
+  String get restoreBackup => '還原備份';
+
+  @override
+  String get backupDescription =>
+      '將所有資料（卡片、知識庫、洞察、設定）打包為 .memex 檔案。可透過分享儲存到 iCloud Drive、Google Drive 或任意位置。';
+
+  @override
+  String get restoreDescription => '選擇 .memex 備份檔還原所有資料。這會覆蓋目前資料。';
+
+  @override
+  String get selectBackupFile => '選擇備份檔';
+
+  @override
+  String get estimatedSize => '預估大小';
+
+  @override
+  String get backupComplete => '備份已建立';
+
+  @override
+  String backupFailed(Object error) {
+    return '備份失敗：$error';
+  }
+
+  @override
+  String get confirmRestore => '確認還原';
+
+  @override
+  String get confirmRestoreMessage =>
+      '還原會覆蓋目前所有資料，包括卡片、知識庫、洞察和設定。此操作無法復原，確定繼續？';
+
+  @override
+  String get restoreComplete => '還原完成';
+
+  @override
+  String get restoreRestartHint => '資料已還原，請重新啟動應用程式以套用所有變更。';
+
+  @override
+  String restoreFailed(Object error) {
+    return '還原失敗：$error';
+  }
+
+  @override
+  String get invalidBackupFile => '無效的備份檔，請選擇 .memex 檔案。';
+
+  @override
+  String get automaticBackup => '自動備份';
+
+  @override
+  String get autoBackupDescription => '開啟後，Memex 會在啟動或回到前景時檢查，每天最多建立一次本機時間點快照。';
+
+  @override
+  String get backupSensitiveSettingsHint => '備份包含設定和模型服務商金鑰，請只儲存到你信任的位置。';
+
+  @override
+  String get backupLocation => '位置';
+
+  @override
+  String get backupLocationDetails => '位置詳情';
+
+  @override
+  String get backupLocationSummary => '應用程式中顯示';
+
+  @override
+  String get backupLocationFullPath => '完整路徑';
+
+  @override
+  String get backupLocationUri => '資料夾授權 URI';
+
+  @override
+  String get copyBackupLocationPath => '複製路徑';
+
+  @override
+  String get backupLocationCopied => '備份位置已複製';
+
+  @override
+  String androidBackupLocationSelected(Object folderName) {
+    return '已選資料夾：$folderName';
+  }
+
+  @override
+  String get iosICloudBackupLocation => 'iCloud 雲碟 > Memex > Backups';
+
+  @override
+  String get iosAppDocumentsBackupLocation =>
+      '檔案 > 我的 iPhone > Memex > Backups';
+
+  @override
+  String get autoBackupStatus => '狀態';
+
+  @override
+  String get noAutoBackupYet => '還沒有自動備份';
+
+  @override
+  String lastBackupAt(Object time) {
+    return '上次備份：$time';
+  }
+
+  @override
+  String get autoBackupRetention => '保留';
+
+  @override
+  String autoBackupRetentionDays(Object days) {
+    return '$days 天';
+  }
+
+  @override
+  String get autoBackupRetentionForever => '永久保留';
+
+  @override
+  String get autoBackupMaxSize => '空間上限';
+
+  @override
+  String autoBackupRetentionLimitHint(Object size) {
+    return '自動清理會讓自動快照總大小不超過 $size。安全快照和手動匯出備份會另外保留。';
+  }
+
+  @override
+  String get createSnapshotNow => '立即備份';
+
+  @override
+  String get backupLocationMenu => '變更位置';
+
+  @override
+  String get defaultBackupLocation => '預設備份資料夾';
+
+  @override
+  String get defaultBackupLocationAndroidDesc =>
+      '使用 Memex 的應用程式專屬外部目錄，不需要儲存權限。';
+
+  @override
+  String get chooseBackupLocation => '選擇備份資料夾';
+
+  @override
+  String get chooseBackupLocationAndroidDesc =>
+      '使用 Android 系統選擇器選擇資料夾，並授予 Memex 持久存取權限。';
+
+  @override
+  String get storedBackups => '已儲存備份';
+
+  @override
+  String get noStoredBackups => '建立第一個自動快照後會顯示在這裡。';
+
+  @override
+  String get backupTypeAutoSnapshot => '自動快照';
+
+  @override
+  String get backupTypeSafetySnapshot => '安全快照';
+
+  @override
+  String get backupTypeManualBackup => '手動備份';
+
+  @override
+  String get refresh => '重新整理';
+
+  @override
+  String get restoreThisBackup => '還原此備份';
+
+  @override
+  String get deleteThisBackup => '刪除此備份';
+
+  @override
+  String get confirmDeleteBackup => '刪除備份？';
+
+  @override
+  String confirmDeleteBackupMessage(Object fileName) {
+    return '刪除 $fileName？這會移除已儲存的備份檔，且無法復原。';
+  }
+
+  @override
+  String backupDeleted(Object fileName) {
+    return '備份已刪除：$fileName';
+  }
+
+  @override
+  String backupDeleteFailed(Object error) {
+    return '無法刪除備份：$error';
+  }
+
+  @override
+  String get creatingSafetySnapshot => '正在建立安全快照...';
+
+  @override
+  String autoBackupCreated(Object fileName) {
+    return '快照已建立：$fileName';
+  }
+
+  @override
+  String backupLocationFailed(Object error) {
+    return '無法更新備份位置：$error';
+  }
+
+  @override
+  String get backupImportCreatedAt => '建立時間';
+
+  @override
+  String get backupImportSourceVersion => '來源版本';
+
+  @override
+  String get backupImportFlavor => '建置版本';
+
+  @override
+  String get backupLegacyFormat => '舊版備份（沒有 manifest）';
+
+  @override
+  String get restoreInProgress => '正在還原備份...';
+
+  @override
+  String get dataStorage => '資料儲存';
+
+  @override
+  String get dataStorageDescriptionAndroid =>
+      '選擇自訂資料夾來儲存你的工作區。重新安裝應用程式後，資料仍會保留。';
+
+  @override
+  String get dataStorageDescriptionIOS =>
+      '開啟 iCloud，在裝置之間同步工作區，並在重新安裝應用程式後保留資料。';
+
+  @override
+  String get storageLocationApp => '應用程式儲存空間';
+
+  @override
+  String get storageLocationAppDesc => '資料會儲存在應用程式內，解除安裝時會一併移除。';
+
+  @override
+  String get storageLocationCustom => '裝置儲存空間（自訂資料夾）';
+
+  @override
+  String get storageLocationCustomDesc =>
+      '將資料儲存在你選擇的資料夾中。只要資料夾仍存在，重新安裝後資料也會保留。';
+
+  @override
+  String get storageLocationICloud => '儲存到 iCloud';
+
+  @override
+  String get storageLocationICloudDesc => '在 Apple 裝置之間同步你的工作區。重新安裝後資料仍會保留。';
+
+  @override
+  String storageLocationCurrent(Object location) {
+    return '目前：$location';
+  }
+
+  @override
+  String get icloudRequiresCapability =>
+      '請登入 iCloud 並開啟 iCloud Drive，才能使用 iCloud 儲存空間。';
+
+  @override
+  String get loadingFromICloud => '正在從 iCloud 還原資料…';
+
+  @override
+  String get switchingToICloud => '正在切換到 iCloud 儲存空間…';
+
+  @override
+  String get switchingStorage => '正在切換儲存空間…';
+
+  @override
+  String get customFolderAccessDenied => '無法讀取或寫入此資料夾。請授予儲存權限，或選擇其他位置。';
+
+  @override
+  String get configured => '已設定';
+
+  @override
+  String get apiKeyNotSet => '尚未設定 API 金鑰 — 點選以設定';
+
+  @override
+  String get bottomNavTimeline => '時間軸';
+
+  @override
+  String get bottomNavLibrary => '知識庫';
+
+  @override
+  String get aiGeneratedLabel => 'AI 生成';
+
+  @override
+  String sourceTraceWithCount(Object count) {
+    return '來源追蹤（$count）';
+  }
+
+  @override
+  String get deleteAccount => '刪除帳戶';
+
+  @override
+  String get deleteAccountDesc => '永久刪除所有本機資料並重設應用程式。';
+
+  @override
+  String get deleteAccountConfirmTitle => '要刪除帳戶嗎？';
+
+  @override
+  String get deleteAccountConfirmMessage =>
+      '這會永久刪除你的所有資料，包括時間軸卡片、知識庫、錄音和設定。此動作無法復原。';
+
+  @override
+  String deleteAccountTypeName(Object name) {
+    return '輸入「$name」以確認';
+  }
+
+  @override
+  String get deleteAccountTypeHint => '輸入你的使用者名稱以確認';
+
+  @override
+  String get llmConsentTitle => '資料分享同意';
+
+  @override
+  String llmConsentMessage(Object provider) {
+    return '為了啟用 AI 功能，Memex 需要將你的資料傳送給 $provider 進行處理。這包括：\n\n• 你輸入的文字（筆記、語音轉錄）\n• 照片中繼資料與擷取文字（OCR）\n• 健康與健身摘要\n• 時間軸卡片內容\n\n你的資料會直接從裝置傳送給 $provider。Memex 不會透過任何其他伺服器儲存或轉送你的資料。\n\n請查看 $provider 的隱私權政策，了解其資料處理方式。\n\n你是否同意將資料傳送給 $provider 進行 AI 處理？';
+  }
+
+  @override
+  String get llmConsentAgree => '我同意';
+
+  @override
+  String get llmConsentDecline => '拒絕';
+
+  @override
+  String get customAgents => '自訂 智慧體';
+
+  @override
+  String get noCustomAgents => '尚未設定自訂 智慧體。';
+
+  @override
+  String get deleteAgent => '刪除 智慧體';
+
+  @override
+  String deleteAgentConfirm(Object name) {
+    return '要刪除自訂 智慧體「$name」嗎？';
+  }
+
+  @override
+  String get deleted => '已刪除';
+
+  @override
+  String get saved => '已儲存';
+
+  @override
+  String get newAgent => '新增 智慧體';
+
+  @override
+  String get editAgent => '編輯 智慧體';
+
+  @override
+  String get agentName => '智慧體 名稱';
+
+  @override
+  String get agentNameHint => 'my-custom-agent';
+
+  @override
+  String get agentNameRequired => '必填';
+
+  @override
+  String get agentNameInvalid => '僅可使用字母、數字和連字號';
+
+  @override
+  String get agentNameExists => '名稱已存在';
+
+  @override
+  String get hostAgentType => '宿主 智慧體 類型';
+
+  @override
+  String get skillDirectory => '技能 目錄';
+
+  @override
+  String get skillDirInvalid => '必須是相對路徑（不能以 / 開頭或包含 ..）';
+
+  @override
+  String get workingDirectory => '工作目錄（選填）';
+
+  @override
+  String get workingDirectoryHint => '留空則使用工作區預設值';
+
+  @override
+  String get llmConfig => 'LLM 設定';
+
+  @override
+  String get eventType => '事件類型';
+
+  @override
+  String get executionMode => '執行模式';
+
+  @override
+  String get executionModeAsync => '非同步';
+
+  @override
+  String get executionModeSync => '同步';
+
+  @override
+  String get dependsOn => '依賴項目';
+
+  @override
+  String get dependsOnHint => '選擇依賴項目';
+
+  @override
+  String get priority => '優先順序';
+
+  @override
+  String get maxRetries => '最大重試次數';
+
+  @override
+  String get systemPromptLabel => '系統提示詞（選填）';
+
+  @override
+  String get systemPromptHint => '附加到宿主 智慧體 提示詞後方的額外指示';
+
+  @override
+  String get eventSerializer => '事件序列化器';
+
+  @override
+  String get eventSerializerDefault => '預設（XML）';
+
+  @override
+  String get enabledLabel => '啟用';
+
+  @override
+  String get skillsManagement => '技能 管理';
+
+  @override
+  String get skillsManagementEmpty => '尚無 技能';
+
+  @override
+  String get downloadSkill => '下載 技能';
+
+  @override
+  String get downloading => '下載中...';
+
+  @override
+  String get downloadSuccess => '技能 已成功下載';
+
+  @override
+  String downloadFailed(Object error) {
+    return '下載失敗：$error';
+  }
+
+  @override
+  String get deleteConfirm => '確認刪除';
+
+  @override
+  String deleteConfirmMessage(String name) {
+    return '確定要刪除「$name」嗎？';
+  }
+
+  @override
+  String get invalidUrl => '請輸入有效的 URL';
+
+  @override
+  String get urlHint => 'https://example.com/skill.zip';
+
+  @override
+  String get newFolder => '新增資料夾';
+
+  @override
+  String get newFile => '新增檔案';
+
+  @override
+  String get folderName => '資料夾名稱';
+
+  @override
+  String get fileName => '檔案名稱';
+
+  @override
+  String get nameRequired => '名稱為必填';
+
+  @override
+  String get nameInvalid => '名稱不能包含 / 或 ..';
+
+  @override
+  String createFailed(Object error) {
+    return '建立失敗：$error';
+  }
+
+  @override
+  String get fileContent => '檔案內容';
+
+  @override
+  String get saveSuccess => '儲存成功';
+
+  @override
+  String downloadToCurrentDir(String dir) {
+    return 'zip 會解壓縮到目前目錄：$dir';
+  }
+
+  @override
+  String get privacyPolicy => '隱私權政策';
+
+  @override
+  String get privacyPolicyDesc => 'Memex 如何處理你的資料';
+
+  @override
+  String get llmAuthError => 'API 驗證失敗。請在設定中檢查你的 LLM 設定。';
+
+  @override
+  String get llmBadRequestError => 'LLM 服務商拒絕了請求。目前模型可能不支援此輸入格式。';
+
+  @override
+  String get llmRateLimitError => 'API 呼叫頻率已超過限制。請稍後再試。';
+
+  @override
+  String get llmServerError => 'LLM 服務暫時無法使用。請稍後再試。';
+
+  @override
+  String get llmNetworkError => '網路連線失敗。請檢查你的網際網路連線。';
+
+  @override
+  String get llmUnknownError => '處理你的內容時發生未預期的錯誤。';
+
+  @override
+  String get llmErrorDialogTitle => '處理失敗';
+
+  @override
+  String get goToModelConfig => '前往設定';
+
+  @override
+  String get speechModelDownloadTitle => '下載語音模型';
+
+  @override
+  String speechModelDownloadDesc(Object sizeMB) {
+    return '需要一次性下載模型（約 ${sizeMB}MB）。\n\n下載完成後，轉錄會完全在裝置上執行。';
+  }
+
+  @override
+  String get speechModelStartDownload => '開始下載';
+
+  @override
+  String get speechModelChooseSource => '選擇下載來源：';
+
+  @override
+  String get speechModelChinaMirror => '🇨🇳 中國鏡像（中國大陸較快）';
+
+  @override
+  String get speechModelGithub => '🌐 GitHub（全球）';
+
+  @override
+  String get speechModelDownloading => '正在下載模型...';
+
+  @override
+  String get speechModelConnecting => '正在連線...';
+
+  @override
+  String get deleteSpeechModel => '刪除語音模型';
+
+  @override
+  String get confirmDeleteSpeechModelMessage =>
+      '要刪除已下載的本機語音辨識模型檔案嗎？下次使用本機語音轉文字時會重新下載。';
+
+  @override
+  String get speechModelDeletedSuccess => '語音模型檔案已刪除';
+
+  @override
+  String get speechModelNotDownloaded => '找不到已下載的語音模型檔案';
+
+  @override
+  String speechModelDeleteFailed(Object error) {
+    return '刪除語音模型檔案失敗：$error';
+  }
+
+  @override
+  String get speechTranscribing => '正在辨識...';
+
+  @override
+  String get speechNoResult => '未偵測到語音';
+
+  @override
+  String get useLocalSpeechToTextTitle => '使用本機語音轉文字';
+
+  @override
+  String get useLocalSpeechToTextDesc =>
+      '開啟時，音訊會先在裝置上轉錄成文字再傳送，適合不支援音訊輸入的模型。關閉時，原始音訊會直接傳送給模型。';
+
+  @override
+  String get pendingAiProcessingHint => '設定 AI 模型以處理';
+
+  @override
+  String get demoWelcome => '歡迎來到 Memex！\n讓我們快速看看 AI 能為你的記錄做些什麼。';
+
+  @override
+  String get demoTapAdd => '點這裡建立你的第一筆記錄';
+
+  @override
+  String get demoTapSend => '點選送出你的第一筆記錄';
+
+  @override
+  String get demoTapCard => '點選查看 AI 如何整理你的記錄';
+
+  @override
+  String get demoTapInsight => '點選查看 AI 生成的洞察';
+
+  @override
+  String get demoTapInsightUpdate => '點選從你的記錄生成洞察';
+
+  @override
+  String get demoTapKnowledge => '查看自動整理的知識檔案';
+
+  @override
+  String get demoDone => '開始記錄你的生活。';
+
+  @override
+  String get demoStartTour => '開始導覽';
+
+  @override
+  String get demoGetStarted => '開始使用';
+
+  @override
+  String get demoSkip => '略過';
+
+  @override
+  String get demoPrefillText => '你好 Memex！這是我的第一筆記錄 🎉';
+
+  @override
+  String get visionBadge => '視覺';
+
+  @override
+  String get notMultimodalHint =>
+      'Memex 依賴多模態模型能力進行媒體分析。如果你的記錄包含圖片，請確認你設定的模型支援圖片輸入。';
+
+  @override
+  String get defaultModelPrefix => '預設';
+
+  @override
+  String get recommendedBadge => '推薦';
+
+  @override
+  String get readOnlyBadge => 'CHAT';
+
+  @override
+  String get switchCompanion => '切換陪伴角色';
+
+  @override
+  String get personaChatInputHint => '輸入訊息...';
+
+  @override
+  String get today => '今天';
+
+  @override
+  String get tomorrow => '明天';
+
+  @override
+  String get yesterday => '昨天';
+
+  @override
+  String get showInsightTextTitle => '顯示 Memex 洞察評論';
+
+  @override
+  String get showInsightTextDesc => '是否在卡片詳情的評論區中，將 Memex 洞察顯示為置頂評論。';
+
+  @override
+  String get enableCharacterCommentTitle => '角色自動評論';
+
+  @override
+  String get enableCharacterCommentDesc => '角色會自動對新記錄發表評論。';
+
+  @override
+  String get maxCommentCharactersTitle => '最多評論角色數';
+
+  @override
+  String get maxCommentCharactersDesc => '每筆記錄可由幾個角色參與評論。';
+
+  @override
+  String replyTo(String name) {
+    return '回覆 $name';
+  }
+
+  @override
+  String get cdnSignalsComments => '收到新回覆';
+
+  @override
+  String get cdnSignalsInsight => '已生成新洞察';
+
+  @override
+  String get cdnSignalsBoth => '收到新回覆與新洞察';
+
+  @override
+  String get untitledCard => '未命名卡片';
+
+  @override
+  String get locationContextTitle => '位置上下文';
+
+  @override
+  String get locationContextDescription => '智慧體 對話目前所在城市與街區上下文';
+
+  @override
+  String get locationContextAttachTitle => '將目前位置附加到對話';
+
+  @override
+  String get locationContextAttachDesc =>
+      '使用裝置 GPS 與反向地理編碼，向 智慧體 提供城市、行政區和街區上下文。';
+
+  @override
+  String get reverseGeocodingProvider => '反向地理編碼服務商';
+
+  @override
+  String get amapProviderName => '高德地圖';
+
+  @override
+  String get amapApiKey => '高德地圖 API 金鑰';
+
+  @override
+  String get amapGcj02Note => '高德地圖使用 GCJ-02 座標。裝置 GPS 會先轉換，再進行反向地理編碼。';
+
+  @override
+  String get contextGranularity => '上下文精細度';
+
+  @override
+  String get granularityCity => '城市';
+
+  @override
+  String get granularityDistrict => '行政區';
+
+  @override
+  String get granularityNeighborhood => '街區';
+
+  @override
+  String get granularityStreet => '街道';
+
+  @override
+  String get granularityFullAddress => '完整地址候選';
+
+  @override
+  String get locationFreshness => '位置新鮮度';
+
+  @override
+  String minutesShort(int minutes) {
+    return '$minutes 分鐘';
+  }
+
+  @override
+  String get oneHour => '1 小時';
+
+  @override
+  String get testCurrentLocation => '測試目前位置';
+
+  @override
+  String locationTestFailed(String error) {
+    return '失敗：$error';
+  }
+
+  @override
+  String get locationDebugGps => 'GPS';
+
+  @override
+  String get locationDebugReverseGeocode => '反向地理編碼';
+
+  @override
+  String get locationDebugProvider => '服務商';
+
+  @override
+  String get locationDebugAgentContext => '智慧體 上下文';
+
+  @override
+  String get locationDebugSource => '來源';
+
+  @override
+  String get locationDebugAddressSummary => '地址摘要';
+
+  @override
+  String get locationDebugFullAddress => '完整地址';
+
+  @override
+  String get locationDebugCoordinates => '座標';
+
+  @override
+  String get locationDebugAccuracy => '精確度';
+
+  @override
+  String get locationDebugReason => '原因';
+
+  @override
+  String get locationDebugOk => '正常';
+
+  @override
+  String get locationDebugUnavailable => '無法使用';
+
+  @override
+  String get locationDebugInjected => '已注入';
+
+  @override
+  String get locationDebugNotInjected => '未注入';
+
+  @override
+  String get locationStatusUpdatedAt => '已更新';
+
+  @override
+  String get locationStatusSuccessTitle => '目前位置已就緒';
+
+  @override
+  String get locationStatusSuccessBody => '當位置上下文與對話相關時，Memex 可以附加這段位置摘要。';
+
+  @override
+  String get locationStatusApproximateTitle => '僅有大致位置';
+
+  @override
+  String get locationStatusApproximateBody =>
+      '精確度看起來只到城市或區域層級。你可以繼續使用，或在系統設定中開啟精確位置，以取得更精準的上下文。';
+
+  @override
+  String get locationStatusServiceDisabledTitle => '系統定位已關閉';
+
+  @override
+  String get locationStatusServiceDisabledBody =>
+      'Memex 只使用裝置 GPS，不會從網路或 IP 推斷位置。Android 請開啟位置設定；iOS 請啟用「設定 > 隱私權與安全性 > 定位服務」。';
+
+  @override
+  String get locationStatusPermissionDeniedTitle => '需要位置權限';
+
+  @override
+  String get locationStatusPermissionDeniedBody =>
+      '請允許 Memex 在測試或需要位置上下文時使用位置。不會要求永遠存取。';
+
+  @override
+  String get locationStatusPermissionForeverTitle => '位置權限已被封鎖';
+
+  @override
+  String get locationStatusPermissionForeverBody =>
+      '請開啟應用程式設定並允許 Memex 使用位置。在 iOS 上，「使用 App 期間」就足夠。';
+
+  @override
+  String get locationStatusDisabledTitle => '位置上下文已關閉';
+
+  @override
+  String get locationStatusDisabledBody =>
+      '當你希望 Memex 將裝置位置附加到 智慧體 上下文時，請開啟上方開關並儲存。';
+
+  @override
+  String get locationStatusGeocodeUnavailableTitle => 'GPS 可用，但地址查詢失敗';
+
+  @override
+  String get locationStatusGeocodeUnavailableBody =>
+      'Memex 有座標，但不會將只有 GPS 的上下文注入 智慧體。請檢查反向地理編碼服務商後再試。';
+
+  @override
+  String get locationStatusUnavailableTitle => '位置無法使用';
+
+  @override
+  String get locationStatusUnavailableBody => '請檢查系統定位服務與應用程式權限，然後再測試一次。';
+
+  @override
+  String get allowLocationPermissionButton => '允許位置權限';
+
+  @override
+  String get openAppSettingsButton => '開啟應用程式設定';
+
+  @override
+  String get openLocationSettingsButton => '開啟位置設定';
+
+  @override
+  String get locationSettingsOpenFailed => '無法開啟系統設定。';
+
+  @override
+  String locationActionFailed(String error) {
+    return '位置操作失敗：$error';
+  }
+
+  @override
+  String get settingsSearchPlaceholder => '搜尋設定...';
+
+  @override
+  String get settingsSearchEmpty => '找不到相符的設定項目';
+
+  @override
+  String get importCharacterCard => '匯入角色卡';
+
+  @override
+  String get firstMessageLabel => '第一則訊息';
+
+  @override
+  String get firstMessageHint => '首次對話時送出的問候語（選填）';
+
+  @override
+  String get systemPromptOverrideLabel => '覆寫系統提示詞';
+
+  @override
+  String get systemPromptOverrideHint => '覆寫預設系統提示詞（進階，選填）';
+
+  @override
+  String get postHistoryInstructionsLabel => '歷史後指示';
+
+  @override
+  String get postHistoryInstructionsHint => '插入在聊天歷史之後、回覆之前的指示（選填）';
+
+  @override
+  String get mesExampleLabel => '訊息範例';
+
+  @override
+  String get mesExampleHint => '展示角色風格的範例對話（選填）';
+
+  @override
+  String get worldBookTitle => '世界書';
+
+  @override
+  String get worldBookSubtitle => '觸發關鍵字時注入的背景知識';
+
+  @override
+  String get characterMemoryTitle => '角色記憶';
+
+  @override
+  String get characterMemorySubtitle => '角色與使用者之間的關係動態和互動記憶';
+
+  @override
+  String get addTooltip => '新增';
+
+  @override
+  String get constantBadge => '常駐';
+
+  @override
+  String worldEntryFallbackName(Object index) {
+    return '項目 $index';
+  }
+
+  @override
+  String keywordsPrefix(Object keys) {
+    return '關鍵字：$keys';
+  }
+
+  @override
+  String memoryFallbackName(Object index) {
+    return '記憶 $index';
+  }
+
+  @override
+  String get addWorldEntry => '新增世界書項目';
+
+  @override
+  String get editWorldEntry => '編輯世界書項目';
+
+  @override
+  String get commentTitleLabel => '評論 / 標題';
+
+  @override
+  String get entryDescriptionHint => '項目描述（選填）';
+
+  @override
+  String get triggerKeywordsLabel => '觸發關鍵字';
+
+  @override
+  String get triggerKeywordsHint => '以逗號分隔，例如：魔法, 咒語';
+
+  @override
+  String get contentLabel => '內容';
+
+  @override
+  String get worldEntryContentHint => '關鍵字觸發時注入的背景知識';
+
+  @override
+  String get enabledCheckbox => '啟用';
+
+  @override
+  String get addMemory => '新增記憶';
+
+  @override
+  String get editMemory => '編輯記憶';
+
+  @override
+  String get memoryLabelField => '標籤';
+
+  @override
+  String get memoryLabelHint => '唯一識別碼，例如：稱呼偏好';
+
+  @override
+  String get memoryContentHint => '記憶內容';
+
+  @override
+  String get salienceLabel => '重要性：';
+
+  @override
+  String get labelCannotBeEmpty => '標籤不能為空';
+
+  @override
+  String importSuccess(Object name) {
+    return '$name 匯入成功';
+  }
+
+  @override
+  String importFailed(Object error) {
+    return '匯入失敗：$error';
+  }
+
+  @override
+  String get supportedFormats => '支援格式';
+
+  @override
+  String get tavernImportDescription =>
+      '• SillyTavern V2 角色卡（.json）\n• 內嵌角色卡的 PNG 圖片（.png）\n\n角色設定、世界書等欄位會自動對應到 Memex 角色格式。';
+
+  @override
+  String get pickCharacterFile => '選擇角色檔案';
+
+  @override
+  String get repickFile => '選擇其他檔案';
+
+  @override
+  String get personaSettingSection => '角色設定';
+
+  @override
+  String get systemPromptSection => '系統提示詞';
+
+  @override
+  String worldEntriesCount(Object count) {
+    return '世界書：$count 個項目';
+  }
+
+  @override
+  String fileLabel(Object filename) {
+    return '檔案：$filename';
+  }
+
+  @override
+  String conflictWarning(Object names) {
+    return '已存在同名角色：$names。匯入會建立新角色，不會覆寫既有角色。';
+  }
+
+  @override
+  String get setPrimaryCompanionTitle => '設為主要陪伴角色';
+
+  @override
+  String get setPrimaryCompanionSubtitle => '匯入後自動設為你的主要陪伴角色';
+
+  @override
+  String get confirmImport => '確認匯入';
+
+  @override
+  String get chatBackground => '聊天背景';
+
+  @override
+  String get chooseChatBackgroundImage => '選擇背景圖片';
+
+  @override
+  String get earlyUpdateSettingsTitle => 'Early 版更新';
+
+  @override
+  String get earlyUpdateSettingsDesc =>
+      '檢查 GitHub 預先發行版本中符合目前 Early APK 的版本，下載後交給 Android 安裝程式。';
+
+  @override
+  String get earlyUpdateUnsupported => 'Early 更新僅適用於 Android Early 建置版本。';
+
+  @override
+  String get earlyUpdateAutoCheckTitle => '自動檢查更新';
+
+  @override
+  String get earlyUpdateAutoCheckDesc => '啟動時檢查，最多每 12 小時一次。';
+
+  @override
+  String get earlyUpdateWifiOnlyTitle => '僅透過 Wi-Fi 下載';
+
+  @override
+  String get earlyUpdateWifiOnlyDesc => '使用行動數據時略過更新下載。';
+
+  @override
+  String get earlyUpdateAutoInstallTitle => '自動下載並安裝';
+
+  @override
+  String get earlyUpdateAutoInstallDesc => '找到新建置版本時，自動下載並開啟 Android 安裝程式。';
+
+  @override
+  String get earlyUpdateCheckNow => '立即檢查';
+
+  @override
+  String get earlyUpdateChecking => '正在檢查 GitHub 預先發行版本...';
+
+  @override
+  String get earlyUpdateSkippedMobile => '已略過，因為已啟用僅限 Wi-Fi 下載。';
+
+  @override
+  String get earlyUpdateNoUpdate => '你已使用最新版 Early 建置版本。';
+
+  @override
+  String earlyUpdateFound(Object version, Object build) {
+    return 'Early 建置版本 $version+$build 已可用。';
+  }
+
+  @override
+  String get earlyUpdateDownloadAndInstall => '下載並安裝';
+
+  @override
+  String get earlyUpdateDownloadInProgress => '正在下載更新...';
+
+  @override
+  String earlyUpdateDownloadingPercent(Object percent) {
+    return '正在下載更新：$percent%';
+  }
+
+  @override
+  String get earlyUpdateDownloadReadyToInstall => '更新套件已下載。可準備安裝。';
+
+  @override
+  String get earlyUpdateInstallDownloadedPackage => '安裝已下載套件';
+
+  @override
+  String get earlyUpdateClearDownloadedPackage => '清除已下載套件';
+
+  @override
+  String get earlyUpdateClearDownloadedPackageSuccess => '已清除下載的更新套件。';
+
+  @override
+  String get earlyUpdateInstallStarted => '已開啟 Android 安裝程式。';
+
+  @override
+  String get earlyUpdateInstallPermissionRequired =>
+      '請允許 Memex 安裝未知應用程式，然後再次點選下載並安裝。';
+
+  @override
+  String earlyUpdateLastChecked(Object time) {
+    return '上次檢查：$time';
+  }
+
+  @override
+  String earlyUpdateCheckFailed(Object error) {
+    return '更新檢查失敗：$error';
+  }
+
+  @override
+  String get earlyUpdateDialogTitle => '有 Early 更新可用';
+
+  @override
+  String get earlyUpdateReleaseNotes => '版本說明';
+
+  @override
+  String get dismissAllNotifications => '全部清除';
+
+  @override
+  String get dismissByType => '依類型清除';
+
+  @override
+  String get dismissTypeSystemAction => '提醒與事件';
+
+  @override
+  String get dismissTypeClarification => '釐清事項';
+
+  @override
+  String get dismissTypeCardUpdate => '卡片更新';
+
+  @override
+  String dismissedCount(Object count) {
+    return '已清除 $count 項';
+  }
+}

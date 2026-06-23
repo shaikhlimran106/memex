@@ -12,6 +12,7 @@ import 'package:memex/domain/models/agent_config.dart';
 import 'package:memex/domain/models/location_context_config.dart';
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:memex/domain/models/agent_definitions.dart';
+import 'package:memex/l10n/supported_languages.dart';
 import '../l10n/app_localizations_ext.dart';
 import 'package:memex/data/services/event_bus_service.dart';
 import 'package:memex/data/services/openai_auth_service.dart';
@@ -88,15 +89,91 @@ class UserStorage {
     return _l10n!;
   }
 
-  /// Language codes that have corresponding l10n files (must match app_localizations_ext).
-  static const List<String> _supportedLanguageCodes = ['en', 'zh'];
+  /// Global notifier for the active locale, used to rebuild the app on change.
+  static final ValueNotifier<Locale> localeNotifier =
+      ValueNotifier<Locale>(const Locale('en'));
+
+  /// Locales that have corresponding l10n files (must match app_localizations_ext).
+  static const Locale fallbackLocale = Locale('en');
+  static const Locale traditionalChineseLocale =
+      Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant');
+  static const List<Locale> supportedLocales = supportedLanguageLocales;
+  static const List<String> supportedLanguageCodes = supportedLanguageTags;
+
+  static String localeTag(Locale locale) {
+    final parts = <String>[locale.languageCode];
+    if (locale.scriptCode != null && locale.scriptCode!.isNotEmpty) {
+      parts.add(locale.scriptCode!);
+    }
+    if (locale.countryCode != null && locale.countryCode!.isNotEmpty) {
+      parts.add(locale.countryCode!);
+    }
+    return parts.join('_');
+  }
+
+  static Locale localeFromTag(String tag) {
+    final parts = tag
+        .replaceAll('-', '_')
+        .split('_')
+        .where((part) => part.isNotEmpty)
+        .toList(growable: false);
+    if (parts.isEmpty) {
+      return fallbackLocale;
+    }
+    if (parts.length == 1) {
+      return Locale(parts[0]);
+    }
+
+    final regionOrScript = parts[1];
+    if (regionOrScript.length == 4) {
+      return Locale.fromSubtags(
+        languageCode: parts[0],
+        scriptCode: regionOrScript,
+        countryCode: parts.length > 2 ? parts[2] : null,
+      );
+    }
+
+    return Locale(parts[0], regionOrScript);
+  }
 
   /// Returns [locale] if the app has l10n for it, otherwise English.
-  static Locale _resolveToSupportedLocale(Locale locale) {
-    if (_supportedLanguageCodes.contains(locale.languageCode)) {
-      return locale;
+  static Locale resolveToSupportedLocale(Locale locale) {
+    final normalized = locale.countryCode == 'Hant'
+        ? Locale.fromSubtags(
+            languageCode: locale.languageCode,
+            scriptCode: locale.countryCode,
+          )
+        : locale;
+
+    for (final supported in supportedLocales) {
+      if (localeTag(supported) == localeTag(normalized)) {
+        return supported;
+      }
     }
-    return const Locale('en');
+
+    if (normalized.languageCode == 'zh' &&
+        (normalized.scriptCode == 'Hant' ||
+            normalized.countryCode == 'TW' ||
+            normalized.countryCode == 'HK' ||
+            normalized.countryCode == 'MO')) {
+      return traditionalChineseLocale;
+    }
+
+    for (final supported in supportedLocales) {
+      if (supported.languageCode == normalized.languageCode &&
+          supported.scriptCode == null &&
+          supported.countryCode == null) {
+        return supported;
+      }
+    }
+    return fallbackLocale;
+  }
+
+  static void _applyResolvedLocale(Locale locale) {
+    _l10n = lookupAppLocalizationsExt(locale);
+    if (localeNotifier.value != locale) {
+      localeNotifier.value = locale;
+    }
   }
 
   /// Initialize the global l10n instance
@@ -104,8 +181,7 @@ class UserStorage {
   /// Uses English if the user locale has no matching l10n file.
   static Future<void> initL10n() async {
     final locale = await getLocale();
-    final resolved = _resolveToSupportedLocale(locale);
-    _l10n = lookupAppLocalizationsExt(resolved);
+    _applyResolvedLocale(resolveToSupportedLocale(locale));
   }
 
   /// Get stored userId
@@ -259,16 +335,8 @@ class UserStorage {
         return PlatformDispatcher.instance.locale;
       }
 
-      // Parse locale string (format: "zh_CN" or "en")
-      final parts = languageString.split('_');
-      if (parts.length == 2) {
-        return Locale(parts[0], parts[1]);
-      } else if (parts.length == 1) {
-        return Locale(parts[0]);
-      }
-
-      return PlatformDispatcher
-          .instance.locale; // Default to system locale on parse error
+      // Parse locale string (format: "zh", "zh_Hant", or "zh_Hant_TW").
+      return localeFromTag(languageString);
     } catch (e) {
       return PlatformDispatcher
           .instance.locale; // Default to system locale on error
@@ -280,15 +348,10 @@ class UserStorage {
   /// [locale] The prompt locale to use
   static Future<void> setLocale(Locale locale) async {
     try {
-      final resolved = _resolveToSupportedLocale(locale);
+      final resolved = resolveToSupportedLocale(locale);
       final prefs = await SharedPreferences.getInstance();
-      // Store as "languageCode_countryCode" or just "languageCode"
-      final localeString = resolved.countryCode != null
-          ? '${resolved.languageCode}_${resolved.countryCode}'
-          : resolved.languageCode;
-      await prefs.setString(_keyLanguage, localeString);
-      // Update global l10n instance
-      _l10n = lookupAppLocalizationsExt(resolved);
+      await prefs.setString(_keyLanguage, localeTag(resolved));
+      _applyResolvedLocale(resolved);
     } catch (e) {
       // Ignore errors
     }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:memex/config/app_flavor.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
+import 'package:memex/ui/core/widgets/language_picker.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:memex/ui/settings/widgets/backup_restore_page.dart';
 import 'package:memex/ui/settings/widgets/data_storage_page.dart';
@@ -25,7 +26,7 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  String _currentLang = 'en';
+  String _currentLocaleTag = 'en';
   bool _useLocalSpeechToText = true;
   CommentSettings _commentSettings = const CommentSettings();
 
@@ -41,20 +42,36 @@ class _SettingsPageState extends State<SettingsPage> {
     final commentSettings = await MemexRouter().getCommentSettings();
     if (mounted) {
       setState(() {
-        _currentLang = locale.languageCode == 'zh' ? 'zh' : 'en';
+        _currentLocaleTag = UserStorage.localeTag(
+          UserStorage.resolveToSupportedLocale(locale),
+        );
         _useLocalSpeechToText = useLocalSpeechToText;
         _commentSettings = commentSettings;
       });
     }
   }
 
-  Future<void> _changeLanguage(String langCode) async {
-    if (_currentLang == langCode) return;
-    final locale = Locale(langCode);
+  Future<void> _changeLanguage(String localeTag) async {
+    if (_currentLocaleTag == localeTag) return;
+    final locale = UserStorage.localeFromTag(localeTag);
     await UserStorage.setLocale(locale);
-    await UserStorage.initL10n();
     if (mounted) {
-      setState(() => _currentLang = langCode);
+      setState(() {
+        _currentLocaleTag = UserStorage.localeTag(
+          UserStorage.resolveToSupportedLocale(locale),
+        );
+      });
+    }
+  }
+
+  Future<void> _showLanguagePicker() async {
+    final localeTag = await showLanguagePickerSheet(
+      context: context,
+      selectedLocaleTag: _currentLocaleTag,
+      title: UserStorage.l10n.chooseLanguage,
+    );
+    if (localeTag != null) {
+      await _changeLanguage(localeTag);
     }
   }
 
@@ -147,13 +164,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    _buildLangChip('English', 'en'),
-                    const SizedBox(width: 10),
-                    _buildLangChip('中文', 'zh'),
-                  ],
-                ),
+                _buildLanguageValueRow(),
               ],
             ),
           ),
@@ -814,29 +825,11 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Widget _buildLangChip(String label, String langCode) {
-    final isSelected = _currentLang == langCode;
-    return GestureDetector(
-      onTap: () => _changeLanguage(langCode),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.grey[300]!,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: isSelected ? Colors.white : Colors.grey[600],
-          ),
-        ),
-      ),
+  Widget _buildLanguageValueRow() {
+    return LanguageValueButton(
+      localeTag: _currentLocaleTag,
+      onTap: _showLanguagePicker,
+      trailingIcon: Icons.chevron_right,
     );
   }
 }

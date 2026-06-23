@@ -1,0 +1,1483 @@
+{
+  "@@locale": "id",
+  "timesLabel": "Kali",
+  "@modelSetAsDefault": {
+    "placeholders": {
+      "modelId": {}
+    }
+  },
+  "modelSetAsDefault": "Tetapkan {modelId} sebagai model default",
+  "retry": "Coba lagi",
+  "unknownModel": "Model tidak dikenal",
+  "notSet": "Belum diatur",
+  "confirmClear": "Konfirmasi penghapusan",
+  "confirmClearTokenMessage": "Hapus pengguna saat ini? Anda perlu memasukkan ID pengguna lagi.",
+  "cancel": "Batal",
+  "confirm": "Konfirmasi",
+  "tokenCleared": "Pengguna dihapus",
+  "@clearTokenFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "clearTokenFailed": "Gagal menghapus pengguna: {error}",
+  "selectDateRangeOptional": "Pilih rentang tanggal (opsional):",
+  "startDate": "Tanggal mulai",
+  "endDate": "Tanggal akhir",
+  "select": "Pilih",
+  "processLimitOptional": "Batas pemrosesan (opsional)",
+  "leaveEmptyForAll": "Kosongkan untuk memproses semua",
+  "startProcessing": "Mulai memproses",
+  "userIdNotFound": "ID pengguna tidak ditemukan",
+  "@createTaskFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "createTaskFailed": "Gagal membuat tugas: {error}",
+  "reprocessCards": "Proses ulang kartu",
+  "reprocessCardsTaskCreated": "Permintaan proses ulang masuk antrean di Super Agent",
+  "reprocessCardsDownstreamMode": "Cakupan",
+  "reprocessCardsCardOnly": "Hanya kartu",
+  "reprocessCardsCardOnlyDesc": "Minta Super Agent meninjau dan membuat ulang kartu linimasa yang dipilih.",
+  "reprocessCardsRerunDownstream": "Kartu dan tindak lanjut terkait",
+  "reprocessCardsRerunDownstreamDesc": "Minta Super Agent juga mempertimbangkan pembaruan PKM, jadwal, dan insight terkait bila diperlukan.",
+  "reanalyzeMediaAssets": "Baca ulang lampiran media",
+  "reanalyzeMediaAssetsDesc": "Minta Super Agent memeriksa media terlampir lagi saat membuat ulang kartu.",
+  "regenerateComments": "Buat ulang komentar",
+  "regenerateCommentsTaskCreated": "Tugas pembuatan ulang komentar dibuat dan berjalan di latar belakang",
+  "rebuildSearchIndex": "Bangun ulang indeks pencarian",
+  "rebuildSearchIndexSuccess": "Indeks pencarian berhasil dibangun ulang",
+  "rebuildSearchIndexFailed": "Gagal membangun ulang indeks pencarian",
+  "clearData": "Hapus data",
+  "confirmClearDataMessage": "Hapus data?",
+  "confirmClearDataDeletesWorkspaceMessage": "Semua data workspace lokal untuk pengguna saat ini akan dihapus, termasuk kartu, media, berkas pengetahuan, insight, memori, riwayat chat, dan status sistem.\\n\\nTindakan ini tidak dapat dibatalkan!",
+  "clearFailedAgentContexts": "Hapus konteks percakapan yang gagal",
+  "confirmClearFailedAgentContextsMessage": "Hapus konteks percakapan tersimpan untuk agen Insight dan Jadwal? Ini berguna setelah mengganti model ketika pesan agen sebelumnya tidak lagi kompatibel. Fakta, kartu, pengetahuan, memori, dan pengaturan model tidak akan dihapus.",
+  "failedAgentContextsCleared": "{count} konteks percakapan tersimpan dihapus",
+  "@failedAgentContextsCleared": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "clearFailedAgentContextsFailed": "Gagal menghapus konteks percakapan: {error}",
+  "@clearFailedAgentContextsFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "cloneToTestUser": "Kloning ke pengguna uji",
+  "confirmCloneToTestUserMessage": "Salin workspace saat ini ke pengguna uji lokal baru dan beralih ke sana. Status runtime agen tidak disalin. Data pengguna saat ini tidak akan diubah.",
+  "testUserIdLabel": "ID pengguna uji",
+  "testUserIdHelper": "Gunakan huruf, angka, tanda hubung, atau garis bawah.",
+  "testUserIdInvalid": "Gunakan hanya huruf, angka, tanda hubung, atau garis bawah.",
+  "overwriteExistingTestUser": "Ganti pengguna uji yang ada dengan ID yang sama",
+  "testUserCloneSuccess": "Beralih ke pengguna uji {userId}",
+  "@testUserCloneSuccess": {
+    "placeholders": {
+      "userId": {}
+    }
+  },
+  "testUserCloneFailed": "Gagal mengkloning pengguna uji: {error}",
+  "@testUserCloneFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "dataClearedSuccess": "Data berhasil dihapus",
+  "@clearDataFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "clearDataFailed": "Gagal menghapus data: {error}",
+  "personalCenter": "Pusat pribadi",
+  "viewLogs": "Lihat log",
+  "systemAuthorization": "Otorisasi sistem",
+  "aiCharacterConfig": "Konfigurasi karakter AI",
+  "modelConfig": "Konfigurasi model",
+  "agentConfig": "Konfigurasi agen",
+  "experimentalLab": "Lab",
+  "experimentalLabDescription": "Fitur eksperimental yang dapat berubah atau dipindahkan nanti.",
+  "modelUsageStats": "Statistik penggunaan model",
+  "asyncTaskList": "Daftar tugas asinkron",
+  "clearLocalToken": "Hapus pengguna",
+  "insightCardTemplates": "Template kartu insight",
+  "timelineCardTemplates": "Template kartu linimasa",
+  "logViewer": "Penampil log",
+  "autoRefresh": "Refresh otomatis",
+  "lineCount": "Jumlah baris: ",
+  "all": "Semua",
+  "schedule": "Jadwal",
+  "statistics": "Statistik",
+  "appLockConfig": "Konfigurasi kunci aplikasi",
+  "activityStats": "Statistik aktivitas",
+  "activityStatsSummary": "Pada periode ini Anda mencatat {inputs} kali, membuat {cards} kartu, dan menyelesaikan {todos} tugas.",
+  "@activityStatsSummary": {
+    "placeholders": {
+      "inputs": {},
+      "cards": {},
+      "todos": {}
+    }
+  },
+  "last7Days": "7 hari",
+  "last30Days": "30 hari",
+  "last90Days": "90 hari",
+  "records": "Catatan",
+  "words": "Kata",
+  "cards": "Kartu",
+  "knowledgeUnits": "Unit pengetahuan",
+  "completedTodos": "Todo selesai",
+  "activeDays": "Hari aktif",
+  "streakDays": "Runtun",
+  "dailyRhythm": "Ritme harian",
+  "recordToOutput": "Catatan ke hasil",
+  "sourceBreakdown": "Rincian sumber",
+  "topThemes": "Tema teratas",
+  "textInput": "Teks",
+  "imageInput": "Gambar",
+  "audioInput": "Suara",
+  "noStatsYet": "Belum ada statistik aktivitas",
+  "tapDayForDetails": "Ketuk hari untuk melihat detail",
+  "dayDetails": "Detail hari",
+  "@loadStatsFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "loadStatsFailed": "Gagal memuat statistik: {error}",
+  "overview": "Ikhtisar",
+  "daily": "Harian",
+  "modelStatsByAgent": "Menurut agen",
+  "detail": "Rincian",
+  "date": "Tanggal",
+  "agent": "Agen",
+  "noData": "Tidak ada data",
+  "totalCalls": "Total panggilan",
+  "calls": "Panggilan",
+  "@callsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "callsCount": "{count} panggilan",
+  "selectDateRange": "Pilih rentang tanggal",
+  "totalTokens": "Total token",
+  "cacheRate": "Rasio cache",
+  "promptTokens": "Token prompt",
+  "completionTokens": "Token jawaban",
+  "cachedTokens": "Token cache",
+  "thoughtTokens": "Token pemikiran",
+  "prompt": "Instruksi",
+  "completion": "Jawaban",
+  "cached": "Tersimpan cache",
+  "thought": "Pemikiran",
+  "model": "Model",
+  "scene": "Skenario",
+  "sceneId": "ID skenario",
+  "tokenUsage": "Penggunaan token",
+  "handler": "Penangan",
+  "modelBreakdown": "Rincian model",
+  "callDetails": "Detail panggilan",
+  "@recordDetailsTitle": {
+    "placeholders": {
+      "scene": {}
+    }
+  },
+  "recordDetailsTitle": "Detail catatan: {scene}",
+  "@saveLlmConfigFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "saveLlmConfigFailed": "Gagal menyimpan konfigurasi LLM: {error}",
+  "webHtmlPreviewUnavailable": "Pratinjau HTML tidak tersedia di web. Silakan lihat di perangkat seluler.",
+  "@saveUserInfoFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "saveUserInfoFailed": "Gagal menyimpan info pengguna: {error}",
+  "totalEstimatedCost": "Estimasi biaya total",
+  "close": "Tutup",
+  "totalTokenConsumption": "Total konsumsi token",
+  "dataLoadFailedRetry": "Gagal memuat data, coba lagi nanti.",
+  "timelineLoadFailedRetry": "Gagal memuat linimasa, coba lagi nanti.",
+  "newPerspective": "Sudut pandang baru",
+  "startPoint": "Mulai",
+  "endPoint": "Akhir",
+  "originalInput": "Input asli",
+  "referenceContent": "Konten referensi",
+  "@referenceWithTitle": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "referenceWithTitle": "Referensi: {title}",
+  "actionCenterTitle": "Tindakan tertunda",
+  "noPendingActions": "Tidak ada tindakan tertunda",
+  "clarificationNeeded": "Memex ingin mengonfirmasi",
+  "clarificationTextHint": "Ketik jawaban singkat",
+  "clarificationTextRequired": "Tambahkan jawaban singkat terlebih dahulu",
+  "clarificationAnswered": "Terjawab",
+  "@clarificationAnswerPrefix": {
+    "placeholders": {
+      "answer": {}
+    }
+  },
+  "clarificationAnswerPrefix": "Jawaban: {answer}",
+  "answerSaved": "Jawaban tersimpan",
+  "clarificationOtherAnswer": "Input manual",
+  "clarificationNotSure": "Tidak yakin / memilih tidak menjawab",
+  "yes": "Ya",
+  "no": "Tidak",
+  "footprintMap": "Peta jejak",
+  "waypointPlaces": "Tempat persinggahan",
+  "unknownPlace": "Tempat tidak dikenal",
+  "releaseToSend": "Lepas untuk mengirim",
+  "selectFromAlbum": "Pilih dari album",
+  "clipboardPreviewTitle": "Clipboard baru",
+  "clipboardPreviewImageTitle": "Gambar clipboard",
+  "clipboardPreviewImageDescription": "Gambar siap ditambahkan",
+  "clipboardPreviewUnprocessed": "Belum ditempel",
+  "clipboardPreviewPasteToInput": "Tempel ke input",
+  "clipboardPreviewAddImageToInput": "Tambahkan gambar",
+  "clipboardPreviewImageFailed": "Tidak dapat membaca gambar clipboard",
+  "tellAiWhatHappened": "Beri tahu AI apa yang terjadi...",
+  "@recordingWithDuration": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "recordingWithDuration": "Merekam: {duration}",
+  "playing": "Memutar...",
+  "sendLabel": "Kirim",
+  "attachedImagesMessage": "Mengirim {count} gambar",
+  "@attachedImagesMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "noTaskData": "Tidak ada data tugas",
+  "@createdAtDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "createdAtDate": "Dibuat: {date}",
+  "@updatedAtDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "updatedAtDate": "Diperbarui: {date}",
+  "@durationLabel": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "durationLabel": "Durasi: {duration}",
+  "@retryCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "retryCount": "Coba lagi: {count}",
+  "loadDetailFailedRetry": "Gagal memuat detail, coba lagi nanti.",
+  "loadFailed": "Gagal memuat",
+  "reload": "Muat ulang",
+  "aiInsightDetail": "Detail insight",
+  "@relatedRecordsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "relatedRecordsCount": "Catatan terkait ({count})",
+  "noRelatedRecords": "Tidak ada catatan terkait",
+  "useFingerprintToUnlock": "Gunakan sidik jari untuk membuka",
+  "locked": "Terkunci",
+  "wrongPassword": "Kata sandi salah",
+  "enterPassword": "Masukkan kata sandi",
+  "memexLocked": "Memex terkunci",
+  "calendarShortSun": "Min",
+  "calendarShortMon": "Sen",
+  "calendarShortTue": "Sel",
+  "calendarShortWed": "Rab",
+  "calendarShortThu": "Kam",
+  "calendarShortFri": "Jum",
+  "calendarShortSat": "Sab",
+  "@noRecordsOnDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "noRecordsOnDate": "Tidak ada catatan pada {date}",
+  "footprintPath": "Jalur jejak",
+  "lifeCompositionTable": "Komposisi hidup",
+  "emotionReframe": "Bingkai ulang emosi",
+  "chronicleOfThings": "Kronik berbagai hal",
+  "goalProgress": "Progres tujuan",
+  "trendChart": "Bagan tren",
+  "comparisonChart": "Bagan perbandingan",
+  "todayTimeFlow": "Alur waktu hari ini",
+  "aiInputHint": "Entah kenangan atau saat ini, saya di sini...",
+  "refreshSuperAgentStateTooltip": "Hapus konteks Memex Agent",
+  "refreshSuperAgentStateTitle": "Hapus konteks riwayat Memex Agent?",
+  "refreshSuperAgentStateMessage": "Riwayat chat yang terlihat akan tetap ada, tetapi konteks runtime historis Memex Agent akan dihapus dan balasan berikutnya akan dimulai dari konteks baru. Memori persisten, berkas basis pengetahuan, kartu, dan data tersimpan lain tidak terpengaruh. Gunakan ini ketika Memex Agent terus berperilaku tidak normal. Lanjutkan?",
+  "refreshSuperAgentStateActiveRunMessage": "Tunggu sampai pesan Memex Agent saat ini selesai sebelum menghapus konteks.",
+  "refreshSuperAgentStateSuccess": "Konteks Memex Agent dihapus",
+  "@refreshSuperAgentStateFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "refreshSuperAgentStateFailed": "Gagal menghapus konteks Memex Agent: {error}",
+  "nothingHere": "Belum ada apa pun di sini",
+  "nothingHereHint": "Ketuk tombol di bawah untuk membuat kartu pertama Anda",
+  "agentProcessing": "AI sedang memproses...",
+  "keepAppOpen": "Jangan tutup aplikasi",
+  "activityDetail": "Detail aktivitas",
+  "noAgentActivityYet": "Belum ada aktivitas agen",
+  "processingEllipsis": "Memproses...",
+  "agentBackgroundTitle": "Memex Agent",
+  "agentBackgroundPausedTitle": "Memex Agent dijeda",
+  "agentBackgroundNeedsAttentionTitle": "Memex Agent perlu perhatian",
+  "agentBackgroundStageIdle": "Diam",
+  "agentBackgroundStageProcessing": "Memproses",
+  "agentBackgroundStageQueued": "Dalam antrean",
+  "agentBackgroundStageRetrying": "Menunggu coba ulang",
+  "agentBackgroundStagePaused": "Dijeda",
+  "agentBackgroundStageCompleted": "Selesai",
+  "agentBackgroundStageNeedsAttention": "Perlu perhatian",
+  "agentBackgroundStageAnalyzingMedia": "Menganalisis media",
+  "agentBackgroundStageGeneratingCard": "Membuat kartu",
+  "agentBackgroundStageUpdatingKnowledge": "Memperbarui pengetahuan",
+  "agentBackgroundStagePreparingComment": "Menyiapkan komentar",
+  "agentBackgroundStageRoutingFollowUps": "Mengarahkan tindak lanjut",
+  "@agentBackgroundTaskSummary": {
+    "placeholders": {
+      "running": {},
+      "pending": {},
+      "retrying": {}
+    }
+  },
+  "agentBackgroundTaskSummary": "Berjalan {running}, Tertunda {pending}, Coba ulang {retrying}",
+  "@agentBackgroundTaskDetail": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "agentBackgroundTaskDetail": "Memproses {count} tugas dalam antrean.",
+  "agentBackgroundNoTasks": "Tidak ada tugas latar belakang.",
+  "agentBackgroundStarting": "Pemrosesan sedang dimulai.",
+  "agentBackgroundCompletedDetail": "Semua tugas latar belakang selesai.",
+  "agentBackgroundFailedDetail": "Pemrosesan berhenti karena error.",
+  "agentBackgroundPausedDetail": "Pemrosesan dijeda dan akan dilanjutkan nanti.",
+  "agentBackgroundQueuedDetail": "Menunggu langkah pemrosesan berikutnya.",
+  "agentBackgroundRetryingDetail": "Langkah saat ini akan dicoba ulang secara otomatis.",
+  "agentBackgroundAnalyzeMediaDetail": "Membaca lampiran dan konteks lokal.",
+  "agentBackgroundGeneratingCardDetail": "Mengubah catatan menjadi kartu linimasa.",
+  "agentBackgroundUpdatingKnowledgeDetail": "Memperbarui pengetahuan dan memori lokal.",
+  "agentBackgroundPreparingCommentDetail": "Menyiapkan tindak lanjut asisten.",
+  "agentBackgroundRoutingFollowUpsDetail": "Memeriksa tindakan lanjutan untuk kartu ini.",
+  "@agentBackgroundPausedStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "agentBackgroundPausedStatus": "Dijeda - {summary}",
+  "@agentBackgroundNeedsAttentionStatus": {
+    "placeholders": {
+      "summary": {}
+    }
+  },
+  "agentBackgroundNeedsAttentionStatus": "Perlu perhatian - {summary}",
+  "settings": "Pengaturan",
+  "languageSettings": "Bahasa",
+  "languageSettingsDesc": "Ubah bahasa tampilan aplikasi",
+  "noPendingActionsToast": "Tidak ada tindakan tertunda",
+  "knowledgeNewDiscovery": "Penemuan pengetahuan baru",
+  "@discoveredNewInsightsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "discoveredNewInsightsCount": "Menemukan {count} insight baru",
+  "@updatedExistingInsightsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "updatedExistingInsightsCount": "Memperbarui {count} insight yang ada",
+  "sectionNewInsights": "Insight baru",
+  "sectionUpdatedInsights": "Insight diperbarui",
+  "unnamedInsight": "Insight tanpa nama",
+  "copiedToClipboard": "Disalin ke clipboard",
+  "copy": "Salin",
+  "selectedLocation": "Lokasi terpilih",
+  "confirmLocationName": "Konfirmasi nama lokasi",
+  "confirmLocationNameHint": "Anda dapat mengedit nama (koordinat tetap sama)",
+  "nameLabel": "Nama",
+  "inputPlaceNameHint": "Masukkan nama tempat...",
+  "@currentCoordinates": {
+    "placeholders": {
+      "lat": {},
+      "lng": {}
+    }
+  },
+  "currentCoordinates": "Koordinat: {lat}, {lng}",
+  "confirmLocation": "Konfirmasi lokasi",
+  "welcomeToMemex": "Selamat datang di Memex",
+  "createUserIdToStart": "Buat profil Anda",
+  "userIdLabel": "Nama / panggilan Anda",
+  "userIdHint": "Masukkan nama atau panggilan Anda",
+  "pleaseEnterUserId": "Masukkan nama Anda",
+  "userIdMaxLength": "Nama tidak boleh lebih dari 50 karakter",
+  "startUsing": "Lanjutkan",
+  "userIdTip": "Ini akan digunakan untuk mempersonalisasi pengalaman Anda.",
+  "setupModelConfigTitle": "Siapkan model AI",
+  "setupModelConfigSubtitle": "Memex membutuhkan model AI frontier untuk mengatur catatan, menganalisis gambar, dan menghasilkan insight. Pilih satu metode koneksi.",
+  "setupModelConfigComplete": "Selesai & masuk",
+  "aiService": "Layanan Model Memex",
+  "aiModelHubTitle": "Model dan layanan AI",
+  "aiModelHubSubtitle": "Pilih layanan resmi Memex atau gunakan penyedia Anda sendiri. Routing model lanjutan tetap tersedia saat dibutuhkan.",
+  "aiSetupCurrentStatusTitle": "Pengaturan saat ini",
+  "aiSetupStatusNotConfiguredTitle": "Layanan AI belum dikonfigurasi",
+  "aiSetupStatusNotConfiguredDescription": "Pilih satu metode koneksi untuk mengaktifkan pengorganisasian AI atas catatan, media, dan insight.",
+  "aiSetupStatusMemexTitle": "Menggunakan layanan resmi MemeX",
+  "aiSetupStatusMemexDescription": "Memex akan memakai koneksi resmi dan kredensial API yang dikelola oleh akun MemeX Anda.",
+  "aiSetupStatusCustomTitle": "Menggunakan pengaturan penyedia khusus",
+  "aiSetupStatusCustomDescription": "Memex akan memakai kredensial penyedia dan pilihan peran model yang Anda konfigurasi.",
+  "aiSetupChooseConnectionTitle": "Pilih metode koneksi",
+  "aiSetupChooseConnectionDescription": "Mulai dari jalur yang sesuai dengan cara Anda ingin Memex mengakses model AI.",
+  "aiSetupOfficialRouteDescription": "Masuk ke MemeX dan gunakan layanan resmi tanpa memilih penyedia, key, atau model tingkat agen.",
+  "aiSetupCustomRouteDescription": "Tambahkan kredensial penyedia Anda sendiri, pilih model yang digunakan Super Agent, dan opsional timpa model per agen.",
+  "aiSetupCustomPageTitle": "Layanan AI khusus",
+  "aiSetupCustomPageSubtitle": "Konfigurasikan kredensial penyedia terlebih dahulu, lalu pilih model yang harus digunakan Memex.",
+  "aiSetupProviderCredentialsTitle": "Penyedia dan API key",
+  "aiSetupProviderCredentialsDescription": "Tambah atau edit OpenAI, Anthropic, DeepSeek, Gemini, OpenRouter, Ollama, atau penyedia kompatibel lain.",
+  "modelRolesTitle": "Pilih model utama",
+  "modelRolesDescription": "Super Agent menggunakan satu model untuk input teks dan gambar. Override agen lanjutan tetap tersedia di bawah.",
+  "textModelRoleTitle": "Model utama",
+  "textModelRoleDescription": "Digunakan oleh Super Agent untuk teks, gambar, kartu, pengetahuan, insight, chat, komentar, jadwal, dan memori.",
+  "modelConnectionsTitle": "Penyedia model dan API key",
+  "modelConnectionsDescription": "Hubungkan layanan resmi Memex atau tambahkan kredensial penyedia Anda sendiri.",
+  "relatedAiCapabilitiesTitle": "Kemampuan lanjutan dan terkait",
+  "relatedAiCapabilitiesDescription": "Sempurnakan penugasan agen, penyedia lokasi, dan perilaku transkripsi suara.",
+  "aiSetupServiceCapabilitiesTitle": "Kemampuan layanan",
+  "aiSetupServiceCapabilitiesDescription": "Pilih penyedia yang digunakan Memex untuk kemampuan pendukung berbasis AI seperti suara dan reverse geocoding.",
+  "aiSetupAdvancedCustomizationTitle": "Routing model lanjutan",
+  "aiSetupAdvancedCustomizationDescription": "Untuk pengguna mahir yang ingin tiap agen memakai penyedia atau konfigurasi model berbeda.",
+  "locationProviderSettings": "Penyedia lokasi",
+  "speechProviderSettings": "Transkripsi suara",
+  "advancedAgentModelAssignments": "Penugasan model agen",
+  "openAdvancedAgentModelAssignments": "Override agen individual",
+  "noConfiguredModelOptions": "Tambahkan penyedia atau API key sebelum memilih peran model.",
+  "modelSlotUpdated": "Peran model diperbarui",
+  "aiServiceMemexRouteTitle": "Hubungkan lewat Memex",
+  "aiServiceLongDescription": "Memex menggunakan sistem multi-agen untuk mengatur catatan hidup, catatan pengetahuan, dan konteks sosial, menemukan insight yang lebih dalam, serta menyediakan pendamping AI dengan memori persisten. Data Anda disimpan sebagai Markdown teks biasa, menjaga kebebasan dan portabilitas data.",
+  "aiServiceCustomApiRouteTitle": "Saya punya API key",
+  "aiServiceCustomModelDescription": "Pilih ini terlebih dahulu jika Anda sudah punya API key dari OpenAI, Anthropic, DeepSeek, Gemini, atau penyedia lain.",
+  "enableAiService": "Hubungkan dengan Memex",
+  "aiServiceReadyToast": "Pengorganisasian AI aktif",
+  "aiServiceSettingsDescription": "Jika Anda tidak punya API key, gunakan akun Memex untuk terhubung ke layanan model utama.",
+  "advancedModelConfiguration": "Konfigurasikan API key",
+  "skipForNow": "Lewati sekarang",
+  "clearAuth": "Hapus otorisasi",
+  "authorizing": "Mengotorisasi...",
+  "@authFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "authFailed": "Otorisasi gagal: {error}",
+  "authorized": "Terotorisasi",
+  "config": "Konfigurasi",
+  "calendar": "Kalender",
+  "reminders": "Pengingat",
+  "writeToSystemFailed": "Gagal menulis ke sistem",
+  "@permissionRequired": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "permissionRequired": "Izin {name} diperlukan",
+  "@permissionRationale": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "permissionRationale": "Izinkan aplikasi mengakses {name} Anda di Pengaturan agar kami dapat membuatnya untuk Anda.",
+  "goToSettings": "Buka Pengaturan",
+  "unknownAction": "Tindakan tidak dikenal",
+  "discoveredCalendarEvent": "Acara kalender ditemukan",
+  "discoveredReminder": "Pengingat ditemukan",
+  "addToCalendar": "Tambahkan ke kalender",
+  "addToReminders": "Tambahkan ke pengingat",
+  "@addedToSuccess": {
+    "placeholders": {
+      "target": {}
+    }
+  },
+  "addedToSuccess": "Berhasil ditambahkan ke {target}",
+  "ignore": "Abaikan",
+  "confirmDelete": "Konfirmasi hapus",
+  "confirmDeleteSessionMessage": "Hapus percakapan ini? Tindakan ini tidak dapat dibatalkan.",
+  "delete": "Hapus",
+  "deleteSuccess": "Berhasil dihapus",
+  "@deleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "deleteFailed": "Gagal menghapus: {error}",
+  "daysAgo": "{count} hari lalu",
+  "chatHistory": "Riwayat chat",
+  "enterFullScreenTooltip": "Masuk layar penuh",
+  "exitFullScreenTooltip": "Keluar layar penuh",
+  "noConversations": "Tidak ada percakapan",
+  "@loadSessionListFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "loadSessionListFailed": "Gagal memuat daftar sesi: {error}",
+  "@yesterdayAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "yesterdayAt": "Kemarin {time}",
+  "newChat": "Chat baru",
+  "@messageCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "messageCount": "{count} pesan",
+  "organize": "Organisasi",
+  "pkmCategoryProject": "Proyek",
+  "pkmCategoryProjectSubtitle": "Jangka pendek · Tujuan · Tenggat",
+  "pkmCategoryArea": "Bidang",
+  "pkmCategoryAreaSubtitle": "Jangka panjang · Tanggung jawab · Standar",
+  "pkmCategoryResource": "Sumber daya",
+  "pkmCategoryResourceSubtitle": "Minat · Inspirasi · Cadangan",
+  "pkmCategoryArchive": "Arsip",
+  "pkmCategoryArchiveSubtitle": "Selesai · Dormant · Referensi",
+  "recentChanges": "Perubahan terbaru",
+  "noRecentChangesInThreeDays": "Tidak ada perubahan dalam 3 hari terakhir",
+  "unpinned": "Tidak disematkan",
+  "pinnedStyle": "Gaya disematkan",
+  "@operationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "operationFailed": "Operasi gagal: {error}",
+  "refreshingInsightData": "Menyegarkan data insight, ini mungkin perlu beberapa saat...",
+  "@refreshFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "refreshFailed": "Gagal menyegarkan: {error}",
+  "sortUpdated": "Urutan sortir diperbarui",
+  "@sortSaveFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sortSaveFailed": "Gagal menyimpan urutan: {error}",
+  "insightCardDeleted": "Kartu insight dihapus",
+  "@deleteFailedShort": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "deleteFailedShort": "Gagal menghapus: {error}",
+  "knowledgeInsight": "Insight pengetahuan",
+  "completeSort": "Selesaikan sortir",
+  "noKnowledgeInsight": "Tidak ada insight pengetahuan",
+  "@insightProcessingBacklogMessage": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "insightProcessingBacklogMessage": "{count} tugas latar belakang masih diproses.",
+  "insightUnavailableMessage": "Insight ini masih dibuat atau telah diperbarui. Segarkan insight dan coba lagi nanti.",
+  "noScheduleAggregation": "Tidak ada agregasi jadwal",
+  "scheduleAggregationEmptyHint": "Ketuk Perbarui untuk mengatur jadwal dan todo dari kartu temporal nyata.",
+  "scheduleAggregationLoadFailed": "Gagal memuat data jadwal",
+  "scheduleAggregationRefreshFailed": "Gagal menyegarkan data jadwal",
+  "scheduleTaskUpdateFailed": "Gagal memperbarui tugas",
+  "scheduleFeatured": "Unggulan",
+  "scheduleThisWeek": "Minggu ini",
+  "scheduleDone": "Selesai",
+  "scheduleTbd": "TBD",
+  "scheduleWeekOverview": "Minggu ini",
+  "scheduleImportant": "Penting",
+  "scheduleBriefingTitle": "Ringkasan jadwal",
+  "scheduleBriefingOpen": "Buka",
+  "scheduleBriefingNoData": "Belum ada ringkasan jadwal",
+  "@scheduleBriefingUpdated": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "scheduleBriefingUpdated": "Diperbarui {time}",
+  "@scheduleBriefingDoneCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "scheduleBriefingDoneCount": "{count} selesai",
+  "updating": "Memperbarui...",
+  "update": "Perbarui",
+  "enabled": "Aktif",
+  "disabled": "Nonaktif",
+  "appLockOn": "Kunci aplikasi aktif",
+  "appLockOff": "Kunci aplikasi nonaktif",
+  "enableAppLockFirst": "Aktifkan kunci aplikasi terlebih dahulu",
+  "enterFourDigitPassword": "Masukkan kata sandi 4 digit",
+  "passwordSetAndLockOn": "Kata sandi diatur dan kunci aplikasi aktif",
+  "appLockSettings": "Pengaturan kunci aplikasi",
+  "enableAppLock": "Aktifkan kunci aplikasi",
+  "enableAppLockSubtitle": "Kata sandi diperlukan saat membuka aplikasi",
+  "enableBiometrics": "Aktifkan biometrik",
+  "biometricsSubtitle": "Gunakan Face ID atau Touch ID untuk membuka",
+  "changePassword": "Ubah kata sandi",
+  "setFourDigitPassword": "Atur kata sandi 4 digit",
+  "reenterPasswordToConfirm": "Masukkan ulang kata sandi untuk konfirmasi",
+  "passwordMismatch": "Kata sandi tidak cocok. Coba lagi.",
+  "@confirmDeleteCharacter": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "confirmDeleteCharacter": "Hapus karakter \"{name}\"? Tindakan ini tidak dapat dibatalkan.",
+  "configureAiCharacter": "Konfigurasikan karakter AI",
+  "addCharacter": "Tambah karakter",
+  "addCharacterSubtitle": "Pilih karakter AI untuk bergabung dengan tim insight Anda. Mereka akan menganalisis data hidup Anda dari sudut yang berbeda.",
+  "noCharacters": "Tidak ada karakter",
+  "@loadCharacterFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "loadCharacterFailed": "Gagal memuat karakter: {error}",
+  "noTags": "Tidak ada tag",
+  "createSuccess": "Berhasil dibuat",
+  "updateSuccess": "Berhasil diperbarui",
+  "@saveFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "saveFailed": "Gagal menyimpan: {error}",
+  "newCharacter": "Karakter baru",
+  "editCharacter": "Edit karakter",
+  "save": "Simpan",
+  "characterName": "Nama karakter",
+  "characterNameHint": "Beri nama karakter Anda",
+  "pleaseEnterCharacterName": "Masukkan nama karakter",
+  "tagsLabel": "Tag",
+  "tagsHint": "mis. wisdom, recognition, macro\\nPisahkan beberapa tag dengan koma",
+  "characterPersonaLabel": "Persona karakter",
+  "characterPersonaHint": "Sertakan persona, panduan gaya, contoh dialog, filter pengetahuan, dll.\\nGunakan ## untuk judul bagian.",
+  "pleaseEnterCharacterPersona": "Masukkan persona karakter",
+  "@permissionRequestError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "permissionRequestError": "Error permintaan izin: {error}",
+  "permissionRequiredTitle": "Izin diperlukan",
+  "permissionPermanentlyDeniedMessage": "Anda telah menolak izin ini secara permanen atau sistem memerlukannya. Aktifkan di pengaturan sistem.",
+  "getting": "Mengambil...",
+  "unauthorized": "Belum diotorisasi",
+  "authorizedGoToSettings": "Terotorisasi. Buka pengaturan sistem untuk mengubah.",
+  "location": "Lokasi",
+  "locationPermissionReason": "Untuk mencatat tempat dan fitur terkait lokasi",
+  "photos": "Foto",
+  "photosPermissionReason": "Untuk memilih foto, menyimpan gambar yang dibuat, dll.",
+  "camera": "Kamera",
+  "cameraPermissionReason": "Untuk mengambil foto dan video",
+  "microphone": "Mikrofon",
+  "microphonePermissionReason": "Untuk pengenalan suara, rekaman, dll.",
+  "calendarPermissionReason": "Untuk mencatat jadwal dan membaca acara kalender",
+  "remindersPermissionReason": "Untuk mencatat dan membaca pengingat Anda",
+  "fitnessAndMotion": "Kebugaran & gerakan",
+  "fitnessPermissionReason": "Untuk mencatat data kesehatan dan gerakan",
+  "notification": "Notifikasi",
+  "notificationPermissionReason": "Untuk mengirim jadwal dan pengingat penting",
+  "loadDetailFailedRetryShort": "Gagal memuat detail, coba lagi nanti.",
+  "total": "Jumlah",
+  "estimatedCost": "Estimasi biaya",
+  "byAgent": "Menurut Agen",
+  "timeUpdated": "Waktu diperbarui",
+  "@updateFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "updateFailed": "Gagal memperbarui: {error}",
+  "locationUpdated": "Lokasi diperbarui",
+  "confirmDeleteCardMessage": "Hapus kartu ini? Tindakan ini tidak dapat dibatalkan.",
+  "cardDetailNotFound": "Detail kartu tidak ditemukan",
+  "saySomething": "Katakan sesuatu...",
+  "relatedMemories": "Memori terkait",
+  "viewMore": "Lihat lebih banyak",
+  "relatedRecords": "Catatan terkait",
+  "reply": "Balas",
+  "replySent": "Balasan terkirim",
+  "insightTemplateGalleryTitle": "Template kartu insight",
+  "timelineTemplateGalleryTitle": "Template kartu linimasa",
+  "categoryTextual": "Tekstual",
+  "timelineFilterAll": "SEMUA",
+  "insights": "Insight",
+  "memoryTitle": "Memori",
+  "longTermProfile": "Profil jangka panjang",
+  "recentBuffer": "Buffer terbaru",
+  "@errorLoadingMemory": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "errorLoadingMemory": "Error memuat memori: {error}",
+  "agentConfiguration": "Konfigurasi Agen",
+  "resetToDefaults": "Reset ke Default",
+  "resetAllAgentConfigurationsTitle": "Reset Semua Konfigurasi Agen",
+  "resetAllAgentConfigurationsMessage": "Yakin ingin mereset semua konfigurasi agen ke nilai default? Tindakan ini tidak dapat dibatalkan.",
+  "resetButton": "Atur ulang",
+  "@loadDataFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "loadDataFailed": "Gagal memuat data: {error}",
+  "@saveConfigFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "saveConfigFailed": "Gagal menyimpan konfigurasi: {error}",
+  "selectLlmClient": "Pilih LLM Client:",
+  "agentConfigurationsReset": "Konfigurasi agen direset",
+  "@resetFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "resetFailed": "Gagal mereset: {error}",
+  "modelConfiguration": "Konfigurasi Model",
+  "resetAllConfigurationsTitle": "Reset Semua Konfigurasi",
+  "resetAllModelConfigurationsMessage": "Yakin ingin mereset semua konfigurasi model ke nilai default? Tindakan ini tidak dapat dibatalkan.",
+  "modelConfigurationsReset": "Konfigurasi model direset",
+  "cannotDeleteDefaultConfiguration": "Tidak dapat menghapus konfigurasi default",
+  "cannotDeleteConfigurationTitle": "Tidak Dapat Menghapus Konfigurasi",
+  "@configUsedByAgentsMessage": {
+    "placeholders": {
+      "agentList": {}
+    }
+  },
+  "configUsedByAgentsMessage": "Konfigurasi ini sedang digunakan oleh agen berikut:\\n\\n{agentList}\\n\\nTetapkan ulang agen tersebut sebelum menghapus.",
+  "ok": "OK",
+  "deleteConfigurationTitle": "Hapus Konfigurasi",
+  "@confirmDeleteConfigMessage": {
+    "placeholders": {
+      "key": {}
+    }
+  },
+  "confirmDeleteConfigMessage": "Yakin ingin menghapus \"{key}\"?",
+  "defaultLabel": "Bawaan",
+  "setAsDefault": "Jadikan default",
+  "invalidJsonInExtraField": "JSON tidak valid di kolom Extra",
+  "keyAlreadyExists": "Key sudah ada",
+  "resetConfigurationTitle": "Reset Konfigurasi",
+  "resetConfigurationMessage": "Reset konfigurasi ini ke nilai default awal? Perubahan saat ini akan hilang.",
+  "configurationResetPressSave": "Konfigurasi direset. Tekan Simpan untuk menerapkan.",
+  "addConfiguration": "Tambah Konfigurasi",
+  "editConfiguration": "Edit Konfigurasi",
+  "duplicateConfiguration": "Duplikat Konfigurasi",
+  "duplicate": "Duplikat",
+  "keyIdLabel": "ID konfigurasi",
+  "keyIdHelper": "Beri nama setup ini, misalnya deepseek atau work-gpt.",
+  "required": "Wajib",
+  "clientLabel": "Penyedia model",
+  "providerGroupOpenAi": "OpenAI",
+  "providerGroupAnthropic": "Anthropic",
+  "providerGroupGoogle": "Google",
+  "providerGroupOthers": "Populer",
+  "providerOpenAiApiKey": "Kunci API",
+  "providerOpenAiResponses": "Kunci API (Responses)",
+  "providerChatGptOauth": "ChatGPT Pro/Plus",
+  "providerClaudeApiKey": "Kunci API",
+  "providerBedrockSecret": "Bedrock Secret",
+  "providerGemini": "Gemini",
+  "providerGeminiOauth": "Gemini (Google OAuth)",
+  "providerKimi": "Kimi (Moonshot)",
+  "providerQwen": "Aliyun",
+  "providerSeed": "Volcengine",
+  "providerZhipu": "Zhipu GLM",
+  "providerDeepSeek": "DeepSeek",
+  "providerMinimax": "MiniMax",
+  "providerOpenRouter": "OpenRouter",
+  "providerOllama": "Ollama (Lokal)",
+  "providerMimo": "Xiaomi MIMO",
+  "providerMemex": "Layanan proxy Memex",
+  "memexSignIn": "Masuk",
+  "memexCreateAccount": "Buat Akun",
+  "memexUsername": "Nama pengguna",
+  "memexPassword": "Kata sandi",
+  "memexCreateAccountLink": "Buat akun",
+  "memexSignInLink": "Masuk sebagai gantinya",
+  "memexTopUp": "Isi saldo untuk mulai memakai Memex AI",
+  "memexTopUpSuccess": "Isi saldo berhasil!",
+  "memexFillAllFields": "Lengkapi semua kolom",
+  "memexUsernameTooShort": "Nama pengguna minimal 6 karakter",
+  "memexAuthFailed": "Autentikasi gagal",
+  "memexPaymentFailed": "Gagal membuat pembayaran",
+  "memexLogout": "Keluar",
+  "memexTopUpButton": "Isi saldo",
+  "memexTopUpChooseAmount": "Pilih jumlah",
+  "memexTopUpEstimatedRecords": "Sekitar {range} catatan",
+  "@memexTopUpEstimatedRecords": {
+    "placeholders": {
+      "range": {}
+    }
+  },
+  "memexTopUpPlanStarter": "Pemula",
+  "memexTopUpPlanEveryday": "Harian",
+  "memexTopUpPlanHighVolume": "Volume tinggi",
+  "memexTopUpPlanCustom": "Kredit khusus",
+  "memexTopUpPlanStarterSubtitle": "Cocok untuk mencoba Memex AI",
+  "memexTopUpPlanEverydaySubtitle": "Cocok untuk pengorganisasian rutin",
+  "memexTopUpPlanHighVolumeSubtitle": "Cocok untuk batch lebih besar",
+  "memexTopUpPlanCustomSubtitle": "Masukkan USD 1-10.000",
+  "memexTopUpCustomEstimate": "Estimasi didasarkan pada jumlah yang dimasukkan",
+  "memexCustomAmount": "Jumlah khusus",
+  "memexViewHistory": "Riwayat penggunaan",
+  "memexBalanceLabel": "Saldo: {amount}",
+  "@memexBalanceLabel": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "memexConfirmPassword": "Konfirmasi kata sandi",
+  "memexPasswordMismatch": "Kata sandi tidak cocok",
+  "memexPayAmount": "Isi {amount}",
+  "@memexPayAmount": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "modelIdLabel": "Model AI",
+  "modelIdHelper": "mis. gemini-3.1-pro-preview, gpt-4o",
+  "fetchingModels": "Mengambil model...",
+  "fetchModelsButton": "Ambil Model",
+  "enterApiKeyFirst": "Masukkan API Key terlebih dahulu untuk mengambil model",
+  "apiKeyLabel": "Kunci API",
+  "baseUrlLabel": "Endpoint API",
+  "advancedSettings": "Pengaturan Lanjutan",
+  "testConnectionSuccess": "Koneksi Berhasil",
+  "testConnectionFailed": "Koneksi Gagal",
+  "testTypeText": "Teks",
+  "testTypeVision": "Vision",
+  "testButton": "Tes",
+  "testing": "Menguji...",
+  "proxyUrlOptional": "URL proxy (Opsional)",
+  "proxyUrlHelper": "mis. http://127.0.0.1:7890",
+  "temperatureLabel": "Temperature",
+  "topPLabel": "Top P",
+  "maxTokensLabel": "Max Tokens",
+  "extraParamsJson": "Parameter ekstra (JSON)",
+  "invalidJson": "JSON tidak valid",
+  "warning": "Setup Belum Lengkap",
+  "invalidConfigurationWarning": "Konfigurasi belum lengkap (misalnya API Key atau Model ID hilang). Anda tetap dapat menyimpannya dan mengonfigurasikannya nanti. Lanjutkan?",
+  "invalidModelConfigDetailed": "AI Agent \"{agentId}\" membutuhkan konfigurasi model yang valid (key: \"{configKey}\") agar dapat berjalan. Periksa pengaturan model.",
+  "discardChangesTitle": "Tinggalkan halaman ini?",
+  "discardChangesMessage": "Jika Anda membuat perubahan, simpan sebelum keluar.",
+  "discardButton": "Buang",
+  "chooseLanguage": "Pilih Bahasa",
+  "chooseAvatar": "Pilih Avatar",
+  "configureNow": "Konfigurasi Sekarang",
+  "modelNotConfiguredBanner": "Model AI belum dikonfigurasi. Siapkan untuk membuka semua fitur.",
+  "modelNotConfiguredSubmitHint": "Konfigurasikan model AI sebelum menerbitkan",
+  "processingStatus": "Memproses",
+  "failedStatus": "Gagal",
+  "failureReason": "Alasan kegagalan",
+  "unknownError": "Terjadi error tidak dikenal",
+  "enableFitness": "Aktifkan Kebugaran",
+  "fitnessBannerMessage": "Izinkan akses kebugaran untuk melacak data kesehatan dan aktivitas Anda.",
+  "fitnessDismissTitle": "Lewati Akses Kebugaran?",
+  "fitnessDismissMessage": "Tanpa izin kebugaran, aplikasi tidak dapat mengumpulkan data kesehatan Anda secara otomatis untuk insight dan pencatatan otomatis.",
+  "skipAnyway": "Tetap lewati",
+  "proModelHint": "Model ini membutuhkan langganan ChatGPT Pro/Plus.",
+  "searchKnowledgeBase": "Cari basis pengetahuan...",
+  "searchKnowledgeHint": "Masukkan kata kunci untuk mencari nama file atau isi",
+  "@noSearchResults": {
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "noSearchResults": "Tidak ada hasil untuk \"{query}\"",
+  "onlyMarkdownPreview": "Hanya pratinjau Markdown yang didukung",
+  "backupAndRestore": "Cadangkan & Pulihkan",
+  "createBackup": "Buat Cadangan",
+  "restoreBackup": "Pulihkan Cadangan",
+  "backupDescription": "Kemas semua data Anda (kartu, basis pengetahuan, insight, pengaturan) ke dalam file .memex. Simpan ke iCloud Drive, Google Drive, atau lokasi mana pun melalui share sheet.",
+  "restoreDescription": "Pilih file cadangan .memex untuk memulihkan semua data. Ini akan menimpa data saat ini.",
+  "selectBackupFile": "Pilih File Cadangan",
+  "estimatedSize": "Estimasi ukuran",
+  "backupComplete": "Cadangan dibuat",
+  "@backupFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "backupFailed": "Cadangan gagal: {error}",
+  "confirmRestore": "Konfirmasi Pemulihan",
+  "confirmRestoreMessage": "Pemulihan akan menimpa semua data saat ini termasuk kartu, basis pengetahuan, insight, dan pengaturan. Ini tidak dapat dibatalkan. Lanjutkan?",
+  "restoreComplete": "Pemulihan selesai",
+  "restoreRestartHint": "Data telah dipulihkan. Mulai ulang aplikasi agar semua perubahan berlaku.",
+  "@restoreFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "restoreFailed": "Pemulihan gagal: {error}",
+  "invalidBackupFile": "File cadangan tidak valid. Pilih file .memex.",
+  "automaticBackup": "Cadangan Otomatis",
+  "autoBackupDescription": "Jika aktif, Memex membuat paling banyak satu snapshot lokal per hari setelah startup atau saat kembali ke foreground.",
+  "backupSensitiveSettingsHint": "Cadangan menyertakan pengaturan dan key penyedia model. Simpan file cadangan di tempat yang Anda percaya.",
+  "backupLocation": "Lokasi",
+  "backupLocationDetails": "Detail lokasi",
+  "backupLocationSummary": "Ditampilkan di aplikasi",
+  "backupLocationFullPath": "Path lengkap",
+  "backupLocationUri": "URI akses folder",
+  "copyBackupLocationPath": "Salin path",
+  "backupLocationCopied": "Lokasi cadangan disalin",
+  "androidBackupLocationSelected": "Folder terpilih: {folderName}",
+  "@androidBackupLocationSelected": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "iosICloudBackupLocation": "iCloud Drive > Memex > Backups",
+  "iosAppDocumentsBackupLocation": "Files > On My iPhone > Memex > Backups",
+  "autoBackupStatus": "Keadaan",
+  "noAutoBackupYet": "Belum ada cadangan otomatis",
+  "@lastBackupAt": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "lastBackupAt": "Cadangan terakhir: {time}",
+  "autoBackupRetention": "Retensi",
+  "@autoBackupRetentionDays": {
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "autoBackupRetentionDays": "{days} hari",
+  "autoBackupRetentionForever": "Simpan selamanya",
+  "autoBackupMaxSize": "Batas penyimpanan",
+  "@autoBackupRetentionLimitHint": {
+    "placeholders": {
+      "size": {}
+    }
+  },
+  "autoBackupRetentionLimitHint": "Pembersihan otomatis menjaga snapshot otomatis di bawah {size}. Snapshot keamanan dan ekspor manual disimpan terpisah.",
+  "createSnapshotNow": "Cadangkan sekarang",
+  "backupLocationMenu": "Ubah lokasi",
+  "defaultBackupLocation": "Folder cadangan default",
+  "defaultBackupLocationAndroidDesc": "Gunakan folder file eksternal khusus aplikasi Memex. Tidak perlu izin penyimpanan.",
+  "chooseBackupLocation": "Pilih folder cadangan",
+  "chooseBackupLocationAndroidDesc": "Pilih folder dengan pemilih sistem Android dan beri Memex akses persisten.",
+  "storedBackups": "Cadangan Tersimpan",
+  "noStoredBackups": "Cadangan otomatis akan muncul di sini setelah snapshot pertama.",
+  "backupTypeAutoSnapshot": "Snapshot otomatis",
+  "backupTypeSafetySnapshot": "Snapshot keamanan",
+  "backupTypeManualBackup": "Cadangan manual",
+  "refresh": "Segarkan",
+  "restoreThisBackup": "Pulihkan cadangan ini",
+  "deleteThisBackup": "Hapus cadangan ini",
+  "confirmDeleteBackup": "Hapus cadangan?",
+  "@confirmDeleteBackupMessage": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "confirmDeleteBackupMessage": "Hapus {fileName}? Ini menghapus file cadangan tersimpan dan tidak dapat dibatalkan.",
+  "@backupDeleted": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupDeleted": "Cadangan dihapus: {fileName}",
+  "@backupDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "backupDeleteFailed": "Tidak dapat menghapus cadangan: {error}",
+  "creatingSafetySnapshot": "Membuat snapshot keamanan...",
+  "@autoBackupCreated": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "autoBackupCreated": "Snapshot dibuat: {fileName}",
+  "@backupLocationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "backupLocationFailed": "Tidak dapat memperbarui lokasi cadangan: {error}",
+  "backupImportCreatedAt": "Dibuat",
+  "backupImportSourceVersion": "Versi sumber",
+  "backupImportFlavor": "Varian build",
+  "backupLegacyFormat": "Cadangan lama (tanpa manifest)",
+  "restoreInProgress": "Memulihkan cadangan...",
+  "dataStorage": "Penyimpanan Data",
+  "dataStorageDescriptionAndroid": "Pilih folder khusus untuk menyimpan workspace Anda. Data tetap ada saat aplikasi dipasang ulang.",
+  "dataStorageDescriptionIOS": "Aktifkan iCloud untuk menyinkronkan workspace lintas perangkat dan menjaga data saat aplikasi dipasang ulang.",
+  "storageLocationApp": "Penyimpanan aplikasi",
+  "storageLocationAppDesc": "Data disimpan di dalam aplikasi dan akan dihapus saat Anda menghapus aplikasi.",
+  "storageLocationCustom": "Penyimpanan perangkat (folder khusus)",
+  "storageLocationCustomDesc": "Simpan data di folder pilihan Anda. Data tetap ada setelah pemasangan ulang jika folder masih ada.",
+  "storageLocationICloud": "Simpan di iCloud",
+  "storageLocationICloudDesc": "Sinkronkan workspace Anda di perangkat Apple. Data tetap ada setelah pemasangan ulang.",
+  "storageLocationCurrent": "Saat ini: {location}",
+  "icloudRequiresCapability": "Masuk ke iCloud dan aktifkan iCloud Drive untuk menggunakan penyimpanan iCloud.",
+  "loadingFromICloud": "Memulihkan data dari iCloud…",
+  "switchingToICloud": "Beralih ke penyimpanan iCloud…",
+  "switchingStorage": "Beralih penyimpanan…",
+  "customFolderAccessDenied": "Tidak dapat membaca atau menulis folder ini. Berikan izin penyimpanan atau pilih lokasi lain.",
+  "@storageLocationCurrent": {
+    "placeholders": {
+      "location": {}
+    }
+  },
+  "configured": "Terkonfigurasi",
+  "apiKeyNotSet": "API Key belum diatur — ketuk untuk mengonfigurasi",
+  "bottomNavTimeline": "Linimasa",
+  "bottomNavLibrary": "Pustaka",
+  "aiGeneratedLabel": "Dihasilkan AI",
+  "@sourceTraceWithCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "sourceTraceWithCount": "JEJAK SUMBER ({count})",
+  "deleteAccount": "Hapus Akun",
+  "deleteAccountDesc": "Hapus semua data lokal secara permanen dan reset aplikasi.",
+  "deleteAccountConfirmTitle": "Hapus Akun?",
+  "deleteAccountConfirmMessage": "Ini akan menghapus semua data Anda secara permanen, termasuk kartu linimasa, basis pengetahuan, rekaman, dan pengaturan. Tindakan ini tidak dapat dibatalkan.",
+  "deleteAccountTypeName": "Ketik \"{name}\" untuk konfirmasi",
+  "@deleteAccountTypeName": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleteAccountTypeHint": "Masukkan nama pengguna untuk konfirmasi",
+  "llmConsentTitle": "Persetujuan Berbagi Data",
+  "llmConsentMessage": "Untuk mengaktifkan fitur AI, Memex perlu mengirim data Anda ke {provider} untuk diproses. Ini mencakup:\\n\\n• Teks yang Anda masukkan (catatan, transkripsi suara)\\n• Metadata foto dan teks yang diekstrak (OCR)\\n• Ringkasan kesehatan dan kebugaran\\n• Konten kartu linimasa\\n\\nData Anda dikirim langsung dari perangkat Anda ke {provider}. Memex tidak menyimpan atau meneruskan data Anda melalui server lain.\\n\\nTinjau kebijakan privasi {provider} untuk mengetahui cara mereka menangani data Anda.\\n\\nApakah Anda setuju mengirim data Anda ke {provider} untuk pemrosesan AI?",
+  "@llmConsentMessage": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "llmConsentAgree": "Saya Setuju",
+  "llmConsentDecline": "Tolak",
+  "customAgents": "Agen Khusus",
+  "noCustomAgents": "Belum ada agen khusus yang dikonfigurasi.",
+  "deleteAgent": "Hapus Agen",
+  "deleteAgentConfirm": "Hapus agen khusus \"{name}\"?",
+  "@deleteAgentConfirm": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleted": "Dihapus",
+  "saved": "Disimpan",
+  "newAgent": "Agen Baru",
+  "editAgent": "Edit Agen",
+  "agentName": "Nama Agen",
+  "agentNameHint": "my-custom-agent",
+  "agentNameRequired": "Wajib",
+  "agentNameInvalid": "Hanya huruf, angka, dan tanda hubung",
+  "agentNameExists": "Nama sudah ada",
+  "hostAgentType": "Tipe Agen Host",
+  "skillDirectory": "Direktori Skill",
+  "skillDirInvalid": "Harus berupa path relatif (tanpa / di awal atau ..)",
+  "workingDirectory": "Direktori Kerja (opsional)",
+  "workingDirectoryHint": "Kosongkan untuk default workspace",
+  "llmConfig": "Konfigurasi LLM",
+  "eventType": "Tipe Event",
+  "executionMode": "Mode Eksekusi",
+  "executionModeAsync": "Async",
+  "executionModeSync": "Sync",
+  "dependsOn": "Bergantung Pada",
+  "dependsOnHint": "Pilih dependensi",
+  "priority": "Prioritas",
+  "maxRetries": "Maks. Coba Ulang",
+  "systemPromptLabel": "System Prompt (opsional)",
+  "systemPromptHint": "Instruksi tambahan yang ditambahkan ke prompt agen host",
+  "eventSerializer": "Serializer event",
+  "eventSerializerDefault": "Bawaan (XML)",
+  "enabledLabel": "Aktif",
+  "skillsManagement": "Manajemen Skill",
+  "skillsManagementEmpty": "Belum ada skill",
+  "downloadSkill": "Unduh Skill",
+  "downloading": "Mengunduh...",
+  "downloadSuccess": "Skill berhasil diunduh",
+  "downloadFailed": "Unduhan gagal: {error}",
+  "@downloadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "deleteConfirm": "Konfirmasi Hapus",
+  "deleteConfirmMessage": "Yakin ingin menghapus \"{name}\"?",
+  "@deleteConfirmMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "invalidUrl": "Masukkan URL yang valid",
+  "urlHint": "https://example.com/skill.zip",
+  "newFolder": "Folder Baru",
+  "newFile": "File Baru",
+  "folderName": "Nama Folder",
+  "fileName": "Nama File",
+  "nameRequired": "Nama wajib diisi",
+  "nameInvalid": "Nama tidak boleh mengandung / atau ..",
+  "createFailed": "Gagal membuat: {error}",
+  "@createFailed": {
+    "placeholders": {
+      "error": {
+        "type": "Object"
+      }
+    }
+  },
+  "fileContent": "Konten File",
+  "saveSuccess": "Berhasil disimpan",
+  "downloadToCurrentDir": "Zip akan diekstrak ke direktori saat ini: {dir}",
+  "@downloadToCurrentDir": {
+    "placeholders": {
+      "dir": {
+        "type": "String"
+      }
+    }
+  },
+  "privacyPolicy": "Kebijakan Privasi",
+  "privacyPolicyDesc": "Cara Memex menangani data Anda",
+  "llmAuthError": "Autentikasi API gagal. Periksa konfigurasi LLM Anda di Pengaturan.",
+  "llmBadRequestError": "Permintaan ditolak oleh penyedia LLM. Format input mungkin tidak didukung oleh model saat ini.",
+  "llmRateLimitError": "Batas rate API terlampaui. Coba lagi nanti.",
+  "llmServerError": "Layanan LLM sementara tidak tersedia. Coba lagi nanti.",
+  "llmNetworkError": "Koneksi jaringan gagal. Periksa koneksi internet Anda.",
+  "llmUnknownError": "Terjadi error tak terduga saat memproses konten Anda.",
+  "llmErrorDialogTitle": "Pemrosesan Gagal",
+  "goToModelConfig": "Buka Pengaturan",
+  "speechModelDownloadTitle": "Unduh Model Suara",
+  "speechModelDownloadDesc": "Unduhan model satu kali (~{sizeMB}MB) diperlukan.\\n\\nSetelah diunduh, transkripsi berjalan sepenuhnya di perangkat.",
+  "@speechModelDownloadDesc": {
+    "placeholders": {
+      "sizeMB": {}
+    }
+  },
+  "speechModelStartDownload": "Mulai Unduhan",
+  "speechModelChooseSource": "Pilih sumber unduhan:",
+  "speechModelChinaMirror": "🇨🇳 Mirror China (Lebih cepat di CN)",
+  "speechModelGithub": "🌐 GitHub (Global)",
+  "speechModelDownloading": "Mengunduh model...",
+  "speechModelConnecting": "Menghubungkan...",
+  "deleteSpeechModel": "Hapus model suara",
+  "confirmDeleteSpeechModelMessage": "Hapus file model pengenalan suara lokal yang telah diunduh? File akan diunduh lagi saat speech-to-text lokal digunakan berikutnya.",
+  "speechModelDeletedSuccess": "File model suara dihapus",
+  "speechModelNotDownloaded": "Tidak ditemukan file model suara yang diunduh",
+  "speechModelDeleteFailed": "Gagal menghapus file model suara: {error}",
+  "@speechModelDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "speechTranscribing": "Mengenali...",
+  "speechNoResult": "Tidak ada suara terdeteksi",
+  "useLocalSpeechToTextTitle": "Gunakan speech-to-text lokal",
+  "useLocalSpeechToTextDesc": "Jika aktif, audio ditranskripsi di perangkat sebelum dikirim — berguna untuk model yang tidak mendukung input audio. Jika nonaktif, audio asli dikirim langsung ke model.",
+  "pendingAiProcessingHint": "Siapkan model AI untuk memproses",
+  "demoWelcome": "Selamat datang di Memex!\\nMari tur singkat melihat apa yang bisa AI lakukan untuk catatan Anda.",
+  "demoTapAdd": "Ketuk di sini untuk membuat catatan pertama Anda",
+  "demoTapSend": "Ketuk untuk mengirim catatan pertama Anda",
+  "demoTapCard": "Ketuk untuk melihat bagaimana AI mengatur catatan Anda",
+  "demoTapInsight": "Ketuk untuk melihat insight yang dihasilkan AI",
+  "demoTapInsightUpdate": "Ketuk untuk menghasilkan insight dari catatan Anda",
+  "demoTapKnowledge": "Periksa file pengetahuan yang diatur otomatis",
+  "demoDone": "Mulai mencatat hidup Anda.",
+  "demoStartTour": "Mulai Tur",
+  "demoGetStarted": "Mulai",
+  "demoSkip": "Lewati",
+  "demoPrefillText": "Halo Memex! Ini catatan pertama saya 🎉",
+  "visionBadge": "Penglihatan",
+  "notMultimodalHint": "Memex mengandalkan kemampuan model multimodal untuk analisis media. Jika catatan Anda berisi gambar, pastikan model yang Anda konfigurasi mendukung input gambar.",
+  "defaultModelPrefix": "Bawaan",
+  "recommendedBadge": "Direkomendasikan",
+  "readOnlyBadge": "CHAT",
+  "switchCompanion": "Ganti pendamping",
+  "personaChatInputHint": "Ketik pesan...",
+  "today": "Hari ini",
+  "tomorrow": "Besok",
+  "yesterday": "Kemarin",
+  "showInsightTextTitle": "Tampilkan komentar insight Memex",
+  "showInsightTextDesc": "Apakah insight Memex ditampilkan sebagai komentar yang disematkan di bagian komentar detail kartu.",
+  "enableCharacterCommentTitle": "Komentar otomatis karakter",
+  "enableCharacterCommentDesc": "Karakter otomatis mengomentari catatan baru.",
+  "maxCommentCharactersTitle": "Maks. karakter yang berkomentar",
+  "maxCommentCharactersDesc": "Berapa banyak karakter yang dapat berkomentar pada setiap catatan.",
+  "replyTo": "Balas ke {name}",
+  "@replyTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "cdnSignalsComments": "Balasan baru diterima",
+  "cdnSignalsInsight": "Insight baru dihasilkan",
+  "cdnSignalsBoth": "Balasan dan insight baru",
+  "untitledCard": "Kartu tanpa judul",
+  "locationContextTitle": "Konteks Lokasi",
+  "locationContextDescription": "Konteks kota dan lingkungan saat ini untuk chat agen",
+  "locationContextAttachTitle": "Lampirkan lokasi saat ini ke chat",
+  "locationContextAttachDesc": "Menggunakan GPS perangkat dan reverse geocoding untuk memberi konteks kota, distrik, dan lingkungan kepada agen.",
+  "reverseGeocodingProvider": "Penyedia reverse geocoding",
+  "amapProviderName": "Amap",
+  "amapApiKey": "Amap API Key",
+  "amapGcj02Note": "Amap menggunakan koordinat GCJ-02. GPS perangkat dikonversi sebelum reverse geocoding.",
+  "contextGranularity": "Tingkat detail konteks",
+  "granularityCity": "Kota",
+  "granularityDistrict": "Distrik",
+  "granularityNeighborhood": "Lingkungan",
+  "granularityStreet": "Jalan",
+  "granularityFullAddress": "Kandidat alamat lengkap",
+  "locationFreshness": "Kesegaran lokasi",
+  "minutesShort": "{minutes} menit",
+  "@minutesShort": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "oneHour": "1 jam",
+  "testCurrentLocation": "Uji lokasi saat ini",
+  "locationTestFailed": "Gagal: {error}",
+  "@locationTestFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "locationDebugGps": "GPS",
+  "locationDebugReverseGeocode": "Geocode balik",
+  "locationDebugProvider": "Penyedia",
+  "locationDebugAgentContext": "Konteks agen",
+  "locationDebugSource": "Sumber",
+  "locationDebugAddressSummary": "Ringkasan alamat",
+  "locationDebugFullAddress": "Alamat lengkap",
+  "locationDebugCoordinates": "Koordinat",
+  "locationDebugAccuracy": "Akurasi",
+  "locationDebugReason": "Alasan",
+  "locationDebugOk": "OK",
+  "locationDebugUnavailable": "tidak tersedia",
+  "locationDebugInjected": "disisipkan",
+  "locationDebugNotInjected": "tidak disisipkan",
+  "locationStatusUpdatedAt": "Diperbarui",
+  "locationStatusSuccessTitle": "Lokasi saat ini siap",
+  "locationStatusSuccessBody": "Memex dapat melampirkan ringkasan lokasi ini saat konteks lokasi relevan.",
+  "locationStatusApproximateTitle": "Hanya lokasi perkiraan",
+  "locationStatusApproximateBody": "Akurasi tampak setingkat kota atau area. Anda dapat tetap memakainya, atau mengaktifkan Lokasi Presisi di pengaturan sistem untuk konteks yang lebih dekat.",
+  "locationStatusServiceDisabledTitle": "Lokasi sistem nonaktif",
+  "locationStatusServiceDisabledBody": "Memex hanya memakai GPS perangkat dan tidak menyimpulkan lokasi dari jaringan atau IP. Di Android, buka pengaturan Lokasi; di iOS, aktifkan Settings > Privacy & Security > Location Services.",
+  "locationStatusPermissionDeniedTitle": "Izin lokasi diperlukan",
+  "locationStatusPermissionDeniedBody": "Izinkan Memex memakai lokasi saat pengujian atau saat konteks lokasi diperlukan. Akses selalu tidak diminta.",
+  "locationStatusPermissionForeverTitle": "Izin lokasi diblokir",
+  "locationStatusPermissionForeverBody": "Buka pengaturan aplikasi dan izinkan lokasi untuk Memex. Di iOS, While Using the App sudah cukup.",
+  "locationStatusDisabledTitle": "Konteks Lokasi nonaktif",
+  "locationStatusDisabledBody": "Aktifkan sakelar di atas dan simpan saat Anda ingin Memex melampirkan lokasi perangkat ke konteks agen.",
+  "locationStatusGeocodeUnavailableTitle": "GPS berfungsi, pencarian alamat gagal",
+  "locationStatusGeocodeUnavailableBody": "Memex memiliki koordinat tetapi tidak akan menyisipkan konteks GPS saja ke agen. Periksa penyedia reverse geocoding dan coba lagi.",
+  "locationStatusUnavailableTitle": "Lokasi tidak tersedia",
+  "locationStatusUnavailableBody": "Periksa layanan lokasi sistem dan izin aplikasi, lalu uji lagi.",
+  "allowLocationPermissionButton": "Izinkan akses lokasi",
+  "openAppSettingsButton": "Buka pengaturan aplikasi",
+  "openLocationSettingsButton": "Buka pengaturan lokasi",
+  "locationSettingsOpenFailed": "Tidak dapat membuka pengaturan sistem.",
+  "locationActionFailed": "Tindakan lokasi gagal: {error}",
+  "@locationActionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSearchPlaceholder": "Cari pengaturan...",
+  "settingsSearchEmpty": "Tidak ada pengaturan yang cocok",
+  "importCharacterCard": "Impor Kartu Karakter",
+  "firstMessageLabel": "Pesan Pertama",
+  "firstMessageHint": "Sapaan yang dikirim pada percakapan pertama (opsional)",
+  "systemPromptOverrideLabel": "Override System Prompt",
+  "systemPromptOverrideHint": "Timpa system prompt default (lanjutan, opsional)",
+  "postHistoryInstructionsLabel": "Instruksi Setelah Riwayat",
+  "postHistoryInstructionsHint": "Instruksi yang disisipkan setelah riwayat chat, sebelum balasan (opsional)",
+  "mesExampleLabel": "Contoh Pesan",
+  "mesExampleHint": "Contoh dialog yang menunjukkan gaya karakter (opsional)",
+  "worldBookTitle": "World Book",
+  "worldBookSubtitle": "Pengetahuan latar yang disisipkan saat kata kunci terpicu",
+  "characterMemoryTitle": "Memori Karakter",
+  "characterMemorySubtitle": "Dinamika hubungan dan memori interaksi antara karakter dan pengguna",
+  "addTooltip": "Tambah",
+  "constantBadge": "Konstan",
+  "@worldEntryFallbackName": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "worldEntryFallbackName": "Entri {index}",
+  "@keywordsPrefix": {
+    "placeholders": {
+      "keys": {}
+    }
+  },
+  "keywordsPrefix": "Kata kunci: {keys}",
+  "@memoryFallbackName": {
+    "placeholders": {
+      "index": {}
+    }
+  },
+  "memoryFallbackName": "Memori {index}",
+  "addWorldEntry": "Tambah Entri World Book",
+  "editWorldEntry": "Edit Entri World Book",
+  "commentTitleLabel": "Komentar / Judul",
+  "entryDescriptionHint": "Deskripsi entri (opsional)",
+  "triggerKeywordsLabel": "Kata Kunci Pemicu",
+  "triggerKeywordsHint": "Dipisah koma, mis.: magic, spell",
+  "contentLabel": "Konten",
+  "worldEntryContentHint": "Pengetahuan latar yang disisipkan saat kata kunci terpicu",
+  "enabledCheckbox": "Aktif",
+  "addMemory": "Tambah Memori",
+  "editMemory": "Edit Memori",
+  "memoryLabelField": "Label memori",
+  "memoryLabelHint": "Pengidentifikasi unik, mis.: preferensi nama",
+  "memoryContentHint": "Konten memori",
+  "salienceLabel": "Kepentingan: ",
+  "labelCannotBeEmpty": "Label tidak boleh kosong",
+  "@importSuccess": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "importSuccess": "{name} berhasil diimpor",
+  "@importFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "importFailed": "Impor gagal: {error}",
+  "supportedFormats": "Format yang Didukung",
+  "tavernImportDescription": "• Kartu karakter SillyTavern V2 (.json)\\n• Gambar PNG dengan kartu tertanam (.png)\\n\\nKolom seperti persona, world book, dll. akan otomatis dipetakan ke format karakter Memex.",
+  "pickCharacterFile": "Pilih File Karakter",
+  "repickFile": "Pilih File Lain",
+  "personaSettingSection": "Persona karakter",
+  "systemPromptSection": "Prompt Sistem",
+  "@worldEntriesCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "worldEntriesCount": "World Book: {count} entri",
+  "@fileLabel": {
+    "placeholders": {
+      "filename": {}
+    }
+  },
+  "fileLabel": "Berkas: {filename}",
+  "@conflictWarning": {
+    "placeholders": {
+      "names": {}
+    }
+  },
+  "conflictWarning": "Karakter dengan nama yang sama sudah ada: {names}. Impor akan membuat karakter baru tanpa menimpa yang sudah ada.",
+  "setPrimaryCompanionTitle": "Jadikan Pendamping Utama",
+  "setPrimaryCompanionSubtitle": "Otomatis jadikan pendamping utama Anda setelah impor",
+  "confirmImport": "Konfirmasi Impor",
+  "chatBackground": "Latar Chat",
+  "chooseChatBackgroundImage": "Pilih gambar latar",
+  "earlyUpdateSettingsTitle": "Pembaruan akses awal",
+  "earlyUpdateSettingsDesc": "Periksa pre-release GitHub untuk Early APK yang cocok, unduh, lalu serahkan ke installer Android.",
+  "earlyUpdateUnsupported": "Pembaruan awal hanya tersedia di build Android Early.",
+  "earlyUpdateAutoCheckTitle": "Cek pembaruan otomatis",
+  "earlyUpdateAutoCheckDesc": "Cek saat startup paling banyak sekali tiap 12 jam.",
+  "earlyUpdateWifiOnlyTitle": "Unduh hanya di Wi-Fi",
+  "earlyUpdateWifiOnlyDesc": "Lewati unduhan pembaruan saat memakai data seluler.",
+  "earlyUpdateAutoInstallTitle": "Unduh dan instal otomatis",
+  "earlyUpdateAutoInstallDesc": "Saat build baru ditemukan, unduh dan buka installer Android secara otomatis.",
+  "earlyUpdateCheckNow": "Cek sekarang",
+  "earlyUpdateChecking": "Memeriksa pre-release GitHub...",
+  "earlyUpdateSkippedMobile": "Dilewati karena unduhan hanya Wi-Fi diaktifkan.",
+  "earlyUpdateNoUpdate": "Anda sudah memakai build Early terbaru.",
+  "@earlyUpdateFound": {
+    "placeholders": {
+      "version": {},
+      "build": {}
+    }
+  },
+  "earlyUpdateFound": "Build Early {version}+{build} tersedia.",
+  "earlyUpdateDownloadAndInstall": "Unduh dan instal",
+  "earlyUpdateDownloadInProgress": "Mengunduh pembaruan...",
+  "@earlyUpdateDownloadingPercent": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "earlyUpdateDownloadingPercent": "Mengunduh pembaruan: {percent}%",
+  "earlyUpdateDownloadReadyToInstall": "Paket pembaruan diunduh. Siap diinstal.",
+  "earlyUpdateInstallDownloadedPackage": "Instal paket yang diunduh",
+  "earlyUpdateClearDownloadedPackage": "Hapus paket yang diunduh",
+  "earlyUpdateClearDownloadedPackageSuccess": "Paket pembaruan yang diunduh dihapus.",
+  "earlyUpdateInstallStarted": "Installer Android dibuka.",
+  "earlyUpdateInstallPermissionRequired": "Izinkan Memex menginstal aplikasi tidak dikenal, lalu ketuk unduh dan instal lagi.",
+  "@earlyUpdateLastChecked": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "earlyUpdateLastChecked": "Terakhir dicek: {time}",
+  "@earlyUpdateCheckFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "earlyUpdateCheckFailed": "Cek pembaruan gagal: {error}",
+  "earlyUpdateDialogTitle": "Pembaruan Early tersedia",
+  "earlyUpdateReleaseNotes": "Catatan rilis",
+  "dismissAllNotifications": "Hapus semua",
+  "dismissByType": "Hapus menurut tipe",
+  "dismissTypeSystemAction": "Pengingat & acara",
+  "dismissTypeClarification": "Klarifikasi",
+  "dismissTypeCardUpdate": "Pembaruan kartu",
+  "dismissedCount": "{count} dihapus",
+  "@dismissedCount": {
+    "placeholders": {
+      "count": {}
+    }
+  }
+}
